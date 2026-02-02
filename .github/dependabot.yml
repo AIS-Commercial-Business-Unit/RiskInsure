@@ -1,0 +1,65 @@
+# Dependabot configuration for automated dependency updates
+# This helps keep dependencies secure and up-to-date
+# Documentation: https://docs.github.com/en/code-security/dependabot/dependabot-version-updates
+
+version: 2
+updates:
+  # Enable version updates for npm (if using Node.js/JavaScript)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "AIS-Commercial-Business-Unit/riskinsurecontributor"
+    labels:
+      - "dependencies"
+      - "security"
+
+  # Enable version updates for pip (if using Python)
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "AIS-Commercial-Business-Unit/riskinsurecontributor"
+    labels:
+      - "dependencies"
+      - "security"
+
+  # Enable version updates for NuGet (if using .NET)
+  - package-ecosystem: "nuget"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "AIS-Commercial-Business-Unit/riskinsurecontributor"
+    labels:
+      - "dependencies"
+      - "security"
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "AIS-Commercial-Business-Unit/riskinsurecontributor"
+    labels:
+      - "dependencies"
+      - "github-actions"
+
+  # Enable version updates for Docker (if using Docker)
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "AIS-Commercial-Business-Unit/riskinsurecontributor"
+    labels:
+      - "dependencies"
+      - "docker"

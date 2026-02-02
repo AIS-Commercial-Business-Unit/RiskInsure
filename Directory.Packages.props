@@ -1,0 +1,40 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- NServiceBus -->
+    <PackageVersion Include="NServiceBus" Version="10.0.0" />
+    <PackageVersion Include="NServiceBus.Transport.AzureServiceBus" Version="5.0.0" />
+    <PackageVersion Include="NServiceBus.Extensions.Hosting" Version="3.0.0" />
+    <PackageVersion Include="NServiceBus.Persistence.CosmosDB" Version="2.0.0" />
+    
+    <!-- Azure SDKs -->
+    <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.43.0" />
+    <PackageVersion Include="Azure.Messaging.ServiceBus" Version="7.18.0" />
+    <PackageVersion Include="Azure.Storage.Blobs" Version="12.22.0" />
+    <PackageVersion Include="Azure.Identity" Version="1.13.0" />
+    
+    <!-- ASP.NET Core / APIs -->
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
+    <PackageVersion Include="Swashbuckle.AspNetCore" Version="7.2.0" />
+    
+    <!-- Testing -->
+    <PackageVersion Include="xunit" Version="2.9.0" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageVersion Include="FluentAssertions" Version="7.0.0" />
+    <PackageVersion Include="Moq" Version="4.20.72" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.11.0" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.2" />
+    
+    <!-- Logging -->
+    <PackageVersion Include="Serilog" Version="4.1.0" />
+    <PackageVersion Include="Serilog.Sinks.Console" Version="6.0.0" />
+    <PackageVersion Include="Serilog.Sinks.ApplicationInsights" Version="4.0.0" />
+    <PackageVersion Include="Serilog.AspNetCore" Version="9.0.0" />
+    
+    <!-- Serialization -->
+    <PackageVersion Include="System.Text.Json" Version="10.0.0" />
+  </ItemGroup>
+</Project>

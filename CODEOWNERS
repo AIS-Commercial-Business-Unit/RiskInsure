@@ -1,0 +1,15 @@
+# CODEOWNERS file for RiskInsure
+# This file defines who is responsible for code review in this repository.
+# When a pull request is opened, the specified teams/users will be automatically requested for review.
+#
+# Documentation: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owners for everything in the repo
+# These owners will be requested for review when someone opens a pull request.
+* @AIS-Commercial-Business-Unit/riskinsurecontributor
+
+# You can add specific rules for different paths/files as needed:
+# Example: Specific paths or file types
+# /docs/ @AIS-Commercial-Business-Unit/documentation-team
+# *.sql @AIS-Commercial-Business-Unit/database-team
+# /.github/ @AIS-Commercial-Business-Unit/devops-team
