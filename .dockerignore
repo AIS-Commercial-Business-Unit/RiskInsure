@@ -1,0 +1,93 @@
+# Git and source control
+.git/
+.gitignore
+.gitattributes
+.github/
+
+# IDE and editor files
+.vs/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Build outputs
+**/bin/
+**/obj/
+**/out/
+**/publish/
+**/TestResults/
+
+# NuGet packages
+*.nupkg
+*.snupkg
+packages/
+.nuget/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Secrets and configuration
+**/appsettings.Development.json
+**/appsettings.*.json
+!**/appsettings.Development.json.template
+**/*.pfx
+**/*.p12
+**/*.key
+**/*.pem
+**/*.cer
+**/*.crt
+**/secrets/
+**/.env
+**/.env.*
+
+# Test coverage
+**/coverage/
+**/*.coverage
+**/*.coveragexml
+
+# Documentation (except README in project roots)
+**/*.md
+!README.md
+!CHANGELOG.md
+!SECURITY.md
+
+# Logs
+**/logs/
+**/*.log
+
+# Temporary files
+**/tmp/
+**/temp/
+**/.tmp/
+
+# Azure and deployment
+**/local.settings.json
+**/.azure/
+**/*.PublishSettings
+
+# Container-specific
+Dockerfile*
+.dockerignore
+docker-compose*.yml
+
+# OS files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Rider
+.idea/
+*.sln.iml
+
+# Visual Studio Code
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json

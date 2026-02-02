@@ -1,0 +1,59 @@
+# Multi-stage Dockerfile for ASP.NET Core Api projects
+# Optimized for Azure Container Apps deployment
+
+# Build stage
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+# Copy solution and project files
+COPY ["RiskInsure.slnx", "."]
+COPY ["Directory.Build.props", "."]
+COPY ["Directory.Packages.props", "."]
+
+# Copy PublicContracts (shared dependency)
+COPY ["platform/publiccontracts/RiskInsure.PublicContracts/RiskInsure.PublicContracts.csproj", "platform/publiccontracts/RiskInsure.PublicContracts/"]
+
+# Copy service projects (replace {ServiceName} with actual service name)
+# Example: services/billing/src/Domain/RiskInsure.Billing.Domain.csproj
+COPY ["services/{ServiceName}/src/Domain/*.csproj", "services/{ServiceName}/src/Domain/"]
+COPY ["services/{ServiceName}/src/Api/*.csproj", "services/{ServiceName}/src/Api/"]
+
+# Restore dependencies
+RUN dotnet restore "services/{ServiceName}/src/Api/*.csproj"
+
+# Copy remaining source code
+COPY ["platform/publiccontracts/", "platform/publiccontracts/"]
+COPY ["services/{ServiceName}/", "services/{ServiceName}/"]
+
+# Build and publish
+WORKDIR "/src/services/{ServiceName}/src/Api"
+RUN dotnet publish --no-restore -c Release -o /app/publish
+
+# Runtime stage
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+WORKDIR /app
+
+# Create non-root user for security
+RUN groupadd -r apiuser && useradd -r -g apiuser apiuser
+
+# Copy published application
+COPY --from=build /app/publish .
+
+# Set ownership
+RUN chown -R apiuser:apiuser /app
+
+# Switch to non-root user
+USER apiuser
+
+# Expose HTTP port (Container Apps will map this)
+EXPOSE 8080
+
+# Health check endpoint
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:8080/health || exit 1
+
+# Set ASP.NET Core to listen on port 8080 (non-root)
+ENV ASPNETCORE_URLS=http://+:8080
+
+# Run the application
+ENTRYPOINT ["dotnet", "RiskInsure.{ServiceName}.Api.dll"]

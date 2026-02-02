@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the standard project structure for a bounded context in the RiskInsure platform. Each bounded context follows a multi-layer architecture using NServiceBus messaging and Cosmos DB persistence, hosted in Azure Container Apps.
+This document describes the standard project structure for a bounded context in the platform. Each bounded context follows a multi-layer architecture using Azure Functions, NServiceBus messaging, and CosmosDB persistence.
 
 ## What is a Bounded Context?
 
@@ -13,15 +13,17 @@ A **bounded context** is a logical boundary around a specific business domain wi
 - **Message contracts**: Integration points via commands and events
 - **Independent deployment**: Can be deployed and scaled separately
 
+Anytime you see Endpoint.In in this document that is another way of saying an endpoint that processes messages off Azure Service Bus
+
 ## Project Structure
 
 ```
 DomainName/
 ├── src/
-│   ├── Api/                          # HTTP API endpoints 
+│   ├── Api/                          # HTTP API endpoints (Azure Functions)
 │   ├── Domain/                       # Core business logic and contracts
 │   ├── Infrastructure/               # Data access and external integrations
-│   └── Endpoint.In/                  # Inbound message processing
+│   └── Endpoint/                     # Inbound message processing
 ├── test/
 │   ├── Api.Tests/                    # API endpoint tests
 │   ├── Domain.Tests/                 # Business logic tests
@@ -45,15 +47,15 @@ DomainName/
 **Key Files**:
 ```
 Api/
-├── Controllers/
-│   ├── EntityController.cs              # Business operation endpoints
-│   └── QueryController.cs               # Query endpoints
+├── Functions/
+│   ├── EntityOperationFunction.cs       # Business operation endpoints
+│   └── QueryFunction.cs                 # Query endpoints
 ├── Models/
 │   ├── EntityRequest.cs                 # API request DTOs
 │   └── EntityResponse.cs                # API response DTOs
-├── Program.cs                           # Application startup and DI configuration
-├── appsettings.json                     # Application configuration
-├── appsettings.Development.json.template # Local settings template
+├── Program.cs                           # DI container configuration
+├── host.json                            # Azure Functions configuration
+├── local.settings.json.template         # Environment variables template
 └── Api.csproj                           # Project file
 ```
 
@@ -61,82 +63,90 @@ Api/
 - HTTP endpoint handling (REST API)
 - Request/response serialization
 - Basic format validation (required fields, data types)
-- Publishing commands to NServiceBus
+- **Synchronous work**: Call Domain managers directly (return 200/400/etc.)
+- **Asynchronous work**: Publish commands to NServiceBus (return 202 Accepted)
 - CORS configuration
 - Authentication/authorization
 
 **Dependencies**:
-- `Domain` → Message contracts and models
-- `Microsoft.AspNetCore.OpenApi`
+- `Domain` → Message contracts, managers, models
+- `Microsoft.Azure.Functions.Worker`
 - `NServiceBus.Extensions.DependencyInjection`
 
-**Anti-patterns to Avoid**:
-- ❌ Business logic in controllers (use handlers instead)
-- ❌ Direct database access (use commands)
+**Patterns**:
+- ✅ **Sync**: Api → Manager (Domain) → Services → Database → Return result
+- ✅ **Async**: Api → Publish Command → Return 202 → (Endpoint.In handles later)
+- ❌ Business logic in functions (delegate to managers)
 - ❌ Complex validation (belongs in domain)
 
 ---
 
 ### 2. Domain Layer
 
-**Purpose**: Core business logic, domain models, and message contracts. **Zero infrastructure dependencies**.
+**Purpose**: Core business logic, domain models, and message contracts, calls to dependant services
 
 **Key Files**:
 ```
 Domain/
 ├── Contracts/
 │   ├── Commands/
-│   │   ├── ExecuteBusinessOperation.cs  # Commands (imperative)
-│   │   └── ProcessEntity.cs
+│   │   ├── RegisterBeneficiaryCommand.cs    # Commands (imperative)
+│   │   └── UpdateBeneficiaryCommand.cs
 │   ├── Events/
-│   │   ├── OperationCompleted.cs        # Events (past tense)
-│   │   └── ValidationFailed.cs
-│   └── POCOs/
-│       └── EntityData.cs                # Plain data objects
+│   │   ├── BeneficiaryCreationSuccess.cs    # Events (past tense)
+│   │   └── BeneficiaryCreationFailed.cs
+│   └── IProvideCorrelationId.cs             # Shared interfaces
+├── DTOs/
+│   └── BeneficiaryRegistrationDto.cs        # Data transfer objects
+├── Managers/
+│   ├── IBeneficiaryManager.cs               # Manager interface
+│   ├── BeneficiaryManager.cs                # Manager implementation
+│   └── Services/
+│       └── BeneficiaryIntegrationDatabase.cs # Database service implementation
+├── Repositories/
+│   ├── IBeneficiaryRepository.cs            # Repository interface
+│   └── BeneficiaryRepository.cs             # Repository implementation (Cosmos DB)
 ├── Models/
-│   ├── Entity.cs                        # Core domain models
-│   ├── ValidationResult.cs
-│   └── EntityStatus.cs                  # Enumerations
-├── Services/
-│   ├── IValidator.cs                    # Service interfaces
-│   └── IProcessor.cs
-├── Exceptions/
-│   └── DomainException.cs               # Domain-specific exceptions
+│   ├── Beneficiary.cs                       # Domain models
+│   └── BeneficiaryDocument.cs               # Cosmos DB document models
 └── Domain.csproj
 ```
 
 **Responsibilities**:
 - Define message contracts (commands/events)
 - Define domain models and business entities
+- **Orchestrate business logic via Managers** (receive command → get data → update data → save data → publish event)
+- Implement concrete services under Managers (e.g., BeneficiaryIntegrationDatabase)
+- **Database access logic** (repositories using Cosmos DB)
 - Define validation rules and business logic
-- Define service interfaces (implemented elsewhere)
-- Define domain exceptions
-- **NO** infrastructure concerns
+- Define DTOs for data transfer
 
 **Dependencies**:
-- **NONE** - Pure domain logic only
-- .NET BCL types only
-- NServiceBus.Contracts (for serialization attributes)
+- .NET BCL types
+- NServiceBus.Contracts (for message contracts)
+- **Microsoft.Azure.Cosmos** (for database access)
+- Microsoft.Extensions.Logging (for logging)
 
 **Dependency Rule**:
 ```
 ❌ Domain CANNOT reference:
-   - Infrastructure, API, Endpoints
-   - Database SDKs (CosmosDB, EF Core)
-   - External service clients
-   - HTTP frameworks
+   - Infrastructure (except for initialization/configuration)
+   - API
+   - Endpoints
 
 ✅ Domain CAN reference:
    - .NET BCL (System.*)
-   - NServiceBus.Contracts attributes
+   - NServiceBus.Contracts
+   - Microsoft.Azure.Cosmos (database access)
+   - Microsoft.Extensions.Logging
 ```
 
 **Rationale**:
-- Pure business logic, technology-agnostic
-- Testable without infrastructure
-- Reusable across implementations
-- Changes to tech stack don't affect domain
-- Enables domain-driven design
+- **Layered architecture** (not Clean Architecture)
+- Managers orchestrate all business logic
+- Domain owns its data access (repositories)
+- Testable with emulators (Azurite, Cosmos DB Emulator)
+- Single layer for business logic and data access
 
 ---
 
@@ -147,230 +157,226 @@ Domain/
 **Key Files**:
 ```
 Infrastructure/
-├── Repositories/
-│   ├── IEntityRepository.cs             # Repository interface
-│   ├── EntityRepository.cs              # Implementation
-│   └── Models/
-│       └── EntityDocument.cs            # Database document model
-├── MessageHandlers/
-│   ├── CommandHandlers/
-│   │   └── ExecuteOperationHandler.cs   # Command handlers
-│   ├── EventHandlers/
-│   │   └── EntityProcessedHandler.cs    # Event handlers
-│   └── SignalRHandlers/
-│       └── ProgressNotificationHandler.cs # UI notifications (independent)
-├── Sagas/
-│   ├── BusinessProcessSaga.cs           # Workflow orchestration
-│   └── BusinessProcessSagaData.cs       # Saga state
-├── Services/
-│   ├── BusinessService.cs               # Service implementations
-│   └── ExternalServiceClient.cs         # External API clients
-├── Configuration/
-│   ├── DatabaseConfiguration.cs
-│   └── MessagingConfiguration.cs
+├── CosmosDbInitializer.cs               # Database initialization/setup
+├── NServiceBusConfigurationExtensions.cs # NServiceBus configuration helpers
+├── queues.ps1                           # Queue setup scripts
 └── Infrastructure.csproj
 ```
 
 **Responsibilities**:
-- Implement repository interfaces from Domain
-- Handle NServiceBus messages
-- Orchestrate workflows with sagas
-- Integrate with external services
-- Manage data persistence
-- Provide technical implementations
+- Database initialization and configuration (CosmosDbInitializer)
+- NServiceBus configuration extensions and helpers
+- Shared configuration code used across projects
+- Infrastructure setup scripts (queue creation, etc.)
+- **NO business logic, handlers, or sagas**
 
 **Dependencies**:
-- `Domain` → Contracts, models, interfaces
-- `Microsoft.Azure.Cosmos` (or other database SDK)
-- `NServiceBus`
-- External service SDKs
+- `Domain` → For shared types if needed
+- `Microsoft.Azure.Cosmos` (for initialization)
+- `NServiceBus` (for configuration extensions)
+- Configuration libraries
 
 **Key Patterns**:
-- **Repository Pattern**: Abstract data access
-- **Handler Pattern**: One handler per message
-- **Saga Pattern**: Long-running workflows
-- **Event-Driven**: Multiple handlers per event
-- **Separation**: SignalR/notifications independent of business logic
+- **Initialization Pattern**: Set up infrastructure before use
+- **Extension Methods**: Provide reusable configuration
+- **Shared Configuration**: Used by Api and Endpoint.In projects
 
 ---
 
-### 4. Endpoint.In Layer
+### 4. Endpoint.** Layer
 
 **Purpose**: NServiceBus hosting shell for message processing.
 
 **Key Files**:
 ```
-Endpoint.In/
-├── Program.cs                           # NServiceBus configuration and startup
-├── appsettings.json                     # Configuration settings
-├── appsettings.Development.json.template # Environment template
-└── Endpoint.In.csproj
+Endpoint.**/
+├── Handlers/
+│   └── CreateBeneficiaryCommandHandler.cs # Message handlers
+├── Sagas/
+│   ├── BulkBeneficiaryUploadSaga.cs       # Saga implementations
+│   └── BulkBeneficiaryUploadSagaData.cs   # Saga state
+├── Program.cs                             # NServiceBus + DI configuration
+├── host.json                              # Azure Functions config
+├── local.settings.json.template           # Environment template
+└── Endpoint.**.csproj
 ```
 
 **Responsibilities**:
-- Host message handlers from Infrastructure
-- Host sagas for workflow orchestration
+- **Contain message handlers** (Handlers folder)
+- **Contain sagas** for workflow orchestration (Sagas folder)
+- Handle messages and **delegate work to Domain managers**
 - Configure NServiceBus routing and transport
 - Configure saga persistence
 - Configure retry and error policies
-- Run as long-running process in Container Apps
+- Provide hosting environment (currently Azure Functions, future: Azure Container Apps/Docker)
 
 **Dependencies**:
-- `Domain` → Message contracts
-- `Infrastructure` → Handlers and sagas
+- `Domain` → Message contracts, managers, services
+- `Infrastructure` → Configuration helpers (CosmosDbInitializer, NServiceBus extensions)
 - `NServiceBus.Extensions.Hosting`
-- `Microsoft.Extensions.Hosting`
+- `Microsoft.Azure.Functions.Worker`
 
 **Important**: 
-- Contains **NO business logic**
-- Handlers live in Infrastructure
-- Configuration is primary responsibility
+- Handlers delegate to Domain managers for business logic
+- Handlers are thin - just message handling concerns
+- Business logic lives in Domain managers
 
 ---
 
 ## Dependency Flow Diagram
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                      API Layer                              │
-│  - HTTP endpoints                                           │
-│  - Request validation                                       │
-│  - Command publishing                                       │
-└───────────────────────────┬─────────────────────────────────┘
-                            │ NServiceBus Commands
-                            ↓
-┌─────────────────────────────────────────────────────────────┐
-│                   Endpoint.In Layer                         │
-│  - Hosts handlers                                           │
-│  - Hosts sagas                                              │
-│  - NServiceBus configuration                                │
-└───────────────────────────┬─────────────────────────────────┘
-                            │ Invokes handlers
-                            ↓
-┌─────────────────────────────────────────────────────────────┐
-│               Infrastructure Layer                          │
-│  - Message handlers                                         │
-│  - Sagas                                                    │
-│  - Repositories                                             │
-│  - External services                                        │
-└───────────────────────────┬─────────────────────────────────┘
-                            │ Uses contracts & interfaces
-                            ↓
-┌─────────────────────────────────────────────────────────────┐
-│                    Domain Layer                             │
-│  - Message contracts (Commands/Events)                      │
-│  - Domain models                                            │
-│  - Business rules                                           │
-│  - Service interfaces                                       │
-│  - ✅ NO EXTERNAL DEPENDENCIES                              │
-└─────────────────────────────────────────────────────────────┘
+                    ┌─────────────────────────────┐
+                    │       API Layer             │
+                    │  - HTTP endpoints           │
+                    │  - Request validation       │
+                    └──────┬──────────────┬───────┘
+                           │              │
+              Sync: Direct call      Async: Publish command
+                           │              │
+                           ↓              ↓
+┌──────────────────────────┴──┐    ┌─────────────────────────────┐
+│      Domain Layer           │    │   Endpoint.In Layer         │
+│  - Managers (orchestrate)   │    │  - Handlers (delegate)      │
+│  - Services (implement)     │←───│  - Sagas (orchestrate)      │
+│  - Repositories (data)      │    └─────────────────────────────┘
+│  - Message contracts        │              ↑
+│  - Models                   │              │ Uses config
+└─────────────┬───────────────┘              │
+              │                    ┌─────────┴───────────┐
+              │ Uses config        │ Infrastructure Layer│
+              └────────────────────│  - CosmosDbInit     │
+                                   │  - NServiceBus ext  │
+                                   └─────────────────────┘
 
-Dependency Direction: Always flows inward to Domain
+Flow Patterns:
+1. Sync:  Api → Manager → Services → Database → Return result
+2. Async: Api → Command → Endpoint.In (Handler) → Manager → Services → Database
+
+Dependency Direction:
 Api → Domain
-Infrastructure → Domain
-Endpoint.In → Infrastructure → Domain
+Endpoint.In → Domain + Infrastructure (config only)
+Infrastructure → Domain (for shared types)
 ```
 
 ---
 
 ## Dependency Rules
 
-### Rule 1: Domain Has Zero Dependencies
+### Rule 1: Domain Contains Business Logic, Data Access, and external services
 
 ```
 ✅ ALLOWED:
 - Reference .NET BCL (System.*)
 - Reference NServiceBus.Contracts
-- Define interfaces for other layers
+- Reference Microsoft.Azure.Cosmos (for repositories)
+- Reference Microsoft.Extensions.Logging
+- Contain Managers (orchestrate business logic)
+- Contain Services (concrete implementations)
+- Contain Repositories (database access)
+- HTTP Services
 
 ❌ FORBIDDEN:
 - Reference Infrastructure, API, Endpoints
-- Reference database SDKs
-- Reference external service clients
-- Reference HTTP frameworks
+- Reference external service clients (except database)
 ```
 
-**Why**: Pure business logic, testable without infrastructure, technology-agnostic.
+**Why**: Layered architecture (not Clean Architecture) - Domain owns business logic and data access, testable with emulators.
 
 ---
 
-### Rule 2: Infrastructure Depends ONLY on Domain
+### Rule 2: Infrastructure Provides Shared Configuration
 
 ```
-Infrastructure → Domain
+Infrastructure → Domain (for shared types if needed)
 
 ✅ ALLOWED:
-- Reference Domain contracts, models, interfaces
-- Reference database SDKs
-- Reference messaging frameworks
-- Implement Domain interfaces
+- Provide initialization code (CosmosDbInitializer)
+- Provide configuration extensions (NServiceBusConfigurationExtensions)
+- Reference Domain for shared types
+- Reference database/messaging SDKs for setup
 
 ❌ FORBIDDEN:
-- Reference API
-- Reference Endpoint.In
-- Direct references to other domains (use events)
+- Contain business logic
+- Contain handlers or sagas
+- Contain repositories
+- Reference API or Endpoint.In
 ```
 
-**Why**: Technical implementations separate from business logic, easy to swap technologies.
+**Why**: Shared configuration code reused by Api and Endpoint.In projects.
 
 ---
 
-### Rule 3: API Depends on Domain
+### Rule 3: API Depends on Domain (and optionally Infrastructure)
 
 ```
 Api → Domain
+Api → Infrastructure (for configuration helpers)
 
 ✅ ALLOWED:
-- Reference Domain contracts
-- Publish Domain commands
-- Use Domain models
+- Reference Domain contracts, managers, models
+- Call Domain managers directly (synchronous work)
+- Publish Domain commands (asynchronous work)
+- Reference Infrastructure for configuration
 
 ❌ FORBIDDEN:
 - Reference Endpoint.In
-- Contain business logic
-- Direct database access
+- Contain business logic (delegate to managers)
+- Direct database access (use managers/repositories)
 
-⚠️ PREFER:
-- Publish commands over direct calls
-- Keep API thin (HTTP concerns only)
+⚠️ CHOOSE PATTERN:
+- Sync work: Call manager, return result immediately
+- Async work: Publish command, return 202 Accepted
 ```
 
-**Why**: API is thin HTTP layer, business logic in handlers, decoupled processing.
+**Why**: API can do both synchronous (via managers) and asynchronous (via commands) work depending on requirements.
 
 ---
 
-### Rule 4: Endpoint.In Depends on Domain and Infrastructure
+### Rule 4: Endpoint.In Contains Handlers/Sagas, Depends on Domain and Infrastructure
 
 ```
 Endpoint.In → Domain
-Endpoint.In → Infrastructure
+Endpoint.In → Infrastructure (for configuration only)
 
 ✅ ALLOWED:
-- Reference Domain contracts
-- Reference Infrastructure handlers
-- Configure NServiceBus
-- Configure dependency injection
+- **Contain handlers** in Handlers folder
+- **Contain sagas** in Sagas folder
+- Reference Domain contracts and managers
+- Reference Infrastructure for configuration helpers
+- Configure NServiceBus and DI
+- Delegate work to Domain managers
 
 ❌ FORBIDDEN:
 - Reference API
-- Contain business logic
-- Contain handlers (they live in Infrastructure)
+- Contain business logic (delegate to managers)
+- Direct database access (use managers)
 ```
 
-**Why**: Hosting shell for message processing, configuration-focused.
+**Why**: Endpoint.In handles messages and delegates to Domain managers for business logic. Thin handlers keep message processing separate from business logic.
 
 ---
 
 ## Message Flow Patterns
 
-### Command Flow
+### Synchronous Flow (Direct Call)
+```
+1. Client sends HTTP request to API
+2. API validates format
+3. API calls Domain manager directly
+4. Manager orchestrates: get data → update → save → publish event
+5. API returns result immediately (200/400/etc.)
+```
+
+### Asynchronous Flow (Command Publishing)
 ```
 1. Client sends HTTP request to API
 2. API validates format and publishes Command
-3. NServiceBus routes Command to Endpoint.In
-4. Handler processes Command
-5. Handler publishes Event (success/failure)
-6. Other handlers process Event independently
+3. API returns 202 Accepted immediately
+4. NServiceBus routes Command to Endpoint.In
+5. Handler receives Command, delegates to Manager
+6. Manager orchestrates: get data → update → save → publish event
+7. Other handlers process Event independently
 ```
 
 ### Saga Orchestration Flow
@@ -425,30 +431,44 @@ Analytics Handler → Updates metrics
 
 ## Configuration Files
 
-### appsettings.Development.json.template
+### local.settings.json.template
 
 ```json
 {
-  "ConnectionStrings": {
-    "CosmosDb": "<<COSMOS_CONNECTION_STRING>>",
-    "ServiceBus": "<<ASB_CONNECTION_STRING>>"
-  },
-  "Logging": {
-    "LogLevel": {
-      "Default": "Information",
-      "Microsoft": "Warning",
-      "NServiceBus": "Information"
-    }
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+    "CosmosDb__ConnectionString": "<<COSMOS_CONNECTION_STRING>>",
+    "ServiceBus__ConnectionString": "<<ASB_CONNECTION_STRING>>"
   }
 }
 ```
 
 **⚠️ SECURITY**:
-- Never commit `appsettings.Development.json`
+- Never commit `local.settings.json`
 - Use templates with placeholders
 - Replace placeholders locally
 - Use Azure Key Vault for production
-- Use Managed Identity in Container Apps
+
+### host.json
+
+```json
+{
+  "version": "2.0",
+  "logging": {
+    "logLevel": {
+      "default": "Information",
+      "Microsoft": "Warning"
+    }
+  },
+  "extensions": {
+    "http": {
+      "routePrefix": "api"
+    }
+  }
+}
+```
 
 ---
 
@@ -494,7 +514,34 @@ public class CommandHandler : IHandleMessages<ExecuteCommand>
 }
 ```
 
-### 3. Saga Pattern
+### 3. Manager Pattern (Domain Orchestration)
+
+```csharp
+// Manager orchestrates business logic flow
+public class BeneficiaryManager : IBeneficiaryManager
+{
+    private readonly IBeneficiaryRepository _repository;
+    private readonly BeneficiaryIntegrationDatabase _database;
+    private readonly IMessageSession _messageSession;
+    
+    public async Task CreateBeneficiaryAsync(RegisterBeneficiaryCommand command)
+    {
+        // 1. Get data (if needed)
+        var existing = await _repository.GetByIdAsync(command.Id);
+        
+        // 2. Update/Create data
+        var beneficiary = new Beneficiary(command);
+        
+        // 3. Save data
+        await _database.SaveAsync(beneficiary);
+        
+        // 4. Publish event
+        await _messageSession.Publish(new BeneficiaryCreationSuccess());
+    }
+}
+```
+
+### 4. Saga Pattern
 
 ```csharp
 public class WorkflowSaga : Saga<SagaData>,
@@ -521,7 +568,7 @@ public class WorkflowSaga : Saga<SagaData>,
 }
 ```
 
-### 4. Event-Driven Pattern
+### 5. Event-Driven Pattern
 
 ```csharp
 // Multiple independent handlers for one event
@@ -549,43 +596,43 @@ public class NotificationHandler : IHandleMessages<EntityProcessed>
 
 ### Do's ✅
 
-1. **Keep Domain pure** - No infrastructure dependencies
-2. **Use interfaces** - Domain defines, Infrastructure implements
-3. **One handler per message** - Single responsibility
-4. **Separate concerns** - SignalR/notifications independent
-5. **Test at each layer** - Unit tests for domain, integration for infrastructure
-6. **Use commands for actions** - Events for notifications
-7. **Keep API thin** - Just HTTP concerns
-8. **Use sagas for workflows** - Maintain state across steps
-9. **Log appropriately** - Information for success, Warning for non-critical failures, Error for failures
-10. **Validate at boundaries** - API and domain both validate
+1. **Managers orchestrate** - Coordinate all business logic in Domain
+2. **Handlers delegate** - Thin handlers in Endpoint.In call Domain managers
+3. **Domain owns data** - Repositories in Domain layer (layered architecture)
+4. **Choose sync vs async** - Direct manager calls (sync) or publish commands (async)
+5. **One handler per message** - Single responsibility
+6. **Separate concerns** - SignalR/notifications independent
+7. **Test at each layer** - Unit tests for managers, integration for repositories
+8. **Use commands for actions** - Events for notifications
+9. **Use sagas for workflows** - Maintain state across steps
+10. **Log appropriately** - Information for success, Warning for non-critical failures, Error for failures
 
 ### Don'ts ❌
 
-1. **Don't put business logic in API** - Belongs in handlers
-2. **Don't reference infrastructure from domain** - Violates separation
-3. **Don't share data models** - Domain models ≠ Database documents
-4. **Don't ignore failures** - Throw in business handlers, catch in notification handlers
-5. **Don't commit secrets** - Use templates
-6. **Don't couple domains** - Use events for cross-domain communication
-7. **Don't create circular dependencies** - Always flow toward domain
-8. **Don't mix concerns** - Each layer has one job
-9. **Don't skip tests** - Especially domain tests
+1. **Don't put business logic in API** - Belongs in Domain managers
+2. **Don't put business logic in handlers** - Delegate to Domain managers
+3. **Don't put repositories in Infrastructure** - They belong in Domain
+4. **Don't confuse with Clean Architecture** - This is layered architecture
+5. **Don't ignore failures** - Throw in business handlers, catch in notification handlers
+6. **Don't commit secrets** - Use templates
+7. **Don't couple domains** - Use events for cross-domain communication
+8. **Don't create circular dependencies** - Api and Endpoint.In both depend on Domain
+9. **Don't skip tests** - Especially manager and repository tests
 10. **Don't overcomplicate** - Start simple, add complexity when needed
 
 ---
 
-## Local Development Ports
+## Port Assignment Convention
 
-For local development, use these port conventions:
+| Service | Port | Purpose |
+|---------|------|---------|
+| Domain API | 707X | HTTP endpoints (X = domain number) |
+| Domain Endpoint.In | 707Y | Message processing (Y = X + 3) |
 
-| Service | API Port | Notes |
-|---------|----------|-------|
-| Billing | 5001 | HTTP endpoints |
-| Payments | 5002 | HTTP endpoints |
-| FileIntegration | 5003 | HTTP endpoints |
-
-**Note**: Endpoint.In projects run as console apps and don't expose HTTP ports.
+Example:
+- Payments: API=7075, Endpoint=7074
+- Medical: API=7071, Endpoint=7072
+- Platform: API=7071, Endpoint=7072
 
 ---
 
@@ -619,9 +666,9 @@ mkdir -p DomainName/docs
 5. Write integration tests
 
 ### Step 5: Add API Layer
-1. Create ASP.NET Core controllers for HTTP endpoints
+1. Create Azure Functions for HTTP endpoints
 2. Map HTTP requests to commands
-3. Configure CORS and Swagger/OpenAPI
+3. Configure CORS
 4. Add basic validation
 5. Write API tests
 
@@ -647,10 +694,11 @@ mkdir -p DomainName/docs
 - **Flexibility** - Easy to swap implementations
 - **Maintainability** - Changes isolated to specific layers
 
-### Why Domain-Centric?
-- **Business logic is central** - Protected from technical concerns
-- **Pure and testable** - No infrastructure dependencies
-- **Reusable** - Same domain logic across different implementations
+### Why Domain-Centric with Layered Architecture?
+- **Business logic is central** - Managers orchestrate all work
+- **Layered architecture** - Domain contains business logic AND data access
+- **Testable with emulators** - Cosmos DB Emulator, Azurite for testing
+- **Managers coordinate** - Clear orchestration pattern
 - **Domain-driven design** - Business concepts directly in code
 
 ### Why Event-Driven?
@@ -660,30 +708,24 @@ mkdir -p DomainName/docs
 - **Scalability** - Process messages independently
 
 ### Why Separate Endpoints?
-- **Independent scaling** - Scale message processing separately in Container Apps with KEDA
+- **Independent scaling** - Scale message processing separately
 - **Clear responsibility** - Endpoint.In hosts handlers, that's it
-- **Deployment flexibility** - Deploy endpoints independently as containers
+- **Deployment flexibility** - Deploy endpoints independently
 - **Configuration isolation** - Different settings per endpoint
-
----
-
-## Additional Resources
-
-- **NServiceBus Patterns**: `Platform/docs/architecture/nservicebus-patterns.md`
-- **Saga Patterns**: `Platform/docs/architecture/saga-patterns.md`
-- **Testing Guide**: `Platform/docs/architecture/testing-guide.md`
-- **Validation Patterns**: `Platform/docs/architecture/validation-patterns.md`
 
 ---
 
 ## Conclusion
 
 This structure provides:
-- ✅ Clear separation of concerns
-- ✅ Testable architecture
-- ✅ Flexible, extensible design
-- ✅ Event-driven patterns
-- ✅ Domain-driven design
-- ✅ Independent deployments
+- ✅ **Layered architecture** (not Clean Architecture)
+- ✅ **Domain owns business logic, data access, and service dependency access with Interfaces for testing**
+- ✅ **Managers orchestrate** all business operations
+- ✅ **Handlers delegate** to Domain managers
+- ✅ **Infrastructure provides** shared configuration
+- ✅ **Flexible patterns**: Synchronous (direct calls) and Asynchronous (commands)
+- ✅ **Testable with emulators** (Cosmos DB, Azurite)
+- ✅ **Event-driven patterns** for decoupling
+- ✅ **Future-ready** (Docker container)
 
-Use this as a template for creating new bounded contexts in the RiskInsure platform.
+Use this as a template for creating new bounded contexts in the AcmeCorp platform.

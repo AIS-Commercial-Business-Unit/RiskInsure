@@ -1,2 +1,12 @@
 <Solution>
+  <Folder Name="/platform/" />
+  <Folder Name="/platform/publiccontracts/">
+    <Project Path="platform/RiskInsure.PublicContracts/RiskInsure.PublicContracts.csproj" />
+  </Folder>
+  <Folder Name="/services/" />
+  <Folder Name="/services/billing/" />
+  <Folder Name="/services/billing/src/">
+    <Project Path="services/billing/src/Domain/Domain.csproj" />
+    <Project Path="services/billing/src/Endpoint.In/Endpoint.In.csproj" />
+  </Folder>
 </Solution>

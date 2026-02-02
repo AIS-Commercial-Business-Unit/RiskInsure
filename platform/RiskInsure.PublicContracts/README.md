@@ -23,7 +23,6 @@ This project contains **public message contracts** that are shared across servic
 
 \\\
 Contracts/
-├── Commands/        # Imperative actions (e.g., ProcessPayment, CreateInvoice)
 ├── Events/          # Past-tense facts (e.g., PaymentProcessed, InvoiceCreated)
 └── POCOs/          # Plain data objects shared across services
 \\\

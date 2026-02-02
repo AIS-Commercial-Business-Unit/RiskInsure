@@ -1,0 +1,54 @@
+# Multi-stage Dockerfile for NServiceBus Endpoint.In projects
+# Optimized for Azure Container Apps deployment with KEDA scaling
+
+# Build stage
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+# Copy solution and project files
+COPY ["RiskInsure.slnx", "."]
+COPY ["Directory.Build.props", "."]
+COPY ["Directory.Packages.props", "."]
+
+# Copy PublicContracts (shared dependency)
+COPY ["platform/publiccontracts/RiskInsure.PublicContracts/RiskInsure.PublicContracts.csproj", "platform/publiccontracts/RiskInsure.PublicContracts/"]
+
+# Copy service projects (replace {ServiceName} with actual service name)
+# Example: services/billing/src/Domain/RiskInsure.Billing.Domain.csproj
+COPY ["services/{ServiceName}/src/Domain/*.csproj", "services/{ServiceName}/src/Domain/"]
+COPY ["services/{ServiceName}/src/Infrastructure/*.csproj", "services/{ServiceName}/src/Infrastructure/"]
+COPY ["services/{ServiceName}/src/Endpoint.In/*.csproj", "services/{ServiceName}/src/Endpoint.In/"]
+
+# Restore dependencies
+RUN dotnet restore "services/{ServiceName}/src/Endpoint.In/*.csproj"
+
+# Copy remaining source code
+COPY ["platform/publiccontracts/", "platform/publiccontracts/"]
+COPY ["services/{ServiceName}/", "services/{ServiceName}/"]
+
+# Build and publish
+WORKDIR "/src/services/{ServiceName}/src/Endpoint.In"
+RUN dotnet publish --no-restore -c Release -o /app/publish
+
+# Runtime stage
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+WORKDIR /app
+
+# Create non-root user for security
+RUN groupadd -r nservicebus && useradd -r -g nservicebus nservicebus
+
+# Copy published application
+COPY --from=build /app/publish .
+
+# Set ownership
+RUN chown -R nservicebus:nservicebus /app
+
+# Switch to non-root user
+USER nservicebus
+
+# Health check (if implementing IProvideHealthInfo)
+# HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+#   CMD curl -f http://localhost:8080/health || exit 1
+
+# NServiceBus endpoints are long-running console apps
+ENTRYPOINT ["dotnet", "RiskInsure.{ServiceName}.Endpoint.In.dll"]
