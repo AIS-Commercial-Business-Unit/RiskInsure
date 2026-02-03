@@ -113,21 +113,21 @@ jobs:
       #   ARM_CLIENT_SECRET: "your-client-secret"
 
       # Step 1: Terraform Format
-    - name: Terraform Format
-      run: |
-        terraform fmt -recursive
-        if [[ -n "$(git status --porcelain)" ]]; then
-          echo "Terraform files were reformatted. Committing changes..."
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add .
-          git commit -m "Apply terraform fmt"
-          git push
-          echo "format_changed=true" >> $GITHUB_ENV
-        else
-          echo "No formatting changes."
-          echo "format_changed=false" >> $GITHUB_ENV
-        fi
+    # # # - name: Terraform Format
+    # # #   run: |
+    # # #     terraform fmt -recursive
+    # # #     if [[ -n "$(git status --porcelain)" ]]; then
+    # # #       echo "Terraform files were reformatted. Committing changes..."
+    # # #       git config --global user.name "github-actions[bot]"
+    # # #       git config --global user.email "github-actions[bot]@users.noreply.github.com"
+    # # #       git add .
+    # # #       git commit -m "Apply terraform fmt"
+    # # #       git push
+    # # #       echo "format_changed=true" >> $GITHUB_ENV
+    # # #     else
+    # # #       echo "No formatting changes."
+    # # #       echo "format_changed=false" >> $GITHUB_ENV
+    # # #     fi
 
       # Step 2: Re-checkout branch if changes were pushed
     - name: Re-checkout updated code
