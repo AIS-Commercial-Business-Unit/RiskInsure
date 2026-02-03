@@ -66,8 +66,8 @@ resource "random_id" "vm-ca" {
 
 resource "azurerm_storage_account" "storage" {
   name                     = "bootdsk${lower(random_id.vm-sa.hex)}"
-  resource_group_name      = azurerm_resource_group.vmrg.name
-  location                 = azurerm_resource_group.vmrg.location
+  resource_group_name      = data.azurerm_resource_group.vmrg.name
+  location                 = data.azurerm_resource_group.vmrg.location
   access_tier              = "Cool"
   min_tls_version          = "TLS1_2"
   account_tier             = element(split("_", var.account_tier), 0)
