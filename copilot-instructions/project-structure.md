@@ -24,11 +24,7 @@ DomainName/
 │   ├── Domain/                       # Core business logic and contracts
 │   ├── Infrastructure/               # Data access and external integrations
 │   └── Endpoint/                     # Inbound message processing
-├── test/
-│   ├── Api.Tests/                    # API endpoint tests
-│   ├── Domain.Tests/                 # Business logic tests
-│   ├── Infrastructure.Tests/         # Repository and integration tests
-│   └── Endpoint.Tests/               # Message handler tests
+│   └── Test/                         # Test project for entire test. 
 ├── docs/                             # Domain documentation
 │   ├── validation-rules.md           # Business validation rules
 │   ├── architecture/                 # Architecture decisions

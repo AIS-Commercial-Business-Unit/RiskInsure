@@ -24,6 +24,13 @@ public interface IBillingAccountRepository
     Task<BillingAccount?> GetByCustomerIdAsync(string customerId, CancellationToken cancellationToken = default);
     
     /// <summary>
+    /// Retrieves all billing accounts
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of all billing accounts</returns>
+    Task<IEnumerable<BillingAccount>> GetAllAsync(CancellationToken cancellationToken = default);
+    
+    /// <summary>
     /// Creates a new billing account
     /// </summary>
     /// <param name="account">The billing account to create</param>
@@ -35,20 +42,6 @@ public interface IBillingAccountRepository
     /// </summary>
     /// <param name="account">The billing account to update</param>
     /// <param name="cancellationToken">Cancellation token</param>
-    /// <exception cref="InvalidOperationException">Thrown when ETag mismatch (concurrency conflict)</exception>
+    /// <exception cref="CosmosException">Thrown when ETag mismatch (PreconditionFailed status)</exception>
     Task UpdateAsync(BillingAccount account, CancellationToken cancellationToken = default);
-    
-    /// <summary>
-    /// Records a payment to a billing account atomically
-    /// </summary>
-    /// <param name="accountId">The account identifier</param>
-    /// <param name="amount">The payment amount to apply</param>
-    /// <param name="referenceNumber">Reference number from payment source</param>
-    /// <param name="cancellationToken">Cancellation token</param>
-    /// <returns>The updated billing account</returns>
-    Task<BillingAccount> RecordPaymentAsync(
-        string accountId, 
-        decimal amount, 
-        string referenceNumber, 
-        CancellationToken cancellationToken = default);
 }

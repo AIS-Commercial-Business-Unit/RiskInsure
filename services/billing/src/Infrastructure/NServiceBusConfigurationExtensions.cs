@@ -142,9 +142,11 @@ public static class NServiceBusConfigurationExtensions
         endpointConfiguration.AuditProcessedMessagesTo("audit");
         endpointConfiguration.AuditSagaStateChanges("audit");
 
-        // ServiceControl metrics
-        var metrics = endpointConfiguration.EnableMetrics();
-        metrics.SendMetricDataToServiceControl("particular.monitoring", TimeSpan.FromSeconds(10));
+        // ServiceControl metrics - disabled for send-only endpoints
+        // Note: Send-only endpoints (API) cannot send metrics
+        // Only enable for full endpoints (Endpoint.In) if ServiceControl is running
+        // var metrics = endpointConfiguration.EnableMetrics();
+        // metrics.SendMetricDataToServiceControl("particular.monitoring", TimeSpan.FromSeconds(10));
 
         // Message conventions (namespace-based)
         var conventions = endpointConfiguration.Conventions();

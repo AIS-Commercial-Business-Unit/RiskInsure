@@ -4,18 +4,78 @@
 
 This document defines the conventions and patterns for building RESTful HTTP APIs using ASP.NET Core. The API layer serves as the HTTP interface to the bounded context, handling requests and publishing commands to the message bus.
 
+## Controller Organization
+
+### One Manager Per Controller (Preferred Pattern)
+
+**Guideline**: Controllers SHOULD be organized around a single manager to maintain clear separation of concerns and improve maintainability.
+
+**Rationale**:
+- **Clear Responsibility**: Each controller has one focused business capability
+- **Easier Testing**: Simpler to mock and test with fewer dependencies
+- **Better Maintainability**: Changes to one capability don't affect others
+- **Logical Grouping**: Routes naturally align with business capabilities
+
+**Example Structure**:
+```
+Controllers/
+├── BillingAccountsController.cs    → IBillingAccountManager (account lifecycle)
+├── BillingPaymentsController.cs    → IBillingPaymentManager (payment recording)
+└── ProductsController.cs           → IProductManager (product operations)
+```
+
+**When Multiple Managers Are Acceptable**:
+- When managers represent closely related sub-capabilities of the same resource
+- When the controller serves as a thin facade with minimal logic
+- When explicitly confirmed as the intended design pattern
+- When refactoring would create unnecessary complexity
+
+**If you need multiple managers in one controller**, confirm this is intentional and document the rationale in code comments.
+
+**Example of Multiple Managers (with confirmation)**:
+```csharp
+/// <summary>
+/// Combined billing operations controller.
+/// NOTE: Uses multiple managers - BillingAccountManager for account lifecycle 
+/// and BillingPaymentManager for payment recording. This is intentional to 
+/// provide a unified /api/billing/* endpoint structure.
+/// </summary>
+[ApiController]
+[Route("api/billing")]
+public class BillingController : ControllerBase
+{
+    private readonly IBillingAccountManager _accountManager;
+    private readonly IBillingPaymentManager _paymentManager;
+    
+    // Endpoints clearly separated by concern...
+}
+```
+
+## Example Scenario
+
+Throughout this document, we use a **Product Catalog** domain as our example:
+- **Resource**: Products (items in a catalog)
+- **Operations**: Create, update, retrieve, delete products
+- **Domain Entities**: Product, Category, Inventory
+- **Sample Commands**: CreateProduct, UpdatePrice, AdjustInventory
+- **Sample Events**: ProductCreated, PriceChanged, InventoryAdjusted
+
+This is a generic scenario applicable across many domains. Replace "Product" with your domain entity (Order, Customer, Invoice, etc.).
+
 ## RESTful Design Principles
 
 ### Resource-Oriented URLs
-Use nouns, not verbs:
+Use nouns (resources), not verbs:
 ```
-✅ GET    /api/events/{id}
-✅ POST   /api/events
-✅ PUT    /api/events/{id}
-✅ DELETE /api/events/{id}
+✅ GET    /api/products            # List all products
+✅ GET    /api/products/{id}       # Get single product
+✅ POST   /api/products            # Create new product
+✅ PUT    /api/products/{id}       # Update entire product
+✅ PATCH  /api/products/{id}       # Partial update
+✅ DELETE /api/products/{id}       # Delete product
 
-❌ GET    /api/getEvent?id=123
-❌ POST   /api/createEvent
+❌ GET    /api/getProduct?id=123
+❌ POST   /api/createProduct
 ```
 
 ### HTTP Methods
@@ -52,27 +112,29 @@ Most operations use **fire-and-forget** with 202 Accepted:
 
 ```csharp
 [HttpPost]
-[Route("api/events")]
-public async Task<IActionResult> CreateEvent([FromBody] CreateEventRequest request)
+[Route("api/products")]
+public async Task<IActionResult> CreateProduct([FromBody] CreateProductRequest request)
 {
     // 1. Validate request format
     if (!ModelState.IsValid)
         return BadRequest(ModelState);
     
     // 2. Send command to message bus
-    await _messageSession.Send(new CreateEventCommand
+    await _messageSession.Send(new CreateProduct
     {
-        EventId = Guid.NewGuid(),
+        MessageId = Guid.NewGuid(),
+        OccurredUtc = DateTimeOffset.UtcNow,
+        ProductId = Guid.NewGuid(),
         Name = request.Name,
-        StartDate = request.StartDate,
-        EndDate = request.EndDate
+        Price = request.Price,
+        IdempotencyKey = $"create-product-{request.Name}"
     });
     
     // 3. Return 202 Accepted
     return Accepted(new 
     { 
-        message = "Event creation initiated",
-        eventId = eventId
+        message = "Product creation initiated",
+        productId = productId
     });
 }
 ```
@@ -93,19 +155,20 @@ Use synchronous responses only when:
 
 ```csharp
 [HttpGet]
-[Route("api/events/{id}")]
-public async Task<IActionResult> GetEvent(Guid id)
+[Route("api/products/{id}")]
+public async Task<IActionResult> GetProduct(Guid id)
 {
-    var evt = await _repository.GetByIdAsync(id);
+    var product = await _repository.GetByIdAsync(id);
     
-    if (evt == null)
+    if (product == null)
         return NotFound();
     
-    return Ok(new EventResponse
+    return Ok(new ProductResponse
     {
-        Id = evt.Id,
-        Name = evt.Name,
-        Status = evt.Status.ToString()
+        Id = product.Id,
+        Name = product.Name,
+        Price = product.Price,
+        Status = product.Status.ToString()
     });
 }
 ```
@@ -114,31 +177,32 @@ public async Task<IActionResult> GetEvent(Guid id)
 
 ### Request DTOs
 ```csharp
-// API/Models/CreateEventRequest.cs
-public class CreateEventRequest
+// API/Models/CreateProductRequest.cs
+public class CreateProductRequest
 {
     [Required]
     [StringLength(200)]
     public string Name { get; set; }
     
     [Required]
-    public DateTime StartDate { get; set; }
+    [Range(0.01, double.MaxValue)]
+    public decimal Price { get; set; }
     
-    [Required]
-    public DateTime EndDate { get; set; }
+    [StringLength(50)]
+    public string? Category { get; set; }
 }
 ```
 
 ### Response DTOs
 ```csharp
-// API/Models/EventResponse.cs
-public class EventResponse
+// API/Models/ProductResponse.cs
+public class ProductResponse
 {
     public Guid Id { get; set; }
     public string Name { get; set; }
+    public decimal Price { get; set; }
     public string Status { get; set; }
-    public DateTime StartDate { get; set; }
-    public DateTime EndDate { get; set; }
+    public string? Category { get; set; }
 }
 ```
 
@@ -148,6 +212,7 @@ public class EventResponse
 - Keep DTOs simple (no logic)
 - Use appropriate data types
 - Document with XML comments
+- **Client-Generated IDs**: Clients should generate resource IDs (GUIDs) to enable idempotency, cross-domain coordination, and client-side correlation
 
 ## Validation
 
@@ -156,18 +221,18 @@ public class EventResponse
 **Layer 1: API (Format Validation)**
 ```csharp
 [HttpPost]
-public async Task<IActionResult> CreateEvent([FromBody] CreateEventRequest request)
+public async Task<IActionResult> CreateProduct([FromBody] CreateProductRequest request)
 {
     // Automatic model validation
     if (!ModelState.IsValid)
         return BadRequest(ModelState);
     
     // Additional format checks
-    if (request.EndDate <= request.StartDate)
-        return BadRequest("End date must be after start date");
+    if (request.Price <= 0)
+        return BadRequest("Price must be greater than zero");
     
     // Send to message bus
-    await _messageSession.Send(new CreateEventCommand { /* ... */ });
+    await _messageSession.Send(new CreateProduct { /* ... */ });
     return Accepted();
 }
 ```
@@ -183,7 +248,7 @@ public async Task<IActionResult> CreateEvent([FromBody] CreateEventRequest reque
 {
   "errors": {
     "Name": ["The Name field is required."],
-    "EndDate": ["End date must be after start date"]
+    "Price": ["Price must be greater than zero"]
   }
 }
 ```
@@ -226,22 +291,22 @@ public class ApiExceptionFilter : IExceptionFilter
 
 ### URL-Based Versioning
 ```
-/api/v1/events
-/api/v2/events
+/api/v1/products
+/api/v2/products
 ```
 
 ### Implementation
 ```csharp
 [ApiController]
-[Route("api/v1/events")]
-public class EventsV1Controller : ControllerBase
+[Route("api/v1/products")]
+public class ProductsV1Controller : ControllerBase
 {
     // V1 endpoints
 }
 
 [ApiController]
-[Route("api/v2/events")]
-public class EventsV2Controller : ControllerBase
+[Route("api/v2/products")]
+public class ProductsV2Controller : ControllerBase
 {
     // V2 endpoints with breaking changes
 }
@@ -253,114 +318,43 @@ public class EventsV2Controller : ControllerBase
 - Create new version for breaking changes
 - Deprecate old versions gradually
 
-## Swagger/OpenAPI
-
-### Configuration
-```csharp
-// Program.cs
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Title = "Event Management API",
-        Version = "v1",
-        Description = "API for managing events in the AcmeTickets system"
-    });
-    
-    // Include XML comments
-    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-    c.IncludeXmlComments(xmlPath);
-});
-
-app.UseSwagger();
-app.UseSwaggerUI(c =>
-{
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Event Management API v1");
-});
-```
+## OpenAPI Documentation
 
 ### XML Documentation
 ```csharp
 /// <summary>
-/// Creates a new event
+/// Creates a new product
 /// </summary>
-/// <param name="request">Event details</param>
-/// <returns>Accepted response with event ID</returns>
-/// <response code="202">Event creation initiated</response>
+/// <param name="request">Product details</param>
+/// <returns>Accepted response with product ID</returns>
+/// <response code="202">Product creation initiated</response>
 /// <response code="400">Invalid request</response>
 [HttpPost]
 [ProducesResponseType(StatusCodes.Status202Accepted)]
 [ProducesResponseType(StatusCodes.Status400BadRequest)]
-public async Task<IActionResult> CreateEvent([FromBody] CreateEventRequest request)
+public async Task<IActionResult> CreateProduct([FromBody] CreateProductRequest request)
 {
     // Implementation
 }
 ```
 
+**Note**: For implementation details on configuring OpenAPI/Scalar, see `init.api.md`.
+
 ## Health Checks
 
-### Implementation
-```csharp
-// Program.cs
-builder.Services.AddHealthChecks()
-    .AddCheck("self", () => HealthCheckResult.Healthy())
-    .AddAzureServiceBusQueue(
-        builder.Configuration["ServiceBus:ConnectionString"],
-        queueName: "event-commands")
-    .AddCosmosDb(
-        builder.Configuration["CosmosDb:ConnectionString"],
-        database: "EventManagementDb");
-
-app.MapHealthChecks("/health");
-app.MapHealthChecks("/health/ready", new HealthCheckOptions
-{
-    Predicate = check => check.Tags.Contains("ready")
-});
-app.MapHealthChecks("/health/live", new HealthCheckOptions
-{
-    Predicate = check => check.Name == "self"
-});
-```
-
-### Health Check Endpoints
+### Endpoints
 - `/health`: Overall health
 - `/health/ready`: Readiness probe (dependencies available)
 - `/health/live`: Liveness probe (process running)
 
+**Note**: For implementation details on configuring health checks, see `init.api.md`.
+
 ## CORS Configuration
 
-### Development
-```csharp
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("Development", policy =>
-    {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
-    });
-});
+**Development**: Allow all origins, methods, headers
+**Production**: Restrict to specific origins with credentials
 
-app.UseCors("Development");
-```
-
-### Production
-```csharp
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("Production", policy =>
-    {
-        policy.WithOrigins("https://acmetickets.com")
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
-    });
-});
-
-app.UseCors("Production");
-```
+**Note**: For implementation details, see `init.api.md`.
 
 ## Authentication & Authorization
 
@@ -406,23 +400,22 @@ public async Task<IActionResult> DeleteEvent(Guid id)
 ### Request Logging
 ```csharp
 [HttpPost]
-public async Task<IActionResult> CreateEvent([FromBody] CreateEventRequest request)
+public async Task<IActionResult> CreateProduct([FromBody] CreateProductRequest request)
 {
     _logger.LogInformation(
-        "Creating event: {EventName} from {StartDate} to {EndDate}",
+        "Creating product: {ProductName} with price {Price}",
         request.Name, 
-        request.StartDate, 
-        request.EndDate);
+        request.Price);
     
     try
     {
         await _messageSession.Send(command);
-        _logger.LogInformation("Event creation command sent: {EventId}", eventId);
+        _logger.LogInformation("Product creation command sent: {ProductId}", productId);
         return Accepted();
     }
     catch (Exception ex)
     {
-        _logger.LogError(ex, "Failed to send event creation command");
+        _logger.LogError(ex, "Failed to send product creation command");
         throw;
     }
 }
@@ -438,24 +431,9 @@ public async Task<IActionResult> CreateEvent([FromBody] CreateEventRequest reque
 ## Content Negotiation
 
 ### JSON Default
-```csharp
-builder.Services.AddControllers()
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-        options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
-    });
-```
+Use camelCase for JSON properties. Ignore null values by default.
 
-### Multiple Formats (if needed)
-```csharp
-[HttpGet]
-[Produces("application/json", "application/xml")]
-public IActionResult GetEvent(Guid id)
-{
-    // Returns JSON or XML based on Accept header
-}
-```
+**Note**: For configuration details, see `init.api.md`.
 
 ## Rate Limiting
 
@@ -490,6 +468,8 @@ builder.Services.Configure<IpRateLimitOptions>(options =>
 8. Use DTOs (don't expose domain entities)
 9. Handle exceptions gracefully
 10. Version breaking API changes
+11. **Prefer one manager per controller for clarity and separation of concerns**
+12. **Use client-generated IDs (GUIDs) for resource creation** to enable idempotency, distributed coordination, and request correlation
 
 ### Don'ts ❌
 1. Don't include business logic in controllers
@@ -507,52 +487,56 @@ builder.Services.Configure<IpRateLimitOptions>(options =>
 
 ```csharp
 /// <summary>
-/// Creates a new event
+/// Creates a new product
 /// </summary>
 [HttpPost]
-[Route("api/events")]
-[ProducesResponseType(typeof(CreateEventResponse), StatusCodes.Status202Accepted)]
+[Route("api/products")]
+[ProducesResponseType(typeof(CreateProductResponse), StatusCodes.Status202Accepted)]
 [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
-public async Task<IActionResult> CreateEvent(
-    [FromBody] CreateEventRequest request,
+public async Task<IActionResult> CreateProduct(
+    [FromBody] CreateProductRequest request,
     CancellationToken cancellationToken)
 {
-    _logger.LogInformation("Received event creation request: {EventName}", request.Name);
+    _logger.LogInformation("Received product creation request: {ProductName}", request.Name);
     
     // Format validation
     if (!ModelState.IsValid)
     {
-        _logger.LogWarning("Invalid event creation request");
+        _logger.LogWarning("Invalid product creation request");
         return BadRequest(ModelState);
     }
     
-    if (request.EndDate <= request.StartDate)
+    if (request.Price <= 0)
     {
-        _logger.LogWarning("Invalid date range: End date must be after start date");
-        return BadRequest(new { error = "End date must be after start date" });
+        _logger.LogWarning("Invalid price: Price must be greater than zero");
+        return BadRequest(new { error = "Price must be greater than zero" });
     }
     
-    // Generate ID
-    var eventId = Guid.NewGuid();
+    // Generate ID and idempotency key
+    var productId = Guid.NewGuid();
+    var idempotencyKey = $"create-product-{request.Name}-{DateTimeOffset.UtcNow:yyyyMMdd}";
     
     // Send command
-    var command = new CreateEventCommand
+    var command = new CreateProduct
     {
-        EventId = eventId,
+        MessageId = Guid.NewGuid(),
+        OccurredUtc = DateTimeOffset.UtcNow,
+        ProductId = productId,
         Name = request.Name,
-        StartDate = request.StartDate,
-        EndDate = request.EndDate
+        Price = request.Price,
+        Category = request.Category,
+        IdempotencyKey = idempotencyKey
     };
     
     await _messageSession.Send(command, cancellationToken);
     
-    _logger.LogInformation("Event creation command sent: {EventId}", eventId);
+    _logger.LogInformation("Product creation command sent: {ProductId}", productId);
     
     // Return 202 Accepted
-    return Accepted(new CreateEventResponse
+    return Accepted(new CreateProductResponse
     {
-        EventId = eventId,
-        Message = "Event creation initiated"
+        ProductId = productId,
+        Message = "Product creation initiated"
     });
 }
 ```
@@ -561,23 +545,23 @@ public async Task<IActionResult> CreateEvent(
 
 ### Integration Tests
 ```csharp
-public class EventsControllerTests : IClassFixture<WebApplicationFactory<Program>>
+public class ProductsControllerTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly HttpClient _client;
     
     [Fact]
-    public async Task CreateEvent_ValidRequest_Returns202()
+    public async Task CreateProduct_ValidRequest_Returns202()
     {
         // Arrange
-        var request = new CreateEventRequest
+        var request = new CreateProductRequest
         {
-            Name = "Test Event",
-            StartDate = DateTime.UtcNow,
-            EndDate = DateTime.UtcNow.AddDays(7)
+            Name = "Test Product",
+            Price = 99.99m,
+            Category = "Electronics"
         };
         
         // Act
-        var response = await _client.PostAsJsonAsync("/api/events", request);
+        var response = await _client.PostAsJsonAsync("/api/products", request);
         
         // Assert
         Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);

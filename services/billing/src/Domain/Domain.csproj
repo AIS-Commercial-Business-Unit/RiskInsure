@@ -8,5 +8,11 @@
     <PackageReference Include="Microsoft.Azure.Cosmos" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="Newtonsoft.Json" />
+    <PackageReference Include="NServiceBus" />
+  </ItemGroup>
+
+  <!-- Public Contracts for event publishing -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\platform\RiskInsure.PublicContracts\RiskInsure.PublicContracts.csproj" />
   </ItemGroup>
 </Project>

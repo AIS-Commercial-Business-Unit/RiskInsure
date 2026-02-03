@@ -73,6 +73,28 @@ public class BillingAccountRepository : IBillingAccountRepository
         return null;
     }
 
+    public async Task<IEnumerable<BillingAccount>> GetAllAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var query = new QueryDefinition(
+            "SELECT * FROM c WHERE c.type = 'BillingAccount'");
+
+        var iterator = _container.GetItemQueryIterator<BillingAccountDocument>(query);
+        var accounts = new List<BillingAccount>();
+        
+        while (iterator.HasMoreResults)
+        {
+            var response = await iterator.ReadNextAsync(cancellationToken);
+            accounts.AddRange(response.Select(MapToDomain));
+        }
+
+        _logger.LogInformation(
+            "Retrieved {Count} billing accounts",
+            accounts.Count);
+        
+        return accounts;
+    }
+
     public async Task CreateAsync(
         BillingAccount account, 
         CancellationToken cancellationToken = default)
@@ -113,71 +135,7 @@ public class BillingAccountRepository : IBillingAccountRepository
             account.AccountId);
     }
 
-    public async Task<BillingAccount> RecordPaymentAsync(
-        string accountId,
-        decimal amount,
-        string referenceNumber,
-        CancellationToken cancellationToken = default)
-    {
-        const int maxRetries = 3;
-        var attempt = 0;
 
-        while (attempt < maxRetries)
-        {
-            try
-            {
-                // Get current account state
-                var account = await GetByAccountIdAsync(accountId, cancellationToken);
-                if (account == null)
-                {
-                    throw new InvalidOperationException(
-                        $"BillingAccount {accountId} not found");
-                }
-
-                // Apply payment
-                account.TotalPaid += amount;
-                account.LastUpdatedUtc = DateTimeOffset.UtcNow;
-
-                // Save with optimistic concurrency
-                await UpdateAsync(account, cancellationToken);
-
-                _logger.LogInformation(
-                    "Recorded payment {Amount} for account {AccountId} (ref: {ReferenceNumber}). TotalPaid: {TotalPaid}, Outstanding: {Outstanding}",
-                    amount,
-                    accountId,
-                    referenceNumber,
-                    account.TotalPaid,
-                    account.OutstandingBalance);
-
-                return account;
-            }
-            catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.PreconditionFailed)
-            {
-                attempt++;
-                if (attempt >= maxRetries)
-                {
-                    _logger.LogError(
-                        "Failed to record payment after {Retries} retries due to concurrency conflicts for account {AccountId}",
-                        maxRetries,
-                        accountId);
-                    throw new InvalidOperationException(
-                        $"Failed to update account {accountId} after {maxRetries} retries due to concurrent modifications",
-                        ex);
-                }
-
-                _logger.LogWarning(
-                    "Concurrency conflict on attempt {Attempt} for account {AccountId}, retrying...",
-                    attempt,
-                    accountId);
-
-                // Exponential backoff
-                await Task.Delay(100 * attempt, cancellationToken);
-            }
-        }
-
-        throw new InvalidOperationException(
-            $"Failed to record payment for account {accountId}");
-    }
 
     private static BillingAccount MapToDomain(BillingAccountDocument document)
     {
@@ -186,9 +144,15 @@ public class BillingAccountRepository : IBillingAccountRepository
             AccountId = document.AccountId,
             CustomerId = document.CustomerId,
             PolicyNumber = document.PolicyNumber,
+            PolicyHolderName = document.PolicyHolderName ?? "Unknown",
+            CurrentPremiumOwed = document.CurrentPremiumOwed,
             TotalPremiumDue = document.TotalPremiumDue,
             TotalPaid = document.TotalPaid,
             Status = Enum.Parse<BillingAccountStatus>(document.Status),
+            BillingCycle = Enum.TryParse<BillingCycle>(document.BillingCycle, out var cycle) 
+                ? cycle 
+                : BillingCycle.Monthly,
+            EffectiveDate = document.EffectiveDate,
             CreatedUtc = document.CreatedUtc,
             LastUpdatedUtc = document.LastUpdatedUtc,
             ETag = document.ETag
@@ -204,9 +168,13 @@ public class BillingAccountRepository : IBillingAccountRepository
             Type = "BillingAccount",
             CustomerId = account.CustomerId,
             PolicyNumber = account.PolicyNumber,
+            PolicyHolderName = account.PolicyHolderName,
+            CurrentPremiumOwed = account.CurrentPremiumOwed,
             TotalPremiumDue = account.TotalPremiumDue,
             TotalPaid = account.TotalPaid,
             Status = account.Status.ToString(),
+            BillingCycle = account.BillingCycle.ToString(),
+            EffectiveDate = account.EffectiveDate,
             CreatedUtc = account.CreatedUtc,
             LastUpdatedUtc = account.LastUpdatedUtc,
             ETag = account.ETag

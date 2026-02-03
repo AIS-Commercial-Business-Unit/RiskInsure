@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using NServiceBus;
+using RiskInsure.Billing.Domain.Managers;
 using RiskInsure.Billing.Domain.Services.BillingDb;
 using Serilog;
 using Infrastructure;
@@ -33,6 +34,10 @@ try
 
             // Register repositories
             services.AddSingleton<IBillingAccountRepository, BillingAccountRepository>();
+
+            // Register managers
+            services.AddScoped<IBillingPaymentManager, BillingPaymentManager>();
+            services.AddScoped<IBillingAccountManager, BillingAccountManager>();
         })
         .Build();
 

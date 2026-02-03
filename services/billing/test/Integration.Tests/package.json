@@ -1,0 +1,16 @@
+{
+  "name": "billing-integration-tests",
+  "version": "1.0.0",
+  "description": "Playwright integration tests for Billing API",
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:report": "playwright show-report",
+    "test:ui": "playwright test --ui"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0",
+    "@types/node": "^22.0.0"
+  }
+}
