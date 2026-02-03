@@ -84,25 +84,20 @@ jobs:
     permissions:
       id-token: write # REQUIRED for OIDC
       contents: write # For pushing terraform fmt changes
-    env:
-       TOKEN_GITHUB: ${{ secrets.TOKEN_GITHUB }}
-       TF_VAR_client_id: ${{ secrets.TF_CLIENT_ID }}
-       TF_VAR_subscription_id: ${{ secrets.TF_SUB_ID }}
-       TF_VAR_tenant_id: ${{ secrets.TF_TENANT_ID }}
-       ARM_USE_OIDC: true
-
-    # Use the Bash shell regardless of whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
+    
+    # Use the Bash shell and set working directory to platform/infra
     defaults:
       run:
         shell: bash
+        working-directory: platform/infra
 
     steps:
     # Checkout the repository to the GitHub Actions runner
     - name: Checkout
       uses: actions/checkout@v4
       with:
-        repository: dracman65/tf-wkflw-gitact-odic-3 # Required for Private Repos
-        token: ${{ secrets.MY_PAT }} # Required for Private Repos
+        repository: AIS-Commercial-Business-Unit/RiskInsure 
+      #  token: ${{ secrets.MY_PAT }} # Required for Private Repos
       # If you want to use a specific branch, uncomment the following lines:
       #   ref: main
 
@@ -147,9 +142,9 @@ jobs:
       run: terraform init
       env:
           ARM_USE_OIDC: true
-          ARM_CLIENT_ID: ${{ secrets.TF_CLIENT_ID }}
-          ARM_TENANT_ID: ${{ secrets.TF_TENANT_ID }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.TF_SUB_ID }}
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
     # Checks that all Terraform configuration files adhere to a canonical format
     # - name: Terraform Format
@@ -172,9 +167,9 @@ jobs:
       run: terraform plan
       env:
           ARM_USE_OIDC: true
-          ARM_CLIENT_ID: ${{ secrets.TF_CLIENT_ID }}
-          ARM_TENANT_ID: ${{ secrets.TF_TENANT_ID }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.TF_SUB_ID }}
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
     # On push to main, build or change infrastructure according to Terraform configuration files.
         
