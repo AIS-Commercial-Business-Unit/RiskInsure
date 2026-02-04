@@ -1,18 +1,11 @@
 # Azure Provider
 provider "azurerm" {
-
-  # Uncomment if using from local terminal.
-  # subscription_id = "6e83f8e1-bcf9-4cf5-8eb2-c9585391d4ee"
-  # tenant_id       = "fa3f5c87-6b26-4240-9f12-c4679a19fed9"
-
   features {}
-
-  # Uncomment if using in pipeline.
-  subscription_id = var.subscription_id
-  client_id       = var.client_id
-  #client_secret   = var.client_secret
-  tenant_id = var.tenant_id
-
+  
+  # For local development: subscription_id can be hardcoded or set via Azure CLI
+  # For GitHub Actions: ARM_SUBSCRIPTION_ID environment variable is used automatically
+  # Uncomment below for local development if Azure CLI doesn't work:
+  # subscription_id = "c4fb1c99-fb99-4dc1-9926-a3a4356fd44a"
 }
 # Azure Provider with backend
 # provider "azurerm" {

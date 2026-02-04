@@ -34,7 +34,14 @@ variable "SubCommand" {
 }
 
 ## GitActions TF Variables - Matched to GitHub Secrets
-variable "client_id" {}
-#variable "client_secret" {}
-variable "subscription_id" {}
-variable "tenant_id" {}
+## Optional for local development (uses Azure CLI)
+## Required for GitHub Actions (set via environment variables)
+variable "client_id" {
+  default = ""
+}
+variable "subscription_id" {
+  default = ""
+}
+variable "tenant_id" {
+  default = ""
+}
