@@ -12,7 +12,7 @@ This repository implements an **event-driven architecture** with:
 
 ## 📁 Repository Structure
 
-\\\
+```
 RiskInsure/
 ├── platform/                    # Cross-cutting concerns
 │   ├── publiccontracts/         # Shared message contracts (events/commands)
@@ -26,7 +26,7 @@ RiskInsure/
 │   ├── constitution.md          # Non-negotiable architectural principles
 │   └── project-structure.md     # Bounded context template
 └── scripts/                     # Automation scripts
-\\\
+```
 
 ## 🚀 Getting Started
 
@@ -40,25 +40,25 @@ RiskInsure/
 ### First-Time Setup
 
 1. **Clone the repository**
-   \\\ash
+   ```bash
    git clone https://github.com/your-org/RiskInsure.git
    cd RiskInsure
-   \\\
+   ```
 
 2. **Restore dependencies**
-   \\\ash
+   ```bash
    dotnet restore
-   \\\
+   ```
 
 3. **Build the solution**
-   \\\ash
+   ```bash
    dotnet build
-   \\\
+   ```
 
 4. **Run tests**
-   \\\ash
+   ```bash
    dotnet test
-   \\\
+   ```
 
 ### Creating Your First Service
 
