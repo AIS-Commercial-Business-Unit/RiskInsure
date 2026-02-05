@@ -1,68 +1,219 @@
 # GitHub Copilot Instructions for RiskInsure
 
+**Event-driven .NET 10 monorepo** | **NServiceBus 9.x + Azure Cosmos DB + Container Apps**
+
+## Critical First Steps
+
+1. **Read the Constitution**: [copilot-instructions/constitution.md](../copilot-instructions/constitution.md) contains non-negotiable architectural rules
+2. **Understand Project Structure**: [copilot-instructions/project-structure.md](../copilot-instructions/project-structure.md) defines the multi-layer template
+3. **Check Domain Standards**: Each service may have `docs/domain-specific-standards.md` (e.g., [FileIntegration standards](../platform/fileintegration/docs/filerun-processing-standards.md))
+
+---
+
 ## Repository Structure
 
-RiskInsure is a monorepo with two top-level organizational folders:
+```
+RiskInsure/
+├── platform/                         # Shared infrastructure
+│   ├── RiskInsure.PublicContracts/   # Cross-service message contracts
+│   ├── fileintegration/contracts/    # ACH/NACHA processing contracts
+│   ├── infra/                        # Terraform templates
+│   └── templates/                    # Dockerfile.api, Dockerfile.endpoint
+├── services/                         # Business domains (bounded contexts)
+│   ├── billing/                      # Example: Billing service
+│   │   ├── src/
+│   │   │   ├── Api/                  # HTTP endpoints (port 7071)
+│   │   │   ├── Domain/               # Pure business logic, contracts, managers
+│   │   │   ├── Infrastructure/       # NServiceBus config, Cosmos setup
+│   │   │   └── Endpoint.In/          # Message handlers (NServiceBus host)
+│   │   └── test/
+│   │       ├── Unit.Tests/           # xUnit tests
+│   │       └── Integration.Tests/    # Playwright API tests (npm)
+│   └── payments/                     # Add new services here
+├── copilot-instructions/             # Architecture governance (19 files)
+├── Directory.Build.props             # Global MSBuild config (net10.0, nullable)
+├── Directory.Packages.props          # Centralized NuGet versions (CPM)
+├── GlobalUsings.cs                   # Auto-imported namespaces
+└── RiskInsure.slnx                   # XML solution file (VS 2025)
+```
 
-- **`platform/`** - Cross-cutting concerns, shared contracts, infrastructure templates, and UI components
-- **`services/`** - Business-specific bounded contexts (e.g., Billing, Payments, FileIntegration)
-
-Each service in `services/` follows the multi-layer architecture defined in [copilot-instructions/project-structure.md](../copilot-instructions/project-structure.md).
+**Key Insight**: Each service is a **bounded context** with its own API, Domain, Infrastructure, and Endpoint.In projects.
 
 ---
 
 ## Architecture Principles
 
-**Primary Reference**: See [copilot-instructions/constitution.md](../copilot-instructions/constitution.md) for non-negotiable architectural rules.
+**Primary Reference**: [copilot-instructions/constitution.md](../copilot-instructions/constitution.md)
 
 ### Core Patterns
 
-- **Event-Driven Architecture**: Services integrate through Azure Service Bus messages (commands and events)
-- **Message-Based Integration**: NServiceBus 10 for all inter-service communication
-- **Single-Partition Data Model**: Cosmos DB containers partitioned by processing unit (e.g., `/fileRunId`, `/orderId`)
-- **Thin Message Handlers**: Validate input → delegate to domain service → publish events
-- **Idempotent Operations**: All handlers safe to retry/replay
-- **Domain-Centric**: Pure domain layer with zero infrastructure dependencies
+- **Event-Driven Architecture**: Services integrate via Azure Service Bus (NServiceBus 9.x)
+- **Message-Based Integration**: Commands (imperative) and Events (past-tense) as C# records
+- **Single-Partition Cosmos DB**: One container per domain, partitioned by processing unit (`/fileRunId`, `/orderId`)
+- **Thin Message Handlers**: Validate → call Domain manager → publish events (no business logic in handlers)
+- **Idempotent Operations**: All handlers safe to retry (check existing state before creating)
+- **Manager Pattern**: Domain managers orchestrate business logic (Domain layer owns data access)
+
 
 ---
 
 ## Technology Stack
 
 ### Required Versions
-- **.NET**: 10.0
-- **C#**: 13 with nullable reference types enabled
-- **NServiceBus**: 10.x
-- **xUnit**: Latest for testing
+- **.NET**: 10.0 (LangVersion: latest, C# 13)
+- **NServiceBus**: 9.2.6 (not 10.x yet)
+- **Cosmos Persistence**: 3.1.2
+- **xUnit**: 2.9.0
+
+### Centralized Package Management (CPM)
+- All package versions in [Directory.Packages.props](../Directory.Packages.props)
+- `<ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>` in [Directory.Build.props](../Directory.Build.props)
+- Projects reference packages **without** version numbers: `<PackageReference Include="NServiceBus" />`
 
 ### Azure Services
-- **Azure Cosmos DB**: Primary data store (NoSQL)
-- **Azure Service Bus**: Message transport
+- **Azure Cosmos DB**: Primary data store (NoSQL, single-partition strategy)
+- **Azure Service Bus**: Message transport (Standard SKU for dev)
 - **Azure Container Apps**: NServiceBus endpoint hosting with KEDA scaling
-- **Azure Logic Apps Standard**: Orchestration workflows and operational glue
+- **Azure Logic Apps Standard**: Orchestration workflows
 - **Azure Blob Storage**: Large payload storage
+
 
 ---
 
-## Project Structure
+## Developer Workflows
 
-Each service follows a consistent multi-layer architecture:
+### Local Development Setup
 
+**Prerequisites**: .NET 10 SDK, Docker Desktop, Azure CLI
+
+```powershell
+# 1. Clone and build
+git clone <repo-url>
+cd RiskInsure
+dotnet restore
+dotnet build
+dotnet test
+
+# 2. Start Cosmos DB Emulator (Docker)
+docker run -p 8081:8081 -p 10251-10254:10251-10254 `
+  --name cosmos-emulator `
+  -e AZURE_COSMOS_EMULATOR_PARTITION_COUNT=10 `
+  mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest
+
+# 3. Create Azure Service Bus namespace (one-time)
+az servicebus namespace create `
+  --resource-group riskinsure-dev `
+  --name riskinsure-dev-bus `
+  --location eastus `
+  --sku Standard
+
+# 4. Get connection string
+az servicebus namespace authorization-rule keys list `
+  --resource-group riskinsure-dev `
+  --namespace-name riskinsure-dev-bus `
+  --name RootManageSharedAccessKey `
+  --query primaryConnectionString -o tsv
 ```
-services/
-└── ServiceName/                    # Domain name (e.g., Billing, Payments)
-    ├── src/
-    │   ├── Api/                    # HTTP endpoints
-    │   ├── Domain/                 # Pure business logic, message contracts
-    │   ├── Infrastructure/         # Handlers, repositories, sagas
-    │   └── Endpoint.In/            # NServiceBus hosting shell
-    ├── test/
-    │   ├── Api.Tests/
-    │   ├── Domain.Tests/
-    │   ├── Infrastructure.Tests/
-    │   └── Endpoint.Tests/
-    └── docs/
-        └── domain-specific-standards.md
+
+### Configuration Files
+
+**Every service needs** `appsettings.Development.json` (ignored by Git):
+
+```json
+{
+  "ConnectionStrings": {
+    "CosmosDb": "AccountEndpoint=https://localhost:8081/;AccountKey=C2y6yDjf5...",
+    "ServiceBus": "Endpoint=sb://riskinsure-dev-bus.servicebus.windows.net/..."
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "NServiceBus": "Information"
+    }
+  }
+}
 ```
+
+**Template files** (`.template` suffix) show required structure - copy and fill in secrets.
+
+### Running Services Locally
+
+```powershell
+# Terminal 1: API (HTTP endpoints)
+cd services/billing/src/Api
+dotnet run
+# Listens on http://localhost:7071
+
+# Terminal 2: Endpoint.In (Message handlers)
+cd services/billing/src/Endpoint.In
+dotnet run
+# Processes messages from Service Bus
+```
+
+**Port Convention**: Each service uses `707X` for API, `707X+1` for Endpoint.In (Billing: 7071/7072).
+
+### Integration Testing (Playwright)
+
+**API tests** use Playwright (Node.js) - **NOT** .NET:
+
+```bash
+# First-time setup
+cd services/billing/test/Integration.Tests
+npm install
+npx playwright install chromium
+
+# Run tests (requires API running on localhost:7071)
+npm test                  # Headless
+npm run test:ui          # Interactive UI (recommended)
+npm run test:headed      # Browser visible
+npm run test:debug       # Step-through debugger
+npm run test:report      # View results
+```
+
+**Critical**: Start the API (`dotnet run` in Api project) before running tests.
+
+### Adding Projects to Solution
+
+**Always use XML solution format** (`.slnx`):
+
+```powershell
+# Add new project
+dotnet sln RiskInsure.slnx add services/newservice/src/Api/Api.csproj
+dotnet sln RiskInsure.slnx add services/newservice/src/Domain/Domain.csproj
+# Repeat for Infrastructure, Endpoint.In, Test projects
+
+# List projects
+dotnet sln RiskInsure.slnx list
+```
+
+### NServiceBus Configuration Pattern
+
+**All endpoints** use the `NServiceBusEnvironmentConfiguration` extension (see [Infrastructure/NServiceBusConfigurationExtensions.cs](../services/billing/src/Infrastructure/NServiceBusConfigurationExtensions.cs)):
+
+```csharp
+var host = Host.CreateDefaultBuilder(args)
+    .UseSerilog()
+    .NServiceBusEnvironmentConfiguration("RiskInsure.Billing.Endpoint")
+    .ConfigureServices((context, services) =>
+    {
+        // Register Cosmos container, repositories, managers
+    })
+    .Build();
+```
+
+**Development mode** (automatic):
+- Uses connection strings from `appsettings.Development.json`
+- Disables retries (faster dev cycle)
+- Enables installers (auto-creates queues)
+
+**Production mode** (automatic):
+- Uses Managed Identity (`DefaultAzureCredential`)
+- Configures retry policies
+- Requires `AzureServiceBus:FullyQualifiedNamespace` and `CosmosDb:Endpoint` config
+
+---
+
+## Project Structure Template
 
 **See**: [copilot-instructions/project-structure.md](../copilot-instructions/project-structure.md) for complete structure and layer responsibilities.
 
@@ -407,3 +558,4 @@ Each service MAY define domain-specific standards in `docs/domain-specific-stand
 - ✅ Verify test coverage meets thresholds
 - ✅ Check naming conventions
 - ✅ Ensure no prohibited technologies used
+

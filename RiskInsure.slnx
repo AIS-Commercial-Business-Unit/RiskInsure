@@ -9,4 +9,14 @@
     <Project Path="services/billing/src/Domain/Domain.csproj" />
     <Project Path="services/billing/src/Endpoint.In/Endpoint.In.csproj" />
   </Folder>
+  <Folder Name="/services/fundstransfermgt/" />
+  <Folder Name="/services/fundstransfermgt/src/">
+    <Project Path="services/fundstransfermgt/src/Api/Api.csproj" />
+    <Project Path="services/fundstransfermgt/src/Domain/Domain.csproj" />
+    <Project Path="services/fundstransfermgt/src/Endpoint.In/Endpoint.In.csproj" />
+    <Project Path="services/fundstransfermgt/src/Infrastructure/Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/services/fundstransfermgt/test/">
+    <Project Path="services/fundstransfermgt/test/Unit.Tests/Unit.Tests.csproj" />
+  </Folder>
 </Solution>

@@ -267,9 +267,51 @@ PartitionKey = /tenantId-categoryId
 
 ## Document Structure
 
+### ⚠️ CRITICAL: Cosmos DB 'id' Field Requirement - READ THIS FIRST
+
+**Every Cosmos DB document MUST have an `id` field with `[JsonPropertyName("id")]` attribute**:
+
+```csharp
+using System.Text.Json.Serialization;
+
+public class YourDocument
+{
+    [JsonPropertyName("id")]
+    public required string Id { get; set; }  // REQUIRED by Cosmos DB
+    
+    // Your other properties...
+}
+```
+
+**Common Error**:
+```
+BadRequest (400)
+"The input content is invalid because the required properties - 'id; ' - are missing"
+```
+
+**Solution**: Add `id` property and set it to your business identifier:
+```csharp
+public class PaymentMethod
+{
+    [JsonPropertyName("id")]  // Maps to Cosmos DB 'id' field
+    public required string Id { get; set; }
+    
+    public string PaymentMethodId { get; set; }  // Business identifier
+}
+
+// In repository:
+var document = new PaymentMethod
+{
+    Id = paymentMethodId,  // ✅ Set Cosmos DB id
+    PaymentMethodId = paymentMethodId  // ✅ Set business identifier
+};
+```
+
+**Best Practice**: Use same value for both `id` and your business identifier (see BillingAccountRepository example).
+
 ### Mapping Domain to Database
 
-### ⚠️ CRITICAL: Cosmos DB 'id' Field Requirement
+### Detailed 'id' Field Pattern
 
 **Every Cosmos DB document MUST have an `id` field**:
 - Required by Cosmos DB (will fail with 400 BadRequest if missing)

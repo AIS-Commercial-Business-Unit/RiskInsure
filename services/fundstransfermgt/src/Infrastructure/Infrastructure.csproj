@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>RiskInsure.FundTransferMgt.Infrastructure</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Domain\Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Azure.Cosmos" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="NServiceBus" />
+    <PackageReference Include="NServiceBus.Extensions.Hosting" />
+    <PackageReference Include="NServiceBus.Transport.AzureServiceBus" />
+    <PackageReference Include="NServiceBus.Persistence.CosmosDB" />
+    <PackageReference Include="Azure.Identity" />
+  </ItemGroup>
+
+</Project>

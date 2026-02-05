@@ -469,24 +469,324 @@ public class CrossDomainIntegrationTests
 - ❌ Use RPC-style communication for everything
 - ❌ Assume immediate consistency
 
-## Integration Points Template
+## Technical Specification Requirements
 
-Document integration points for this domain:
+### Purpose
 
-### Messages Published
-- `EventCreatedEvent` - Published when a new event is created
-- `EventStatusChangedEvent` - Published when event status changes
-- `EventExpiredEvent` - Published when event expires
-- (Add more as implemented)
+When creating technical specifications (`docs/technical/highlevel-tech.md`), you MUST document integration points with precision to enable:
 
-### Messages Consumed
-- (None currently - add as integration is implemented)
+1. **Code Generation**: Specifications should be detailed enough for AI tools to generate handler code
+2. **Contract Verification**: Enable verification that publisher-subscriber agreements are valid
+3. **Cross-Domain Coordination**: Ensure domains agree on event contracts and responsibilities
+
+---
+
+## Published Events Documentation
+
+### What to Document
+
+**DO**: Document all public events your domain publishes
+**DON'T**: Document where events are published to (you don't know who's listening)
+
+### Required Information for Each Published Event
+
+Each event in your technical specification MUST include:
+
+1. **Event Name** - Exact C# record name (e.g., `FundsSettled`, `BillingAccountCreated`)
+2. **Purpose** - When and why this event is published
+3. **Trigger** - What action/state change causes this event
+4. **Payload Summary** - Key fields in the event (with types)
+5. **Contract Location** - Where the event contract is defined (`platform/RiskInsure.PublicContracts/Events/` or `Domain/Contracts/Events/`)
+
+### Format: Published Events Table
+
+```markdown
+## Events Published
+
+| Event Name | Purpose | Trigger | Payload Summary | Contract Location |
+|------------|---------|---------|-----------------|-------------------|
+| `FundsSettled` | Notifies that customer payment was successfully settled | Payment authorization and settlement completed | CustomerId (Guid), Amount (decimal), PaymentMethodId (Guid), TransactionId (string), SettledUtc (DateTimeOffset) | `platform/RiskInsure.PublicContracts/Events/FundsSettled.cs` |
+| `PaymentMethodAdded` | Notifies that new payment method was validated and stored | Payment method creation and validation succeeded | CustomerId (Guid), PaymentMethodId (Guid), MethodType (enum), MaskedDetails (string) | `platform/RiskInsure.PublicContracts/Events/PaymentMethodAdded.cs` |
+```
+
+**Example from FundTransferMgt domain** (`services/fundstransfermgt/docs/technical/highlevel-tech.md`):
+
+```markdown
+## Events Published
+
+This domain publishes the following public events to the platform event bus:
+
+| Event Name | Purpose | Trigger | Payload Summary | Contract Location |
+|------------|---------|---------|-----------------|-------------------|
+| `FundsSettled` | Customer payment successfully authorized and settled | Fund transfer completes authorization and settlement | CustomerId, Amount, PaymentMethodId, TransactionId, SettledUtc, IdempotencyKey | `platform/RiskInsure.PublicContracts/Events/FundsSettled.cs` |
+| `FundsRefunded` | Refund processed and returned to customer | Refund transaction completes | CustomerId, RefundId, OriginalTransactionId, Amount, RefundedUtc, Reason | `platform/RiskInsure.PublicContracts/Events/FundsRefunded.cs` |
+| `PaymentMethodAdded` | New payment instrument validated and stored | Payment method creation succeeds validation | CustomerId, PaymentMethodId, MethodType, Status, CreatedUtc | `platform/RiskInsure.PublicContracts/Events/PaymentMethodAdded.cs` |
+| `PaymentMethodRemoved` | Payment instrument deleted or invalidated | Payment method deletion requested | CustomerId, PaymentMethodId, RemovalReason, RemovedUtc | `platform/RiskInsure.PublicContracts/Events/PaymentMethodRemoved.cs` |
+| `TransferAuthorizationFailed` | Payment authorization failed | Authorization attempt rejected by gateway | CustomerId, TransactionId, PaymentMethodId, Amount, FailureReason, ErrorCode | `platform/RiskInsure.PublicContracts/Events/TransferAuthorizationFailed.cs` |
+
+**Note**: These events are published to the platform event bus. Subscribers across all domains can listen to these events. We do not control or know which domains subscribe.
+```
+
+---
+
+## Subscribed Events Documentation
+
+### What to Document
+
+**DO**: Document all events your domain subscribes to/handles
+**DO**: Document which domain publishes each event
+**DO**: Document what action your domain takes when handling the event
+
+### Required Information for Each Subscribed Event
+
+Each subscribed event MUST include:
+
+1. **Event Name** - Exact C# record name
+2. **Publishing Domain** - Which bounded context publishes this event
+3. **Handler Name** - The IHandleMessages<T> class that will process it
+4. **Purpose** - Why your domain needs to react to this event
+5. **Action Taken** - What your domain does when this event arrives
+6. **Contract Location** - Where the event contract is defined
+
+### Format: Subscribed Events Table
+
+```markdown
+## Events Subscribed To
+
+| Event Name | Publishing Domain | Handler Name | Purpose | Action Taken | Contract Location |
+|------------|------------------|--------------|---------|--------------|-------------------|
+| `FundsSettled` | FundTransferMgt | `FundsSettledHandler` | Record payment when funds settle | Updates billing account: reduces outstanding balance, increases total paid, publishes `PaymentReceived` event | `platform/RiskInsure.PublicContracts/Events/FundsSettled.cs` |
+| `FundsRefunded` | FundTransferMgt | `FundsRefundedHandler` | Record refund when funds returned | Updates billing account: increases outstanding balance, decreases total paid, publishes `RefundProcessed` event | `platform/RiskInsure.PublicContracts/Events/FundsRefunded.cs` |
+```
+
+**Example from Billing domain** (`services/billing/docs/technical/highlevel-tech.md`):
+
+```markdown
+## Events Subscribed To
+
+This domain subscribes to and handles the following events from other domains:
+
+| Event Name | Publishing Domain | Handler Name | Purpose | Action Taken | Contract Location |
+|------------|------------------|--------------|---------|--------------|-------------------|
+| `FundsSettled` | FundTransferMgt | `FundsSettledHandler` | Record payment when customer funds successfully settle | Retrieves billing account, applies payment, reduces outstanding balance, increases total paid, publishes `PaymentReceived` event | `platform/RiskInsure.PublicContracts/Events/FundsSettled.cs` |
+| `FundsRefunded` | FundTransferMgt | `FundsRefundedHandler` | Record refund when funds returned to customer | Retrieves billing account, reverses payment, increases outstanding balance, decreases total paid, publishes `RefundProcessed` event | `platform/RiskInsure.PublicContracts/Events/FundsRefunded.cs` |
+| `TransferAuthorizationFailed` | FundTransferMgt | `TransferAuthorizationFailedHandler` | Track failed payment attempts for customer service visibility | Logs failed payment attempt, may trigger notification to customer service team | `platform/RiskInsure.PublicContracts/Events/TransferAuthorizationFailed.cs` |
+
+**Handler Implementation**: Each handler should be implemented in `src/Endpoint.In/Handlers/` and follow the thin handler pattern (validate → call manager → publish events).
+```
+
+---
+
+## Contract Verification Rules
+
+### Publisher Responsibilities
+
+When documenting **published events** in your technical specification:
+
+1. ✅ **Define the complete event contract** in the appropriate location:
+   - Cross-domain (public): `platform/RiskInsure.PublicContracts/Events/`
+   - Internal only: `services/{ServiceName}/src/Domain/Contracts/Events/`
+
+2. ✅ **Document all required fields** with types and business meaning
+
+3. ✅ **Include standard event metadata**:
+   - `MessageId` (Guid)
+   - `OccurredUtc` (DateTimeOffset)
+   - `IdempotencyKey` (string)
+
+4. ✅ **Specify trigger conditions** - what business action causes this event
+
+### Subscriber Responsibilities
+
+When documenting **subscribed events** in your technical specification:
+
+1. ✅ **Verify the publishing domain documents this event** in their technical spec
+
+2. ✅ **Reference the exact event contract location** - must match publisher's documentation
+
+3. ✅ **Document the handler name** using convention: `{EventName}Handler`
+
+4. ✅ **Describe business logic clearly** - sufficient detail for code generation
+
+5. ✅ **Identify dependencies** - what repositories, managers, or services the handler needs
+
+### Verification Checklist
+
+Before finalizing technical specifications, verify:
+
+- [ ] All published events have complete contracts defined
+- [ ] All published events are documented in the Events Published table
+- [ ] All subscribed events reference a publishing domain
+- [ ] For each subscribed event, the publishing domain's spec documents that event
+- [ ] Event names match exactly between publisher and subscriber documentation
+- [ ] Contract locations match between publisher and subscriber documentation
+- [ ] Handler names follow naming convention: `{EventName}Handler`
+- [ ] Handler actions are detailed enough for code generation
+
+---
+
+## Code Generation Requirements
+
+### Handler Template Structure
+
+Your technical specification should provide enough detail to generate:
+
+```csharp
+namespace RiskInsure.Billing.Endpoint.In.Handlers;
+
+/// <summary>
+/// Handles FundsSettled events from FundTransferMgt domain.
+/// Purpose: Record payment when customer funds successfully settle.
+/// </summary>
+public class FundsSettledHandler : IHandleMessages<FundsSettled>
+{
+    private readonly IBillingPaymentManager _paymentManager;
+    private readonly ILogger<FundsSettledHandler> _logger;
+
+    public FundsSettledHandler(
+        IBillingPaymentManager paymentManager,
+        ILogger<FundsSettledHandler> logger)
+    {
+        _paymentManager = paymentManager;
+        _logger = logger;
+    }
+
+    public async Task Handle(FundsSettled message, IMessageHandlerContext context)
+    {
+        _logger.LogInformation(
+            "Processing FundsSettled event for CustomerId={CustomerId}, Amount={Amount}, TransactionId={TransactionId}",
+            message.CustomerId, message.Amount, message.TransactionId);
+
+        // Action: Apply payment to billing account
+        var dto = new RecordPaymentDto
+        {
+            AccountId = message.CustomerId, // Map to billing account
+            Amount = message.Amount,
+            ReferenceNumber = message.TransactionId,
+            IdempotencyKey = message.IdempotencyKey,
+            OccurredUtc = message.SettledUtc
+        };
+
+        var result = await _paymentManager.RecordPaymentAsync(dto, context.CancellationToken);
+
+        if (result.IsSuccess)
+        {
+            _logger.LogInformation(
+                "Payment recorded successfully for Account={AccountId}, Amount={Amount}",
+                dto.AccountId, dto.Amount);
+        }
+        else
+        {
+            _logger.LogError(
+                "Failed to record payment: {ErrorMessage} ({ErrorCode})",
+                result.ErrorMessage, result.ErrorCode);
+            throw new InvalidOperationException($"Payment recording failed: {result.ErrorMessage}");
+        }
+    }
+}
+```
+
+### Required Documentation for Code Generation
+
+To generate the above handler, your technical spec MUST document:
+
+1. **Event contract fields** - CustomerId, Amount, TransactionId, SettledUtc, IdempotencyKey
+2. **Manager interface to call** - `IBillingPaymentManager.RecordPaymentAsync()`
+3. **DTO mapping** - How event fields map to manager DTO fields
+4. **Error handling strategy** - Log and throw, or compensate
+5. **Dependencies** - Manager, logger, repositories needed
+
+---
+
+## Integration Points Documentation Template
+
+Use this template in your `docs/technical/highlevel-tech.md`:
+
+### For Publishers
+
+```markdown
+## Events Published
+
+This domain publishes the following public events to the platform event bus:
+
+| Event Name | Purpose | Trigger | Payload Summary | Contract Location |
+|------------|---------|---------|-----------------|-------------------|
+| `EventName` | Business purpose | What causes it | Key fields with types | Path to contract file |
+
+**Publishing Notes**:
+- Events are published via `context.Publish()` in NServiceBus
+- All events include standard metadata: MessageId, OccurredUtc, IdempotencyKey
+- Subscribers are not controlled by this domain (pub/sub pattern)
+- Events represent facts that have already occurred (past tense naming)
+```
+
+### For Subscribers
+
+```markdown
+## Events Subscribed To
+
+This domain subscribes to and handles the following events from other domains:
+
+| Event Name | Publishing Domain | Handler Name | Purpose | Action Taken | Contract Location |
+|------------|------------------|--------------|---------|--------------|-------------------|
+| `EventName` | DomainName | `EventNameHandler` | Why we care | What we do | Path to contract file |
+
+**Handler Implementation**:
+- Handlers located in: `src/Endpoint.In/Handlers/`
+- Follow thin handler pattern: validate → call manager → publish events
+- All handlers must be idempotent (safe to replay)
+- Error handling: [describe strategy - retry, compensate, alert]
+
+**Dependencies**:
+- Managers: [list required manager interfaces]
+- Repositories: [list if direct repository access needed]
+- External Services: [list any external dependencies]
+```
 
 ### Platform APIs Used
 - (Document any platform composition APIs used)
 
 ### External Systems
 - (Document any external system integrations)
+
+---
+
+## Example: Complete Integration Documentation
+
+**From Billing Technical Spec** (`services/billing/docs/technical/highlevel-tech.md`):
+
+```markdown
+## Integration Points
+
+### Events Published
+
+This domain publishes the following public events to the platform event bus:
+
+| Event Name | Purpose | Trigger | Payload Summary | Contract Location |
+|------------|---------|---------|-----------------|-------------------|
+| `BillingAccountCreated` | Notify that new billing account established | Account creation succeeds | AccountId, CustomerId, PolicyNumber, PremiumOwed, BillingCycle, EffectiveDate | `platform/RiskInsure.PublicContracts/Events/BillingAccountCreated.cs` |
+| `PaymentReceived` | Notify that payment recorded against account | Payment successfully applied to account | AccountId, Amount, ReferenceNumber, TotalPaid, OutstandingBalance | `platform/RiskInsure.PublicContracts/Events/PaymentReceived.cs` |
+| `AccountClosed` | Notify that billing account permanently closed | Account closure requested | AccountId, PolicyNumber, ClosureReason, FinalBalance | `platform/RiskInsure.PublicContracts/Events/AccountClosed.cs` |
+
+### Events Subscribed To
+
+This domain subscribes to and handles the following events from other domains:
+
+| Event Name | Publishing Domain | Handler Name | Purpose | Action Taken | Contract Location |
+|------------|------------------|--------------|---------|--------------|-------------------|
+| `FundsSettled` | FundTransferMgt | `FundsSettledHandler` | Record payment when funds settle | Apply payment via `BillingPaymentManager.RecordPaymentAsync()`, reduce balance, publish `PaymentReceived` | `platform/RiskInsure.PublicContracts/Events/FundsSettled.cs` |
+| `FundsRefunded` | FundTransferMgt | `FundsRefundedHandler` | Record refund when funds returned | Reverse payment via manager, increase balance, publish `RefundProcessed` | `platform/RiskInsure.PublicContracts/Events/FundsRefunded.cs` |
+
+**Handler Dependencies**:
+- `IBillingPaymentManager` - For recording payments and refunds
+- `IBillingAccountRepository` - For retrieving accounts (via manager)
+- `ILogger<HandlerName>` - For structured logging
+
+**Error Handling**:
+- Transient failures: NServiceBus retries automatically (configured in endpoint)
+- Permanent failures: Log error, send to error queue for manual intervention
+- Idempotency: Handlers check for duplicate operations using IdempotencyKey
+```
 
 ## Related Files
 - See [messaging-patterns.md](messaging-patterns.md) for message design

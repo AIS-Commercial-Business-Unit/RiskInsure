@@ -1,0 +1,12 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "NServiceBus": "Information"
+    }
+  },
+  "ConnectionStrings": {
+    "CosmosDb": "<<COSMOS_CONNECTION_STRING>>",
+    "ServiceBus": "<<SERVICEBUS_CONNECTION_STRING>>"
+  }
+}

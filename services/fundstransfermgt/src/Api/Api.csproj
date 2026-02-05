@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <RootNamespace>RiskInsure.FundTransferMgt.Api</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- ASP.NET Core packages (versions managed by Directory.Packages.props) -->
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+    <PackageReference Include="Scalar.AspNetCore" />
+    
+    <!-- NServiceBus for ASP.NET Core -->
+    <PackageReference Include="NServiceBus" />
+    
+    <!-- Logging -->
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Serilog.Sinks.Console" />
+    
+    <!-- Project references -->
+    <ProjectReference Include="..\Domain\Domain.csproj" />
+    <ProjectReference Include="..\Infrastructure\Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

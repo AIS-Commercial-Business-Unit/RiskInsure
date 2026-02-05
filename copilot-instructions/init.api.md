@@ -632,6 +632,8 @@ app.MapOpenApi();
 ## Next Steps
 
 1. **Create Endpoint.In project** for message processing (see `init.endpoint.md`)
+   - ⚠️ **CRITICAL**: Endpoint.In projects also need `Properties/launchSettings.json` with `DOTNET_ENVIRONMENT=Development`
+   - Without this, the endpoint will default to Production mode and fail with "Production requires AzureServiceBus:FullyQualifiedNamespace"
 2. **Add authentication** (JWT, OAuth2, etc.)
 3. **Add rate limiting** (AspNetCoreRateLimit package)
 4. **Set up CI/CD** for deployment
@@ -641,6 +643,7 @@ app.MapOpenApi();
 
 ## Checklist
 
+### API Project
 - [ ] Project created with correct naming
 - [ ] Package references added
 - [ ] Program.cs configured
@@ -656,6 +659,33 @@ app.MapOpenApi();
 - [ ] Tested locally with `dotnet run`
 - [ ] Verified Scalar UI works
 - [ ] Dockerfile created (if using containers)
+
+### ⚠️ Endpoint.In Project (Don't Forget!)
+- [ ] **Create `Properties/launchSettings.json`** in Endpoint.In project
+- [ ] **Set `DOTNET_ENVIRONMENT=Development`** in both profiles
+- [ ] Verify Endpoint.In runs without "Production requires..." error
+
+**Example Endpoint.In launchSettings.json**:
+```json
+{
+  "$schema": "http://json.schemastore.org/launchsettings.json",
+  "profiles": {
+    "Endpoint.In": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    },
+    "Docker": {
+      "commandName": "Docker",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
+```
 
 ---
 

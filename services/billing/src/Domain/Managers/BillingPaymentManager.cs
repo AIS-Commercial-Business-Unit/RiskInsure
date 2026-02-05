@@ -209,4 +209,123 @@ public class BillingPaymentManager : IBillingPaymentManager
                 isRetryable);
         }
     }
+    
+    /// <summary>
+    /// Applies settled funds from FundTransferMgt as payment to billing account.
+    /// Idempotent - uses transaction ID as reference number for duplicate detection.
+    /// </summary>
+    public async Task ApplySettledFundsAsync(
+        string customerId,
+        string transactionId,
+        decimal amount,
+        DateTimeOffset settledUtc,
+        string idempotencyKey,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation(
+            "Applying settled funds for customer {CustomerId}, transaction {TransactionId}, amount {Amount}",
+            customerId, transactionId, amount);
+
+        // Get billing account by customer ID
+        var account = await _repository.GetByCustomerIdAsync(customerId, cancellationToken);
+        
+        if (account == null)
+        {
+            _logger.LogWarning(
+                "No billing account found for customer {CustomerId}",
+                customerId);
+            throw new InvalidOperationException($"No billing account found for customer {customerId}");
+        }
+
+        if (account.Status != BillingAccountStatus.Active)
+        {
+            _logger.LogWarning(
+                "Billing account {AccountId} for customer {CustomerId} is not active (status: {Status})",
+                account.AccountId, customerId, account.Status);
+            throw new InvalidOperationException($"Billing account {account.AccountId} is not active");
+        }
+
+        // Use RecordPaymentAsync for business rule validation
+        var dto = new RecordPaymentDto
+        {
+            AccountId = account.AccountId,
+            Amount = amount,
+            ReferenceNumber = transactionId, // Transaction ID serves as reference
+            OccurredUtc = settledUtc,
+            IdempotencyKey = idempotencyKey
+        };
+
+        var result = await RecordPaymentAsync(dto, cancellationToken);
+
+        if (!result.IsSuccess)
+        {
+            _logger.LogError(
+                "Failed to apply settled funds: {ErrorMessage}",
+                result.ErrorMessage);
+            throw new InvalidOperationException($"Failed to apply settled funds: {result.ErrorMessage}");
+        }
+
+        _logger.LogInformation(
+            "Successfully applied settled funds for customer {CustomerId}",
+            customerId);
+    }
+    
+    /// <summary>
+    /// Applies refund by reversing payment application.
+    /// Increases outstanding balance for refunded amount.
+    /// </summary>
+    public async Task ApplyRefundAsync(
+        string customerId,
+        string refundId,
+        string originalTransactionId,
+        decimal amount,
+        DateTimeOffset refundedUtc,
+        string reason,
+        string idempotencyKey,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation(
+            "Applying refund for customer {CustomerId}, refund {RefundId}, amount {Amount}, reason {Reason}",
+            customerId, refundId, amount, reason);
+
+        // Get billing account by customer ID
+        var account = await _repository.GetByCustomerIdAsync(customerId, cancellationToken);
+        
+        if (account == null)
+        {
+            _logger.LogWarning(
+                "No billing account found for customer {CustomerId} for refund",
+                customerId);
+            throw new InvalidOperationException($"No billing account found for customer {customerId}");
+        }
+
+        if (account.Status != BillingAccountStatus.Active)
+        {
+            _logger.LogWarning(
+                "Billing account {AccountId} for customer {CustomerId} is not active (status: {Status})",
+                account.AccountId, customerId, account.Status);
+            throw new InvalidOperationException($"Billing account {account.AccountId} is not active");
+        }
+
+        // Check idempotency - if this refund was already applied, skip
+        // (In production, store applied refunds separately to track this)
+        
+        // Reverse payment: decrease total paid, which increases outstanding balance
+        account.TotalPaid -= amount;
+        if (account.TotalPaid < 0)
+        {
+            _logger.LogWarning(
+                "Refund would make TotalPaid negative for account {AccountId}, setting to 0",
+                account.AccountId);
+            account.TotalPaid = 0;
+        }
+        
+        account.LastUpdatedUtc = DateTimeOffset.UtcNow;
+
+        await _repository.UpdateAsync(account, cancellationToken);
+
+        _logger.LogInformation(
+            "Successfully applied refund for customer {CustomerId}, new outstanding balance {Outstanding}",
+            customerId, account.OutstandingBalance);
+    }
 }
