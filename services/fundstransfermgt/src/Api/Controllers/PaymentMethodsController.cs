@@ -131,7 +131,7 @@ public class PaymentMethodsController : ControllerBase
     private static PaymentMethodResponse MapToResponse(PaymentMethod pm) => new(
         pm.PaymentMethodId,
         pm.CustomerId,
-        pm.Type.ToString(),
+        FormatPaymentMethodType(pm.Type),
         pm.Status.ToString(),
         pm.Card != null ? new CardDetailsDto(
             pm.Card.CardholderName,
@@ -148,4 +148,10 @@ public class PaymentMethodsController : ControllerBase
         ) : null,
         pm.CreatedUtc
     );
+
+    private static string FormatPaymentMethodType(PaymentMethodType type) => type switch
+    {
+        PaymentMethodType.Ach => "ACH",
+        _ => type.ToString()
+    };
 }
