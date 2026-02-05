@@ -510,7 +510,7 @@ Each service MAY define domain-specific standards in `docs/domain-specific-stand
 - `Id` (Identifier)
 - `Utc` (Coordinated Universal Time)
 - `Uri` (Uniform Resource Identifier)
-- Domain-specific acronyms (e.g., `Ach` for Automated Clearing House)
+- Domain-specific acronyms (e.g., `ACH` for Automated Clearing House)
 
 **All other names**: Use full words for clarity.
 
