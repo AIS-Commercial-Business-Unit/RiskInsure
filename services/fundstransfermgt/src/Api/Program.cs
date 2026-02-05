@@ -1,12 +1,12 @@
 using Microsoft.Azure.Cosmos;
 using NServiceBus;
-using RiskInsure.Billing.Domain.Contracts.Commands;
-using RiskInsure.Billing.Domain.Managers;
-using RiskInsure.Billing.Domain.Services.BillingDb;
-using RiskInsure.Billing.Infrastructure;
+using RiskInsure.FundTransferMgt.Domain.Managers;
+using RiskInsure.FundTransferMgt.Domain.Repositories;
+using RiskInsure.FundTransferMgt.Domain.Services;
+using RiskInsure.FundTransferMgt.Infrastructure.Repositories;
+using RiskInsure.FundTransferMgt.Infrastructure;
 using Scalar.AspNetCore;
 using Serilog;
-using Infrastructure;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -14,7 +14,7 @@ Log.Logger = new LoggerConfiguration()
 
 try
 {
-    Log.Information("Starting Billing API");
+    Log.Information("Starting Fund Transfer Management API");
 
     var builder = WebApplication.CreateBuilder(args);
 
@@ -34,25 +34,30 @@ try
         {
             document.Info = new()
             {
-                Title = "RiskInsure Billing API",
+                Title = "RiskInsure Fund Transfer Management API",
                 Version = "v1",
                 Description = """
                     ## Overview
-                    The Billing API provides RESTful endpoints for managing insurance policy billing accounts and payment operations.
+                    The Fund Transfer Management API provides RESTful endpoints for managing payment methods, fund transfers, and refunds.
                     
                     ## Capabilities
                     
-                    ### Billing Accounts (`/api/billing/accounts`)
-                    - **Create** new billing accounts for insurance policies
-                    - **Activate** pending accounts to begin billing
-                    - **Update** premium amounts and billing cycles
-                    - **Suspend** accounts temporarily (non-payment, policy issues)
-                    - **Close** accounts permanently
+                    ### Payment Methods (`/api/payment-methods`)
+                    - **Add** credit cards and ACH bank accounts
+                    - **Retrieve** payment method details
+                    - **List** payment methods by customer
+                    - **Remove** payment methods (soft delete)
+                    - **Tokenization** for PCI compliance
                     
-                    ### Billing Payments (`/api/billing/payments`)
-                    - **Record payments** synchronously with immediate validation
-                    - **Submit payments** asynchronously for background processing
-                    - Track payment history and outstanding balances
+                    ### Fund Transfers (`/api/transfers`)
+                    - **Initiate** fund transfers from payment methods
+                    - **Track** transfer status and history
+                    - **Process** payments through payment gateway
+                    
+                    ### Refunds (`/api/refunds`)
+                    - **Process** refunds for completed transfers
+                    - **Track** refund status and amounts
+                    - **Partial** and full refund support
                     
                     ## Processing Patterns
                     
@@ -62,10 +67,11 @@ try
                     
                     ## Business Rules
                     
-                    - Accounts start in **Pending** status and must be activated
-                    - Payments can only be recorded for **Active** accounts
-                    - Premium amounts must be non-negative
-                    - Policy numbers must be unique per customer
+                    - Payment methods must be validated before use
+                    - Credit cards must pass Luhn checksum validation
+                    - ACH routing numbers must pass ABA checksum validation
+                    - Expired cards are rejected
+                    - All amounts must be positive
                     - All operations are idempotent (safe to retry)
                     
                     ## Authentication
@@ -81,12 +87,13 @@ try
         });
     });
 
-    // Configure Cosmos DB - Billing data container
+    // Configure Cosmos DB
     var cosmosConnectionString = builder.Configuration.GetConnectionString("CosmosDb")
         ?? throw new InvalidOperationException("CosmosDb connection string not configured");
 
     var databaseName = builder.Configuration["CosmosDb:DatabaseName"] ?? "RiskInsure";
-    var billingContainerName = builder.Configuration["CosmosDb:BillingContainerName"] ?? "Billing";
+    var paymentMethodsContainerName = builder.Configuration["CosmosDb:PaymentMethodsContainerName"] ?? "FundTransferMgt-PaymentMethods";
+    var transactionsContainerName = builder.Configuration["CosmosDb:TransactionsContainerName"] ?? "FundTransferMgt-Transactions";
 
     // Configure CosmosClient to use System.Text.Json serialization and Direct mode for best performance
     var cosmosClientOptions = new CosmosClientOptions
@@ -105,36 +112,63 @@ try
     
     var cosmosClient = new CosmosClient(cosmosConnectionString, cosmosClientOptions);
     
-    // Initialize database and container on startup
-    // For serverless accounts, pass throughput: null
-    // For provisioned accounts, specify RU/s (e.g., throughput: 400)
-    Log.Information("Initializing Cosmos DB database {DatabaseName} and container {ContainerName}", databaseName, billingContainerName);
+    // Initialize database and containers on startup
+    Log.Information("Initializing Cosmos DB database {DatabaseName}", databaseName);
     await CosmosDbInitializer.EnsureDbAndContainerAsync(
         cosmosClient, 
         databaseName, 
-        billingContainerName, 
-        "/accountId",
+        paymentMethodsContainerName, 
+        "/customerId",
         databaseThroughput: 1000); // Database-level: 1000 RU/s shared across ALL containers (FREE TIER)
     
-    var container = cosmosClient.GetContainer(databaseName, billingContainerName);
-    builder.Services.AddSingleton(container);
+    await CosmosDbInitializer.EnsureDbAndContainerAsync(
+        cosmosClient, 
+        databaseName, 
+        transactionsContainerName, 
+        "/customerId",
+        databaseThroughput: 1000); // Reuses same database throughput
+    
+    var paymentMethodsContainer = cosmosClient.GetContainer(databaseName, paymentMethodsContainerName);
+    var transactionsContainer = cosmosClient.GetContainer(databaseName, transactionsContainerName);
 
     // Register repositories
-    builder.Services.AddSingleton<IBillingAccountRepository, BillingAccountRepository>();
+    builder.Services.AddSingleton(sp =>
+    {
+        var logger = sp.GetRequiredService<ILogger<PaymentMethodRepository>>();
+        return (IPaymentMethodRepository)new PaymentMethodRepository(paymentMethodsContainer, logger);
+    });
+
+    builder.Services.AddSingleton(sp =>
+    {
+        var logger = sp.GetRequiredService<ILogger<TransactionRepository>>();
+        return (ITransactionRepository)new TransactionRepository(transactionsContainer, logger);
+    });
+
+    // Register payment gateway (mock for development)
+    builder.Services.AddSingleton<IPaymentGateway>(sp =>
+    {
+        var logger = sp.GetRequiredService<ILogger<MockPaymentGateway>>();
+        var config = new MockGatewayConfiguration
+        {
+            AlwaysSucceed = true, // Development mode
+            SimulatedDelayMs = 100
+        };
+        return new MockPaymentGateway(logger, config);
+    });
 
     // Register managers
-    builder.Services.AddScoped<IBillingPaymentManager, BillingPaymentManager>();
-    builder.Services.AddScoped<IBillingAccountManager, BillingAccountManager>();
+    builder.Services.AddScoped<IPaymentMethodManager, PaymentMethodManager>();
+    builder.Services.AddScoped<IFundTransferManager, FundTransferManager>();
 
     // Configure NServiceBus (send-only endpoint with routing)
     builder.Host.NServiceBusEnvironmentConfiguration(
-        "RiskInsure.Billing.Api",
+        "RiskInsure.FundTransferMgt.Api",
         (config, endpoint, routing) =>
         {
             endpoint.SendOnly(); // CRITICAL: API only sends/publishes, doesn't receive messages
             
-            // Route commands to Billing Endpoint
-            routing.RouteToEndpoint(typeof(RecordPayment), "RiskInsure.Billing.Endpoint");
+            // Route commands to Fund Transfer Management Endpoint if needed
+            // routing.RouteToEndpoint(typeof(SomeCommand), "RiskInsure.FundTransferMgt.Endpoint");
         });
 
     var app = builder.Build();
@@ -154,7 +188,7 @@ try
 }
 catch (Exception ex)
 {
-    Log.Fatal(ex, "Billing API terminated unexpectedly");
+    Log.Fatal(ex, "Fund Transfer Management API terminated unexpectedly");
     return 1;
 }
 finally

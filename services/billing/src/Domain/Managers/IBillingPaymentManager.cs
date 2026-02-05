@@ -18,4 +18,30 @@ public interface IBillingPaymentManager
     Task<PaymentRecordingResult> RecordPaymentAsync(
         RecordPaymentDto dto,
         CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Applies settled funds from FundTransferMgt to billing account.
+    /// Creates payment record using transaction ID as reference.
+    /// </summary>
+    Task ApplySettledFundsAsync(
+        string customerId,
+        string transactionId,
+        decimal amount,
+        DateTimeOffset settledUtc,
+        string idempotencyKey,
+        CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Applies refund by reversing payment application.
+    /// Increases outstanding balance for refunded amount.
+    /// </summary>
+    Task ApplyRefundAsync(
+        string customerId,
+        string refundId,
+        string originalTransactionId,
+        decimal amount,
+        DateTimeOffset refundedUtc,
+        string reason,
+        string idempotencyKey,
+        CancellationToken cancellationToken = default);
 }
