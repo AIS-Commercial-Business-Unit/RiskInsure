@@ -222,9 +222,94 @@ Create `Properties/launchSettings.json`:
 - API projects use ports `707X` locally (X = service number)
 - Docker/Container Apps use port `8080`
 
+**⚠️ IMPORTANT: Check for Port Conflicts**
+
+Before assigning a port, check existing services to avoid conflicts:
+
+```powershell
+# Search all launchSettings.json files for port assignments
+Get-ChildItem -Path services -Recurse -Filter "launchSettings.json" | 
+  ForEach-Object { 
+    Write-Host "`n$($_.Directory.Parent.Parent.Name):" -ForegroundColor Cyan
+    Get-Content $_.FullName | Select-String "applicationUrl" 
+  }
+```
+
+**Current Port Assignments** (as of project creation):
+- **Billing API**: 7071 (Endpoint.In: 7072)
+- **FundsTransferMgt API**: 7075 (Endpoint.In: 7074)
+- **Customer API**: 7073 (Endpoint.In: 7076) ← Check and update if needed
+- **Rating & Underwriting**: TBD
+- **Policy**: TBD
+- **Premium**: TBD
+
+**Port Assignment Strategy**:
+1. Check existing services with the PowerShell command above
+2. Choose next available port in `707X` range
+3. API and Endpoint.In don't need to be sequential (any available ports)
+4. Document your assignment in this section
+
 ---
 
 ## 6. Create Controllers
+
+### ⚠️ CRITICAL: Understanding API Validation Error Formats
+
+Your API will return **two different validation error formats** depending on which validation layer catches the error:
+
+**1. ASP.NET Core Model Validation** (ProblemDetails format):
+- Triggered by: `[Required]`, `[EmailAddress]`, `[StringLength]`, `[Range]` attributes on request DTOs
+- Response format:
+```json
+{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+  "title": "One or more validation errors occurred.",
+  "status": 400,
+  "errors": {
+    "Email": ["The Email field is not a valid e-mail address."],
+    "ZipCode": ["The field ZipCode must be a string with a maximum length of 5."]
+  },
+  "traceId": "00-..."
+}
+```
+- **Key characteristic**: Has `status` field, errors are **arrays**
+
+**2. Business Validation** (Custom format from Domain validators):
+- Triggered by: Domain validation logic (e.g., age requirements, duplicate checks, business rules)
+- Response format:
+```json
+{
+  "error": "ValidationFailed",
+  "errors": {
+    "BirthDate": ["Customer must be at least 18 years old"],
+    "Email": ["A customer with this email address already exists"]
+  }
+}
+```
+- **Key characteristic**: Has `error` field (not `status`), errors are **arrays**
+
+**Integration Test Implications**:
+When writing Playwright tests, you **must** know which validation layer will catch the error:
+
+```typescript
+// ✅ CORRECT - ASP.NET Core model validation (invalid email format)
+test('invalid email format', async ({ request }) => {
+  const response = await request.post('/api/customers', { data: { email: 'not-an-email' } });
+  const error = await response.json();
+  expect(error.status).toBe(400);  // ProblemDetails format
+  expect(Array.isArray(error.errors.Email)).toBe(true);
+});
+
+// ✅ CORRECT - Business validation (age requirement)
+test('under 18 years old', async ({ request }) => {
+  const response = await request.post('/api/customers', { data: { birthDate: '2010-01-01' } });
+  const error = await response.json();
+  expect(error.error).toBe('ValidationFailed');  // Custom format
+  expect(Array.isArray(error.errors.BirthDate)).toBe(true);
+});
+```
+
+**Best Practice**: Test one validation scenario manually first to confirm the response format before writing all integration tests.
 
 ### Example Controller
 

@@ -8,7 +8,6 @@ using RiskInsure.FundTransferMgt.Domain.Managers;
 using RiskInsure.FundTransferMgt.Domain.Repositories;
 using RiskInsure.FundTransferMgt.Domain.Services;
 using RiskInsure.FundTransferMgt.Infrastructure;
-using RiskInsure.FundTransferMgt.Infrastructure.Repositories;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()

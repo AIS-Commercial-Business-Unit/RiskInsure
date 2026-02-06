@@ -1,0 +1,12 @@
+{
+  "ConnectionStrings": {
+    "CosmosDb": "<<COSMOS_CONNECTION_STRING>>",
+    "ServiceBus": "<<AZURE_SERVICE_BUS_CONNECTION_STRING>>"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "NServiceBus": "Information"
+    }
+  }
+}

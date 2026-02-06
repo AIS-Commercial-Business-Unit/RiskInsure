@@ -3,7 +3,6 @@ using NServiceBus;
 using RiskInsure.FundTransferMgt.Domain.Managers;
 using RiskInsure.FundTransferMgt.Domain.Repositories;
 using RiskInsure.FundTransferMgt.Domain.Services;
-using RiskInsure.FundTransferMgt.Infrastructure.Repositories;
 using RiskInsure.FundTransferMgt.Infrastructure;
 using Scalar.AspNetCore;
 using Serilog;
