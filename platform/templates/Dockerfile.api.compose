@@ -1,0 +1,39 @@
+# Multi-stage Dockerfile for ASP.NET Core API projects
+# Usage with docker-compose: Specify PROJECT_PATH as build arg
+
+# Build stage
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+ARG PROJECT_PATH
+WORKDIR /src
+
+# Copy solution and dependency files
+COPY ["RiskInsure.slnx", "."]
+COPY ["Directory.Build.props", "."]
+COPY ["Directory.Packages.props", "."]
+COPY ["GlobalUsings.cs", "."]
+
+# Copy all project files for restore
+COPY ["platform/RiskInsure.PublicContracts/", "platform/RiskInsure.PublicContracts/"]
+COPY ["services/", "services/"]
+
+# Restore dependencies for the specific project
+RUN dotnet restore "${PROJECT_PATH}"
+
+# Build and publish
+RUN dotnet publish "${PROJECT_PATH}" -c Release -o /app/publish --no-restore
+
+# Runtime stage
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+WORKDIR /app
+
+# Copy published application
+COPY --from=build /app/publish .
+
+# Expose HTTP port
+EXPOSE 8080
+
+# Set ASP.NET Core to listen on port 8080
+ENV ASPNETCORE_URLS=http://+:8080
+
+# Run the application (the DLL name will be in the published output)
+ENTRYPOINT ["dotnet", "Api.dll"]

@@ -78,7 +78,7 @@ export async function startQuote(
     timeout: config.timeouts.apiRequest,
   });
 
-  expect(response.status()).toBe(200);
+  expect(response.status()).toBe(201);
   return await response.json();
 }
 

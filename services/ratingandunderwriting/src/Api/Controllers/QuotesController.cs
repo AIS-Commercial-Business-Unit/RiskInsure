@@ -22,7 +22,7 @@ public class QuotesController : ControllerBase
     }
 
     [HttpPost("start")]
-    [ProducesResponseType(typeof(StartQuoteResponse), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(QuoteResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> StartQuote([FromBody] StartQuoteRequest request)
     {
@@ -31,24 +31,36 @@ public class QuotesController : ControllerBase
             return BadRequest(ModelState);
         }
 
+        var quoteId = $"QUOTE-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
+
         var quote = await _manager.StartQuoteAsync(
-            request.QuoteId,
+            quoteId,
             request.CustomerId,
             request.StructureCoverageLimit,
             request.StructureDeductible,
-            request.ContentsCoverageLimit,
-            request.ContentsDeductible,
+            request.ContentsCoverageLimit ?? 0,
+            request.ContentsDeductible ?? 0,
             request.TermMonths,
             request.EffectiveDate);
 
         return CreatedAtAction(
             nameof(GetQuote),
             new { quoteId = quote.QuoteId },
-            new StartQuoteResponse
+            new QuoteResponse
             {
                 QuoteId = quote.QuoteId,
+                CustomerId = quote.CustomerId,
                 Status = quote.Status,
-                ExpirationUtc = quote.ExpirationUtc
+                StructureCoverageLimit = quote.StructureCoverageLimit,
+                StructureDeductible = quote.StructureDeductible,
+                ContentsCoverageLimit = quote.ContentsCoverageLimit,
+                ContentsDeductible = quote.ContentsDeductible,
+                TermMonths = quote.TermMonths,
+                EffectiveDate = quote.EffectiveDate,
+                Premium = quote.Premium,
+                UnderwritingClass = quote.UnderwritingClass,
+                ExpirationUtc = quote.ExpirationUtc,
+                CreatedUtc = quote.CreatedUtc
             });
     }
 
@@ -70,17 +82,18 @@ public class QuotesController : ControllerBase
         {
             var submission = new UnderwritingSubmission(
                 request.PriorClaimsCount,
-                request.KwegiboAge,
+                request.PropertyAgeYears,
                 request.CreditTier);
 
-            var quote = await _manager.SubmitUnderwritingAsync(quoteId, submission, request.ZipCode);
+            var quote = await _manager.SubmitUnderwritingAsync(quoteId, submission, request.PropertyAgeYears.ToString());
 
             return Ok(new SubmitUnderwritingResponse
             {
                 QuoteId = quote.QuoteId,
                 Status = quote.Status,
                 UnderwritingClass = quote.UnderwritingClass,
-                Premium = quote.Premium
+                Premium = quote.Premium,
+                ExpirationUtc = quote.ExpirationUtc
             });
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("not found"))
@@ -114,7 +127,8 @@ public class QuotesController : ControllerBase
                 Status = quote.Status,
                 AcceptedUtc = quote.AcceptedUtc!.Value,
                 Premium = quote.Premium!.Value,
-                Message = "Quote accepted. Policy creation initiated."
+                Message = "Quote accepted. Policy creation initiated.",
+                PolicyCreationInitiated = true
             });
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("not found"))

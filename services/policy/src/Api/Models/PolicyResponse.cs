@@ -16,7 +16,8 @@ public class PolicyResponse
     public decimal? UnearnedPremium { get; set; }
     public decimal StructureCoverageLimit { get; set; }
     public decimal StructureDeductible { get; set; }
-    public decimal ContentsCoverageLimit { get; set; }
-    public decimal ContentsDeductible { get; set; }
+    public decimal? ContentsCoverageLimit { get; set; }
+    public decimal? ContentsDeductible { get; set; }
     public int TermMonths { get; set; }
+    public DateTimeOffset CreatedUtc { get; set; }
 }

@@ -22,11 +22,13 @@ These tests verify **complete business flows** that cross multiple bounded conte
 ### Prerequisites
 
 **All APIs must be running**:
-- Customer API: `http://localhost:7073`
-- Rating & Underwriting API: `http://localhost:7079`
-- Policy API: `http://localhost:7077`
-- Billing API: `http://localhost:7071`
-- Funds Transfer API: `http://localhost:7075`
+- Customer API: `http://127.0.0.1:7073`
+- Rating & Underwriting API: `http://127.0.0.1:7079`
+- Policy API: `http://127.0.0.1:7077`
+- Billing API: `http://127.0.0.1:7071`
+- Funds Transfer API: `http://127.0.0.1:7075`
+
+> **Note**: Tests use `127.0.0.1` instead of `localhost` to force IPv4 resolution (Playwright on Windows may prefer IPv6 `::1` which can cause connection issues).
 
 ### First-Time Setup
 
@@ -65,6 +67,83 @@ npm run test:report
 
 ---
 
+## 🤖 Copilot-Assisted Debugging
+
+### Automatic Diagnostics Capture
+
+When tests fail, use the **diagnostic runner** to automatically capture everything needed for Copilot analysis:
+
+```powershell
+# Run tests with automatic diagnostics
+.\run-with-diagnostics.ps1
+
+# Run specific test with diagnostics
+.\run-with-diagnostics.ps1 -Test "quote-to-policy"
+
+# Interactive UI mode
+.\run-with-diagnostics.ps1 -UI
+```
+
+### What Gets Captured
+
+When tests fail, the script automatically creates a timestamped folder with:
+
+✅ **Test Results**: JSON and HTML reports  
+✅ **API Logs**: Last 200 lines from each service container  
+✅ **Network Traces**: Playwright HAR files (if enabled)  
+✅ **Screenshots**: Visual snapshots of failures  
+✅ **Copilot Prompt**: Pre-formatted analysis request
+
+### Workflow
+
+1. **Run Tests**:
+   ```powershell
+   .\run-with-diagnostics.ps1
+   ```
+
+2. **If Tests Fail**:
+   - Diagnostics folder opens automatically
+   - Open `COPILOT-ANALYSIS.txt`
+   - Copy the Copilot prompt section
+
+3. **Paste in Copilot**:
+   ```
+   @workspace Analyze e2e test failure
+   
+   [Copilot will read test results and API logs]
+   ```
+
+4. **Copilot Will**:
+   - Read test results from JSON
+   - Review API logs for errors
+   - Check relevant API code
+   - Suggest and implement fixes
+
+### Manual Diagnostics
+
+If you need to manually gather context:
+
+```powershell
+# Get specific API logs
+wsl docker logs riskinsure-policy-api-1 --tail 200
+
+# Check all service status
+wsl docker ps --filter "name=riskinsure"
+
+# View test trace
+npx playwright show-trace test-results/.../trace.zip
+```
+
+### Tips for Better Results
+
+- **Run one test at a time** when debugging: `-Test "quote-to-policy"`
+- **Use UI mode** for interactive debugging: `npm run test:ui`
+- **Check API logs first** - most failures are API-side errors
+- **Verify services running**: `.\scripts\smoke-test.ps1` before testing
+- **Include test context** when asking Copilot (test name, expected vs actual)
+
+---
+
 ## Configuration
 
 ### Environment Variables
@@ -72,12 +151,12 @@ npm run test:report
 Configure API endpoints via environment variables or `.env` file:
 
 ```bash
-# API Base URLs
-CUSTOMER_API_URL=http://localhost:7073
-RATING_API_URL=http://localhost:7079
-POLICY_API_URL=http://localhost:7077
-BILLING_API_URL=http://localhost:7071
-FUNDS_TRANSFER_API_URL=http://localhost:7075
+# API Base URLs (use 127.0.0.1 for IPv4 - not localhost)
+CUSTOMER_API_URL=http://127.0.0.1:7073
+RATING_API_URL=http://127.0.0.1:7079
+POLICY_API_URL=http://127.0.0.1:7077
+BILLING_API_URL=http://127.0.0.1:7071
+FUNDS_TRANSFER_API_URL=http://127.0.0.1:7075
 
 # Test Timeouts (milliseconds)
 EVENTUAL_CONSISTENCY_TIMEOUT=10000
@@ -307,7 +386,8 @@ SELECT * FROM c WHERE CONTAINS(c.email, 'E2E-TEST-CUST-')
 **Solutions**:
 1. Verify all APIs are running (see Prerequisites)
 2. Check port configuration in `.env` or environment variables
-3. Verify API base URLs: `curl http://localhost:7073/api/customers` should return 404 (not connection error)
+3. Verify API base URLs: `curl http://127.0.0.1:7073/api/customers` should return 404 (not connection error)
+4. **Windows/Playwright**: If seeing `ECONNREFUSED ::1`, you have IPv6 issue - use `127.0.0.1` not `localhost`
 
 ### "Network request failed" in CI/CD
 

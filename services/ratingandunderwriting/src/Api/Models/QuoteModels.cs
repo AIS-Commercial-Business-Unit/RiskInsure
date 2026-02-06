@@ -5,9 +5,6 @@ using System.ComponentModel.DataAnnotations;
 public class StartQuoteRequest
 {
     [Required]
-    public string QuoteId { get; set; } = string.Empty;
-
-    [Required]
     public string CustomerId { get; set; } = string.Empty;
 
     [Range(50000, 500000)]
@@ -16,14 +13,17 @@ public class StartQuoteRequest
     public decimal StructureDeductible { get; set; }
 
     [Range(10000, 150000)]
-    public decimal ContentsCoverageLimit { get; set; }
+    public decimal? ContentsCoverageLimit { get; set; }
 
-    public decimal ContentsDeductible { get; set; }
+    public decimal? ContentsDeductible { get; set; }
 
     public int TermMonths { get; set; }
 
     [Required]
     public DateTimeOffset EffectiveDate { get; set; }
+    
+    [Required]
+    public string PropertyZipCode { get; set; } = string.Empty;
 }
 
 public class StartQuoteResponse
@@ -39,13 +39,10 @@ public class SubmitUnderwritingRequest
     public int PriorClaimsCount { get; set; }
 
     [Range(0, 100)]
-    public int KwegiboAge { get; set; }
+    public int PropertyAgeYears { get; set; }
 
     [Required]
     public string CreditTier { get; set; } = string.Empty;
-
-    [Required]
-    public string ZipCode { get; set; } = string.Empty;
 }
 
 public class SubmitUnderwritingResponse
@@ -54,6 +51,7 @@ public class SubmitUnderwritingResponse
     public string Status { get; set; } = string.Empty;
     public string? UnderwritingClass { get; set; }
     public decimal? Premium { get; set; }
+    public DateTimeOffset? ExpirationUtc { get; set; }
 }
 
 public class AcceptQuoteResponse
@@ -63,6 +61,7 @@ public class AcceptQuoteResponse
     public DateTimeOffset AcceptedUtc { get; set; }
     public decimal Premium { get; set; }
     public string Message { get; set; } = string.Empty;
+    public bool PolicyCreationInitiated { get; set; }
 }
 
 public class QuoteResponse

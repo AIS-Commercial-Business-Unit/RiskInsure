@@ -29,14 +29,22 @@ var cosmosClient = new CosmosClient(cosmosConnectionString, new CosmosClientOpti
 });
 
 builder.Services.AddSingleton(cosmosClient);
-builder.Services.AddSingleton<CosmosDbInitializer>();
 
-// Register Container (initialized on startup)
-builder.Services.AddSingleton(async sp =>
+// Initialize Cosmos DB container on startup
+Log.Information("Initializing Cosmos DB database RiskInsure and container ratingunderwriting");
+
+// Create logger for initialization
+var loggerFactory = LoggerFactory.Create(logBuilder =>
 {
-    var initializer = sp.GetRequiredService<CosmosDbInitializer>();
-    return await initializer.InitializeAsync();
+    logBuilder.AddSerilog(Log.Logger);
 });
+var cosmosLogger = loggerFactory.CreateLogger<CosmosDbInitializer>();
+
+var cosmosInitializer = new CosmosDbInitializer(cosmosClient, builder.Configuration, cosmosLogger);
+var container = await cosmosInitializer.InitializeAsync();
+
+// Register the initialized Container
+builder.Services.AddSingleton(container);
 
 // Domain services
 builder.Services.AddScoped<IQuoteRepository, QuoteRepository>();
@@ -49,9 +57,6 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
-
-// Initialize Cosmos DB
-await app.Services.GetRequiredService<Task<Container>>();
 
 if (app.Environment.IsDevelopment())
 {
