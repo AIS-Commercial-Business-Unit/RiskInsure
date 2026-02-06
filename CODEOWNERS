@@ -6,7 +6,7 @@
 
 # Default owners for everything in the repo
 # These owners will be requested for review when someone opens a pull request.
-* @AIS-Commercial-Business-Unit/riskinsurecontributor
+* @AIS-Commercial-Business-Unit/riskinsuremaintainers
 
 # You can add specific rules for different paths/files as needed:
 # Example: Specific paths or file types
