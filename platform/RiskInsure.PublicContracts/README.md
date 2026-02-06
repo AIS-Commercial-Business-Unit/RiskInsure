@@ -21,11 +21,11 @@ This project contains **public message contracts** that are shared across servic
 
 ## Structure
 
-\\\
+```
 Contracts/
 ├── Events/          # Past-tense facts (e.g., PaymentProcessed, InvoiceCreated)
 └── POCOs/          # Plain data objects shared across services
-\\\
+```
 
 ## Naming Conventions
 
@@ -44,7 +44,7 @@ All messages MUST include:
 
 ## Example Contract
 
-\\\csharp
+```csharp
 namespace RiskInsure.PublicContracts.Contracts.Events;
 
 public record InvoiceCreated(
@@ -55,7 +55,7 @@ public record InvoiceCreated(
     decimal Amount,
     string IdempotencyKey
 );
-\\\
+```
 
 ## Versioning
 
