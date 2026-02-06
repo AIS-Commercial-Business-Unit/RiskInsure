@@ -1,0 +1,12 @@
+# Force Unix line endings (LF) for docker-compose.yml
+# GitHub Codespaces requires LF for YAML parsing
+docker-compose.yml text eol=lf
+
+# Force Unix line endings for shell scripts
+*.sh text eol=lf
+
+# Force Windows line endings for PowerShell scripts
+*.ps1 text eol=crlf
+
+# Auto-detect and normalize other text files
+* text=auto
