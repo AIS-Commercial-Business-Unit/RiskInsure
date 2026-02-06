@@ -1,0 +1,240 @@
+version: '3.8'
+
+services:
+  # ============================================================================
+  # Billing Domain
+  # ============================================================================
+  billing-api:
+    build:
+      context: .
+      dockerfile: platform/templates/Dockerfile.api.compose
+      args:
+        PROJECT_PATH: services/billing/src/Api/Api.csproj
+    ports:
+      - "7071:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
+      - ConnectionStrings__ServiceBus=${SERVICEBUS_CONNECTION_STRING}
+      - CosmosDb__DatabaseName=RiskInsure
+      - CosmosDb__BillingContainerName=Billing
+    networks:
+      - riskinsure
+
+  billing-endpoint:
+    build:
+      context: .
+      dockerfile: platform/templates/Dockerfile.endpoint.compose
+      args:
+        PROJECT_PATH: services/billing/src/Endpoint.In/Endpoint.In.csproj
+    environment:
+      - DOTNET_ENVIRONMENT=Development
+      - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
+      - ConnectionStrings__ServiceBus=${SERVICEBUS_CONNECTION_STRING}
+      - CosmosDb__DatabaseName=RiskInsure
+      - CosmosDb__BillingContainerName=Billing
+    depends_on:
+      - billing-api
+    networks:
+      - riskinsure
+
+  # ============================================================================
+  # Customer Domain
+  # ============================================================================
+  customer-api:
+    build:
+      context: .
+      dockerfile: platform/templates/Dockerfile.api.compose
+      args:
+        PROJECT_PATH: services/customer/src/Api/Api.csproj
+    ports:
+      - "7073:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
+      - ConnectionStrings__ServiceBus=${SERVICEBUS_CONNECTION_STRING}
+      - CosmosDb__DatabaseName=RiskInsure
+      - CosmosDb__ContainerName=customer
+    networks:
+      - riskinsure
+
+  customer-endpoint:
+    build:
+      context: .
+      dockerfile: platform/templates/Dockerfile.endpoint.compose
+      args:
+        PROJECT_PATH: services/customer/src/Endpoint.In/Endpoint.In.csproj
+    environment:
+      - DOTNET_ENVIRONMENT=Development
+      - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
+      - ConnectionStrings__ServiceBus=${SERVICEBUS_CONNECTION_STRING}
+      - CosmosDb__DatabaseName=RiskInsure
+      - CosmosDb__ContainerName=customer
+    depends_on:
+      - customer-api
+    networks:
+      - riskinsure
+
+  # ============================================================================
+  # Funds Transfer Management Domain
+  # ============================================================================
+  fundstransfermgt-api:
+    build:
+      context: .
+      dockerfile: platform/templates/Dockerfile.api.compose
+      args:
+        PROJECT_PATH: services/fundstransfermgt/src/Api/Api.csproj
+    ports:
+      - "7075:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
+      - ConnectionStrings__ServiceBus=${SERVICEBUS_CONNECTION_STRING}
+      - CosmosDb__DatabaseName=RiskInsure
+      - CosmosDb__ContainerName=fundstransfermgt
+    networks:
+      - riskinsure
+
+  fundstransfermgt-endpoint:
+    build:
+      context: .
+      dockerfile: platform/templates/Dockerfile.endpoint.compose
+      args:
+        PROJECT_PATH: services/fundstransfermgt/src/Endpoint.In/Endpoint.In.csproj
+    environment:
+      - DOTNET_ENVIRONMENT=Development
+      - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
+      - ConnectionStrings__ServiceBus=${SERVICEBUS_CONNECTION_STRING}
+      - CosmosDb__DatabaseName=RiskInsure
+      - CosmosDb__ContainerName=fundstransfermgt
+    depends_on:
+      - fundstransfermgt-api
+    networks:
+      - riskinsure
+
+  # ============================================================================
+  # Policy Domain
+  # ============================================================================
+  policy-api:
+    build:
+      context: .
+      dockerfile: platform/templates/Dockerfile.api.compose
+      args:
+        PROJECT_PATH: services/policy/src/Api/Api.csproj
+    ports:
+      - "7077:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
+      - ConnectionStrings__ServiceBus=${SERVICEBUS_CONNECTION_STRING}
+      - CosmosDb__DatabaseName=RiskInsure
+      - CosmosDb__ContainerName=policy
+    networks:
+      - riskinsure
+
+  policy-endpoint:
+    build:
+      context: .
+      dockerfile: platform/templates/Dockerfile.endpoint.compose
+      args:
+        PROJECT_PATH: services/policy/src/Endpoint.In/Endpoint.In.csproj
+    environment:
+      - DOTNET_ENVIRONMENT=Development
+      - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
+      - ConnectionStrings__ServiceBus=${SERVICEBUS_CONNECTION_STRING}
+      - CosmosDb__DatabaseName=RiskInsure
+      - CosmosDb__ContainerName=policy
+    depends_on:
+      - policy-api
+    networks:
+      - riskinsure
+
+  # ============================================================================
+  # Rating & Underwriting Domain
+  # ============================================================================
+  ratingandunderwriting-api:
+    build:
+      context: .
+      dockerfile: platform/templates/Dockerfile.api.compose
+      args:
+        PROJECT_PATH: services/ratingandunderwriting/src/Api/Api.csproj
+    ports:
+      - "7079:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
+      - ConnectionStrings__ServiceBus=${SERVICEBUS_CONNECTION_STRING}
+      - CosmosDb__DatabaseName=RiskInsure
+      - CosmosDb__ContainerName=ratingunderwriting
+    networks:
+      - riskinsure
+
+  ratingandunderwriting-endpoint:
+    build:
+      context: .
+      dockerfile: platform/templates/Dockerfile.endpoint.compose
+      args:
+        PROJECT_PATH: services/ratingandunderwriting/src/Endpoint.In/Endpoint.In.csproj
+    environment:
+      - DOTNET_ENVIRONMENT=Development
+      - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
+      - ConnectionStrings__ServiceBus=${SERVICEBUS_CONNECTION_STRING}
+      - CosmosDb__DatabaseName=RiskInsure
+      - CosmosDb__ContainerName=ratingunderwriting
+    depends_on:
+      - ratingandunderwriting-api
+    networks:
+      - riskinsure
+
+  # ============================================================================
+  # Local Emulators (for Codespaces/Local Dev)
+  # ============================================================================
+  
+  servicebus-emulator:
+    container_name: servicebus-emulator
+    image: mcr.microsoft.com/azure-messaging/servicebus-emulator:latest
+    ports:
+      - "5672:5672"   # AMQP
+    environment:
+      - ACCEPT_EULA=Y
+    networks:
+      - riskinsure
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "5672"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  cosmos-emulator:
+    container_name: cosmos-emulator
+    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest
+    ports:
+      - "8081:8081"
+      - "10251:10251"
+      - "10252:10252"
+      - "10253:10253"
+      - "10254:10254"
+    environment:
+      - AZURE_COSMOS_EMULATOR_PARTITION_COUNT=10
+      - AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE=true
+    networks:
+      - riskinsure
+    healthcheck:
+      test: ["CMD", "curl", "-k", "-f", "https://localhost:8081/_explorer/index.html"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+networks:
+  riskinsure:
+    driver: bridge
+
+volumes:
+  cosmos-data:
+  servicebus-data:
