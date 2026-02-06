@@ -240,5 +240,5 @@ networks:
     driver: bridge
 
 volumes:
-  cosmos-data:
-  servicebus-data:
+  cosmos-data: {}
+  servicebus-data: {}
