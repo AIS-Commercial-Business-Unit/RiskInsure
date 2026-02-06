@@ -45,7 +45,8 @@ public class PoliciesController : ControllerBase
                 StructureDeductible = policy.StructureDeductible,
                 ContentsCoverageLimit = policy.ContentsCoverageLimit,
                 ContentsDeductible = policy.ContentsDeductible,
-                TermMonths = policy.TermMonths
+                TermMonths = policy.TermMonths,
+                CreatedUtc = policy.CreatedUtc
             });
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("not found"))
@@ -85,7 +86,8 @@ public class PoliciesController : ControllerBase
                 StructureDeductible = policy.StructureDeductible,
                 ContentsCoverageLimit = policy.ContentsCoverageLimit,
                 ContentsDeductible = policy.ContentsDeductible,
-                TermMonths = policy.TermMonths
+                TermMonths = policy.TermMonths,
+                CreatedUtc = policy.CreatedUtc
             });
         }
         catch (InvalidOperationException ex)
@@ -101,15 +103,23 @@ public class PoliciesController : ControllerBase
         var policies = await _manager.GetCustomerPoliciesAsync(customerId);
 
         return Ok(new CustomerPoliciesResponse
-        {
+        {CustomerId = customerId,
+            
             Policies = policies.Select(p => new PolicySummary
             {
                 PolicyId = p.PolicyId,
                 PolicyNumber = p.PolicyNumber,
+                CustomerId = p.CustomerId,
                 Status = p.Status,
                 EffectiveDate = p.EffectiveDate,
                 ExpirationDate = p.ExpirationDate,
-                Premium = p.Premium
+                Premium = p.Premium,
+                StructureCoverageLimit = p.StructureCoverageLimit,
+                StructureDeductible = p.StructureDeductible,
+                ContentsCoverageLimit = p.ContentsCoverageLimit,
+                ContentsDeductible = p.ContentsDeductible,
+                TermMonths = p.TermMonths,
+                CreatedUtc = p.CreatedUtc
             }).ToList()
         });
     }
@@ -174,7 +184,8 @@ public class PoliciesController : ControllerBase
                 StructureDeductible = policy.StructureDeductible,
                 ContentsCoverageLimit = policy.ContentsCoverageLimit,
                 ContentsDeductible = policy.ContentsDeductible,
-                TermMonths = policy.TermMonths
+                TermMonths = policy.TermMonths,
+                CreatedUtc = policy.CreatedUtc
             });
         }
         catch (InvalidOperationException ex) when (ex.Message.Contains("not found"))

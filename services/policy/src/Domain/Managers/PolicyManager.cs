@@ -28,6 +28,10 @@ public class PolicyManager : IPolicyManager
 
     public async Task<Models.Policy> CreateFromQuoteAsync(QuoteAccepted quote)
     {
+        _logger.LogInformation(
+            "CreateFromQuoteAsync called for QuoteId {QuoteId}",
+            quote.QuoteId);
+
         // Idempotency check
         var existing = await _repository.GetByQuoteIdAsync(quote.QuoteId);
         if (existing != null)
@@ -38,14 +42,21 @@ public class PolicyManager : IPolicyManager
             return existing;
         }
 
-        // Generate policy number
+        // Generate policy number and ID
+        _logger.LogInformation("Generating policy number...");
         var policyNumber = await _policyNumberGenerator.GenerateAsync();
+        _logger.LogInformation("Policy number generated: {PolicyNumber}", policyNumber);
+
+        var policyId = Guid.NewGuid().ToString();
+        _logger.LogInformation(
+            "Creating policy with Id={PolicyId}, PolicyId={PolicyId}",
+            policyId, policyId);
 
         // Create policy
         var policy = new Models.Policy
         {
-            Id = Guid.NewGuid().ToString(),
-            PolicyId = Guid.NewGuid().ToString(),
+            Id = policyId,           // Cosmos DB id
+            PolicyId = policyId,     // Partition key (must match Id)
             PolicyNumber = policyNumber,
             QuoteId = quote.QuoteId,
             CustomerId = quote.CustomerId,

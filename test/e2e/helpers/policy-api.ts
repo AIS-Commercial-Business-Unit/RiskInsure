@@ -48,7 +48,7 @@ export async function getCustomerPolicies(
   customerId: string
 ): Promise<Policy[]> {
   const response = await request.get(
-    `${config.apis.policy}/api/policies/customers/${customerId}/policies`,
+    `${config.apis.policy}/api/customers/${customerId}/policies`,
     { timeout: config.timeouts.apiRequest }
   );
 

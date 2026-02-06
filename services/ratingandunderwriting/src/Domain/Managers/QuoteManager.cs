@@ -197,6 +197,10 @@ public class QuoteManager : IQuoteManager
 
         var updated = await _repository.UpdateAsync(quote);
 
+        _logger.LogInformation(
+            "Publishing QuoteAccepted event for Quote {QuoteId}, Customer {CustomerId}",
+            updated.QuoteId, updated.CustomerId);
+
         // Publish QuoteAccepted event (triggers policy creation in Policy domain)
         await _messageSession.Publish(new QuoteAccepted(
             MessageId: Guid.NewGuid(),
@@ -212,6 +216,10 @@ public class QuoteManager : IQuoteManager
             Premium: updated.Premium!.Value, // Guaranteed non-null by validation above
             IdempotencyKey: $"QuoteAccepted-{updated.QuoteId}"
         ));
+
+        _logger.LogInformation(
+            "QuoteAccepted event published for Quote {QuoteId}",
+            updated.QuoteId);
 
         _logger.LogInformation(
             "Quote {QuoteId} accepted, policy creation initiated",

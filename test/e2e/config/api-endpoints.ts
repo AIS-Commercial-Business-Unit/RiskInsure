@@ -31,11 +31,11 @@ export interface TestConfig {
 export function getTestConfig(): TestConfig {
   return {
     apis: {
-      customer: process.env.CUSTOMER_API_URL || 'http://localhost:7073',
-      rating: process.env.RATING_API_URL || 'http://localhost:7079',
-      policy: process.env.POLICY_API_URL || 'http://localhost:7077',
-      billing: process.env.BILLING_API_URL || 'http://localhost:7071',
-      fundsTransfer: process.env.FUNDS_TRANSFER_API_URL || 'http://localhost:7075',
+      customer: process.env.CUSTOMER_API_URL || 'http://127.0.0.1:7073',
+      rating: process.env.RATING_API_URL || 'http://127.0.0.1:7079',
+      policy: process.env.POLICY_API_URL || 'http://127.0.0.1:7077',
+      billing: process.env.BILLING_API_URL || 'http://127.0.0.1:7071',
+      fundsTransfer: process.env.FUNDS_TRANSFER_API_URL || 'http://127.0.0.1:7075',
     },
     timeouts: {
       eventualConsistency: parseInt(process.env.EVENTUAL_CONSISTENCY_TIMEOUT || '10000', 10),

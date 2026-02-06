@@ -7,5 +7,7 @@ public record CustomerCreated(
     string Email,
     DateTimeOffset BirthDate,
     string ZipCode,
+    string? FirstName,
+    string? LastName,
     string IdempotencyKey
 );
