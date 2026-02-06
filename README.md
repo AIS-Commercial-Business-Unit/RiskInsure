@@ -10,6 +10,28 @@ This repository implements an **event-driven architecture** with:
 - **Azure Container Apps** for hosting NServiceBus endpoints with KEDA scaling
 - **Azure Logic Apps Standard** for orchestration workflows
 
+## ☁️ GitHub Codespaces (Recommended for New Developers)
+
+**Get started in minutes with zero local setup!**
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new?hide_repo_select=true&ref=main)
+
+GitHub Codespaces provides a fully configured development environment with:
+- ✅ Azure Service Bus Emulator (local message queuing)
+- ✅ Cosmos DB Emulator (local database)
+- ✅ All 10 microservices pre-configured
+- ✅ .NET 10 SDK, Docker, and Node.js
+- ✅ GitHub Copilot Chat enabled
+- ✅ **No Azure subscription required!**
+
+**Quick Start:**
+1. Click the badge above or go to **Code** → **Codespaces** → **Create codespace**
+2. Wait ~5-10 minutes for setup
+3. Run: `docker-compose up -d`
+4. Start coding!
+
+See [.devcontainer/README.md](.devcontainer/README.md) for full documentation.
+
 ## 📁 Repository Structure
 
 ```
@@ -30,14 +52,53 @@ RiskInsure/
 
 ## 🚀 Getting Started
 
-### Prerequisites
+### Option 1: GitHub Codespaces (Easiest)
+
+See [☁️ GitHub Codespaces](#️-github-codespaces-recommended-for-new-developers) section above - **no local setup required!**
+
+### Option 2: Local Development with Emulators
+
+**No Azure subscription needed!** Run everything locally with emulators.
+
+1. **Clone and setup**:
+   ```bash
+   git clone https://github.com/your-org/RiskInsure.git
+   cd RiskInsure
+   cp .env.emulator .env
+   ```
+
+2. **Start emulators**:
+   ```bash
+   docker-compose up -d servicebus-emulator cosmos-emulator
+   ```
+
+3. **Start all services**:
+   ```bash
+   docker-compose up -d
+   ```
+
+4. **Run tests**:
+   ```bash
+   cd test/e2e
+   npm install
+   npm test
+   ```
+
+See [docs/EMULATOR-SETUP.md](docs/EMULATOR-SETUP.md) for detailed instructions.
+
+### Option 3: Local Development with Azure Resources
+
+**For production-like testing:**
+
+#### Prerequisites
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
 - [Docker Desktop](https://www.docker.com/products/docker-desktop)
 - [Azure CLI](https://docs.microsoft.com/cli/azure/install-azure-cli)
 - [Git](https://git-scm.com/)
+- Azure subscription
 
-### First-Time Setup
+#### First-Time Setup
 
 1. **Clone the repository**
    ```bash
@@ -45,17 +106,47 @@ RiskInsure/
    cd RiskInsure
    ```
 
-2. **Restore dependencies**
+2. **Create Azure resources** (one-time):
    ```bash
-   dotnet restore
+   # Create resource group
+   az group create --name riskinsure-dev --location eastus
+
+   # Create Service Bus namespace
+   az servicebus namespace create \
+     --resource-group riskinsure-dev \
+     --name riskinsure-dev-bus \
+     --sku Standard
+
+   # Create Cosmos DB account (free tier)
+   az cosmosdb create \
+     --resource-group riskinsure-dev \
+     --name riskinsure-dev-cosmos \
+     --enable-free-tier true
    ```
 
-3. **Build the solution**
+3. **Get connection strings and create .env file**:
    ```bash
+   # Get Service Bus connection string
+   az servicebus namespace authorization-rule keys list \
+     --resource-group riskinsure-dev \
+     --namespace-name riskinsure-dev-bus \
+     --name RootManageSharedAccessKey \
+     --query primaryConnectionString -o tsv
+
+   # Create .env file
+   cat > .env << EOF
+   SERVICEBUS_CONNECTION_STRING="<paste-service-bus-connection-string>"
+   COSMOSDB_CONNECTION_STRING="<paste-cosmos-connection-string>"
+   EOF
+   ```
+
+4. **Build the solution**
+   ```bash
+   dotnet restore
    dotnet build
    ```
 
-4. **Run tests**
+5. **Run tests**
    ```bash
    dotnet test
    ```

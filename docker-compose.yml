@@ -191,6 +191,51 @@ services:
     networks:
       - riskinsure
 
+  # ============================================================================
+  # Local Emulators (for Codespaces/Local Dev)
+  # ============================================================================
+  
+  servicebus-emulator:
+    container_name: servicebus-emulator
+    image: mcr.microsoft.com/azure-messaging/servicebus-emulator:latest
+    ports:
+      - "5672:5672"   # AMQP
+    environment:
+      - ACCEPT_EULA=Y
+    networks:
+      - riskinsure
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "5672"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  cosmos-emulator:
+    container_name: cosmos-emulator
+    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest
+    ports:
+      - "8081:8081"
+      - "10251:10251"
+      - "10252:10252"
+      - "10253:10253"
+      - "10254:10254"
+    environment:
+      - AZURE_COSMOS_EMULATOR_PARTITION_COUNT=10
+      - AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE=true
+    networks:
+      - riskinsure
+    healthcheck:
+      test: ["CMD", "curl", "-k", "-f", "https://localhost:8081/_explorer/index.html"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
 networks:
   riskinsure:
     driver: bridge
+
+volumes:
+  cosmos-data:
+  servicebus-data:
+>>>>>>> 5628e19d0b98e6f4e40b1d4378ca2d9724e06765
