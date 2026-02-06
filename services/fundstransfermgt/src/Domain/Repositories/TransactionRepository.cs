@@ -1,9 +1,8 @@
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
 using RiskInsure.FundTransferMgt.Domain.Models;
-using RiskInsure.FundTransferMgt.Domain.Repositories;
 
-namespace RiskInsure.FundTransferMgt.Infrastructure.Repositories;
+namespace RiskInsure.FundTransferMgt.Domain.Repositories;
 
 public class TransactionRepository : ITransactionRepository
 {
@@ -53,7 +52,7 @@ public class TransactionRepository : ITransactionRepository
     public async Task<List<FundTransfer>> GetTransfersByCustomerIdAsync(string customerId, CancellationToken cancellationToken = default)
     {
         var query = new QueryDefinition(
-            "SELECT * FROM c WHERE c.CustomerId = @customerId AND c.Type_Discriminator = 'FundTransfer'")
+            "SELECT * FROM c WHERE c.customerId = @customerId AND c.type_Discriminator = 'FundTransfer'")
             .WithParameter("@customerId", customerId);
 
         var results = new List<FundTransfer>();

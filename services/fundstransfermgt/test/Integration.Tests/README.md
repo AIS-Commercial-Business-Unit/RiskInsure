@@ -2,10 +2,30 @@
 
 This directory contains Playwright-based integration tests for the Fund Transfer Management API.
 
+## Test Suites
+
+### 1. Payment Method Lifecycle Tests (`payment-method-lifecycle.spec.ts`)
+Tests the complete workflow for managing payment methods including:
+- Adding credit cards and ACH accounts
+- Validating payment methods
+- Retrieving and listing payment methods
+- Removing payment methods
+- Input validation and error handling
+
+### 2. Fund Transfer End-to-End Tests (`fund-transfer-e2e.spec.ts`)
+Comprehensive tests covering the complete fund transfer workflow:
+- Creating payment methods (credit card and ACH)
+- Initiating fund transfers
+- Verifying transfer status and settlement
+- Retrieving transfer history
+- Multi-payment method scenarios
+- Error handling (invalid/inactive payment methods, cross-customer validation)
+- Large amount transfers
+
 ## Prerequisites
 
 - Node.js 18+ installed
-- Fund Transfer Management API running on `http://localhost:7075`
+- Fund Transfer Management API running on `http://localhost:7073`
 - Cosmos DB Emulator running locally
 
 ## First-Time Setup
@@ -35,9 +55,9 @@ cd services/fundstransfermgt/src/Api
 dotnet run
 ```
 
-The API should start on `http://localhost:7075`. Wait for the message:
+The API should start on `http://localhost:7073`. Wait for the message:
 ```
-Now listening on: http://localhost:7075
+Now listening on: http://localhost:7073
 ```
 
 ## Running Tests
@@ -68,12 +88,19 @@ npm run test:ui
 
 # Run a specific test file
 npx playwright test tests/payment-method-lifecycle.spec.ts
+npx playwright test tests/fund-transfer-e2e.spec.ts
+
+# Run specific test suites
+npm run test:payment-methods     # Payment method lifecycle tests
+npm run test:e2e                 # Fund transfer E2E tests
+npm run test:e2e:ui             # Fund transfer E2E tests in UI mode
 
 # Run tests matching a pattern
 npx playwright test --grep "payment"
+npx playwright test --grep "credit card"
 
 # Run a single test by name
-npx playwright test --grep "Add credit card workflow"
+npx playwright test --grep "Complete credit card fund transfer workflow"
 ```
 
 ### Viewing Test Results
@@ -170,13 +197,56 @@ Tests are configured to run in CI pipelines with:
 
 ## Writing New Tests
 
-See `tests/payment-method-lifecycle.spec.ts` for examples. Each test:
+See `tests/payment-method-lifecycle.spec.ts` and `tests/fund-transfer-e2e.spec.ts` for examples. Each test:
 1. Generates unique test data (GUIDs, timestamps)
 2. Uses `request` fixture for API calls
 3. Validates responses with `expect()` assertions
 4. Uses domain terminology consistently
+5. Includes console logging for test execution visibility
+
+### Example Test Structure
+```typescript
+test('Descriptive test name', async ({ request }) => {
+  const customerId = `CUST-${Date.now()}`;
+  
+  // Step 1: Setup
+  console.log('📋 STEP 1: Creating payment method...');
+  const response = await request.post(`${baseUrl}/payment-methods/credit-card`, {
+    data: { /* ... */ }
+  });
+  
+  // Step 2: Validate
+  expect(response.status()).toBe(201);
+  const result = await response.json();
+  expect(result.customerId).toBe(customerId);
+  
+  console.log('✅ Test completed successfully!');
+});
+```
 
 ## Test Coverage
+
+### Payment Method Lifecycle Tests
+- ✅ Add credit card with full validation
+- ✅ Add ACH account
+- ✅ Retrieve payment method by ID
+- ✅ List customer payment methods
+- ✅ Remove payment method
+- ✅ Invalid card number validation
+- ✅ Input validation for required fields
+
+### Fund Transfer End-to-End Tests
+- ✅ Complete credit card transfer workflow
+- ✅ Complete ACH transfer workflow
+- ✅ Transfer with invalid payment method (404 handling)
+- ✅ Transfer with inactive payment method (400 handling)
+- ✅ Transfer with wrong customer's payment method (authorization)
+- ✅ Multiple payment methods for one customer
+- ✅ Multiple transfers for one customer
+- ✅ Large amount transfers ($10,000+)
+- ✅ Retrieve transfer by ID
+- ✅ Retrieve customer transfer history
+- ✅ Non-existent transfer returns 404
 
 Integration tests should cover:
 - Payment method management (credit cards, ACH accounts)

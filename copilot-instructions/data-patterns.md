@@ -1,5 +1,15 @@
 # Data Patterns
 
+## ⚠️ ARCHITECTURE NOTE: Layered Architecture (Not Clean Architecture)
+
+**RiskInsure uses Layered Architecture** where:
+- **Domain layer** contains BOTH business logic AND data access (repositories)
+- **Repositories** live in `Domain/Repositories/` (both interfaces and implementations)
+- **Infrastructure layer** provides only shared configuration utilities (CosmosDbInitializer, NServiceBus config)
+- **Domain** references `Microsoft.Azure.Cosmos` directly
+
+**This is NOT Clean Architecture** where Infrastructure implements Domain interfaces. In our layered approach, Domain is self-contained with its own persistence logic.
+
 ## Overview
 
 This bounded context uses Azure Cosmos DB as the primary database following the principle of **one database per domain**. This ensures clear data ownership, independent scaling, and bounded context isolation.
@@ -32,8 +42,20 @@ Each bounded context has its own Cosmos DB database:
 - Separate scaling and performance tuning
 - Isolation of failures
 
-### 2. Repository Pattern
-All database access goes through repository interfaces:
+### 2. Repository Pattern (Layered Architecture)
+
+**RiskInsure uses Layered Architecture** where the Domain layer owns both business logic AND data access.
+
+**Repository Location**:
+- **Interfaces**: `Domain/Repositories/IEntityRepository.cs`
+- **Implementations**: `Domain/Repositories/EntityRepository.cs` (same layer)
+
+**Why Domain Layer?**
+- Layered architecture (not Clean Architecture)
+- Domain owns its data access
+- Testable with emulators (Cosmos DB Emulator, Azurite)
+- Managers (also in Domain) can directly use repositories
+- Single layer for business logic and persistence
 
 ### ⚠️ CRITICAL: Repositories Are Persistence-Only
 
@@ -108,7 +130,7 @@ public async Task<PaymentResult> RecordPaymentAsync(RecordPaymentDto dto)
 }
 ```
 
-**Domain defines the contract:**
+**Interface and implementation both in Domain:**
 ```csharp
 // Domain/Repositories/IProductRepository.cs
 public interface IProductRepository
@@ -120,12 +142,19 @@ public interface IProductRepository
 }
 ```
 
-**Infrastructure implements:**
+**Implementation in same layer:**
 ```csharp
-// Infrastructure/Repositories/ProductRepository.cs
+// Domain/Repositories/ProductRepository.cs
 public class ProductRepository : IProductRepository
 {
     private readonly Container _container;
+    private readonly ILogger<ProductRepository> _logger;
+    
+    public ProductRepository(Container container, ILogger<ProductRepository> logger)
+    {
+        _container = container;
+        _logger = logger;
+    }
     
     public async Task<Product?> GetByIdAsync(Guid id, string categoryId)
     {
@@ -145,9 +174,10 @@ public class ProductRepository : IProductRepository
 ```
 
 **Benefits:**
-- Testable (mock repository in tests)
-- Swappable (change database without changing domain)
-- Clear separation of concerns
+- Testable with emulators (Cosmos DB Emulator for integration tests)
+- Mock repository interfaces for unit tests
+- Managers and repositories in same layer simplifies architecture
+- Domain owns its data access logic
 
 ### 3. CQRS Pattern (Optional)
 Separate read models from write models when needed:
@@ -309,6 +339,62 @@ var document = new PaymentMethod
 
 **Best Practice**: Use same value for both `id` and your business identifier (see BillingAccountRepository example).
 
+### ⚠️ CRITICAL: Configure CosmosClient with System.Text.Json Serializer
+
+**MUST DO BEFORE RUNNING API**: Cosmos SDK defaults to Newtonsoft.Json but code uses System.Text.Json attributes.
+
+**Without this configuration, you'll get**: `BadRequest (400): "The input content is invalid because the required properties - 'id; ' - are missing"`
+
+**Required Steps**:
+
+1. **Create custom serializer** in Infrastructure project:
+```csharp
+// Infrastructure/CosmosSystemTextJsonSerializer.cs
+using System.Text.Json;
+using Microsoft.Azure.Cosmos;
+
+public class CosmosSystemTextJsonSerializer : CosmosSerializer
+{
+    private readonly JsonSerializerOptions _options;
+    
+    public CosmosSystemTextJsonSerializer(JsonSerializerOptions options) 
+        => _options = options;
+    
+    public override T FromStream<T>(Stream stream)
+    {
+        if (stream == null || stream.Length == 0) return default!;
+        using (stream) return JsonSerializer.Deserialize<T>(stream, _options)!;
+    }
+    
+    public override Stream ToStream<T>(T input)
+    {
+        var json = JsonSerializer.Serialize(input, _options);
+        return new MemoryStream(Encoding.UTF8.GetBytes(json));
+    }
+}
+```
+
+2. **Configure CosmosClient** in Program.cs (API and Endpoint.In):
+```csharp
+var cosmosClientOptions = new CosmosClientOptions
+{
+    Serializer = new CosmosSystemTextJsonSerializer(new JsonSerializerOptions
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        Converters = { new JsonStringEnumConverter() }
+    }),
+    ConnectionMode = ConnectionMode.Direct,
+    RequestTimeout = TimeSpan.FromSeconds(10),
+    MaxRetryAttemptsOnRateLimitedRequests = 3,
+    MaxRetryWaitTimeOnRateLimitedRequests = TimeSpan.FromSeconds(5)
+};
+
+var cosmosClient = new CosmosClient(connectionString, cosmosClientOptions);
+```
+
+**Why This Matters**: Without custom serializer, `[JsonPropertyName("id")]` attributes are ignored, causing Cosmos DB to reject documents.
+
 ### Mapping Domain to Database
 
 ### Detailed 'id' Field Pattern
@@ -462,17 +548,25 @@ await _container.CreateItemAsync(document);  // SUCCESS
 
 ## Repository Implementation
 
-### Full Repository Example
+### Full Repository Example (Domain Layer)
+
+**Location**: `Domain/Repositories/ProductRepository.cs`
+
 ```csharp
+using Microsoft.Azure.Cosmos;
+using Microsoft.Extensions.Logging;
+
+namespace RiskInsure.ProductCatalog.Domain.Repositories;
+
 public class ProductRepository : IProductRepository
 {
     private readonly Container _container;
     private readonly ILogger<ProductRepository> _logger;
     
-    public ProductRepository(CosmosClient client, ILogger<ProductRepository> logger)
+    public ProductRepository(Container container, ILogger<ProductRepository> logger)
     {
-        var database = client.GetDatabase("ProductCatalogDb");
-        _container = database.GetContainer("Products");
+        // Container is injected from DI, already configured in Program.cs
+        _container = container;
         _logger = logger;
     }
     
@@ -569,6 +663,56 @@ public class ProductRepository : IProductRepository
 ```
 
 ## Querying Patterns
+
+### ⚠️ CRITICAL: Query Case-Sensitivity
+
+**Cosmos DB SQL queries are case-sensitive** - property names in queries MUST match the exact JSON property names as serialized.
+
+**Problem**: Using C# property names (PascalCase) in queries instead of JSON property names (camelCase):
+```csharp
+// ❌ WRONG - Uses C# property name (capital C)
+var query = new QueryDefinition(
+    "SELECT * FROM c WHERE c.CustomerId = @customerId")
+    .WithParameter("@customerId", customerId);
+
+// Returns empty array even though documents exist!
+```
+
+**Solution**: Use exact JSON property names as they appear in serialized documents:
+```csharp
+// ✅ CORRECT - Uses JSON property name (lowercase c)
+var query = new QueryDefinition(
+    "SELECT * FROM c WHERE c.customerId = @customerId")
+    .WithParameter("@customerId", customerId);
+
+// Returns matching documents
+```
+
+**How to Verify JSON Property Names**:
+1. Check your serialization settings (camelCase, PascalCase, etc.)
+2. Query a document in Azure Portal Data Explorer
+3. Use exact property names from the JSON in your queries
+
+**Common Mistakes**:
+```csharp
+// ❌ WRONG - Mismatch between JSON and query
+public class PaymentMethod
+{
+    [JsonPropertyName("customerId")]  // JSON: "customerId" (lowercase)
+    public string CustomerId { get; set; }  // C#: CustomerId (capital C)
+}
+
+// Query using C# name - WON'T WORK
+"SELECT * FROM c WHERE c.CustomerId = @customerId"  // ❌ Capital C
+
+// ✅ CORRECT - Query using JSON name
+"SELECT * FROM c WHERE c.customerId = @customerId"  // ✅ Lowercase c
+```
+
+**JSON Property Name Reference**:
+- With `JsonNamingPolicy.CamelCase`: `CustomerId` → `customerId`
+- With `JsonNamingPolicy.CamelCase`: `Type_Discriminator` → `type_Discriminator`
+- With `[JsonPropertyName("id")]`: `Id` → `id`
 
 ### Point Read (Best Performance)
 ```csharp
