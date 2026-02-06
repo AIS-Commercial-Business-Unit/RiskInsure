@@ -2,7 +2,6 @@
   "name": "RiskInsure Development Environment",
   "dockerComposeFile": "../docker-compose.yml",
   "service": "customer-api",
-  "workspaceFolder": "/workspace",
   "shutdownAction": "stopCompose",
 
   "features": {
