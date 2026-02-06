@@ -28,11 +28,21 @@ public class CustomersController : ControllerBase
     {
         try
         {
+            var address = new Domain.Models.Address
+            {
+                Street = request.Address.Street,
+                City = request.Address.City,
+                State = request.Address.State,
+                ZipCode = request.Address.ZipCode
+            };
+
             var customer = await _manager.CreateCustomerAsync(
-                request.CustomerId,
+                request.FirstName,
+                request.LastName,
                 request.Email,
-                request.BirthDate,
-                request.ZipCode);
+                request.Phone,
+                address,
+                request.BirthDate);
 
             var response = MapToResponse(customer);
 

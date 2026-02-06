@@ -23,8 +23,9 @@ public class CosmosDbInitializer
     public async Task<Container> InitializeAsync()
     {
         var databaseName = "RiskInsure";
-        var containerName = "ratingunderwriting";
+        var containerName = "RatingUnderwriting";
 
+        // Create database if not exists (without throughput - shares 1000 RU/s from database level)
         var database = await _cosmosClient.CreateDatabaseIfNotExistsAsync(databaseName);
         _logger.LogInformation("Database {DatabaseName} ready", databaseName);
 
@@ -34,14 +35,14 @@ public class CosmosDbInitializer
             PartitionKeyPath = "/quoteId"
         };
 
-        var container = await database.Database.CreateContainerIfNotExistsAsync(
-            containerProperties,
-            throughput: 400);
+        // Create container WITHOUT specifying throughput - inherits from database-level shared throughput
+        // This allows all containers to share the 1000 RU/s free tier limit
+        var containerResponse = await database.Database.CreateContainerIfNotExistsAsync(containerProperties);
 
         _logger.LogInformation(
             "Container {ContainerName} ready with partition key {PartitionKey}",
             containerName, containerProperties.PartitionKeyPath);
 
-        return container.Container;
+        return containerResponse.Container;
     }
 }

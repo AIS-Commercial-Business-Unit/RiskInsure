@@ -85,6 +85,7 @@ public class PolicyNumberGenerator : IPolicyNumberGenerator
             var counter = new PolicyNumberCounter
             {
                 Id = id,
+                PolicyId = id,  // Partition key must match id
                 Year = year,
                 CurrentSequence = 0
             };
@@ -103,6 +104,9 @@ public class PolicyNumberGenerator : IPolicyNumberGenerator
     {
         [JsonPropertyName("id")]
         public required string Id { get; set; }  // "policy-counter-2026"
+
+        [JsonPropertyName("policyId")]  // Partition key (must match id)
+        public required string PolicyId { get; set; }  // "policy-counter-2026"
 
         [JsonPropertyName("year")]
         public int Year { get; set; }

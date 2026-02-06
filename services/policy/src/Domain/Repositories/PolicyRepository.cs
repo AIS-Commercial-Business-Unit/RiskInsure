@@ -89,9 +89,13 @@ public class PolicyRepository : IPolicyRepository
 
     public async Task<Models.Policy> CreateAsync(Models.Policy policy)
     {
-        policy.Id = policy.PolicyId;  // Set Cosmos DB id to policyId
+        policy.Id = policy.PolicyId;  // Ensure Cosmos DB id matches partition key
         policy.CreatedUtc = DateTimeOffset.UtcNow;
         policy.UpdatedUtc = DateTimeOffset.UtcNow;
+
+        _logger.LogInformation(
+            "Creating policy document: Id={Id}, PolicyId={PolicyId}, PolicyNumber={PolicyNumber}",
+            policy.Id, policy.PolicyId, policy.PolicyNumber);
 
         var response = await _container.CreateItemAsync(
             policy,

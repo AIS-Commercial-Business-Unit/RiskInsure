@@ -9,7 +9,7 @@ using RiskInsure.Customer.Domain.Validation;
 
 public interface ICustomerManager
 {
-    Task<Models.Customer> CreateCustomerAsync(string customerId, string email, DateTimeOffset birthDate, string zipCode);
+    Task<Models.Customer> CreateCustomerAsync(string firstName, string lastName, string email, string phoneNumber, Address mailingAddress, DateTimeOffset? birthDate = null);
     Task<Models.Customer?> GetCustomerAsync(string customerId);
     Task<Models.Customer> UpdateCustomerAsync(string customerId, string? firstName, string? lastName, string? phoneNumber, Address? mailingAddress);
     Task CloseCustomerAsync(string customerId);
@@ -36,12 +36,16 @@ public class CustomerManager : ICustomerManager
     }
 
     public async Task<Models.Customer> CreateCustomerAsync(
-        string customerId, 
-        string email, 
-        DateTimeOffset birthDate, 
-        string zipCode)
+        string firstName,
+        string lastName,
+        string email,
+        string phoneNumber,
+        Address mailingAddress,
+        DateTimeOffset? birthDate = null)
     {
-        var validation = await _validator.ValidateCreateCustomerAsync(email, birthDate, zipCode);
+        var customerId = $"CUST-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}";
+        
+        var validation = await _validator.ValidateCreateCustomerAsync(email, birthDate ?? DateTimeOffset.MinValue, mailingAddress.ZipCode);
         if (!validation.IsValid)
         {
             _logger.LogWarning(
@@ -54,9 +58,13 @@ public class CustomerManager : ICustomerManager
         {
             Id = customerId,
             CustomerId = customerId,
+            FirstName = firstName,
+            LastName = lastName,
             Email = email,
-            BirthDate = birthDate,
-            ZipCode = zipCode,
+            PhoneNumber = phoneNumber,
+            MailingAddress = mailingAddress,
+            BirthDate = birthDate ?? DateTimeOffset.MinValue,
+            ZipCode = mailingAddress.ZipCode,
             Status = "Active",
             EmailVerified = false,
             MarketingOptIn = false,
@@ -72,6 +80,8 @@ public class CustomerManager : ICustomerManager
             Email: created.Email,
             BirthDate: created.BirthDate,
             ZipCode: created.ZipCode,
+            FirstName: created.FirstName,
+            LastName: created.LastName,
             IdempotencyKey: Guid.NewGuid().ToString()
         ));
 
