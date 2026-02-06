@@ -202,6 +202,8 @@ services:
       - "5672:5672"   # AMQP
     environment:
       - ACCEPT_EULA=Y
+    volumes:
+      - servicebus-data:/data
     networks:
       - riskinsure
     healthcheck:
@@ -222,6 +224,8 @@ services:
     environment:
       - AZURE_COSMOS_EMULATOR_PARTITION_COUNT=10
       - AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE=true
+    volumes:
+      - cosmos-data:/data/db
     networks:
       - riskinsure
     healthcheck:
