@@ -1,188 +1,477 @@
 # Getting Started with RiskInsure
 
-**Quick start guide for local development** | **Last Updated**: 2026-02-02
+**Quick start guide for GitHub Codespaces and Azure development** | **Last Updated**: 2026-02-07
 
-This guide walks you through setting up your local development environment and building your first service.
-
----
-
-## Prerequisites
-
-### Required Software
-
-- **[.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)** - Latest version
-- **[Docker Desktop](https://www.docker.com/products/docker-desktop)** - For Cosmos DB emulator and containerization
-- **[Azure CLI](https://docs.microsoft.com/cli/azure/install-azure-cli)** - For Azure Service Bus setup
-- **[Git](https://git-scm.com/)** - Version control
-- **[Visual Studio 2025](https://visualstudio.microsoft.com/)** or **[VS Code](https://code.visualstudio.com/)** - IDE
-
-### Recommended Tools
-
-- **[Azure Storage Explorer](https://azure.microsoft.com/features/storage-explorer/)** - Browse Cosmos DB data
-- **[Service Bus Explorer](https://github.com/paolosalvatori/ServiceBusExplorer)** - Monitor Service Bus messages
-- **[Postman](https://www.postman.com/)** or **[REST Client VS Code extension](https://marketplace.visualstudio.com/items?itemName=humao.rest-client)** - API testing
+This guide walks you through setting up your development environment in GitHub Codespaces with Azure resources.
 
 ---
 
-## Local Development Setup
+## 🚀 Quick Start (GitHub Codespaces - Recommended)
 
-### Step 1: Clone and Build
+GitHub Codespaces provides a fully configured development container with all tools pre-installed. This is the **fastest way to get started**.
 
-```powershell
-# Clone repository
-git clone https://github.com/AIS-Commercial-Business-Unit/RiskInsure.git
-cd RiskInsure
+### Prerequisites
 
-# Restore dependencies
-dotnet restore
-
-# Build solution
-dotnet build
-
-# Run tests
-dotnet test
-```
-
-Expected output: `Build succeeded. 0 Error(s)`
+- **GitHub account** with Codespaces access
+- **Azure subscription** with permissions to create resources
+- **15 minutes** to complete setup
 
 ---
 
-### Step 2: Azure Cosmos DB Emulator
+## Step-by-Step Setup
 
-#### Option A: Windows Native
-```powershell
-# Install via Chocolatey
-choco install azure-cosmosdb-emulator
+### 1️⃣ Launch GitHub Codespace
 
-# Start emulator
-Start-CosmosDbEmulator
-```
+1. Go to the [RiskInsure repository](https://github.com/AIS-Commercial-Business-Unit/RiskInsure)
+2. Click **Code** → **Codespaces** → **Create codespace on main**
+3. Wait 2-3 minutes for the container to build
+4. Your browser opens VS Code with everything pre-installed:
+   - ✅ .NET 10 SDK
+   - ✅ Docker (for running services)
+   - ✅ Azure CLI
+   - ✅ Node.js (for E2E tests)
+   - ✅ Git
 
-Access at: https://localhost:8081/_explorer/
-
-#### Option B: Docker (Mac/Linux/Windows)
-```bash
-docker run -p 8081:8081 -p 10251-10254:10251-10254 \
-  --name cosmos-emulator \
-  -e AZURE_COSMOS_EMULATOR_PARTITION_COUNT=10 \
-  -e AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE=true \
-  mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest
-```
-
-**Connection String** (emulator default):
-```
-AccountEndpoint=https://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==
-```
+**💡 Tip**: Use a **4-core • 16GB RAM** machine type for best performance.
 
 ---
 
-### Step 3: Azure Service Bus
+### 2️⃣ Create Azure Resources
 
-**Create development namespace**:
+You'll need two Azure resources: **Cosmos DB** (database) and **Service Bus** (messaging).
+
+#### Option A: Azure CLI (Command Line)
+
 ```bash
 # Login to Azure
-az login
+az login --use-device-code
 
-# Create resource group (if needed)
-az group create --name riskinsure-dev --location eastus
+# Set your subscription (if you have multiple)
+az account set --subscription "YOUR-SUBSCRIPTION-NAME"
+
+# Create resource group
+az group create \
+  --name riskinsure-dev \
+  --location eastus
+
+# Create Cosmos DB account (takes ~5 minutes)
+az cosmosdb create \
+  --name riskinsure-cosmosdb \
+  --resource-group riskinsure-dev \
+  --default-consistency-level Session \
+  --locations regionName=eastus
 
 # Create Service Bus namespace
 az servicebus namespace create \
   --resource-group riskinsure-dev \
-  --name riskinsure-dev-bus \
+  --name acmecorp-dev-servicebus \
   --location eastus \
   --sku Standard
+```
 
-# Get connection string
+#### Option B: Azure Portal (Visual)
+
+**Cosmos DB:**
+1. Go to [Azure Portal](https://portal.azure.com)
+2. Click **+ Create a resource** → Search "Azure Cosmos DB"
+3. Select **Azure Cosmos DB for NoSQL**
+4. Fill in:
+   - **Subscription**: Your subscription
+   - **Resource Group**: `riskinsure-dev` (create new)
+   - **Account Name**: `riskinsure-cosmosdb`
+   - **Location**: East US
+   - **Capacity mode**: Provisioned throughput
+   - **Apply Free Tier Discount**: Yes (if available)
+5. Click **Review + create** → **Create** (takes ~5 minutes)
+
+**Service Bus:**
+1. Click **+ Create a resource** → Search "Service Bus"
+2. Fill in:
+   - **Subscription**: Your subscription
+   - **Resource Group**: `riskinsure-dev`
+   - **Namespace name**: `acmecorp-dev-servicebus`
+   - **Location**: East US
+   - **Pricing tier**: Standard
+3. Click **Review + create** → **Create** (takes ~2 minutes)
+
+---
+
+### 3️⃣ Get Connection Strings
+
+#### Cosmos DB Connection String
+
+```bash
+az cosmosdb keys list \
+  --name riskinsure-cosmosdb \
+  --resource-group riskinsure-dev \
+  --type connection-strings \
+  --query "connectionStrings[0].connectionString" -o tsv
+```
+
+**Or via Portal:**
+1. Go to your Cosmos DB account → **Keys** (left menu)
+2. Copy **PRIMARY CONNECTION STRING**
+
+#### Service Bus Connection String
+
+```bash
 az servicebus namespace authorization-rule keys list \
   --resource-group riskinsure-dev \
-  --namespace-name riskinsure-dev-bus \
+  --namespace-name acmecorp-dev-servicebus \
   --name RootManageSharedAccessKey \
   --query primaryConnectionString -o tsv
 ```
 
-**Alternative: Use Azurite for local testing** (not full Service Bus replacement):
+**Or via Portal:**
+1. Go to your Service Bus namespace → **Shared access policies** (left menu)
+2. Click **RootManageSharedAccessKey**
+3. Copy **Primary Connection String**
+
+---
+
+### 4️⃣ Create Service Bus Queues
+
+Install the NServiceBus transport CLI tool and create queues use the provided scripts:
 ```bash
-docker run -p 10000:10000 -p 10001:10001 -p 10002:10002 \
-  mcr.microsoft.com/azure-storage/azurite
+cd services/billing/src/Infrastructure
+pwsh queues.ps1  # If you have PowerShell installed
 ```
 
 ---
 
-### Step 4: Configuration Files
+### 5️⃣ Configure Environment Variables
 
-Each service has configuration templates. Copy and customize:
+Create a `.env` file in the repository root with your Azure connection strings:
 
-```powershell
-# Example for a service named "Billing"
-cd services/billing/src/Api
-Copy-Item appsettings.Development.json.template appsettings.Development.json
+```bash
+cd /workspaces/RiskInsure
 
-# Edit appsettings.Development.json
-code appsettings.Development.json
+cat > .env << 'EOF'
+# Azure Cosmos DB Connection String
+COSMOSDB_CONNECTION_STRING=YOUR-COSMOS-CONNECTION-STRING-HERE
+
+# Azure Service Bus Connection String
+SERVICEBUS_CONNECTION_STRING=YOUR-SERVICEBUS-CONNECTION-STRING-HERE
+EOF
 ```
 
-**Example `appsettings.Development.json`**:
-```json
-{
-  "ConnectionStrings": {
-    "CosmosDb": "AccountEndpoint=https://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==",
-    "ServiceBus": "Endpoint=sb://riskinsure-dev-bus.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=YOUR_KEY_HERE"
-  },
-  "Logging": {
-    "LogLevel": {
-      "Default": "Information",
-      "Microsoft": "Warning",
-      "NServiceBus": "Information"
-    }
-  }
-}
+**Replace the placeholder values** with your actual connection strings from Step 3.
+
+**Example `.env` file:**
+```bash
+COSMOSDB_CONNECTION_STRING=AccountEndpoint=https://YOUR-COSMOSDB-ACCOUNT.documents.azure.com:443/;AccountKey=YOUR-COSMOS-KEY-HERE==;
+
+SERVICEBUS_CONNECTION_STRING=Endpoint=sb://YOUR-SERVICEBUS-NAMESPACE.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=YOUR-SERVICEBUS-KEY-HERE=
 ```
 
-⚠️ **Never commit `appsettings.Development.json`** - It's in .gitignore
+#### Make Environment Variables Persistent
+
+Add them to your shell profile so they survive terminal restarts:
+
+```bash
+# Add to .bashrc (recommended for Codespaces)
+cat >> ~/.bashrc << 'EOF'
+
+# RiskInsure Azure Connection Strings
+export COSMOSDB_CONNECTION_STRING="$(grep COSMOSDB_CONNECTION_STRING /workspaces/RiskInsure/.env | cut -d'=' -f2-)"
+export SERVICEBUS_CONNECTION_STRING="$(grep SERVICEBUS_CONNECTION_STRING /workspaces/RiskInsure/.env | cut -d'=' -f2-)"
+EOF
+
+# Reload shell
+source ~/.bashrc
+```
+
+**Verify environment variables:**
+```bash
+echo $COSMOSDB_CONNECTION_STRING | cut -c1-50
+echo $SERVICEBUS_CONNECTION_STRING | cut -c1-50
+```
+
+You should see the beginning of your connection strings.
 
 ---
 
-## Creating Your First Service
+### 6️⃣ Build and Start Services
 
-### Step 1: Choose a Service
+```bash
+# Build all services
+docker compose build
+
+# Start all services with your Azure resources
+docker compose up -d
+
+# Wait 30 seconds for services to initialize
+sleep 30
+```
+
+---
+
+### 7️⃣ Verify Everything Works
+
+Run the smoke test to verify all services are healthy:
+
+```bash
+./scripts/smoke-test.sh
+```
+
+**Expected output:**
+```
+========================================
+ RiskInsure Local Smoke Test
+========================================
+
+[CONTAINER STATUS]
+  ✓ 10/10 containers running
+
+[API CONNECTIVITY]
+  ✓ 5/5 APIs responding
+
+[CONFIGURATION]
+  ✓ .env file: Found
+  ✓ Cosmos DB connection: Valid format
+  ✓ Service Bus connection: Valid format
+
+[OVERALL RESULT]
+✓ PASS - All services operational
+```
+
+If you see any failures, check:
+1. Environment variables are set: `echo $COSMOSDB_CONNECTION_STRING`
+2. Containers have correct config: `docker inspect riskinsure-billing-api-1 | grep ConnectionStrings`
+3. Azure resources are accessible: `az cosmosdb show -n riskinsure-cosmosdb -g riskinsure-dev`
+
+---
+
+### 8️⃣ Run End-to-End Tests
+
+```bash
+cd test/e2e
+
+# Install dependencies (first time only)
+npm install
+npx playwright install chromium
+npx playwright install-deps chromium
+
+# Run tests
+npm test
+
+# View test report
+npm run test:report
+```
+
+**Expected output:**
+```
+Running 3 tests using 1 worker
+
+  ✓  1 …complete quote to policy workflow with Class A approval (10.4s)
+  ✓  2 …complete quote to policy workflow with Class B approval (5.8s)
+  ✓  3 …declined quote does not create policy (5.0s)
+
+  3 passed (21.2s)
+```
+
+---
+
+## 🎯 You're Ready!
+
+Your development environment is fully configured:
+- ✅ All 5 services running on Azure resources
+- ✅ APIs accessible at http://127.0.0.1:707X
+- ✅ E2E tests passing
+- ✅ Message queues configured
+- ✅ Database containers created
+
+### What's Running:
+
+| Service | API Port | OpenAPI Docs |
+|---------|----------|--------------|
+| Billing | 7071 | http://127.0.0.1:7071/scalar/v1 |
+| Customer | 7073 | http://127.0.0.1:7073/scalar/v1 |
+| Funds Transfer | 7075 | http://127.0.0.1:7075/scalar/v1 |
+| Policy | 7077 | http://127.0.0.1:7077/scalar/v1 |
+| Rating & Underwriting | 7079 | http://127.0.0.1:7079/scalar/v1 |
+
+---
+
+## 🔧 Development Workflow
+
+### Starting Services
+
+```bash
+# Start all services
+docker compose up -d
+
+# Start specific service
+docker compose up -d billing-api billing-endpoint
+
+# View logs
+docker compose logs -f billing-api
+
+# Restart after code changes
+docker compose restart billing-api
+```
+
+### Stopping Services
+
+```bash
+# Stop all services (keeps containers)
+docker compose stop
+
+# Stop and remove all containers
+docker compose down
+
+# Stop with cleanup (removes volumes)
+docker compose down -v
+```
+
+### Rebuilding After Code Changes
+
+```bash
+# Rebuild specific service
+docker compose build billing-api
+docker compose up -d billing-api
+
+# Rebuild all services
+docker compose down
+docker compose build
+docker compose up -d
+```
+
+---
+
+## 🐛 Troubleshooting
+
+### Issue: "Connection refused" when testing APIs
+
+**Solution**: Services need time to initialize (30-60 seconds). Wait and try again:
+```bash
+sleep 30 && ./scripts/smoke-test.sh
+```
+
+### Issue: Container exits immediately after startup
+
+**Check logs:**
+```bash
+docker logs riskinsure-billing-api-1
+```
+
+**Common causes:**
+- Invalid connection string (check for typos)
+- Azure resource not accessible (firewall/network)
+- Missing environment variables
+
+**Verify env vars in container:**
+```bash
+docker inspect riskinsure-billing-api-1 --format '{{range .Config.Env}}{{println .}}{{end}}' | grep ConnectionStrings
+```
+
+### Issue: "Name or service not known (cosmos-emulator:8081)"
+
+This means the container is trying to use the local emulator instead of Azure. **Solution:**
+
+```bash
+# Ensure environment variables are set
+export COSMOSDB_CONNECTION_STRING="YOUR-AZURE-COSMOS-STRING"
+export SERVICEBUS_CONNECTION_STRING="YOUR-AZURE-SERVICEBUS-STRING"
+
+# Restart containers
+docker compose down
+docker compose up -d
+```
+
+### Issue: Tests fail with "Playwright needs system dependencies"
+
+**Solution:**
+```bash
+cd test/e2e
+npx playwright install-deps chromium
+npm test
+```
+
+### Issue: E2E tests can't run in UI mode in Codespaces
+
+**Expected**: UI mode requires a display server. Use headless mode instead:
+```bash
+npm test              # Headless (works in Codespaces)
+npm run test:report   # View results in browser
+```
+
+---
+
+## 📚 Alternative Setup (Local Development)
+
+If you prefer local development instead of Codespaces:
+
+### Prerequisites
+
+- **[.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)**
+- **[Docker Desktop](https://www.docker.com/products/docker-desktop)**
+- **[Azure CLI](https://docs.microsoft.com/cli/azure/install-azure-cli)**
+- **[Git](https://git-scm.com/)**
+
+### Setup Steps
+
+Follow the same steps as Codespaces (above), but:
+1. Clone the repo locally: `git clone https://github.com/AIS-Commercial-Business-Unit/RiskInsure.git`
+2. Create Azure resources (steps 2-4 above)
+3. Create `.env` file in repo root
+4. Use local emulators if preferred:
+
+```bash
+# Cosmos DB Emulator (Docker)
+docker compose --profile infra up -d cosmos-emulator
+
+# Service Bus Emulator (Docker)
+docker compose --profile infra up -d servicebus-emulator
+
+# Note: Emulators may be less stable than Azure resources
+```
+
+**Emulator connection strings:**
+```bash
+# .env for local emulators
+COSMOSDB_CONNECTION_STRING=AccountEndpoint=https://cosmos-emulator:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==;DisableServerCertificateValidation=true
+
+SERVICEBUS_CONNECTION_STRING=Endpoint=sb://servicebus-emulator:5672;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;
+```
+
+⚠️ **Recommendation**: Use real Azure resources even for local development. Emulators can be memory-intensive and less reliable
+
+---
+
+---
+
+## 📖 Creating Your First Service (Advanced)
+
+<details>
+<summary>Click to expand: Step-by-step guide to creating a new bounded context</summary>
+
+### Service Design
 
 Let's create a **Billing** service as an example.
 
-**What it does**:
-- Manages invoices
+**Responsibilities**:
+- Manages billing accounts and invoices
 - Publishes `InvoiceCreated` events
-- Subscribes to `PaymentProcessed` events
+- Subscribes to `PolicyBound` events
 
----
+### 1. Create Project Structure
 
-### Step 2: Create Folder Structure
-
-```powershell
-# Navigate to services folder
-cd services/billing
-
-# Create project folders
-mkdir -p src/Domain, src/Infrastructure, src/Api, src/Endpoint.In
-mkdir -p test/Domain.Tests, test/Infrastructure.Tests, test/Api.Tests, test/Endpoint.Tests
-mkdir -p docs
+```bash
+cd services
+mkdir -p billing/{src/{Domain,Infrastructure,Api,Endpoint.In},test/{Unit.Tests,Integration.Tests},docs}
 ```
 
----
+### 2. Domain Layer (Pure Business Logic)
 
-### Step 3: Create Domain Layer (Zero Dependencies)
-
-**Create Domain project**:
-```powershell
-cd src/Domain
+```bash
+cd billing/src/Domain
 dotnet new classlib -n RiskInsure.Billing.Domain -f net10.0
-Remove-Item Class1.cs
-
-# Create folder structure
-mkdir -p Contracts/Commands, Contracts/Events, Models, Services, Exceptions
+rm Class1.cs
+mkdir -p Contracts/{Commands,Events} Models Services
 ```
 
-**Define message contracts** (`Contracts/Events/InvoiceCreated.cs`):
+**Message Contract** (`Contracts/Events/InvoiceCreated.cs`):
 ```csharp
 namespace RiskInsure.Billing.Domain.Contracts.Events;
 
@@ -190,202 +479,301 @@ public record InvoiceCreated(
     Guid MessageId,
     DateTimeOffset OccurredUtc,
     Guid InvoiceId,
-    string CustomerId,
-    decimal Amount,
+    string PolicyId,
+    decimal PremiumAmount,
     string IdempotencyKey
 );
 ```
 
-**Define domain model** (`Models/Invoice.cs`):
+**Domain Model** (`Models/Invoice.cs`):
 ```csharp
 namespace RiskInsure.Billing.Domain.Models;
 
 public class Invoice
 {
     public Guid InvoiceId { get; set; }
-    public string CustomerId { get; set; } = string.Empty;
+    public string PolicyId { get; set; } = string.Empty;
     public decimal Amount { get; set; }
     public InvoiceStatus Status { get; set; }
     public DateTimeOffset CreatedUtc { get; set; }
 }
 
-public enum InvoiceStatus
-{
-    Pending,
-    Paid,
-    Cancelled
-}
+public enum InvoiceStatus { Pending, Paid, Cancelled }
 ```
 
-**Add Domain project to solution**:
-```powershell
-cd ../../../..  # Back to root
-dotnet sln add services/billing/src/Domain/RiskInsure.Billing.Domain.csproj
-```
+### 3. Infrastructure Layer
 
----
-
-### Step 4: Create Infrastructure Layer
-
-```powershell
-cd services/billing/src/Infrastructure
+```bash
+cd ../Infrastructure
 dotnet new classlib -n RiskInsure.Billing.Infrastructure -f net10.0
-Remove-Item Class1.cs
-
-# Add reference to Domain
+rm Class1.cs
 dotnet add reference ../Domain/RiskInsure.Billing.Domain.csproj
-
-# Add reference to PublicContracts
-dotnet add reference ../../../../platform/publiccontracts/RiskInsure.PublicContracts/RiskInsure.PublicContracts.csproj
-
-# Create folder structure
-mkdir -p Repositories, MessageHandlers, Services
+dotnet add reference ../../../../platform/RiskInsure.PublicContracts/RiskInsure.PublicContracts.csproj
+mkdir -p MessageHandlers Repositories
 ```
 
-**Create repository** (`Repositories/IInvoiceRepository.cs`):
+**Message Handler** (`MessageHandlers/PolicyBoundHandler.cs`):
 ```csharp
-namespace RiskInsure.Billing.Infrastructure.Repositories;
+namespace RiskInsure.Billing.Infrastructure.MessageHandlers;
 
+using NServiceBus;
+using RiskInsure.PublicContracts.Events;
 using RiskInsure.Billing.Domain.Models;
 
-public interface IInvoiceRepository
+public class PolicyBoundHandler : IHandleMessages<PolicyBound>
 {
-    Task<Invoice?> GetByIdAsync(Guid invoiceId);
-    Task CreateAsync(Invoice invoice);
-    Task UpdateAsync(Invoice invoice);
+    private readonly IInvoiceRepository _repository;
+    private readonly ILogger<PolicyBoundHandler> _logger;
+
+    public async Task Handle(PolicyBound message, IMessageHandlerContext context)
+    {
+        _logger.LogInformation("Creating invoice for policy {PolicyId}", message.PolicyId);
+        
+        var invoice = new Invoice
+        {
+            InvoiceId = Guid.NewGuid(),
+            PolicyId = message.PolicyId,
+            Amount = message.PremiumAmount,
+            Status = InvoiceStatus.Pending,
+            CreatedUtc = DateTimeOffset.UtcNow
+        };
+        
+        await _repository.CreateAsync(invoice);
+        
+        await context.Publish(new InvoiceCreated(
+            MessageId: Guid.NewGuid(),
+            OccurredUtc: DateTimeOffset.UtcNow,
+            InvoiceId: invoice.InvoiceId,
+            PolicyId: message.PolicyId,
+            PremiumAmount: message.PremiumAmount,
+            IdempotencyKey: $"invoice-{message.PolicyId}"
+        ));
+    }
 }
 ```
 
-**Add to solution**:
-```powershell
-cd ../../../..
+### 4. Add to Solution
+
+```bash
+cd ../../../../
+dotnet sln add services/billing/src/Domain/RiskInsure.Billing.Domain.csproj
 dotnet sln add services/billing/src/Infrastructure/RiskInsure.Billing.Infrastructure.csproj
-```
-
----
-
-### Step 5: Build and Verify
-
-```powershell
-# Build just this service
-dotnet build services/billing/src/Domain
-dotnet build services/billing/src/Infrastructure
-
-# Or build entire solution
 dotnet build
 ```
 
+### 5. Create API and Endpoint Projects
+
+Follow the patterns in existing services (Customer, Policy, etc.) for API and Endpoint.In projects.
+
+### 6. Add to Docker Compose
+
+Add service definitions to `docker-compose.yml` following existing patterns.
+
+</details>
+
 ---
 
-## Running Tests
+## 🔍 Monitoring and Debugging
 
-```powershell
+### View Service Logs
+
+```bash
+# All services
+docker compose logs -f
+
+# Specific service
+docker compose logs -f billing-api
+
+# Last 100 lines
+docker compose logs --tail=100 billing-endpoint
+```
+
+### Azure Portal Monitoring
+
+**Cosmos DB**:
+- Go to your Cosmos DB account → **Data Explorer**
+- Navigate to `RiskInsure` database → containers
+- Query documents: `SELECT * FROM c WHERE c.type = 'Quote'`
+
+**Service Bus**:
+- Go to your Service Bus namespace → **Queues**
+- View active/dead-letter message counts
+- Use **Service Bus Explorer** to inspect messages
+
+### Application Insights (Optional)
+
+Add Application Insights for production monitoring:
+```bash
+az monitor app-insights component create \
+  --app riskinsure-insights \
+  --resource-group riskinsure-dev \
+  --location eastus
+```
+
+---
+
+## 🧪 Testing
+
+### Unit Tests
+
+```bash
 # Run all tests
 dotnet test
 
-# Run specific project tests
-dotnet test services/billing/test/Domain.Tests
+# Specific service
+dotnet test services/billing/test/Unit.Tests
 
 # With coverage
 dotnet test --collect:"XPlat Code Coverage"
 ```
 
----
+### Integration Tests (Playwright)
 
-## Running Services Locally
+```bash
+cd test/e2e
 
-### API Project (HTTP endpoints)
-```powershell
-cd services/billing/src/Api
-dotnet run
+# Run all tests
+npm test
+
+# Run specific test
+npx playwright test quote-to-policy-flow.spec.ts
+
+# Debug mode
+npx playwright test --debug
+
+# View last run report
+npm run test:report
 ```
 
-Access at: http://localhost:5001
+### API Testing (Manual)
 
-### Endpoint.In Project (Message handlers)
-```powershell
-cd services/billing/src/Endpoint.In
-dotnet run
+Use the Scalar UI (built-in):
+- Billing: http://127.0.0.1:7071/scalar/v1
+- Customer: http://127.0.0.1:7073/scalar/v1
+- Policy: http://127.0.0.1:7077/scalar/v1
+- Rating: http://127.0.0.1:7079/scalar/v1
+- Funds Transfer: http://127.0.0.1:7075/scalar/v1
+
+---
+
+## 🎓 Next Steps
+
+1. **Architecture Deep Dive**: Read [copilot-instructions/constitution.md](../copilot-instructions/constitution.md)
+2. **Study Domain Standards**: Review [platform/fileintegration/docs/filerun-processing-standards.md](../platform/fileintegration/docs/filerun-processing-standards.md)
+3. **Understand Project Layout**: See [copilot-instructions/project-structure.md](../copilot-instructions/project-structure.md)
+4. **Learn Message Patterns**: Read [copilot-instructions/messaging-patterns.md](../copilot-instructions/messaging-patterns.md)
+5. **Explore E2E Tests**: Study `test/e2e/tests/quote-to-policy-flow.spec.ts`
+
+---
+
+## 📚 Quick Reference
+
+### Essential Commands
+
+```bash
+# Start all services
+docker compose up -d
+
+# Check status
+./scripts/smoke-test.sh
+
+# View logs
+docker compose logs -f [service-name]
+
+# Restart service
+docker compose restart [service-name]
+
+# Rebuild after code changes
+docker compose build [service-name]
+docker compose up -d [service-name]
+
+# Stop everything
+docker compose down
+
+# Run E2E tests
+cd test/e2e && npm test
+
+# Check environment variables
+echo $COSMOSDB_CONNECTION_STRING | cut -c1-50
+env | grep CONNECTION_STRING
 ```
 
-Processes messages from Azure Service Bus.
+### Service Ports
 
----
+| Service | API | Endpoint | 
+|---------|-----|----------|
+| Billing | 7071 | 7072 |
+| Customer | 7073 | 7074 |
+| Funds Transfer | 7075 | 7076 |
+| Policy | 7077 | 7078 |
+| Rating & Underwriting | 7079 | 7080 |
 
-## Debugging
+### Azure CLI Shortcuts
 
-### Visual Studio 2025
-1. Open `RiskInsure.slnx`
-2. Set startup project (e.g., `RiskInsure.Billing.Api`)
-3. Press **F5**
+```bash
+# Show Cosmos DB details
+az cosmosdb show -n riskinsure-cosmosdb -g riskinsure-dev
 
-### VS Code
-```json
-// .vscode/launch.json
-{
-  "version": "0.2.0",
-  "configurations": [
-    {
-      "name": "Billing API",
-      "type": "coreclr",
-      "request": "launch",
-      "preLaunchTask": "build",
-      "program": "${workspaceFolder}/services/billing/src/Api/bin/Debug/net10.0/RiskInsure.Billing.Api.dll",
-      "cwd": "${workspaceFolder}/services/billing/src/Api",
-      "env": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      }
-    }
-  ]
-}
+# List Service Bus queues
+az servicebus queue list --namespace-name acmecorp-dev-servicebus -g riskinsure-dev -o table
+
+# Get connection strings
+az cosmosdb keys list --name riskinsure-cosmosdb -g riskinsure-dev --type connection-strings --query "connectionStrings[0].connectionString" -o tsv
+az servicebus namespace authorization-rule keys list -g riskinsure-dev --namespace-name acmecorp-dev-servicebus --name RootManageSharedAccessKey --query primaryConnectionString -o tsv
+```
+
+### Useful Docker Commands
+
+```bash
+# Check which containers are running
+docker ps
+
+# Check environment variables in container
+docker inspect riskinsure-billing-api-1 --format '{{range .Config.Env}}{{println .}}{{end}}'
+
+# Execute command in container
+docker exec -it riskinsure-billing-api-1 bash
+
+# Clean up everything
+docker compose down -v
+docker system prune -a
 ```
 
 ---
 
-## Common Issues
+## ❓ Getting Help
 
-### Issue: Cosmos DB Emulator SSL Certificate Error
-**Solution**:
-```powershell
-# Trust emulator certificate (Windows)
-$cert = Get-ChildItem Cert:\LocalMachine\Root | Where-Object {$_.Subject -like "*Cosmos*"}
-Export-Certificate -Cert $cert -FilePath cosmos-emulator.cer
-Import-Certificate -FilePath cosmos-emulator.cer -CertStoreLocation Cert:\CurrentUser\Root
-```
-
-### Issue: Service Bus Connection Timeout
-**Solution**:
-- Verify connection string in `appsettings.Development.json`
-- Check firewall rules allow outbound port 5671/5672
-- Ensure Service Bus namespace is running
-
-### Issue: Build Fails with "Package X not found"
-**Solution**:
-```powershell
-dotnet restore --force
-dotnet clean
-dotnet build
-```
+- **Architecture Questions**: See [copilot-instructions/](../copilot-instructions/)
+- **Domain Standards**: Check service-specific `docs/` folders
+- **Issues**: Review troubleshooting section above
+- **Security**: See [SECURITY.md](../SECURITY.md)
 
 ---
 
-## Next Steps
+**🎉 Happy Coding!** You're now ready to develop on the RiskInsure platform.
+💰 Cost Management
 
-1. **Review Architecture**: Read [copilot-instructions/constitution.md](../copilot-instructions/constitution.md)
-2. **Study Examples**: See [platform/fileintegration/docs/filerun-processing-standards.md](../platform/fileintegration/docs/filerun-processing-standards.md)
-3. **Create More Services**: Follow [copilot-instructions/project-structure.md](../copilot-instructions/project-structure.md)
-4. **Deploy to Azure**: Use Bicep/Terraform templates in `platform/infra/`
+### Free Tier Options
 
----
+**Cosmos DB:**
+- First 1000 RU/s free with [free tier](https://docs.microsoft.com/azure/cosmos-db/free-tier)
+- ~$24/month after free tier
 
-## Additional Resources
+**Service Bus:**
+- Standard tier: ~$10/month (includes first 12.5M operations)
 
-- **[Constitution](../copilot-instructions/constitution.md)** - Architectural principles
-- **[Project Structure](../copilot-instructions/project-structure.md)** - Service template
-- **[NServiceBus Documentation](https://docs.particular.net/nservicebus/)** - Messaging framework
-- **[Cosmos DB Documentation](https://docs.microsoft.com/azure/cosmos-db/)** - Database platform
-- **[Container Apps Documentation](https://docs.microsoft.com/azure/container-apps/)** - Hosting platform
+**Codespaces:**
+- First 60 hours/month free for 2-core machines
+- 4-core: ~$0.36/hour
 
----
+**Total estimated cost**: $0-50/month depending on usage
 
-**Need Help?** Check [SECURITY.md](../SECURITY.md) for contact information.
+### Clean Up Resources
+
+When done developing:
+```bash
+# Delete resource group (removes all resources)
+az group delete --name riskinsure-dev --yes --no-wait
+
+# Or stop Codespace to avoid charges
+# GitHub → Your Codespaces → Stop
