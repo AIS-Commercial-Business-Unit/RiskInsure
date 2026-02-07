@@ -3,16 +3,12 @@ set -e
 
 echo "🚀 Setting up RiskInsure development environment..."
 
-# Install .NET workloads
+# Restore .NET dependencies
 if command -v dotnet &> /dev/null; then
-  echo "📦 Installing .NET workloads..."
-  dotnet workload update || echo "⚠️  .NET workload update failed (non-fatal)"
-
-  # Restore .NET dependencies
   echo "📦 Restoring .NET packages..."
   dotnet restore || echo "⚠️  .NET restore failed (non-fatal)"
 else
-  echo "ℹ️  Skipping .NET setup - dotnet not found in PATH"
+  echo "ℹ️  Skipping .NET restore - dotnet not found in PATH"
 fi
 
 # Install Playwright test dependencies
@@ -28,8 +24,17 @@ fi
 
 # Wait for emulators to be ready
 echo "⏳ Waiting for emulators to start..."
-timeout 60 bash -c 'until curl -k -s https://cosmos-emulator:8081/_explorer/index.html > /dev/null; do sleep 2; done' || echo "⚠️  Cosmos emulator may not be ready"
-timeout 30 bash -c 'until nc -z servicebus-emulator 5672; do sleep 2; done' || echo "⚠️  Service Bus emulator may not be ready"
+if command -v curl &> /dev/null; then
+  timeout 60 bash -c 'until curl -k -s https://cosmos-emulator:8081/_explorer/index.html > /dev/null; do sleep 2; done' || echo "⚠️  Cosmos emulator may not be ready"
+else
+  echo "⚠️  curl not found - skipping Cosmos emulator health check"
+fi
+
+if command -v nc &> /dev/null; then
+  timeout 30 bash -c 'until nc -z servicebus-emulator 5672; do sleep 2; done' || echo "⚠️  Service Bus emulator may not be ready"
+else
+  echo "⚠️  nc not found - skipping Service Bus emulator health check"
+fi
 
 echo "✅ Development environment ready!"
 echo ""
