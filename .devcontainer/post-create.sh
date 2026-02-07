@@ -6,11 +6,11 @@ echo "🚀 Setting up RiskInsure development environment..."
 # Install .NET workloads
 if command -v dotnet &> /dev/null; then
   echo "📦 Installing .NET workloads..."
-  dotnet workload update
+  dotnet workload update || echo "⚠️  .NET workload update failed (non-fatal)"
 
   # Restore .NET dependencies
   echo "📦 Restoring .NET packages..."
-  dotnet restore
+  dotnet restore || echo "⚠️  .NET restore failed (non-fatal)"
 else
   echo "ℹ️  Skipping .NET setup - dotnet not found in PATH"
 fi
@@ -18,9 +18,9 @@ fi
 # Install Playwright test dependencies
 if [ -d "test/e2e" ]; then
   echo "📦 Installing Playwright test dependencies..."
-  cd test/e2e
-  npm install
-  npx playwright install --with-deps chromium
+  cd test/e2e || { echo "⚠️  Cannot cd to test/e2e"; exit 0; }
+  npm install || echo "⚠️  npm install failed (non-fatal)"
+  npx playwright install --with-deps chromium || echo "⚠️  Playwright install failed (non-fatal)"
   cd ../..
 else
   echo "ℹ️  Skipping Playwright setup - test/e2e directory not found"
