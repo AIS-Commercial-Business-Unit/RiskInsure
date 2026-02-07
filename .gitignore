@@ -67,6 +67,7 @@ secrets.json
 .env.local
 .env.*.local
 *.secrets
+.mcp.json
 
 # User-specific files
 *.suo

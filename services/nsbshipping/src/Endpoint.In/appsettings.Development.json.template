@@ -1,0 +1,12 @@
+{
+  "ConnectionStrings": {
+    "CosmosDb": "AccountEndpoint=https://localhost:8081/;AccountKey=YOUR-KEY-HERE;",
+    "ServiceBus": "Endpoint=sb://YOUR-SERVICEBUS.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=YOUR-KEY-HERE;"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "NServiceBus": "Information"
+    }
+  }
+}

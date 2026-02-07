@@ -50,6 +50,36 @@ Provide the following information:
 
 The agent **EXECUTES** this structured approach (actual file creation and builds):
 
+---
+### Ambiguity & Edge-Case Handling (General)
+
+**If any of the following are encountered, the agent MUST:**
+
+1. **Unit/Integration Test Scenarios Not Explicit:**
+    - If the technical spec does not provide explicit test scenarios, auto-generate basic CRUD, 404, and validation tests based on the domain model and API surface.
+    - Document any deferred/skipped tests due to missing cross-domain data in the test README and as comments in test files.
+
+2. **Connection String Source Priority:**
+    - When copying connection strings, use this order of precedence:
+      1. Billing
+      2. FundsTransferMgt
+      3. Prompt user if neither exists or if only templates are found.
+
+3. **Missing or Incomplete Technical Specs:**
+    - Validate that the technical spec includes all required sections (API table, data models, events).
+    - If missing, prompt the user or document which assumptions were made in the README and code comments.
+
+4. **Cross-Domain Event Contracts Missing:**
+    - If a required event contract is missing from PublicContracts, create a placeholder/stub and document that it needs review in the code and README.
+
+5. **Playwright Test Data Setup:**
+    - If the domain cannot create its own test data (event-driven only), skip "happy path" integration tests and document this in the test README.
+
+6. **README and Documentation Gaps:**
+    - If any required documentation (startup instructions, test instructions, integration points) cannot be fully generated due to missing info, add TODOs or comments in the README.
+
+---
+
 ### Phase 1: Port Assignment & Structure
 1. **SCAN** existing services for port conflicts using PowerShell
 2. **ASSIGN** next available ports (API and Endpoint.In)
@@ -66,18 +96,48 @@ The agent **EXECUTES** this structured approach (actual file creation and builds
 6. **Domain.csproj** - Project file with package references
 
 ### Phase 3: Infrastructure Layer
+**⚠️ CRITICAL: Copy NServiceBus Configuration from Existing Service**
+
+**DO NOT write NServiceBus configuration from scratch** - it uses deprecated APIs and complex patterns.
+
+**EXECUTE**:
+1. **READ** `services/billing/src/Infrastructure/NServiceBusConfigurationExtensions.cs` (working reference)
+2. **COPY** entire file to new domain's Infrastructure folder
+3. **REPLACE** namespace: `Infrastructure` → `RiskInsure.{Domain}.Infrastructure`
+4. **REPLACE** database name: `RiskInsure` → `{Domain}Db`
+5. **REPLACE** container name: `Billing-Sagas` → `{Domain}-Sagas`
+6. **KEEP** all transport configuration and topology settings exactly as-is
+
 **CREATE** actual files:
-1. **CosmosDbInitializer.cs** - Database and container setup
-2. **Infrastructure.csproj** - Project file with dependencies
+1. **NServiceBusConfigurationExtensions.cs** - **COPIED from Billing** (as above)
+2. **CosmosDbInitializer.cs** - Database and container setup
+3. **Infrastructure.csproj** - Project file with dependencies (see package list below)
 
 ### Phase 4: API Layer
+**⚠️ CRITICAL: Use Correct NServiceBus Configuration for Send-Only Endpoints**
+
+**READ** `services/billing/src/Api/Program.cs` for proven pattern, then:
+
 **CREATE** actual files:
-1. **Program.cs** - DI, NServiceBus (send-only), Swagger/Scalar, Serilog
-2. **Models/** - Request/Response DTOs (C# classes)
-3. **Properties/launchSettings.json** - Port configuration (use assigned port)
+1. **Program.cs** - DI, NServiceBus (send-only), Scalar API docs, Serilog
+   - Use `.SendOnly()` for NServiceBus configuration
+   - Register Cosmos container using factory lambda (avoid `BuildServiceProvider()` anti-pattern)
+   - Configure `AzureServiceBusTransport` with proper topology
+  ⚠️ CRITICAL: Copy Program.cs Pattern from Existing Service**
+
+**READ** `services/billing/src/Endpoint.In/Program.cs` for proven pattern, then:
+
+**CREATE** actual files:
+1. **Handlers/** - Message handlers if domain subscribes to events (C# classes)
+2. **Program.cs** - NServiceBus host with routing
+   - Use `Host.CreateDefaultBuilder(args)`
+   - Call `.NServiceBusEnvironmentConfiguration("RiskInsure.{Domain}.Endpoint")`
+   - Register Cosmos container using direct `CosmosClient.GetContainer()` (avoid initializer)
+   - Simple Serilog setup with Console sink
+3. **Properties/launchSettings.json** - Port configuration with DOTNET_ENVIRONMENT=Development
 4. **appsettings.json** - Base configuration
 5. **appsettings.Development.json.template** - Template with placeholders
-6. **Api.csproj** - Project file
+6. **Endpoint.In.csproj** - Project file (see package list below)ckage list below)
 
 ### Phase 5: Endpoint.In Layer
 **CREATE** actual files:
@@ -169,11 +229,16 @@ test.skip('should cancel active policy', async ({ request }) => {
 **⚠️ CRITICAL: Verify Test Assertions Match API Response Format**
 5. **REVIEW** validation error assertions:
    - ASP.NET Core returns **ProblemDetails** format (not custom error objects)
-   - Validation errors are in `error.errors.FieldName` as **arrays**, not strings
-   - Standard fields: `status`, `title`, `errors` (not `error`, `message`)
-   - Example: `expect(error.errors.Email).toBeDefined()` and `expect(Array.isArray(error.errors.Email)).toBe(true)`
-6. **TEST** one validation scenario manually before writing all tests to confirm response format
-
+   - Validation errors are in `Domain project first (verify package resolution)
+3. **RUN** `dotnet build` on Api project (tests all dependencies)
+4. **FIX** build errors iteratively:
+   - Missing packages → Check Directory.Packages.props for correct names
+   - Namespace errors → Add missing using statements
+   - Type not found → Verify package references in .csproj
+5. **RUN** `dotnet build` on Endpoint.In project
+6. **VERIFY** all builds succeed (exit code 0)
+7. **COPY** connection strings from billing/fundstransfermgt appsettings.Development.json
+8
 ### Phase 8: Build & Verify
 **EXECUTE** build commands:
 1. **RUN** `dotnet sln add` for all projects
@@ -192,7 +257,77 @@ test.skip('should cancel active policy', async ({ request }) => {
 5. Document test execution status
 
 ### Phase 10: Verification & Documentation
-**VERIFY** and **DOCUMENT**:
+**VPackage Reference Standards
+
+**⚠️ CRITICAL: Use Exact Package Names from Directory.Packages.props**
+
+Before creating any `.csproj` files:
+1. **READ** `/Directory.Packages.props` for correct package names and versions
+2. **VERIFY** packages exist in central management (avoid `NU1010` errors)
+
+### Required Packages by Project
+
+**Domain.csproj**:
+```xml
+<PackageReference Include="Microsoft.Azure.Cosmos" />
+<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+<PackageReference Include="Newtonsoft.Json" />  <!-- ⚠️ Required by Cosmos SDK -->
+<PackageReference Include="NServiceBus" />
+```
+
+**Infrastructure.csproj**:
+```xml
+<PackageReference Include="Azure.Identity" />
+<PackageReference Include="Microsoft.Azure.Cosmos" />
+<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+<PackageReference Include="Microsoft.Extensions.Hosting" />  <!-- ⚠️ Required for IHostBuilder -->
+<PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+<PackageReference Include="Newtonsoft.Json" />
+<PackageReference Include="NServiceBus" />
+<PackageReference Include="NServiceBus.Extensions.Hosting" />  <!-- ⚠️ Required for UseNServiceBus -->
+<PackageReference Include="NServiceBus.Persistence.CosmosDB" />
+<PackageReference Include="NServiceBus.Transport.AzureServiceBus" />  <!-- ⚠️ Correct name, not "Azure.Transports" -->
+```
+
+**Api.csproj**:
+```xml
+<PackageReference Include="Azure.Identity" />
+<PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+<PackageReference Include="Microsoft.Azure.Cosmos" />
+<PackageReference Include="Newtonsoft.Json" />
+<PackageReference Include="NServiceBus" />
+<PackageReference Include="NServiceBus.Extensions.Hosting" />
+<PackageReference Include="NServiceBus.Transport.AzureServiceBus" />
+<PackageReference Include="Serilog.AspNetCore" />
+<PackageReference Include="Scalar.AspNetCore" />  <!-- ⚠️ Not Swashbuckle -->
+```
+
+**Endpoint.In.csproj**:
+```xml
+<PackageReference Include="Azure.Identity" />
+<PackageReference Include="Microsoft.Azure.Cosmos" />
+<PackageReference Include="Microsoft.Extensions.Hosting" />
+<PackageReference Include="Newtonsoft.Json" />
+<PackageReference Include="NServiceBus" />
+<PackageReference Include="NServiceBus.Extensions.Hosting" />
+<PackageReference Include="NServiceBus.Persistence.CosmosDB" />
+<PackageReference Include="NServiceBus.Transport.AzureServiceBus" />
+<PackageReference Include="Serilog.Extensions.Hosting" />
+<PackageReference Include="Serilog.Sinks.Console" />
+```
+
+**Common Build Error Fixes**:
+- `NU1010: PackageReference items do not define a corresponding PackageVersion` → Package name wrong, check Directory.Packages.props
+- `CS0234: The type or namespace name 'Hosting' does not exist` → Missing `Microsoft.Extensions.Hosting` package
+- `CS0246: The type or namespace name 'IHostBuilder' could not be found` → Missing `Microsoft.Extensions.Hosting` package
+- `CS0619: '[Method]' is obsolete` → Using old NServiceBus API, copy from Billing service instead
+- `CS1061: 'EndpointConfiguration' does not contain a definition for 'UseNServiceBus'` → Missing `NServiceBus.Extensions.Hosting` package
+- `The Newtonsoft.Json package must be explicitly referenced` → Add `Newtonsoft.Json` package reference
+- `CS0234: The type or namespace name 'AzureServiceBusTransport' does not exist` → Missing `using NServiceBus.Transport.AzureServiceBus;`
+
+---
+
+## ERIFY** and **DOCUMENT**:
 1. Confirm all builds succeeded
 2. Confirm unit tests passed
 3. **START API and test one validation endpoint manually** to verify response format
@@ -235,7 +370,171 @@ test.skip('should cancel active policy', async ({ request }) => {
 
 **Principle VI: Message-Based Integration**
 - Commands published to Service Bus
-- Events for cross-domain communication
+- EventsProgram.cs (Send-Only Endpoint)
+```csharp
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Azure.Cosmos;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using NServiceBus;
+using NServiceBus.Transport.AzureServiceBus;  // ⚠️ Required for transport types
+using RiskInsure.{Domain}.Domain.Managers;
+using RiskInsure.{Domain}.Domain.Repositories;
+using RiskInsure.{Domain}.Infrastructure;
+using Scalar.AspNetCore;
+using Serilog;
+
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateLogger();
+
+try
+{
+    Log.Information("Starting {Domain} API");
+
+    var builder = WebApplication.CreateBuilder(args);
+    builder.Host.UseSerilog();
+
+    builder.Services.AddControllers();
+    builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddOpenApi(options =>
+    {
+        options.AddDocumentTransformer((document, context, cancellationToken) =>
+        {
+            document.Info = new()
+            {
+                Title = "RiskInsure {Domain} API",
+                Version = "v1",
+                Description = "{Domain} domain API"
+            };
+            return Task.CompletedTask;
+        });
+    });
+
+    // Register Cosmos DB container (factory pattern avoids BuildServiceProvider anti-pattern)
+    builder.Services.AddSingleton<Container>(sp =>
+    {
+        var config = sp.GetRequiredService<IConfiguration>();
+        var logger = sp.GetRequiredService<ILogger<CosmosDbInitializer>>();
+        var initializer = new CosmosDbInitializer(config, logger);
+        return initializer.InitializeAsync().GetAwaiter().GetResult();
+    });
+
+    // Register domain services
+    builder.Services.AddScoped<I{Entity}Repository, {Entity}Repository>();
+    builder.Services.AddScoped<I{Entity}Manager, {Entity}Manager>();
+
+    // Configure NServiceBus for send-only
+    builder.Host.UseNServiceBus(context =>
+    {
+        var endpointConfiguration = new EndpointConfiguration("RiskInsure.{Domain}.Api");
+        endpointConfiguration.SendOnly();  // ⚠️ Important for API endpoints
+        
+        var environment = context.HostingEnvironment.EnvironmentName;
+        if (environment.Equals("Production", StringComparison.OrdinalIgnoreCase))
+        {
+            var fqn = context.Configuration["AzureServiceBus:FullyQualifiedNamespace"];
+            var transport = new AzureServiceBusTransport(fqn, new Azure.Identity.DefaultAzureCredential(), TopicTopology.Default);
+            endpointConfiguration.UseTransport(transport);
+        }
+        else
+        {
+            var connectionString = context.Configuration.GetConnectionString("ServiceBus");
+            var transport = new AzureServiceBusTransport(connectionString, TopicTopology.Default);
+            endpointConfiguration.UseTransport(transport);
+        }
+        
+        return endpointConfiguration;
+    });
+
+    var app = builder.Build();
+
+    if (app.Environment.IsDevelopment())
+    {
+        app.MapOpenApi();
+        app.MapScalarApiReference();
+    }
+
+    app.UseSerilogRequestLogging();
+    app.UseHttpsRedirection();
+    app.UseAuthorization();
+    app.MapControllers();
+
+    await app.RunAsync();
+    return 0;
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "{Domain} API terminated unexpectedly");
+    return 1;
+}
+finally
+{
+    await Log.CloseAndFlushAsync();
+}
+```
+
+### Endpoint.In Program.cs (Message Handling)
+```csharp
+using Microsoft.Azure.Cosmos;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using NServiceBus;
+using RiskInsure.{Domain}.Domain.Managers;
+using RiskInsure.{Domain}.Domain.Repositories;
+using RiskInsure.{Domain}.Infrastructure;
+using Serilog;
+
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .CreateLogger();
+
+try
+{
+    Log.Information("Starting {Domain} Endpoint.In");
+
+    var host = Host.CreateDefaultBuilder(args)
+        .UseSerilog()
+        .NServiceBusEnvironmentConfiguration("RiskInsure.{Domain}.Endpoint")
+        .ConfigureServices((context, services) =>
+        {
+            // Register Cosmos DB container
+            var cosmosConnectionString = context.Configuration.GetConnectionString("CosmosDb")
+                ?? throw new InvalidOperationException("CosmosDb connection string not configured");
+
+            var databaseName = "{Domain}Db";
+            var containerName = "{Entity}s";  // e.g., "Orders", "Policies"
+
+            var cosmosClient = new CosmosClient(cosmosConnectionString);
+            var container = cosmosClient.GetContainer(databaseName, containerName);
+            services.AddSingleton(container);
+
+            // Register repositories
+            services.AddSingleton<I{Entity}Repository, {Entity}Repository>();
+
+            // Register managers
+            services.AddScoped<I{Entity}Manager, {Entity}Manager>();
+        })
+        .Build();
+
+    await host.RunAsync();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "{Domain} Endpoint.In terminated unexpectedly");
+    return 1;
+}
+finally
+{
+    Log.CloseAndFlush();
+}
+
+return 0;
+```
+
+### API  for cross-domain communication
 - All messages include MessageId, OccurredUtc, IdempotencyKey
 
 **Principle VII: Thin Message Handlers**
@@ -293,36 +592,87 @@ public class {Entity}
 ```
 
 ### Event Contract
-```csharp
-namespace RiskInsure.{Domain}.Domain.Contracts.Events;
+## Common Build Errors & Fixes
 
-public record {Entity}{Action}(
-    Guid MessageId,
-    DateTimeOffset OccurredUtc,
-    string {Entity}Id,
-    // Business fields
-    string IdempotencyKey
-);
-```
+The agent **EXECUTES** error recovery iteratively:
 
-### Repository Interface
-```csharp
-namespace RiskInsure.{Domain}.Domain.Repositories;
+### Package Reference Errors
 
-public interface I{Entity}Repository
-{
-    Task<{Entity}?> GetByIdAsync(string {entity}Id);
-    Task<{Entity}> CreateAsync({Entity} {entity});
-    Task<{Entity}> UpdateAsync({Entity} {entity});
-    Task DeleteAsync(string {entity}Id);
-}
-```
+**Error**: `NU1010: The following PackageReference items do not define a corresponding PackageVersion`
+- **CAUSE**: Package name not in Directory.Packages.props
+- **FIX**: Read Directory.Packages.props, use exact package names
+- **COMMON**: `Swashbuckle.AspNetCore` → `Scalar.AspNetCore`, `NServiceBus.Azure.Transports.ServiceBus` → `NServiceBus.Transport.AzureServiceBus`
 
-### API Controller
-```csharp
-namespace RiskInsure.{Domain}.Api.Controllers;
+**Error**: `The Newtonsoft.Json package must be explicitly referenced with version >= 10.0.2`
+- **CAUSE**: Cosmos DB SDK requires explicit Newtonsoft.Json reference
+- **FIX**: Add `<PackageReference Include="Newtonsoft.Json" />` to Domain.csproj
 
-using Microsoft.AspNetCore.Mvc;
+### Namespace/Type Errors
+
+**Error**: `CS0234: The type or namespace name 'Hosting' does not exist`
+- **CAUSE**: Missing `Microsoft.Extensions.Hosting` package
+- **FIX**: Add package to Infrastructure.csproj and Endpoint.In.csproj
+
+**Error**: `CS1061: 'IHostBuilder' does not contain a definition for 'UseNServiceBus'`
+- **CAUSE**: Missing `NServiceBus.Extensions.Hosting` package
+- **FIX**: Add package to Infrastructure.csproj, Api.csproj, and Endpoint.In.csproj
+
+**Error**: `CS0234: The type or namespace name 'AzureServiceBusTransport' does not exist in the namespace 'NServiceBus.Transport.AzureServiceBus'`
+- **CAUSE**: Missing using statement
+- **FIX**: Add `using NServiceBus.Transport.AzureServiceBus;` to Program.cs
+
+**Error**: `CS0619: '[Method]' is obsolete`
+- **CAUSE**: Using old NServiceBus API patterns
+- **FIX**: Copy NServiceBusConfigurationExtensions.cs from Billing service instead of writing from scratch
+
+### NServiceBus Configuration Errors
+
+**Error**: `CS1061: 'TransportExtensions<AzureServiceBusTransport>' does not contain a definition for 'ConnectionString'`
+- **CAUSE**: Using deprecated API pattern
+- **FIX**: Use `new AzureServiceBusTransport(connectionString, TopicTopology.Default)` constructor instead
+
+**Error**: `CS1061: 'EndpointConfiguration' does not contain a definition for 'AuditSagaStateChanges'`
+- **CAUSE**: Method requires additional package
+- **FIX**: Remove call or add `NServiceBus.SagaAudit` package (optional)
+
+### Cosmos DB Errors
+
+**Error**: `CS0308: The non-generic type 'ILogger' cannot be used with type arguments`
+- **CAUSE**: Using `ILogger<T>` without proper service provider context
+- **FIX**: Use factory pattern in Program.cs instead of calling `BuildServiceProvider()` early
+
+### Port Conflict
+- **SCAN** all services using `Get-ChildItem` PowerShell command
+- **IDENTIFY** next available port in 707X range
+- **ASSIGN** and document new ports
+
+### Missing Specification
+- **READ** technical spec file
+- **VALIDATE** contains required sections (API table, data models, events)
+- **PROMPT** user if missing critical information
+
+### Test Failures
+- **CAPTURE** test output
+- **REPORT** which tests failed and why
+- **CONTINUE** with remaining steps (don't halt on test failures)
+
+### Connection String Issues
+- **COPY** from existing services (billing/fundstransfermgt)
+- **WARN** if connection strings are templates (contain `<<>>`)
+- **PROVIDE** instructions to update with actual values
+
+---
+
+## Troubleshooting Process
+
+When build fails:
+1. **READ** error message carefully for type/namespace errors
+2. **CHECK** if missing package reference (CS0234, CS0246, CS1061)
+3. **READ** Directory.Packages.props for correct package names
+4. **ADD** missing package to .csproj file
+5. **REBUILD** and verify error resolved
+6. **REPEAT** until build succeeds
+7. **DO NOT** write custom NServiceBus configuration - copy from Billing service
 using RiskInsure.{Domain}.Domain.Managers;
 
 [ApiController]
@@ -499,6 +849,16 @@ The domain is complete when:
 8. ✅ Events publish to Service Bus
 9. ✅ Cosmos DB container created with correct partition key
 10. ✅ No constitutional principle violations
+
+---
+## Ambiguity & Edge-Case Checklist
+
+- [ ] If test scenarios are missing, generate basic CRUD/validation/404 tests and document any deferred/skipped tests.
+- [ ] Use Billing > FundsTransferMgt > prompt user for connection strings.
+- [ ] If technical spec is incomplete, document assumptions and TODOs in README.
+- [ ] If cross-domain event contract is missing, create stub and document for review.
+- [ ] If domain cannot create its own test data, skip happy path integration tests and document in test README.
+- [ ] Add TODOs in README for any documentation gaps due to missing info.
 
 ---
  **VERIFIED RESULTS**:

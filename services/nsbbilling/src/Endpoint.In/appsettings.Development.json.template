@@ -1,0 +1,27 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "NServiceBus": "Information"
+    }
+  },
+  "ConnectionStrings": {
+    "CosmosDb": "REPLACE_WITH_YOUR_COSMOS_CONNECTION_STRING",
+    "ServiceBus": "REPLACE_WITH_YOUR_SERVICE_BUS_CONNECTION_STRING"
+  },
+  "Serilog": {
+    "Using": [ "Serilog.Sinks.Console" ],
+    "MinimumLevel": {
+      "Default": "Information",
+      "Override": {
+        "Microsoft": "Warning",
+        "System": "Warning",
+        "NServiceBus": "Information"
+      }
+    },
+    "WriteTo": [
+      { "Name": "Console" }
+    ],
+    "Enrich": [ "FromLogContext" ]
+  }
+}

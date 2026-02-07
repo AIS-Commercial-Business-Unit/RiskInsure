@@ -29,6 +29,29 @@
   <Folder Name="/services/fundstransfermgt/test/">
     <Project Path="services/fundstransfermgt/test/Unit.Tests/Unit.Tests.csproj" />
   </Folder>
+  <Folder Name="/services/nsbbilling/" />
+  <Folder Name="/services/nsbbilling/src/">
+    <Project Path="services/nsbbilling/src/Domain/Domain.csproj" />
+    <Project Path="services/nsbbilling/src/Endpoint.In/Endpoint.In.csproj" />
+    <Project Path="services/nsbbilling/src/Infrastructure/Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/services/nsbsales/" />
+  <Folder Name="/services/nsbsales/src/">
+    <Project Path="services/nsbsales/src/Api/Api.csproj" />
+    <Project Path="services/nsbsales/src/Domain/Domain.csproj" />
+    <Project Path="services/nsbsales/src/Endpoint.In/Endpoint.In.csproj" />
+    <Project Path="services/nsbsales/src/Infrastructure/Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/services/nsbshipping/" />
+  <Folder Name="/services/nsbshipping/src/">
+    <Project Path="services/nsbshipping/src/Api/Api.csproj" />
+    <Project Path="services/nsbshipping/src/Domain/Domain.csproj" />
+    <Project Path="services/nsbshipping/src/Endpoint.In/Endpoint.In.csproj" />
+    <Project Path="services/nsbshipping/src/Infrastructure/Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/services/nsbshipping/test/">
+    <Project Path="services/nsbshipping/test/Unit.Tests/Unit.Tests.csproj" />
+  </Folder>
   <Folder Name="/services/policy/" />
   <Folder Name="/services/policy/src/">
     <Project Path="services/policy/src/Api/Api.csproj" />
