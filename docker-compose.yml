@@ -198,6 +198,8 @@ services:
   servicebus-emulator:
     container_name: servicebus-emulator
     image: mcr.microsoft.com/azure-messaging/servicebus-emulator:latest
+    profiles:
+      - infra
     ports:
       - "5672:5672"   # AMQP
     environment:
@@ -215,6 +217,8 @@ services:
   cosmos-emulator:
     container_name: cosmos-emulator
     image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest
+    profiles:
+      - infra
     ports:
       - "8081:8081"
       - "10251:10251"
