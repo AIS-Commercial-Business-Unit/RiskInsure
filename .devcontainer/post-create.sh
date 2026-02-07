@@ -4,19 +4,27 @@ set -e
 echo "🚀 Setting up RiskInsure development environment..."
 
 # Install .NET workloads
-echo "📦 Installing .NET workloads..."
-dotnet workload update
+if command -v dotnet &> /dev/null; then
+  echo "📦 Installing .NET workloads..."
+  dotnet workload update
 
-# Restore .NET dependencies
-echo "📦 Restoring .NET packages..."
-dotnet restore
+  # Restore .NET dependencies
+  echo "📦 Restoring .NET packages..."
+  dotnet restore
+else
+  echo "ℹ️  Skipping .NET setup - dotnet not found in PATH"
+fi
 
 # Install Playwright test dependencies
-echo "📦 Installing Playwright test dependencies..."
-cd test/e2e
-npm install
-npx playwright install --with-deps chromium
-cd ../..
+if [ -d "test/e2e" ]; then
+  echo "📦 Installing Playwright test dependencies..."
+  cd test/e2e
+  npm install
+  npx playwright install --with-deps chromium
+  cd ../..
+else
+  echo "ℹ️  Skipping Playwright setup - test/e2e directory not found"
+fi
 
 # Wait for emulators to be ready
 echo "⏳ Waiting for emulators to start..."
