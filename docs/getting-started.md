@@ -131,10 +131,43 @@ az servicebus namespace authorization-rule keys list \
 
 ### 4️⃣ Create Service Bus Queues
 
-Install the NServiceBus transport CLI tool and create queues use the provided scripts:
+Install the NServiceBus transport CLI tool and create all required queues:
+
+```bash
+# Install the ASB transport CLI tool (one-time installation)
+dotnet tool install --global NServiceBus.Transport.AzureServiceBus.CommandLine
+
+# Set your Service Bus connection string (use the one from Step 3)
+export AzureServiceBus_ConnectionString="YOUR-SERVICEBUS-CONNECTION-STRING-FROM-STEP-3"
+
+# Create shared infrastructure queues
+asb-transport queue create error
+asb-transport queue create audit
+asb-transport queue create particular.monitoring
+
+# Create Billing service endpoint and subscriptions
+asb-transport endpoint create RiskInsure.Billing.Endpoint
+asb-transport endpoint subscribe RiskInsure.Billing.Endpoint RiskInsure.PublicContracts.Events.PolicyBound
+
+# Create Customer service endpoint
+asb-transport endpoint create RiskInsure.Customer.Endpoint
+
+# Create Policy service endpoint and subscriptions
+asb-transport endpoint create RiskInsure.Policy.Endpoint
+asb-transport endpoint subscribe RiskInsure.Policy.Endpoint RiskInsure.PublicContracts.Events.QuoteAccepted
+
+# Create Rating & Underwriting service endpoint
+asb-transport endpoint create RiskInsure.RatingAndUnderwriting.Endpoint
+
+# Create Funds Transfer Management service endpoint and subscriptions
+asb-transport endpoint create RiskInsure.FundTransferMgt.Endpoint
+asb-transport endpoint subscribe RiskInsure.FundTransferMgt.Endpoint RiskInsure.PublicContracts.Events.FundsSettled
+```
+
+**💡 Tip**: You can also use the provided PowerShell script for individual services:
 ```bash
 cd services/billing/src/Infrastructure
-pwsh queues.ps1  # If you have PowerShell installed
+pwsh queues.ps1  # If PowerShell is installed
 ```
 
 ---
