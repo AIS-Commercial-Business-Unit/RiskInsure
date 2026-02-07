@@ -88,6 +88,15 @@ The agent **EXECUTES** this structured approach (actual file creation and builds
 5. **appsettings.Development.json.template** - Template with placeholders
 6. **Endpoint.In.csproj** - Project file
 
+### Phase 5a: Service Bus Queue Setup
+**CREATE** queue creation script:
+1. **../Infrastructure/queues.sh** - Bash script to create Service Bus queues and subscriptions
+   - Include shared infrastructure queues (error, audit, particular.monitoring)
+   - Create endpoint for this domain
+   - Add subscriptions for any PublicContracts events this domain subscribes to
+   - Make script executable with `chmod +x`
+   - Add usage instructions in comments
+
 ### Phase 6: Unit Tests
 **CREATE** actual test files:
 1. **Manager tests** - Business orchestration (mocked repos)
@@ -343,6 +352,70 @@ namespace RiskInsure.{Domain}.Endpoint.In.Handlers;
 using NServiceBus;
 using RiskInsure.PublicContracts.Events;
 
+public class {Event}Handler : IHandleMessages<{Event}>
+{
+    private readonly I{Entity}Manager _manager;
+    private readonly ILogger<{Event}Handler> _logger;
+
+    public async Task Handle({Event} message, IMessageHandlerContext context)
+    {
+        // Idempotency check
+        // Call manager
+        // Publish events
+    }
+}
+```
+
+### Service Bus Queue Setup Script (queues.sh)
+```bash
+#!/bin/bash
+# Azure Service Bus Queue Setup for {Domain} Service
+# Run this script after creating a Service Bus namespace to set up queues and subscriptions
+
+set -e  # Exit on error
+
+# Check if connection string is set
+if [ -z "$AzureServiceBus_ConnectionString" ]; then
+    echo "❌ Error: AzureServiceBus_ConnectionString environment variable is not set"
+    echo ""
+    echo "Set it with:"
+    echo "  export AzureServiceBus_ConnectionString='Endpoint=sb://YOUR-NAMESPACE.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=YOUR-KEY'"
+    echo ""
+    exit 1
+fi
+
+echo "========================================="
+echo " Setting up {Domain} Service Queues"
+echo "========================================="
+echo ""
+
+# Shared error and audit queues (run once per namespace)
+echo "Creating shared infrastructure queues..."
+asb-transport queue create error || echo "  ℹ️  Queue 'error' may already exist"
+asb-transport queue create audit || echo "  ℹ️  Queue 'audit' may already exist"
+asb-transport queue create particular.monitoring || echo "  ℹ️  Queue 'particular.monitoring' may already exist"
+echo ""
+
+# {Domain} service endpoint
+echo "Creating {Domain} endpoint..."
+asb-transport endpoint create RiskInsure.{Domain}.Endpoint
+echo ""
+
+# {Domain} service subscriptions (add one line per PublicContracts event subscribed to)
+echo "Creating {Domain} subscriptions..."
+# asb-transport endpoint subscribe RiskInsure.{Domain}.Endpoint RiskInsure.PublicContracts.Events.{EventName}
+echo "  ℹ️  No cross-domain subscriptions for {Domain} service"
+
+echo ""
+echo "✅ {Domain} service queues created successfully!"
+```
+
+**⚠️ IMPORTANT**: When creating new domains:
+1. Create `queues.sh` in `services/{domain}/src/Infrastructure/`
+2. Make it executable: `chmod +x queues.sh`
+3. Add `asb-transport endpoint subscribe` lines for each PublicContracts event the domain subscribes to
+4. Document internal domain events (they don't need Service Bus subscriptions)
+
 The agent **EXECUTES AND VERIFIES** (not just checks):
 
 ### Build & Compilation ✅ AUTOMATED
@@ -358,6 +431,8 @@ The agent **EXECUTES AND VERIFIES** (not just checks):
 - [x] **SET** DOTNET_ENVIRONMENT=Development in Endpoint.In
 - [x] **COPY** connection strings from existing services
 - [x] **CREATE** actual appsettings.Development.json files
+- [x] **CREATE** queues.sh script in Infrastructure folder with correct subscriptions
+- [x] **MAKE** queues.sh executable (chmod +x)
 
 ### Code Quality ✅ AUTOMATED
 - [x] All classes use correct RiskInsure.{Domain}.* namespaces
