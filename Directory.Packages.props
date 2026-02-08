@@ -15,7 +15,7 @@
     <PackageVersion Include="NServiceBus.SagaAudit" Version="5.0.2" />
     
     <!-- JSON serialization (fixes vulnerability) -->
-    <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageVersion Include="Newtonsoft.Json" Version="13.0.4" />
     
     <!-- Azure SDKs -->
     <PackageVersion Include="Microsoft.Azure.Cosmos" Version="3.53.1" />
