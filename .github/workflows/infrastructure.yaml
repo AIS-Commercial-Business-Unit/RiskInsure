@@ -65,6 +65,18 @@ jobs:
       - name: Terraform Validate
         run: terraform validate
 
+      - name: Import Existing Resource Group
+        run: |
+          RG_NAME="CAIS-010-RiskInsure"
+          if az group exists --name "$RG_NAME" --subscription "${{ secrets.AZURE_SUBSCRIPTION_ID }}" | grep -q true; then
+            terraform import -auto-approve azurerm_resource_group.riskinsure "/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/$RG_NAME" || true
+          fi
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
       - name: Terraform Plan
         run: |
           terraform plan \
