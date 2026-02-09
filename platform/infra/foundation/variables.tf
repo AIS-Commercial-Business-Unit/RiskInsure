@@ -59,6 +59,6 @@ variable "tags" {
   default = {
     Project     = "RiskInsure"
     ManagedBy   = "Terraform"
-    Environment = var.environment
+    # Environment = var.environment
   }
 }
