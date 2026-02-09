@@ -163,6 +163,55 @@ See [copilot-instructions/project-structure.md](copilot-instructions/project-str
 5. Configure Endpoint.In (NServiceBus hosting)
 6. Add all projects to solution: \dotnet sln add <path-to-csproj>\
 
+## Docker Compose Development
+
+### Start Infrastructure Only (SQL Server and Emulators)
+
+```bash
+# Start Cosmos DB and Service Bus emulators
+docker-compose --profile infra up -d
+
+# Verify emulators are healthy
+docker-compose ps
+```
+
+### Start All Services
+
+```bash
+# Build and start all services (including emulators)
+docker-compose up --build
+
+# Or start in detached mode
+docker-compose up -d --build
+```
+
+### Access Services
+
+- **Billing API**: http://localhost:7071
+- **Customer API**: http://localhost:7073
+- **Funds Transfer API**: http://localhost:7075
+- **Policy API**: http://localhost:7077
+- **Rating & Underwriting API**: http://localhost:7079
+- **Cosmos DB Emulator**: https://localhost:8081/_explorer/index.html
+
+### Stop Services
+
+```bash
+# Stop all services
+docker-compose down
+
+# Stop and remove volumes (clean slate)
+docker-compose down -v
+```
+
+### Troubleshooting
+
+**Cosmos Emulator SSL Certificate**:
+The Cosmos emulator uses a self-signed certificate. In production code, you'll need to configure the `CosmosClient` to accept the emulator certificate or import it into your trust store.
+
+**Service Bus Emulator Connection**:
+The Azure Service Bus emulator is in preview. If you encounter issues, use a real Azure Service Bus namespace and update the `.env` file.
+
 ## 📖 Documentation
 
 - **[Constitution](copilot-instructions/constitution.md)** - Non-negotiable architectural rules
