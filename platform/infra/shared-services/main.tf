@@ -44,11 +44,11 @@ data "terraform_remote_state" "foundation" {
 # ==========================================================================
 
 locals {
-  resource_group_name = data.terraform_remote_state.foundation.outputs.resource_group_name
-  location            = data.terraform_remote_state.foundation.outputs.location
+  resource_group_name       = var.resource_group_name
+  location                  = var.location
   
   # Generate names if not provided
-  cosmosdb_account_name   = var.cosmosdb_account_name != "" ? var.cosmosdb_account_name : "riskinsure-${var.environment}-cosmos"
+  cosmosdb_account_name     = var.cosmosdb_account_name != "" ? var.cosmosdb_account_name : "riskinsure-${var.environment}-cosmos"
   servicebus_namespace_name = var.servicebus_namespace_name != "" ? var.servicebus_namespace_name : "riskinsure-${var.environment}-bus"
   
   # Merge default tags with provided tags
