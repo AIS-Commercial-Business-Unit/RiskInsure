@@ -12,6 +12,7 @@ on:
   pull_request:
     branches: 
       - main
+      - Dev
     paths:
       - 'platform/infra/**'
   workflow_dispatch:
