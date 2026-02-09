@@ -1,6 +1,70 @@
-version: '3.8'
-
 services:
+  # ============================================================================
+  # Local Emulators (for Codespaces/Local Dev)
+  # ============================================================================
+
+  sql-server:
+    container_name: sql-server
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=${SQL_SERVER_SA_PASSWORD}
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - sql-data:/var/opt/mssql
+    networks:
+      - riskinsure
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P ${SQL_SERVER_SA_PASSWORD} -Q 'SELECT 1' -C -b"]
+      interval: 5s
+      timeout: 5s
+      retries: 4
+      start_period: 20s
+
+  servicebus-emulator:
+    container_name: servicebus-emulator
+    image: mcr.microsoft.com/azure-messaging/servicebus-emulator:latest
+    ports:
+      - "5672:5672"   # AMQP
+    environment:
+      - ACCEPT_EULA=Y
+      - SQL_SERVER=sql-server
+      - MSSQL_SA_PASSWORD=${SQL_SERVER_SA_PASSWORD}
+    volumes:
+      - servicebus-data:/data
+    networks:
+      - riskinsure
+    depends_on:
+      sql-server:
+        condition: service_healthy
+
+  cosmos-emulator:
+    container_name: cosmos-emulator
+    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest
+    ports:
+      - "8081:8081"
+      - "10251:10251"
+      - "10252:10252"
+      - "10253:10253"
+      - "10254:10254"
+    environment:
+      - AZURE_COSMOS_EMULATOR_PARTITION_COUNT=10
+      - AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE=true
+      - AZURE_COSMOS_EMULATOR_IP_ADDRESS_OVERRIDE=127.0.0.1
+    volumes:
+      - cosmos-data:/data/db
+      - cosmos-cert:/tmp/cosmos/appdata
+    networks:
+      - riskinsure
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 1 bash -c '</dev/tcp/localhost/8081' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
   # ============================================================================
   # Billing Domain
   # ============================================================================
@@ -21,6 +85,11 @@ services:
       - CosmosDb__BillingContainerName=Billing
     networks:
       - riskinsure
+    depends_on:
+      cosmos-emulator:
+        condition: service_healthy
+      servicebus-emulator:
+        condition: service_started
 
   billing-endpoint:
     build:
@@ -35,7 +104,10 @@ services:
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__BillingContainerName=Billing
     depends_on:
-      - billing-api
+      cosmos-emulator:
+        condition: service_healthy
+      servicebus-emulator:
+        condition: service_started
     networks:
       - riskinsure
 
@@ -59,6 +131,11 @@ services:
       - CosmosDb__ContainerName=customer
     networks:
       - riskinsure
+    depends_on:
+      cosmos-emulator:
+        condition: service_healthy
+      servicebus-emulator:
+        condition: service_started
 
   customer-endpoint:
     build:
@@ -73,7 +150,10 @@ services:
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=customer
     depends_on:
-      - customer-api
+      cosmos-emulator:
+        condition: service_healthy
+      servicebus-emulator:
+        condition: service_started
     networks:
       - riskinsure
 
@@ -97,6 +177,11 @@ services:
       - CosmosDb__ContainerName=fundstransfermgt
     networks:
       - riskinsure
+    depends_on:
+      cosmos-emulator:
+        condition: service_healthy
+      servicebus-emulator:
+        condition: service_started
 
   fundstransfermgt-endpoint:
     build:
@@ -111,7 +196,10 @@ services:
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=fundstransfermgt
     depends_on:
-      - fundstransfermgt-api
+      cosmos-emulator:
+        condition: service_healthy
+      servicebus-emulator:
+        condition: service_started
     networks:
       - riskinsure
 
@@ -135,6 +223,11 @@ services:
       - CosmosDb__ContainerName=policy
     networks:
       - riskinsure
+    depends_on:
+      cosmos-emulator:
+        condition: service_healthy
+      servicebus-emulator:
+        condition: service_started
 
   policy-endpoint:
     build:
@@ -149,7 +242,10 @@ services:
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=policy
     depends_on:
-      - policy-api
+      cosmos-emulator:
+        condition: service_healthy
+      servicebus-emulator:
+        condition: service_started
     networks:
       - riskinsure
 
@@ -173,6 +269,11 @@ services:
       - CosmosDb__ContainerName=ratingunderwriting
     networks:
       - riskinsure
+    depends_on:
+      cosmos-emulator:
+        condition: service_healthy
+      servicebus-emulator:
+        condition: service_started
 
   ratingandunderwriting-endpoint:
     build:
@@ -187,57 +288,13 @@ services:
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=ratingunderwriting
     depends_on:
-      - ratingandunderwriting-api
+      cosmos-emulator:
+        condition: service_healthy
+      servicebus-emulator:
+        condition: service_started
     networks:
       - riskinsure
 
-  # ============================================================================
-  # Local Emulators (for Codespaces/Local Dev)
-  # ============================================================================
-  
-  servicebus-emulator:
-    container_name: servicebus-emulator
-    image: mcr.microsoft.com/azure-messaging/servicebus-emulator:latest
-    profiles:
-      - infra
-    ports:
-      - "5672:5672"   # AMQP
-    environment:
-      - ACCEPT_EULA=Y
-    volumes:
-      - servicebus-data:/data
-    networks:
-      - riskinsure
-    healthcheck:
-      test: ["CMD", "nc", "-z", "localhost", "5672"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  cosmos-emulator:
-    container_name: cosmos-emulator
-    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest
-    profiles:
-      - infra
-    ports:
-      - "8081:8081"
-      - "10251:10251"
-      - "10252:10252"
-      - "10253:10253"
-      - "10254:10254"
-    environment:
-      - AZURE_COSMOS_EMULATOR_PARTITION_COUNT=10
-      - AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE=true
-    volumes:
-      - cosmos-data:/data/db
-    networks:
-      - riskinsure
-    healthcheck:
-      test: ["CMD", "curl", "-k", "-f", "https://localhost:8081/_explorer/index.html"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 120s
 
 networks:
   riskinsure:
@@ -246,3 +303,5 @@ networks:
 volumes:
   cosmos-data: {}
   servicebus-data: {}
+  sql-data: {}
+  cosmos-cert: {}
