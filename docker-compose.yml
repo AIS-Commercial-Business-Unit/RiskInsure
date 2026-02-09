@@ -11,7 +11,7 @@ services:
       - MSSQL_SA_PASSWORD=${SQL_SERVER_SA_PASSWORD}
       - MSSQL_PID=Developer
     ports:
-      - "1434:1433"
+      - "1433:1433"
     volumes:
       - sql-data:/var/opt/mssql
     networks:
