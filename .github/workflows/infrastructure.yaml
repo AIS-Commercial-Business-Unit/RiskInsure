@@ -205,15 +205,15 @@ jobs:
             --name "ServiceBusConnectionString" --value "$SERVICEBUS_CONN" || echo "⚠️ Key Vault not ready"
 
   # ==========================================================================
-  # Container Apps Environment
+  # Services Environment
   # ==========================================================================
-  container-apps-environment:
-    name: 'Container Apps Environment'
+  services-environment:
+    name: 'Services Environment'
     needs: [foundation, shared-services]
     if: |
       always() &&
       needs.shared-services.result == 'success' &&
-      (inputs.terraform_layer == 'all' || inputs.terraform_layer == 'container-apps-environment')
+      (inputs.terraform_layer == 'all' || inputs.terraform_layer == 'services-environment')
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
     
@@ -224,7 +224,7 @@ jobs:
     defaults:
       run:
         shell: bash
-        working-directory: platform/infra/container-apps
+        working-directory: platform/infra/services
 
     steps:
       - name: Checkout

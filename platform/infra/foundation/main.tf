@@ -62,7 +62,7 @@ resource "azurerm_virtual_network" "riskinsure" {
 
 # Subnet for Container Apps Environment
 resource "azurerm_subnet" "container_apps" {
-  name                 = "container-apps-subnet"
+  name                 = "services-subnet"
   resource_group_name  = azurerm_resource_group.riskinsure.name
   virtual_network_name = azurerm_virtual_network.riskinsure.name
   address_prefixes     = [var.container_apps_subnet_cidr]

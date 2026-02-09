@@ -12,7 +12,7 @@ terraform {
     resource_group_name  = "CAIS-010-RiskInsure"
     storage_account_name = "riskinsuretfstate"
     container_name       = "tfstate"
-    key                  = "container-apps.tfstate"
+    key                  = "services.tfstate"
     use_oidc             = true
   }
 }

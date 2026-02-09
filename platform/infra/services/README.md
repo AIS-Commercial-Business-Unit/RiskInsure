@@ -27,7 +27,7 @@ This will:
 ### Manual Deployment
 
 ```bash
-cd platform/infra/container-apps
+cd platform/infra/services
 
 # Initialize
 terraform init
@@ -131,7 +131,7 @@ services = {
 ### Update Image Tag Only (No Rebuild)
 
 ```bash
-cd platform/infra/container-apps
+cd platform/infra/services
 terraform apply \
   -var="image_tag=abc123" \
   -var-file="dev.tfvars"

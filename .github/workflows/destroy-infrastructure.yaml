@@ -52,7 +52,7 @@ jobs:
       - uses: hashicorp/setup-terraform@v3
       
       - name: Destroy Container Apps
-        working-directory: platform/infra/container-apps
+        working-directory: platform/infra/services
         run: |
           terraform init
           terraform destroy \

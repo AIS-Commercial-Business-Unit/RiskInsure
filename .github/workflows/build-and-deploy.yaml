@@ -142,7 +142,7 @@ jobs:
     defaults:
       run:
         shell: bash
-        working-directory: platform/infra/container-apps
+        working-directory: platform/infra/services
 
     outputs:
       billing_api_url: ${{ steps.outputs.outputs.billing_api_url }}

@@ -43,7 +43,7 @@ on:
           - all
           - foundation
           - shared-services
-          - container-apps-environment
+          - services-environment
       services_to_deploy:
         description: 'Services to deploy (comma-separated or "all")'
         type: string

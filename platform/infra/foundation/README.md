@@ -71,8 +71,8 @@ This module exports critical values consumed by downstream layers:
 |--------|-------------|---------|
 | `resource_group_name` | RG name | All layers |
 | `location` | Azure region | All layers |
-| `container_apps_subnet_id` | Subnet for Container Apps | container-apps |
-| `log_analytics_workspace_id` | Log Analytics ID | container-apps |
+| `container_apps_subnet_id` | Subnet for Container Apps | services |
+| `log_analytics_workspace_id` | Log Analytics ID | services |
 | `acr_login_server` | Container Registry URL | CI/CD pipelines |
 | `key_vault_name` | Key Vault name | shared-services |
 
@@ -117,5 +117,5 @@ terraform apply -var-file="prod.tfvars"
 After deploying foundation:
 
 1. Deploy **shared-services** (Cosmos DB + Service Bus)
-2. Deploy **container-apps** (microservices)
+2. Deploy **services** (microservices)
 3. Deploy **03-monitoring** (dashboards, alerts)
