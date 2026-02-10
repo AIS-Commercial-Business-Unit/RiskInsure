@@ -1,3 +1,4 @@
+#Requires -Version 7
 <#
 .SYNOPSIS
     Rebuild and restart all RiskInsure services
@@ -21,7 +22,7 @@ $repoRoot = Split-Path -Parent $scriptPath
 Set-Location $repoRoot
 
 Write-Host "🔄 Rebuilding RiskInsure Services" -ForegroundColor Cyan
-Write-Host "=" * 60
+Write-Host ("=" * 60)
 
 try {
     # Stop existing containers

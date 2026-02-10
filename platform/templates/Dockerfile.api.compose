@@ -26,6 +26,9 @@ RUN dotnet publish "${PROJECT_PATH}" -c Release -o /app/publish --no-restore
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
+# Install wget and curl if they were somehow missing (e.g., in a highly minimal base image)
+RUN apt-get update && apt-get install -y wget curl --no-install-recommends && rm -rf /var/lib/apt/lists/*
+
 # Copy published application
 COPY --from=build /app/publish .
 
@@ -35,5 +38,9 @@ EXPOSE 8080
 # Set ASP.NET Core to listen on port 8080
 ENV ASPNETCORE_URLS=http://+:8080
 
-# Run the application (the DLL name will be in the published output)
-ENTRYPOINT ["dotnet", "Api.dll"]
+# This entrypoint copies the Cosmos DB emulator's SSL certificate
+# to the container and configures the application to trust it, 
+# enabling secure communication with the emulator.
+COPY --chmod=+x "entrypoint.sh" "/entrypoint.sh"
+
+ENTRYPOINT ["/entrypoint.sh", "cosmos.domain", "8081", "Api.dll"]
