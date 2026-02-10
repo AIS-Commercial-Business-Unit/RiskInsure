@@ -6,13 +6,13 @@ output "azurerg1" {
   value = "id-${data.azurerm_resource_group.vmrg.id}"
 }
 
-output "storage" {
-  value = "id-${azurerm_storage_account.storage.id}"
-}
+# output "storage" {
+#   value = "id-${azurerm_storage_account.storage.id}"
+# }
 
-output "container1" {
-  value = azurerm_storage_container.container1[*].name
-}
+# output "container1" {
+#   value = azurerm_storage_container.container1[*].name
+# }
 
 
 output "container_app_url" {

@@ -43,10 +43,6 @@ variable "tenant_id" {
   default = ""
 }
 
-variable "cosmos_connection_string" {
-  description = "The Cosmos DB connection string to be passed as an environment variable."
-  type        = string
-}
 
 variable "cosmos_database_name" {
   description = "The name of the Cosmos DB database."
@@ -64,4 +60,14 @@ variable "container_app_image" {
   description = "The image for the container app."
   type        = string
   default     = "billingapi:v1.0.0"
+}
+
+variable "cosmos_connection_string" {
+  type        = string
+  description = "Cosmos DB connection string for dev/test"
+}
+
+variable "servicebus_connection_string" {
+  type        = string
+  description = "Service Bus connection string for dev/test"
 }

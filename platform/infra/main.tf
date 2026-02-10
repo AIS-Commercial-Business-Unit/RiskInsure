@@ -6,31 +6,15 @@ provider "azurerm" {
 }
 
 # --------------------------
-# Example null resource
-# --------------------------
-resource "null_resource" "example" {
-  triggers = {
-    value = "An example resource that does nothing!"
-  }
-}
-
-# --------------------------
-# Use existing resource group
+# Resource Group (existing)
 # --------------------------
 data "azurerm_resource_group" "vmrg" {
   name = var.rgname
 }
 
 # --------------------------
-# Random IDs
+# Random ID
 # --------------------------
-resource "random_id" "vm_sa" {
-  keepers = {
-    vm_hostname = var.vm_hostname
-  }
-  byte_length = 3
-}
-
 resource "random_id" "vm_ca" {
   keepers = {
     vm_hostname = var.vm_hostname
@@ -74,7 +58,7 @@ resource "azurerm_container_registry" "acr" {
 }
 
 # --------------------------
-# Cosmos DB Account
+# Cosmos DB
 # --------------------------
 resource "azurerm_cosmosdb_account" "cosmos" {
   name                = "cosmos-${random_id.vm_ca.hex}"
@@ -96,18 +80,12 @@ resource "azurerm_cosmosdb_account" "cosmos" {
   tags                       = var.tags
 }
 
-# --------------------------
-# Cosmos DB SQL Database
-# --------------------------
 resource "azurerm_cosmosdb_sql_database" "billing_db" {
   name                = "billing-db"
   resource_group_name = data.azurerm_resource_group.vmrg.name
   account_name        = azurerm_cosmosdb_account.cosmos.name
 }
 
-# --------------------------
-# Cosmos DB SQL Container
-# --------------------------
 resource "azurerm_cosmosdb_sql_container" "billing_container" {
   name                = "billing-container"
   resource_group_name = data.azurerm_resource_group.vmrg.name
@@ -115,6 +93,22 @@ resource "azurerm_cosmosdb_sql_container" "billing_container" {
   database_name       = azurerm_cosmosdb_sql_database.billing_db.name
   partition_key_paths = ["/accountId"]
   throughput          = 400
+}
+
+# --------------------------
+# Azure Service Bus
+# --------------------------
+resource "azurerm_servicebus_namespace" "servicebus" {
+  name                = "servicebus-${random_id.vm_ca.hex}"
+  location            = data.azurerm_resource_group.vmrg.location
+  resource_group_name = data.azurerm_resource_group.vmrg.name
+  sku                 = "Standard"
+  tags                = var.tags
+}
+
+resource "azurerm_servicebus_queue" "billing_queue" {
+  name         = "billing-queue"
+  namespace_id = azurerm_servicebus_namespace.servicebus.id
 }
 
 # --------------------------
@@ -127,22 +121,15 @@ resource "azurerm_container_app" "app" {
   revision_mode                = "Single"
   tags                         = var.tags
 
-  # ACR Password Secret
+  identity {
+    type = "SystemAssigned"
+  }
+
+  # ACR secret
   secret {
     name  = "acr-password"
     value = azurerm_container_registry.acr.admin_password
   }
-
-  # Cosmos Connection String Secret
-  secret {
-    name  = "cosmos-conn"
-    value = azurerm_cosmosdb_account.cosmos.primary_sql_connection_string
-  }
-
-  secret {
-  name  = "servicebus-conn"
-  value = azurerm_servicebus_namespace.servicebus.default_primary_connection_string
-}
 
   template {
     container {
@@ -151,41 +138,28 @@ resource "azurerm_container_app" "app" {
       cpu    = 0.5
       memory = "1Gi"
 
-      # ACR Password (Optional)
+      # Pass Cosmos DB connection string (for dev/test)
       env {
-        name        = "ACR_PASSWORD"
-        secret_name = "acr-password"
+        name  = "CosmosDb__ConnectionString"
+        value = var.cosmos_connection_string  # <- provide it in terraform.tfvars or environment
       }
 
-      # Cosmos Connection String (Matches Program.cs)
+      # Pass Service Bus connection string (for dev/test)
       env {
-        name        = "ConnectionStrings__CosmosDb"
-        secret_name = "cosmos-conn"
-        }
-
-      # Cosmos Database Name (Matches Program.cs)
-      env {
-        name  = "CosmosDb__DatabaseName"
-        value = var.cosmos_database_name
+        name  = "AzureWebJobsServiceBus"
+        value = var.servicebus_connection_string  # <- provide it in terraform.tfvars or environment
       }
 
-      # Cosmos Container Name (Matches Program.cs EXACTLY)
+      # Keep endpoint and fully qualified namespace if needed
       env {
-        name  = "CosmosDb__BillingContainerName"
-        value = var.cosmos_container_name
+        name  = "CosmosDb__Endpoint"
+        value = azurerm_cosmosdb_account.cosmos.endpoint
       }
-      # REQUIRED by NServiceBus (this was missing)
+
       env {
         name  = "AzureServiceBus__FullyQualifiedNamespace"
         value = "${azurerm_servicebus_namespace.servicebus.name}.servicebus.windows.net"
-          }
-
-# Service Bus connection string
-      env {
-        name        = "AzureServiceBus__ConnectionString"
-        secret_name = "servicebus-conn"
-          }
-
+      }
     }
 
     min_replicas = 1
@@ -210,73 +184,64 @@ resource "azurerm_container_app" "app" {
 
   depends_on = [
     azurerm_cosmosdb_sql_container.billing_container,
-    azurerm_container_registry.acr
+    azurerm_container_registry.acr,
+    azurerm_servicebus_queue.billing_queue,
+    azurerm_servicebus_namespace.servicebus
   ]
 }
 
-# --------------------------
-# Azure Service Bus Namespace
-# --------------------------
-resource "azurerm_servicebus_namespace" "servicebus" {
-  name                = "servicebus-${random_id.vm_ca.hex}"
-  location            = data.azurerm_resource_group.vmrg.location
-  resource_group_name = data.azurerm_resource_group.vmrg.name
-  sku                 = "Standard"
-  tags                = var.tags
-}
 
 # --------------------------
-# Azure Service Bus Queue
+# Fetch Container App identity for RBAC
 # --------------------------
-resource "azurerm_servicebus_queue" "billing_queue" {
-  name            = "billing-queue"
-  namespace_id    = azurerm_servicebus_namespace.servicebus.id
-  max_size_in_megabytes = 1024
-  lock_duration   = "PT5M"
+data "azurerm_container_app" "app_identity" {
+  name                = azurerm_container_app.app.name
+  resource_group_name = data.azurerm_resource_group.vmrg.name
+
+  depends_on = [
+    azurerm_container_app.app
+  ]
 }
+
+ # required permission
+# --------------------------
+# RBAC - Service Bus
+# --------------------------
+# resource "azurerm_role_assignment" "servicebus_role" {
+#   principal_id         = azurerm_container_app.app.identity[0].principal_id
+#   role_definition_name = "Azure Service Bus Data Sender"
+#   scope                = azurerm_servicebus_namespace.servicebus.id
+
+#   depends_on = [
+#     azurerm_container_app.app
+#   ]
+# }
+
+# # --------------------------
+# # RBAC - Cosmos DB
+# # --------------------------
+# resource "azurerm_role_assignment" "cosmos_role" {
+#   principal_id         = azurerm_container_app.app.identity[0].principal_id
+#   role_definition_name = "Cosmos DB Account Reader Role"
+#   scope                = azurerm_cosmosdb_account.cosmos.id
+
+#   depends_on = [
+#     azurerm_container_app.app
+#   ]
+# }
+
 
 # --------------------------
 # Outputs
 # --------------------------
-output "acr_login_server" {
-  value = azurerm_container_registry.acr.login_server
-}
-
 output "container_app_name" {
   value = azurerm_container_app.app.name
-}
-
-output "cosmos_endpoint" {
-  value = azurerm_cosmosdb_account.cosmos.endpoint
-}
-
-output "cosmos_connection_string" {
-  value     = azurerm_cosmosdb_account.cosmos.connection_strings[0]
-  sensitive = true
 }
 
 output "servicebus_namespace" {
   value = azurerm_servicebus_namespace.servicebus.name
 }
 
-output "servicebus_connection_string" {
-  value     = azurerm_servicebus_namespace.servicebus.default_primary_connection_string
-  sensitive = true
-}
-
-# Add missing storage account resource
-resource "azurerm_storage_account" "storage" {
-  name                     = "storage${random_id.vm_ca.hex}"
-  resource_group_name      = data.azurerm_resource_group.vmrg.name
-  location                 = data.azurerm_resource_group.vmrg.location
-  account_tier             = "Standard"
-  account_replication_type = "LRS"
-  tags                     = var.tags
-}
-
-# Add missing storage container resource
-resource "azurerm_storage_container" "container1" {
-  name                  = "examplecontainer"
-  storage_account_name  = azurerm_storage_account.storage.name
-  container_access_type = "private"
+output "cosmos_endpoint" {
+  value = azurerm_cosmosdb_account.cosmos.endpoint
 }

@@ -1,0 +1,32 @@
+name: Build and Deploy Docker Images to ACR
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Log in to Azure Container Registry
+        uses: azure/docker-login@v1
+        with:
+          login-server: ${{ secrets.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build and push Docker image
+        run: |
+          docker build -t ${{ secrets.ACR_LOGIN_SERVER }}/billing-api:latest ./services/billing/src/Api
+          docker push ${{ secrets.ACR_LOGIN_SERVER }}/billing-api:latest
+
+      - name: Update Terraform with new image tag
+        run: |
+          terraform init
+          terraform apply -var "container_app_image=billing-api:latest" -auto-approve
+        working-directory: ./platform/infra
