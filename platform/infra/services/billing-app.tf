@@ -2,17 +2,6 @@
 # Billing API (HTTP REST)
 # ==========================================================================
 
-data "terraform_remote_state" "foundation" {
-  backend = "azurerm"
-  
-  config = {
-    resource_group_name  = "CAIS-010-RiskInsure"      # ← Must match exactly
-    storage_account_name = "riskinsuretfstate"        # ← Must match exactly
-    container_name       = "tfstate"                  # ← Must match exactly
-    key                  = "foundation.tfstate"       # ← Must match exactly
-    use_oidc             = true                       # ← Add this!
-  }
-}
 resource "azurerm_container_app" "billing_api" {
   name                         = "billing-api"
   container_app_environment_id = azurerm_container_app_environment.riskinsure.id
