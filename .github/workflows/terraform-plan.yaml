@@ -111,9 +111,9 @@ jobs:
                 ;;
             esac
           
-          # Push to main
+          # Push to main or Dev
           elif [ "${{ github.event_name }}" == "push" ]; then
-            ACTION="apply"
+            ACTION="plan"
             git diff --name-only HEAD^ HEAD > changed_files.txt
             
             if grep -q "^platform/infra/" changed_files.txt; then
