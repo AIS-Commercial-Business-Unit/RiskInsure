@@ -111,7 +111,7 @@ coverage/
 .terraform/
 *.tfstate
 *.tfstate.*
-.terraform.lock.hcl
+# .terraform.lock.hcl
 terraform.tfvars
 *.tfplan
 override.tf
