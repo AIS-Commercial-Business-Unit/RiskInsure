@@ -33,9 +33,6 @@ variable "SubCommand" {
   default = "fcc"
 }
 
-## GitActions TF Variables - Matched to GitHub Secrets
-## Optional for local development (uses Azure CLI)
-## Required for GitHub Actions (set via environment variables)
 variable "client_id" {
   default = ""
 }
@@ -44,4 +41,27 @@ variable "subscription_id" {
 }
 variable "tenant_id" {
   default = ""
+}
+
+variable "cosmos_connection_string" {
+  description = "The Cosmos DB connection string to be passed as an environment variable."
+  type        = string
+}
+
+variable "cosmos_database_name" {
+  description = "The name of the Cosmos DB database."
+  type        = string
+  default     = "billing-db"
+}
+
+variable "cosmos_container_name" {
+  description = "The name of the Cosmos DB container."
+  type        = string
+  default     = "billing-container"
+}
+
+variable "container_app_image" {
+  description = "The image for the container app."
+  type        = string
+  default     = "billingapi:v1.0.0"
 }

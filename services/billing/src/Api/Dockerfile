@@ -5,23 +5,26 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /src
 
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 # Copy solution and project files
 COPY ["RiskInsure.slnx", "."]
 COPY ["Directory.Build.props", "."]
 COPY ["Directory.Packages.props", "."]
 
 # Copy PublicContracts (shared dependency)
-COPY ["platform/publiccontracts/RiskInsure.PublicContracts/RiskInsure.PublicContracts.csproj", "platform/publiccontracts/RiskInsure.PublicContracts/"]
+COPY ["platform/RiskInsure.PublicContracts/RiskInsure.PublicContracts.csproj", "platform/RiskInsure.PublicContracts/"]
 
 # Copy service projects
 COPY ["services/billing/src/Domain/Domain.csproj", "services/billing/src/Domain/"]
 COPY ["services/billing/src/Api/Api.csproj", "services/billing/src/Api/"]
+COPY ["services/billing/src/Endpoint.In/Endpoint.In.csproj", "services/billing/src/Endpoint.In/"]
+COPY ["services/billing/src/Infrastructure/Infrastructure.csproj", "services/billing/src/Infrastructure/"]
 
 # Restore dependencies
 RUN dotnet restore "services/billing/src/Api/Api.csproj"
 
 # Copy remaining source code
-COPY ["platform/publiccontracts/", "platform/publiccontracts/"]
+COPY ["platform/RiskInsure.PublicContracts/", "platform/RiskInsure.PublicContracts/"]
 COPY ["services/billing/", "services/billing/"]
 
 # Build and publish
@@ -55,4 +58,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
 ENV ASPNETCORE_URLS=http://+:8080
 
 # Run the application
-ENTRYPOINT ["dotnet", "RiskInsure.Billing.Api.dll"]
+ENTRYPOINT ["dotnet", "Api.dll"]
+
