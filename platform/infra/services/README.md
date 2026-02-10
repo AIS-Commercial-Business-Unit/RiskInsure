@@ -5,7 +5,7 @@ This layer deploys the **RiskInsure microservices** as Azure Container Apps.
 ## 📋 Prerequisites
 
 The following layers must be deployed first:
-1. ✅ **00-foundation**: ACR, VNet, Key Vault, Log Analytics
+1. ✅ **foundation**: ACR, VNet, Key Vault, Log Analytics
 2. ✅ **shared-services**: Cosmos DB, Service Bus
 
 ## 🚀 Deployment

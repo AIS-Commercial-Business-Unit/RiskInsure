@@ -22,7 +22,7 @@ on:
         description: 'What to run'
         type: choice
         required: true
-        default: 'infrastructure-only'
+        default: 'all'
         options:
           - infrastructure-only
           - deploy-services-only
@@ -39,7 +39,7 @@ on:
       terraform_layer:
         description: 'Infrastructure layer (for infrastructure-only mode)'
         type: choice
-        required: false
+        required: true
         default: 'all'
         options:
           - all
@@ -49,7 +49,7 @@ on:
       services_to_deploy:
         description: 'Services to deploy (comma-separated or "all")'
         type: string
-        required: false
+        required: true
         default: 'all'
       terraform_action:
         description: 'Terraform action'
