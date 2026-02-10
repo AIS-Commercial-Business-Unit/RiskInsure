@@ -56,6 +56,7 @@ variable "key_vault_name" {
 variable "cosmosdb_endpoint" {
   description = "Cosmos DB account endpoint (from shared-services layer)"
   type        = string
+  default     = ""
 }
 
 variable "cosmosdb_database_name" {
@@ -79,6 +80,7 @@ variable "cosmosdb_account_id" {
 variable "servicebus_namespace_fqdn" {
   description = "Service Bus fully qualified domain name (from shared-services layer)"
   type        = string
+  default     = ""
 }
 
 variable "servicebus_namespace_id" {
