@@ -84,8 +84,8 @@ jobs:
       - name: Decide what to run
         id: decide
         run: |
-          RUN_INFRA="false"
-          RUN_SERVICES="false"
+          RUN_INFRA="true"
+          RUN_SERVICES="true"
           ENV="dev"
           ACTION="plan"
           LAYER="all"
