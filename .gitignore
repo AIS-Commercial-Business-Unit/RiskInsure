@@ -122,3 +122,9 @@ override.tf.json
 terraform.rc
 crash.log
 crash.*.log
+
+# Ignore DLL files
+*.dll
+
+# Ignore publish folder
+publish/
