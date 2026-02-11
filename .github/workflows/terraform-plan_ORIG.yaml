@@ -94,7 +94,7 @@ jobs:
     steps:
     # Checkout the repository to the GitHub Actions runner
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         repository: AIS-Commercial-Business-Unit/RiskInsure 
       #  token: ${{ secrets.MY_PAT }} # Required for Private Repos
@@ -132,7 +132,7 @@ jobs:
       # Step 2: Re-checkout branch if changes were pushed
     - name: Re-checkout updated code
       if: env.format_changed == 'true'
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         #token: ${{ secrets.MY_PAT }} # Required for Private Repos - might need to use to write back to the repo if secrets.GITHUB_TOKEN does not work.
