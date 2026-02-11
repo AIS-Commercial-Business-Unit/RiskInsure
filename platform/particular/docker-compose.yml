@@ -1,0 +1,99 @@
+version: '2.4'
+
+services:
+  ravendb:
+    image: particular/servicecontrol-ravendb:6.11.0
+    container_name: ravendb
+    ports:
+      - "8080:8080"
+    volumes:
+      - ravendb-data:/var/lib/ravendb
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL","curl -f http://localhost:8080/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    networks:
+      - riskinsure
+
+  servicecontrol:
+    image: particular/servicecontrol:6.11.0
+    container_name: servicecontrol
+    depends_on:
+      ravendb:
+        condition: service_healthy
+    environment:
+      - TRANSPORTTYPE=AzureServiceBus
+      - CONNECTIONSTRING=${SERVICEBUS_CONNECTION_STRING}
+      - RAVENDB_CONNECTIONSTRING=http://ravendb:8080
+    volumes:
+      - ./license.xml:/usr/share/ParticularSoftware/license.xml:ro
+    restart: unless-stopped
+    command: ["--setup-and-run"]
+    ports:
+      - "33333:33333"
+    networks:
+      - riskinsure
+
+  servicecontrol-monitoring:
+    image: particular/servicecontrol:6.11.0
+    container_name: servicecontrol-monitoring
+    depends_on:
+      ravendb-monitoring:
+        condition: service_healthy
+    environment:
+      - TRANSPORTTYPE=AzureServiceBus
+      - CONNECTIONSTRING=${SERVICEBUS_CONNECTION_STRING}
+      - RAVENDB_CONNECTIONSTRING=http://ravendb-monitoring:8080
+    volumes:
+      - ./license.xml:/usr/share/ParticularSoftware/license.xml:ro
+    restart: unless-stopped
+    command: ["--setup-and-run","--monitoring"]
+    ports:
+      - "33633:33633"
+    networks:
+      - riskinsure
+
+  ravendb-monitoring:
+    image: particular/servicecontrol-ravendb:6.11.0
+    container_name: ravendb-monitoring
+    ports:
+      - "8081:8080"
+    volumes:
+      - ravendb-monitoring-data:/var/lib/ravendb
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL","curl -f http://localhost:8080/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    networks:
+      - riskinsure
+
+  servicepulse:
+    image: particular/servicepulse:2.5.0
+    container_name: servicepulse
+    depends_on:
+      servicecontrol:
+        condition: service_started
+    environment:
+      - SERVICECONTROL_URL=http://servicecontrol:33333
+      - MONITORING_URL=http://servicecontrol-monitoring:33633
+      - ENABLE_REVERSE_PROXY=true
+    restart: unless-stopped
+    ports:
+      - "8088:9090"
+    networks:
+      - riskinsure
+
+volumes:
+  ravendb-data:
+  servicecontrol-data:
+  ravendb-monitoring-data:
+
+networks:
+  riskinsure:
+    driver: bridge
