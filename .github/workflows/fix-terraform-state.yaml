@@ -25,6 +25,7 @@ on:
         description: 'Type "REMOVE" to confirm state removal'
         required: true
         type: string
+        default: 'REMOVE'
 
 env:
   TERRAFORM_VERSION: '1.11.4'
