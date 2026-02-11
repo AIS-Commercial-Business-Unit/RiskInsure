@@ -5,6 +5,11 @@ name: 'Fix Terraform State - Remove Resource Group'
 # After running this successfully, you can delete this workflow file
 
 on:
+  push:
+    branches:
+      - Dev
+    paths:
+      - 'platform/infra/**'
   workflow_dispatch:
     inputs:
       environment:
