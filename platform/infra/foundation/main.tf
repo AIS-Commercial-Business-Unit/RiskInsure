@@ -35,6 +35,10 @@ provider "azurerm" {
       purge_soft_delete_on_destroy = false
     }
   }
+  
+  # Use Azure AD authentication for storage account operations
+  # This allows shared_access_key_enabled = false while still managing storage
+  storage_use_azuread = true
 }
 
 # ============================================================================
@@ -232,7 +236,8 @@ resource "azurerm_storage_account" "riskinsure" {
 
   # Security features
   https_traffic_only_enabled      = true
-  shared_access_key_enabled       = false
+  # Enable for initial deployment; disable after deployment completes
+  shared_access_key_enabled       = true
 
   tags = var.tags
 }
