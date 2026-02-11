@@ -3,6 +3,7 @@ using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using NServiceBus;
+using NServiceBus.Features;
 using NServiceBus.Metrics.ServiceControl;
 using NServiceBus.Transport.AzureServiceBus;
 
@@ -101,8 +102,11 @@ public static class NServiceBusConfigurationExtensions
         Console.WriteLine($"[NServiceBus] Development: using Service Bus connection string");
 
         var transport = new AzureServiceBusTransport(serviceBusConnectionString, TopicTopology.Default);
-        
+
         var transportExtensions = endpointConfiguration.UseTransport(transport);
+
+        // Disabled because the servicebus emulator does not support auto-subscribe
+        endpointConfiguration.DisableFeature<AutoSubscribe>();
 
         // Cosmos DB connection string
         var cosmosConnectionString = configuration.GetConnectionString("CosmosDb") ??
@@ -124,9 +128,9 @@ public static class NServiceBusConfigurationExtensions
         recoverability.Immediate(immediate => immediate.NumberOfRetries(0));
         recoverability.Delayed(delayed => delayed.NumberOfRetries(0));
 
-        // Enable installers for development
-        endpointConfiguration.EnableInstallers();
-        
+        // Disabled because the ServiceBus Emulator does not support installers
+        // endpointConfiguration.EnableInstallers();
+
         return transportExtensions;
     }
 

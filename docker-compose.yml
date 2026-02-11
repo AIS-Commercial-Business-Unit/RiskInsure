@@ -49,6 +49,7 @@ services:
     # hostname, and it will match the SSL certificate
     hostname: cosmos.domain
     image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest
+    entrypoint: ["/usr/local/bin/entrypoint-cosmos.sh"]
     ports:
       - "8081:8081"
       - "10251:10251"
@@ -58,9 +59,9 @@ services:
     environment:
       - AZURE_COSMOS_EMULATOR_PARTITION_COUNT=10
       - AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE=true
-      - AZURE_COSMOS_EMULATOR_IP_ADDRESS_OVERRIDE=127.0.0.1
     volumes:
       - cosmos-data:/data/db
+      - ./entrypoint-cosmos.sh:/usr/local/bin/entrypoint-cosmos.sh
     networks:
       - riskinsure
     healthcheck:
