@@ -74,14 +74,25 @@ jobs:
 
       - name: Remove Resource Group from State
         run: |
-          echo "🗑️ Removing azurerm_resource_group.riskinsure from state..."
+          echo "🗑️ Removing resource group from state..."
           
-          # Check if the resource exists in state before trying to remove
-          if terraform state list | grep -q "azurerm_resource_group.riskinsure"; then
+          # Try both possible state paths
+          REMOVED=false
+          
+          if terraform state list | grep -q "^azurerm_resource_group.riskinsure$"; then
             terraform state rm azurerm_resource_group.riskinsure
             echo "✅ Successfully removed azurerm_resource_group.riskinsure from state"
-          else
-            echo "ℹ️ Resource azurerm_resource_group.riskinsure not found in state (already removed or never existed)"
+            REMOVED=true
+          fi
+          
+          if terraform state list | grep -q "^data.azurerm_resource_group.riskinsure$"; then
+            terraform state rm data.azurerm_resource_group.riskinsure
+            echo "✅ Successfully removed data.azurerm_resource_group.riskinsure from state"
+            REMOVED=true
+          fi
+          
+          if [ "$REMOVED" = false ]; then
+            echo "ℹ️ Resource group not found in state (already removed or never existed)"
           fi
         env:
           ARM_USE_OIDC: true
@@ -94,12 +105,12 @@ jobs:
           echo "📋 Updated Terraform state:"
           terraform state list
           
-          # Verify the resource is gone
-          if terraform state list | grep -q "azurerm_resource_group.riskinsure"; then
-            echo "❌ ERROR: Resource still exists in state!"
+          # Verify both possible resource paths are gone
+          if terraform state list | grep -qE "^(data\.)?azurerm_resource_group\.riskinsure$"; then
+            echo "❌ ERROR: Resource group still exists in state!"
             exit 1
           else
-            echo "✅ Verified: Resource successfully removed from state"
+            echo "✅ Verified: Resource group successfully removed from state"
           fi
         env:
           ARM_USE_OIDC: true
