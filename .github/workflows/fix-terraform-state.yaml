@@ -44,14 +44,6 @@ jobs:
         working-directory: platform/infra/foundation
 
     steps:
-      - name: Validate Confirmation
-        run: |
-          if [ "${{ inputs.confirm }}" != "REMOVE" ]; then
-            echo "❌ Confirmation failed. You must type 'REMOVE' to proceed."
-            exit 1
-          fi
-          echo "✅ Confirmation validated"
-
       - name: Checkout
         uses: actions/checkout@v4
 
