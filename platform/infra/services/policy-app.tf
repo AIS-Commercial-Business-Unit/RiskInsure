@@ -1,9 +1,9 @@
 # ==========================================================================
-# Funds Transfer Management API (HTTP REST)
+# Policy API (HTTP REST)
 # ==========================================================================
 
-resource "azurerm_container_app" "fundstransfermgt_api" {
-  name                         = "fundstransfermgt-api"
+resource "azurerm_container_app" "policy_api" {
+  name                         = "policy-api"
   container_app_environment_id = azurerm_container_app_environment.riskinsure.id
   resource_group_name          = data.terraform_remote_state.foundation.outputs.resource_group_name
   revision_mode                = "Single"
@@ -13,14 +13,14 @@ resource "azurerm_container_app" "fundstransfermgt_api" {
   }
 
   template {
-    min_replicas = var.services["fundstransfermgt"].api.min_replicas
-    max_replicas = var.services["fundstransfermgt"].api.max_replicas
+    min_replicas = var.services["policy"].api.min_replicas
+    max_replicas = var.services["policy"].api.max_replicas
 
     container {
-      name   = "fundstransfermgt-api"
-      image  = "${data.terraform_remote_state.foundation.outputs.acr_login_server}/fundstransfermgt-api:${var.image_tag}"
-      cpu    = var.services["fundstransfermgt"].api.cpu
-      memory = var.services["fundstransfermgt"].api.memory
+      name   = "policy-api"
+      image  = "${data.terraform_remote_state.foundation.outputs.acr_login_server}/policy-api:${var.image_tag}"
+      cpu    = var.services["policy"].api.cpu
+      memory = var.services["policy"].api.memory
 
       env {
         name  = "ASPNETCORE_ENVIRONMENT"
@@ -49,7 +49,7 @@ resource "azurerm_container_app" "fundstransfermgt_api" {
 
       env {
         name  = "CosmosDb__ContainerName"
-        value = "fundstransfermgt"
+        value = "policy"
       }
     }
   }
@@ -68,27 +68,27 @@ resource "azurerm_container_app" "fundstransfermgt_api" {
 }
 
 # Grant Cosmos DB access
-resource "azurerm_cosmosdb_sql_role_assignment" "fundstransfermgt_api_cosmos" {
+resource "azurerm_cosmosdb_sql_role_assignment" "policy_api_cosmos" {
   resource_group_name = data.terraform_remote_state.foundation.outputs.resource_group_name
   account_name        = data.terraform_remote_state.shared_services.outputs.cosmosdb_account_name
   role_definition_id  = "${data.terraform_remote_state.shared_services.outputs.cosmosdb_account_id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002"
-  principal_id        = azurerm_container_app.fundstransfermgt_api.identity[0].principal_id
+  principal_id        = azurerm_container_app.policy_api.identity[0].principal_id
   scope               = data.terraform_remote_state.shared_services.outputs.cosmosdb_account_id
 }
 
 # Grant Service Bus access
-resource "azurerm_role_assignment" "fundstransfermgt_api_servicebus" {
+resource "azurerm_role_assignment" "policy_api_servicebus" {
   scope                = data.terraform_remote_state.shared_services.outputs.servicebus_namespace_id
   role_definition_name = "Azure Service Bus Data Owner"
-  principal_id         = azurerm_container_app.fundstransfermgt_api.identity[0].principal_id
+  principal_id         = azurerm_container_app.policy_api.identity[0].principal_id
 }
 
 # ==========================================================================
-# Funds Transfer Management Endpoint (NServiceBus)
+# Policy Endpoint (NServiceBus)
 # ==========================================================================
 
-resource "azurerm_container_app" "fundstransfermgt_endpoint" {
-  name                         = "fundstransfermgt-endpoint"
+resource "azurerm_container_app" "policy_endpoint" {
+  name                         = "policy-endpoint"
   container_app_environment_id = azurerm_container_app_environment.riskinsure.id
   resource_group_name          = data.terraform_remote_state.foundation.outputs.resource_group_name
   revision_mode                = "Single"
@@ -98,14 +98,14 @@ resource "azurerm_container_app" "fundstransfermgt_endpoint" {
   }
 
   template {
-    min_replicas = var.services["fundstransfermgt"].endpoint.min_replicas
-    max_replicas = var.services["fundstransfermgt"].endpoint.max_replicas
+    min_replicas = var.services["policy"].endpoint.min_replicas
+    max_replicas = var.services["policy"].endpoint.max_replicas
 
     container {
-      name   = "fundstransfermgt-endpoint"
-      image  = "${data.terraform_remote_state.foundation.outputs.acr_login_server}/fundstransfermgt-endpoint:${var.image_tag}"
-      cpu    = var.services["fundstransfermgt"].endpoint.cpu
-      memory = var.services["fundstransfermgt"].endpoint.memory
+      name   = "policy-endpoint"
+      image  = "${data.terraform_remote_state.foundation.outputs.acr_login_server}/policy-endpoint:${var.image_tag}"
+      cpu    = var.services["policy"].endpoint.cpu
+      memory = var.services["policy"].endpoint.memory
 
       env {
         name  = "DOTNET_ENVIRONMENT"
@@ -129,7 +129,7 @@ resource "azurerm_container_app" "fundstransfermgt_endpoint" {
 
       env {
         name  = "CosmosDb__ContainerName"
-        value = "fundstransfermgt"
+        value = "policy"
       }
     }
   }
@@ -138,16 +138,16 @@ resource "azurerm_container_app" "fundstransfermgt_endpoint" {
 }
 
 # Grant permissions
-resource "azurerm_cosmosdb_sql_role_assignment" "fundstransfermgt_endpoint_cosmos" {
+resource "azurerm_cosmosdb_sql_role_assignment" "policy_endpoint_cosmos" {
   resource_group_name = data.terraform_remote_state.foundation.outputs.resource_group_name
   account_name        = data.terraform_remote_state.shared_services.outputs.cosmosdb_account_name
   role_definition_id  = "${data.terraform_remote_state.shared_services.outputs.cosmosdb_account_id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002"
-  principal_id        = azurerm_container_app.fundstransfermgt_endpoint.identity[0].principal_id
+  principal_id        = azurerm_container_app.policy_endpoint.identity[0].principal_id
   scope               = data.terraform_remote_state.shared_services.outputs.cosmosdb_account_id
 }
 
-resource "azurerm_role_assignment" "fundstransfermgt_endpoint_servicebus" {
+resource "azurerm_role_assignment" "policy_endpoint_servicebus" {
   scope                = data.terraform_remote_state.shared_services.outputs.servicebus_namespace_id
   role_definition_name = "Azure Service Bus Data Owner"
-  principal_id         = azurerm_container_app.fundstransfermgt_endpoint.identity[0].principal_id
+  principal_id         = azurerm_container_app.policy_endpoint.identity[0].principal_id
 }

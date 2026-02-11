@@ -4,6 +4,7 @@ on:
   push:
     branches: 
       - main
+      - Dev
     paths:
       - 'platform/infra/**'
       - 'services/**'
@@ -12,6 +13,7 @@ on:
   pull_request:
     branches: 
       - main
+      - Dev
     paths:
       - 'platform/infra/**'
   workflow_dispatch:
@@ -20,7 +22,7 @@ on:
         description: 'What to run'
         type: choice
         required: true
-        default: 'infrastructure-only'
+        default: 'all'
         options:
           - infrastructure-only
           - deploy-services-only
@@ -37,7 +39,7 @@ on:
       terraform_layer:
         description: 'Infrastructure layer (for infrastructure-only mode)'
         type: choice
-        required: false
+        required: true
         default: 'all'
         options:
           - all
@@ -47,7 +49,7 @@ on:
       services_to_deploy:
         description: 'Services to deploy (comma-separated or "all")'
         type: string
-        required: false
+        required: true
         default: 'all'
       terraform_action:
         description: 'Terraform action'
@@ -82,8 +84,8 @@ jobs:
       - name: Decide what to run
         id: decide
         run: |
-          RUN_INFRA="false"
-          RUN_SERVICES="false"
+          RUN_INFRA="true"
+          RUN_SERVICES="true"
           ENV="dev"
           ACTION="plan"
           LAYER="all"
@@ -109,9 +111,9 @@ jobs:
                 ;;
             esac
           
-          # Push to main
+          # Push to main or Dev
           elif [ "${{ github.event_name }}" == "push" ]; then
-            ACTION="apply"
+            ACTION="plan"
             git diff --name-only HEAD^ HEAD > changed_files.txt
             
             if grep -q "^platform/infra/" changed_files.txt; then
