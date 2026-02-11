@@ -41,8 +41,15 @@ services:
         condition: service_healthy
 
   cosmos-emulator:
+    # Web UI available at https://localhost:8081/_explorer/index.html
     container_name: cosmos-emulator
+    # Specify the hostname that will be added to the generated 
+    # self-signed SSL certificate as a Subject Alternate Name 
+    # Other docker containers can connect to the emulator using this 
+    # hostname, and it will match the SSL certificate
+    hostname: cosmos.domain
     image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest
+    entrypoint: ["/usr/local/bin/entrypoint-cosmos.sh"]
     ports:
       - "8081:8081"
       - "10251:10251"
@@ -52,10 +59,9 @@ services:
     environment:
       - AZURE_COSMOS_EMULATOR_PARTITION_COUNT=10
       - AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE=true
-      - AZURE_COSMOS_EMULATOR_IP_ADDRESS_OVERRIDE=127.0.0.1
     volumes:
       - cosmos-data:/data/db
-      - cosmos-cert:/tmp/cosmos/appdata
+      - ./entrypoint-cosmos.sh:/usr/local/bin/entrypoint-cosmos.sh
     networks:
       - riskinsure
     healthcheck:
@@ -304,4 +310,3 @@ volumes:
   cosmos-data: {}
   servicebus-data: {}
   sql-data: {}
-  cosmos-cert: {}
