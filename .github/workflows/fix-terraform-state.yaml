@@ -45,9 +45,13 @@ jobs:
 
     steps:
       - name: Validate Confirmation
+        if: github.event_name == 'workflow_dispatch'
         run: |
-          if [ "${{ inputs.confirm }}" != "REMOVE" ]; then
-            echo "❌ Confirmation failed. You must type 'REMOVE' to proceed."
+          # Strip quotes if present
+          CONFIRM_VALUE=$(echo "${{ inputs.confirm }}" | tr -d '"' | tr -d "'")
+          if [ "$CONFIRM_VALUE" != "REMOVE" ]; then
+            echo "❌ Confirmation failed. You must type REMOVE to proceed (without quotes)."
+            echo "You entered: ${{ inputs.confirm }}"
             exit 1
           fi
           echo "✅ Confirmation validated"
