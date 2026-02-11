@@ -156,7 +156,7 @@ resource "azurerm_key_vault" "riskinsure" {
   purge_protection_enabled   = var.environment == "prod" ? true : false
 
   # Enable RBAC authorization (recommended over access policies)
-  enable_rbac_authorization = true
+  rbac_authorization_enabled = true
 
   # Network ACLs for production
   dynamic "network_acls" {
@@ -172,9 +172,9 @@ resource "azurerm_key_vault" "riskinsure" {
 }
 
 # Grant current user Key Vault Administrator role (for initial setup)
-resource "azurerm_role_assignment" "kv_admin" {
+resource "azurerm_role_assignment" "kv_secrets_officer" {
   scope                = azurerm_key_vault.riskinsure.id
-  role_definition_name = "Key Vault Administrator"
+  role_definition_name = "Key Vault Secrets Officer"
   principal_id         = data.azurerm_client_config.current.object_id
 }
 
