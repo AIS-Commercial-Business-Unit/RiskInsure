@@ -57,7 +57,7 @@ test.describe('Quote to Policy Flow', () => {
       propertyAgeYears: 10, // Class A: ≤15 years
       creditTier: 'Excellent', // Class A: Excellent credit
     });
-    expect(underwritingResponse.status).toBe(200);
+    expect(underwritingResponse.status()).toBe(200);
     const underwritingResult = await underwritingResponse.json();
 
     console.log(`✓ Underwriting submitted: Class ${underwritingResult.underwritingClass}, Premium: $${underwritingResult.premium}`);
