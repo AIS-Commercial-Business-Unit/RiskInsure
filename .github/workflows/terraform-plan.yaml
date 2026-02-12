@@ -1,21 +1,21 @@
 name: 'Terraform - Main Pipeline'
 
 on:
-  push:
-    branches: 
-      - main
-      - Dev
-    paths:
-      - 'platform/infra/**'
-      - 'services/**'
-      - 'platform/templates/**'
-      - '.github/workflows/**'
-  pull_request:
-    branches: 
-      - main
-      - Dev
-    paths:
-      - 'platform/infra/**'
+  # push:
+  #   branches: 
+  #     - main
+  #     - Dev
+  #   paths:
+  #     - 'platform/infra/**'
+  #     - 'services/**'
+  #     - 'platform/templates/**'
+  #     - '.github/workflows/**'
+  # pull_request:
+  #   branches: 
+  #     - main
+  #     - Dev
+  #   paths:
+  #     - 'platform/infra/**'
   workflow_dispatch:
     inputs:
       workflow_mode:
