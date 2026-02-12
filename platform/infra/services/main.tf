@@ -32,6 +32,7 @@ data "terraform_remote_state" "foundation" {
     storage_account_name = "riskinsuretfstate"
     container_name       = "tfstate"
     key                  = "foundation.tfstate"
+    use_oidc             = true
   }
 }
 
@@ -42,6 +43,7 @@ data "terraform_remote_state" "shared_services" {
     storage_account_name = "riskinsuretfstate"
     container_name       = "tfstate"
     key                  = "shared-services.tfstate"
+    use_oidc             = true
   }
 }
 

@@ -38,13 +38,13 @@ provider "azurerm" {
 }
 
 # ============================================================================
-# Resource Group
+# Resource Group (using existing CAIS-010-RiskInsure)
 # ============================================================================
 
-resource "azurerm_resource_group" "riskinsure" {
-  name     = var.resource_group_name
-  location = var.location
-  tags     = var.tags
+# Use data source instead of resource to avoid "already managed" error
+# The resource group is pre-existing and should not be managed by Terraform
+data "azurerm_resource_group" "riskinsure" {
+  name = var.resource_group_name
 }
 
 # ============================================================================
@@ -53,8 +53,8 @@ resource "azurerm_resource_group" "riskinsure" {
 
 resource "azurerm_virtual_network" "riskinsure" {
   name                = "riskinsure-${var.environment}-vnet"
-  location            = azurerm_resource_group.riskinsure.location
-  resource_group_name = azurerm_resource_group.riskinsure.name
+  location            = data.azurerm_resource_group.riskinsure.location
+  resource_group_name = data.azurerm_resource_group.riskinsure.name
   address_space       = [var.vnet_address_space]
   
   tags = var.tags
@@ -63,7 +63,7 @@ resource "azurerm_virtual_network" "riskinsure" {
 # Subnet for Container Apps Environment
 resource "azurerm_subnet" "container_apps" {
   name                 = "services-subnet"
-  resource_group_name  = azurerm_resource_group.riskinsure.name
+  resource_group_name  = data.azurerm_resource_group.riskinsure.name
   virtual_network_name = azurerm_virtual_network.riskinsure.name
   address_prefixes     = [var.container_apps_subnet_cidr]
 
@@ -80,7 +80,7 @@ resource "azurerm_subnet" "container_apps" {
 # Subnet for Private Endpoints (Cosmos, Service Bus)
 resource "azurerm_subnet" "private_endpoints" {
   name                 = "private-endpoints-subnet"
-  resource_group_name  = azurerm_resource_group.riskinsure.name
+  resource_group_name  = data.azurerm_resource_group.riskinsure.name
   virtual_network_name = azurerm_virtual_network.riskinsure.name
   address_prefixes     = [var.private_endpoints_subnet_cidr]
 }
@@ -91,8 +91,8 @@ resource "azurerm_subnet" "private_endpoints" {
 
 resource "azurerm_log_analytics_workspace" "riskinsure" {
   name                = "riskinsure-${var.environment}-logs"
-  location            = azurerm_resource_group.riskinsure.location
-  resource_group_name = azurerm_resource_group.riskinsure.name
+  location            = data.azurerm_resource_group.riskinsure.location
+  resource_group_name = data.azurerm_resource_group.riskinsure.name
   sku                 = "PerGB2018"
   retention_in_days   = var.environment == "prod" ? 90 : 30
 
@@ -105,8 +105,8 @@ resource "azurerm_log_analytics_workspace" "riskinsure" {
 
 resource "azurerm_application_insights" "riskinsure" {
   name                = "riskinsure-${var.environment}-appinsights"
-  location            = azurerm_resource_group.riskinsure.location
-  resource_group_name = azurerm_resource_group.riskinsure.name
+  location            = data.azurerm_resource_group.riskinsure.location
+  resource_group_name = data.azurerm_resource_group.riskinsure.name
   workspace_id        = azurerm_log_analytics_workspace.riskinsure.id
   application_type    = "web"
 
@@ -119,8 +119,8 @@ resource "azurerm_application_insights" "riskinsure" {
 
 resource "azurerm_container_registry" "riskinsure" {
   name                = "riskinsure${var.environment}acr"
-  resource_group_name = azurerm_resource_group.riskinsure.name
-  location            = azurerm_resource_group.riskinsure.location
+  resource_group_name = data.azurerm_resource_group.riskinsure.name
+  location            = data.azurerm_resource_group.riskinsure.location
   sku                 = var.environment == "prod" ? "Premium" : "Basic"
   admin_enabled       = false # Use Managed Identity instead
 
@@ -144,8 +144,8 @@ data "azurerm_client_config" "current" {}
 
 resource "azurerm_key_vault" "riskinsure" {
   name                       = "riskinsure-${var.environment}-kv"
-  location                   = azurerm_resource_group.riskinsure.location
-  resource_group_name        = azurerm_resource_group.riskinsure.name
+  location                   = data.azurerm_resource_group.riskinsure.location
+  resource_group_name        = data.azurerm_resource_group.riskinsure.name
   tenant_id                  = data.azurerm_client_config.current.tenant_id
   sku_name                   = "standard"
   soft_delete_retention_days = 90
@@ -180,8 +180,8 @@ resource "azurerm_role_assignment" "kv_admin" {
 
 resource "azurerm_network_security_group" "container_apps" {
   name                = "riskinsure-${var.environment}-nsg"
-  location            = azurerm_resource_group.riskinsure.location
-  resource_group_name = azurerm_resource_group.riskinsure.name
+  location            = data.azurerm_resource_group.riskinsure.location
+  resource_group_name = data.azurerm_resource_group.riskinsure.name
 
   # Allow HTTPS inbound
   security_rule {
@@ -224,8 +224,8 @@ resource "azurerm_subnet_network_security_group_association" "container_apps" {
 
 resource "azurerm_storage_account" "riskinsure" {
   name                     = "riskinsure${var.environment}storage"
-  resource_group_name      = azurerm_resource_group.riskinsure.name
-  location                 = azurerm_resource_group.riskinsure.location
+  resource_group_name      = data.azurerm_resource_group.riskinsure.name
+  location                 = data.azurerm_resource_group.riskinsure.location
   account_tier             = "Standard"
   account_replication_type = var.environment == "prod" ? "GRS" : "LRS"
   min_tls_version          = "TLS1_2"
