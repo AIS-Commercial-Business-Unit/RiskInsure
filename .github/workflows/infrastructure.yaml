@@ -82,9 +82,9 @@ jobs:
         run: terraform apply -auto-approve tfplan
         env:
           ARM_USE_OIDC: true
-          ARM_CLIENT_ID: ${{ secrets.TF_CLIENT_ID }}
-          ARM_TENANT_ID: ${{ secrets.TF_TENANT_ID }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.TF_SUB_ID }}
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Export Outputs
         id: outputs
@@ -93,6 +93,11 @@ jobs:
           echo "resource_group_name=$(terraform output -raw resource_group_name)" >> $GITHUB_OUTPUT
           echo "acr_login_server=$(terraform output -raw acr_login_server)" >> $GITHUB_OUTPUT
           echo "acr_name=$(terraform output -raw acr_name)" >> $GITHUB_OUTPUT
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
   # ==========================================================================
   # Shared Services Layer
