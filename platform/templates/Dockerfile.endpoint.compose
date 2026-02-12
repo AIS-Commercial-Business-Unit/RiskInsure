@@ -38,4 +38,4 @@ COPY --from=build /app/publish .
 # enabling secure communication with the emulator.
 COPY --chmod=+x "entrypoint.sh" "/entrypoint.sh"
 
-ENTRYPOINT ["/entrypoint.sh", "cosmos.domain", "8081", "Api.dll"]
+ENTRYPOINT ["/entrypoint.sh", "cosmos.domain", "8081", "Endpoint.In.dll"]

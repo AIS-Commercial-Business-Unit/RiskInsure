@@ -34,6 +34,7 @@ services:
       - MSSQL_SA_PASSWORD=${SQL_SERVER_SA_PASSWORD}
     volumes:
       - servicebus-data:/data
+      - ./platform/servicebus/emulator/config.json:/ServiceBus_Emulator/ConfigFiles/Config.json:ro
     networks:
       - riskinsure
     depends_on:
