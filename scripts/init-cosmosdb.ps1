@@ -36,7 +36,7 @@ $containers = @(
     @{ Name = "policy-Sagas"; PartitionKey = "/CorrelationId" },
     @{ Name = "ratingunderwriting-Sagas"; PartitionKey = "/CorrelationId" }
 )
-)
+
 
 # Wait for Cosmos DB to be ready
 Write-Host "Waiting for Cosmos DB to be ready..." -ForegroundColor Yellow
@@ -79,91 +79,108 @@ if (-not $cosmosModule) {
     Write-Host "  Azure Cosmos SDK not found - using REST API instead" -ForegroundColor Yellow
 }
 
-# Helper function to call Cosmos REST API
+# Helper function to call Cosmos REST API with retry logic for transient 5xx errors
 # Based on: https://learn.microsoft.com/en-us/rest/api/cosmos-db/access-control-on-cosmosdb-resources
 function Invoke-CosmosApi {
     param(
         [string]$Method,
         [string]$ResourceType,
         [string]$ResourceLink,
-        [object]$Body = $null
+        [object]$Body = $null,
+        [int]$MaxRetries = 5
     )
     
-    # 1. Generate UTC date in RFC 7231 format
-    $date = [DateTime]::UtcNow.ToString("r")
+    $retryCount = 0
+    $backoffMs = 1000
     
-    # 2. Build signature payload per Microsoft specification:
-    #    "{verb}\n{resourceType}\n{resourceLink}\n{date}\n\n"
-    #    - verb: lowercase HTTP method (post, get, put, delete)
-    #    - resourceType: lowercase type (dbs, colls, docs, etc.)
-    #    - resourceLink: case-sensitive path ("", "dbs/dbname", etc.)
-    #    - date: lowercase RFC 7231 date
-    #    - Two newlines at the end
-    $verb = $Method.ToLowerInvariant()
-    $resourceTypeLower = $ResourceType.ToLowerInvariant()
-    $dateLower = $date.ToLowerInvariant()
-    $payLoad = "$verb`n$resourceTypeLower`n$ResourceLink`n$dateLower`n`n"
-    
-    # 3. Compute HMAC-SHA256 signature
-    $keyBytes = [Convert]::FromBase64String($CosmosKey)
-    $hmacSha = New-Object System.Security.Cryptography.HMACSHA256
-    $hmacSha.Key = $keyBytes
-    $hashPayLoad = $hmacSha.ComputeHash([Text.Encoding]::UTF8.GetBytes($payLoad))
-    $signature = [Convert]::ToBase64String($hashPayLoad)
-    
-    # 4. Build authorization header (URL-encoded)
-    $authToken = [System.Web.HttpUtility]::UrlEncode("type=master&ver=1.0&sig=$signature")
-    
-    # 5. Build request headers
-    $headers = @{
-        "authorization" = $authToken
-        "x-ms-date" = $date
-        "x-ms-version" = "2018-12-31"
-    }
-    
-    if ($Body) {
-        $headers["Content-Type"] = "application/json"
-    }
-    
-    # 6. Build URL based on resource hierarchy
-    if ($ResourceLink) {
-        # For child resources: https://localhost:8081/dbs/{db-id}/colls
-        $uri = "$CosmosEndpoint/$ResourceLink/$ResourceType"
-    } else {
-        # For top-level resources: https://localhost:8081/dbs
-        $uri = "$CosmosEndpoint/$ResourceType"
-    }
-    
-    # 7. Make the request
-    try {
-        if ($Body) {
-            $jsonBody = $Body | ConvertTo-Json -Depth 10 -Compress
-            $response = Invoke-RestMethod -Uri $uri `
-                -Method $Method `
-                -Headers $headers `
-                -Body $jsonBody `
-                -SkipCertificateCheck `
-                -ErrorAction Stop
-        } else {
-            $response = Invoke-RestMethod -Uri $uri `
-                -Method $Method `
-                -Headers $headers `
-                -SkipCertificateCheck `
-                -ErrorAction Stop
+    while ($retryCount -le $MaxRetries) {
+        try {
+            # 1. Generate UTC date in RFC 7231 format
+            $date = [DateTime]::UtcNow.ToString("r")
+            
+            # 2. Build signature payload per Microsoft specification:
+            #    "{verb}\n{resourceType}\n{resourceLink}\n{date}\n\n"
+            #    - verb: lowercase HTTP method (post, get, put, delete)
+            #    - resourceType: lowercase type (dbs, colls, docs, etc.)
+            #    - resourceLink: case-sensitive path ("", "dbs/dbname", etc.)
+            #    - date: lowercase RFC 7231 date
+            #    - Two newlines at the end
+            $verb = $Method.ToLowerInvariant()
+            $resourceTypeLower = $ResourceType.ToLowerInvariant()
+            $dateLower = $date.ToLowerInvariant()
+            $payLoad = "$verb`n$resourceTypeLower`n$ResourceLink`n$dateLower`n`n"
+            
+            # 3. Compute HMAC-SHA256 signature
+            $keyBytes = [Convert]::FromBase64String($CosmosKey)
+            $hmacSha = New-Object System.Security.Cryptography.HMACSHA256
+            $hmacSha.Key = $keyBytes
+            $hashPayLoad = $hmacSha.ComputeHash([Text.Encoding]::UTF8.GetBytes($payLoad))
+            $signature = [Convert]::ToBase64String($hashPayLoad)
+            
+            # 4. Build authorization header (URL-encoded)
+            $authToken = [System.Web.HttpUtility]::UrlEncode("type=master&ver=1.0&sig=$signature")
+            
+            # 5. Build request headers
+            $headers = @{
+                "authorization" = $authToken
+                "x-ms-date" = $date
+                "x-ms-version" = "2018-12-31"
+            }
+            
+            if ($Body) {
+                $headers["Content-Type"] = "application/json"
+            }
+            
+            # 6. Build URL based on resource hierarchy
+            if ($ResourceLink) {
+                # For child resources: https://localhost:8081/dbs/{db-id}/colls
+                $uri = "$CosmosEndpoint/$ResourceLink/$ResourceType"
+            } else {
+                # For top-level resources: https://localhost:8081/dbs
+                $uri = "$CosmosEndpoint/$ResourceType"
+            }
+            
+            # 7. Make the request
+            if ($Body) {
+                $jsonBody = $Body | ConvertTo-Json -Depth 10 -Compress
+                $response = Invoke-RestMethod -Uri $uri `
+                    -Method $Method `
+                    -Headers $headers `
+                    -Body $jsonBody `
+                    -SkipCertificateCheck `
+                    -ErrorAction Stop
+            } else {
+                $response = Invoke-RestMethod -Uri $uri `
+                    -Method $Method `
+                    -Headers $headers `
+                    -SkipCertificateCheck `
+                    -ErrorAction Stop
+            }
+            return $response
+        } catch {
+            $statusCode = $_.Exception.Response.StatusCode.value__
+            
+            if ($statusCode -eq 409) {
+                # 409 Conflict = resource already exists (expected)
+                return $null
+            }
+            
+            # Check if it's a transient 5xx error
+            if ($statusCode -ge 500 -and $statusCode -lt 600 -and $retryCount -lt $MaxRetries) {
+                $retryCount++
+                Write-Host "    Transient error (HTTP $statusCode) - Retry $retryCount/$MaxRetries in $($backoffMs)ms..." -ForegroundColor Yellow
+                Start-Sleep -Milliseconds $backoffMs
+                $backoffMs = [Math]::Min($backoffMs * 2, 32000)  # Exponential backoff, max 32s
+                continue
+            }
+            
+            # Log error details for debugging
+            Write-Host "    Error: $($_.Exception.Message)" -ForegroundColor Red
+            if ($_.ErrorDetails.Message) {
+                Write-Host "    Details: $($_.ErrorDetails.Message)" -ForegroundColor Red
+            }
+            throw
         }
-        return $response
-    } catch {
-        $statusCode = $_.Exception.Response.StatusCode.value__
-        if ($statusCode -eq 409) {
-            # 409 Conflict = resource already exists (expected)
-            return $null
-        }
-        # Log error details for debugging
-        Write-Host "    Error: $($_.Exception.Message)" -ForegroundColor Red
-        if ($_.ErrorDetails.Message) {
-            Write-Host "    Details: $($_.ErrorDetails.Message)" -ForegroundColor Red
-        }
-        throw
     }
 }
 

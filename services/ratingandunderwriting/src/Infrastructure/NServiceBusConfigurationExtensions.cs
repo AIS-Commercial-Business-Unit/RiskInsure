@@ -137,6 +137,11 @@ public static class NServiceBusConfigurationExtensions
             Console.WriteLine("[NServiceBus] Installers DISABLED - database/containers must be pre-created");
         }
 
+        // Disable AutoSubscribe - subscriptions are pre-created in config.json
+        // Service Bus emulator doesn't support HTTP management API needed for auto-subscribe
+        endpointConfiguration.DisableFeature<NServiceBus.Features.AutoSubscribe>();
+        Console.WriteLine("[NServiceBus] AutoSubscribe DISABLED - subscriptions pre-created in config.json");
+
         return transportExtensions;
     }
 
