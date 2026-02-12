@@ -32,7 +32,7 @@ resource "azurerm_servicebus_topic" "bundle" {
 # ==========================================================================
 
 data "azurerm_servicebus_namespace_authorization_rule" "root_manage" {
-  count = var.environment == "dev" ? 1 : 0
+  # count = var.environment == "dev" ? 1 : 0
 
   name         = "RootManageSharedAccessKey"
   namespace_id = azurerm_servicebus_namespace.riskinsure.id
