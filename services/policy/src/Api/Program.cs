@@ -54,15 +54,9 @@ try
 
     var cosmosClient = new CosmosClient(cosmosConnectionString, cosmosClientOptions);
 
-    // Initialize database and container
-    Log.Information("Initializing Cosmos DB database {DatabaseName} and container {ContainerName}",
+    // Get existing container (pre-created by init-cosmosdb.ps1)
+    Log.Information("Connecting to Cosmos DB database {DatabaseName} and container {ContainerName}",
         databaseName, containerName);
-    await CosmosDbInitializer.EnsureDbAndContainerAsync(
-        cosmosClient,
-        databaseName,
-        containerName,
-        "/policyId");
-
     var container = cosmosClient.GetContainer(databaseName, containerName);
     builder.Services.AddSingleton(container);
 

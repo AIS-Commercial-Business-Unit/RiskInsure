@@ -107,8 +107,17 @@ public static class NServiceBusConfigurationExtensions
                 "CosmosDb connection string missing. Add ConnectionStrings:CosmosDb to appsettings.Development.json");
         }
 
+        // Configure CosmosClient with appropriate timeouts for emulator
+        var cosmosClientOptions = new CosmosClientOptions
+        {
+            RequestTimeout = TimeSpan.FromSeconds(60),
+            ConnectionMode = ConnectionMode.Direct,
+            MaxRetryAttemptsOnRateLimitedRequests = 5,
+            MaxRetryWaitTimeOnRateLimitedRequests = TimeSpan.FromSeconds(30)
+        };
+
         var persistence = endpointConfiguration.UsePersistence<CosmosPersistence>();
-        persistence.CosmosClient(new CosmosClient(cosmosConnectionString));
+        persistence.CosmosClient(new CosmosClient(cosmosConnectionString, cosmosClientOptions));
         persistence.DatabaseName("RiskInsure");
         persistence.DefaultContainer("RatingUnderwriting-Sagas", "/id");
 
@@ -116,7 +125,17 @@ public static class NServiceBusConfigurationExtensions
         recoverability.Immediate(immediate => immediate.NumberOfRetries(0));
         recoverability.Delayed(delayed => delayed.NumberOfRetries(0));
 
-        endpointConfiguration.EnableInstallers();
+        // Check EnableInstallers configuration (false by default, database/containers should be pre-created)
+        var enableInstallers = configuration.GetValue<bool>("NServiceBus:EnableInstallers", false);
+        if (enableInstallers)
+        {
+            Console.WriteLine("[NServiceBus] Installers ENABLED - will create database/containers if needed");
+            endpointConfiguration.EnableInstallers();
+        }
+        else
+        {
+            Console.WriteLine("[NServiceBus] Installers DISABLED - database/containers must be pre-created");
+        }
 
         return transportExtensions;
     }

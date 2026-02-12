@@ -30,20 +30,13 @@ var cosmosClient = new CosmosClient(cosmosConnectionString, new CosmosClientOpti
 
 builder.Services.AddSingleton(cosmosClient);
 
-// Initialize Cosmos DB container on startup
-Log.Information("Initializing Cosmos DB database RiskInsure and container ratingunderwriting");
+// Get existing container (pre-created by init-cosmosdb.ps1)
+Log.Information("Connecting to Cosmos DB database RiskInsure and container ratingunderwriting");
+var databaseName = builder.Configuration["CosmosDb:DatabaseName"] ?? "RiskInsure";
+var containerName = builder.Configuration["CosmosDb:ContainerName"] ?? "ratingunderwriting";
+var container = cosmosClient.GetContainer(databaseName, containerName);
 
-// Create logger for initialization
-var loggerFactory = LoggerFactory.Create(logBuilder =>
-{
-    logBuilder.AddSerilog(Log.Logger);
-});
-var cosmosLogger = loggerFactory.CreateLogger<CosmosDbInitializer>();
-
-var cosmosInitializer = new CosmosDbInitializer(cosmosClient, builder.Configuration, cosmosLogger);
-var container = await cosmosInitializer.InitializeAsync();
-
-// Register the initialized Container
+// Register the Container
 builder.Services.AddSingleton(container);
 
 // Domain services

@@ -105,17 +105,8 @@ try
     
     var cosmosClient = new CosmosClient(cosmosConnectionString, cosmosClientOptions);
     
-    // Initialize database and container on startup
-    // For serverless accounts, pass throughput: null
-    // For provisioned accounts, specify RU/s (e.g., throughput: 400)
-    Log.Information("Initializing Cosmos DB database {DatabaseName} and container {ContainerName}", databaseName, billingContainerName);
-    await CosmosDbInitializer.EnsureDbAndContainerAsync(
-        cosmosClient, 
-        databaseName, 
-        billingContainerName, 
-        "/accountId",
-        databaseThroughput: 1000); // Database-level: 1000 RU/s shared across ALL containers (FREE TIER)
-    
+    // Get existing container (pre-created by init-cosmosdb.ps1)
+    Log.Information("Connecting to Cosmos DB database {DatabaseName} and container {ContainerName}", databaseName, billingContainerName);
     var container = cosmosClient.GetContainer(databaseName, billingContainerName);
     builder.Services.AddSingleton(container);
 

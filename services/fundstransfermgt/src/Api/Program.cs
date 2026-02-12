@@ -111,22 +111,8 @@ try
     
     var cosmosClient = new CosmosClient(cosmosConnectionString, cosmosClientOptions);
     
-    // Initialize database and containers on startup
-    Log.Information("Initializing Cosmos DB database {DatabaseName}", databaseName);
-    await CosmosDbInitializer.EnsureDbAndContainerAsync(
-        cosmosClient, 
-        databaseName, 
-        paymentMethodsContainerName, 
-        "/customerId",
-        databaseThroughput: 1000); // Database-level: 1000 RU/s shared across ALL containers (FREE TIER)
-    
-    await CosmosDbInitializer.EnsureDbAndContainerAsync(
-        cosmosClient, 
-        databaseName, 
-        transactionsContainerName, 
-        "/customerId",
-        databaseThroughput: 1000); // Reuses same database throughput
-    
+    // Get existing containers (pre-created by init-cosmosdb.ps1)
+    Log.Information("Connecting to Cosmos DB database {DatabaseName}", databaseName);
     var paymentMethodsContainer = cosmosClient.GetContainer(databaseName, paymentMethodsContainerName);
     var transactionsContainer = cosmosClient.GetContainer(databaseName, transactionsContainerName);
 

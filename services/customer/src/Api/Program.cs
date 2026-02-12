@@ -42,9 +42,9 @@ builder.Services.AddSingleton(sp =>
             DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
             Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
         }),
-        RequestTimeout = TimeSpan.FromSeconds(10),
-        MaxRetryAttemptsOnRateLimitedRequests = 3,
-        MaxRetryWaitTimeOnRateLimitedRequests = TimeSpan.FromSeconds(5)
+        RequestTimeout = TimeSpan.FromSeconds(60),  // Increased for emulator
+        MaxRetryAttemptsOnRateLimitedRequests = 5,
+        MaxRetryWaitTimeOnRateLimitedRequests = TimeSpan.FromSeconds(30)
     };
     
     return new CosmosClient(connectionString, cosmosClientOptions);
@@ -53,9 +53,11 @@ builder.Services.AddSingleton(sp =>
 builder.Services.AddSingleton(sp =>
 {
     var cosmosClient = sp.GetRequiredService<CosmosClient>();
-    var logger = sp.GetRequiredService<ILogger<CosmosDbInitializer>>();
-    var initializer = new CosmosDbInitializer(cosmosClient, logger);
-    return initializer.InitializeAsync().GetAwaiter().GetResult();
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    // Get existing container (pre-created by init-cosmosdb.ps1)
+    var databaseName = configuration["CosmosDb:DatabaseName"] ?? "RiskInsure";
+    var containerName = configuration["CosmosDb:ContainerName"] ?? "customer";
+    return cosmosClient.GetContainer(databaseName, containerName);
 });
 
 // Domain services
