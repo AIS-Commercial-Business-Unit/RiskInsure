@@ -1,0 +1,58 @@
+name: riskinsure-servicebus-emulator
+
+services:
+  sql-server:
+    container_name: "sql-server-emulator"
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    restart: unless-stopped
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "${SQL_PASSWORD}"
+    ports:
+      - "1433:1433"
+    networks:
+      - servicebus-network
+    healthcheck:
+      test: ["CMD", "/opt/mssql-tools18/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "${SQL_PASSWORD}", "-C", "-Q", "SELECT 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  servicebus-emulator:
+    container_name: "servicebus-emulator"
+    image: mcr.microsoft.com/azure-messaging/servicebus-emulator:latest
+    pull_policy: always
+    restart: unless-stopped
+    depends_on:
+      sql-server:
+        condition: service_healthy
+    volumes:
+      # Mount the config.json file from the current directory
+      - "${CONFIG_PATH:-./config.json}:/ServiceBus_Emulator/ConfigFiles/Config.json"
+    ports:
+      # AMQP port for Service Bus connections
+      - "5672:5672"
+      # Management & Health-check HTTP API port
+      - "${EMULATOR_HTTP_PORT:-5300}:${EMULATOR_HTTP_PORT:-5300}"
+    environment:
+      # SQL Server connection - using container name on same network
+      SQL_SERVER: sql-server-emulator:1433
+      # SQL Server SA password from .env file
+      MSSQL_SA_PASSWORD: "${SQL_PASSWORD}"
+      # Accept EULA (required)
+      ACCEPT_EULA: "${ACCEPT_EULA}"
+      # HTTP port configuration
+      EMULATOR_HTTP_PORT: "${EMULATOR_HTTP_PORT:-5300}"
+    networks:
+      - servicebus-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${EMULATOR_HTTP_PORT:-5300}/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  servicebus-network:
+    driver: bridge
