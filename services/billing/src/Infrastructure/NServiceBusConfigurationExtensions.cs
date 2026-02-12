@@ -128,7 +128,10 @@ public static class NServiceBusConfigurationExtensions
         recoverability.Immediate(immediate => immediate.NumberOfRetries(0));
         recoverability.Delayed(delayed => delayed.NumberOfRetries(0));
 
-        // Disabled because the ServiceBus Emulator does not support installers
+        // Installers are useful in development to automatically create queues and topics, 
+        // but in production we should use infrastructure-as-code (e.g. ARM templates, 
+        // Terraform) to manage these resources explicitly.  But since the Azure ServiceBus
+        // emulator does not support installers, we have to disable them in development.
         // endpointConfiguration.EnableInstallers();
 
         return transportExtensions;

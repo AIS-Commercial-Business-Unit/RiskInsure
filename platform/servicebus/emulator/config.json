@@ -1,0 +1,178 @@
+{
+    "UserConfig": {
+      "Namespaces": [
+        {
+          "Name": "riskinsure-dev-bus",
+          "Queues": [
+            {
+              "Name": "riskinsure.customer.endpoint",
+              "Properties": {
+                "DeadLetteringOnMessageExpiration": false,
+                "DefaultMessageTimeToLive": "PT1H",
+                "DuplicateDetectionHistoryTimeWindow": "PT20S",
+                "ForwardDeadLetteredMessagesTo": "",
+                "ForwardTo": "",
+                "LockDuration": "PT1M",
+                "MaxDeliveryCount": 10,
+                "RequiresDuplicateDetection": false,
+                "RequiresSession": false
+              }
+            },
+            {
+              "Name": "riskinsure.customer.api",
+              "Properties": {
+                "DeadLetteringOnMessageExpiration": false,
+                "DefaultMessageTimeToLive": "PT1H",
+                "DuplicateDetectionHistoryTimeWindow": "PT20S",
+                "ForwardDeadLetteredMessagesTo": "",
+                "ForwardTo": "",
+                "LockDuration": "PT1M",
+                "MaxDeliveryCount": 10,
+                "RequiresDuplicateDetection": false,
+                "RequiresSession": false
+              }
+            },
+            {
+              "Name": "riskinsure.policy.endpoint",
+              "Properties": {
+                "DeadLetteringOnMessageExpiration": false,
+                "DefaultMessageTimeToLive": "PT1H",
+                "DuplicateDetectionHistoryTimeWindow": "PT20S",
+                "ForwardDeadLetteredMessagesTo": "",
+                "ForwardTo": "",
+                "LockDuration": "PT1M",
+                "MaxDeliveryCount": 10,
+                "RequiresDuplicateDetection": false,
+                "RequiresSession": false
+              }
+            },
+            {
+              "Name": "riskinsure.policy.api",
+              "Properties": {
+                "DeadLetteringOnMessageExpiration": false,
+                "DefaultMessageTimeToLive": "PT1H",
+                "DuplicateDetectionHistoryTimeWindow": "PT20S",
+                "ForwardDeadLetteredMessagesTo": "",
+                "ForwardTo": "",
+                "LockDuration": "PT1M",
+                "MaxDeliveryCount": 10,
+                "RequiresDuplicateDetection": false,
+                "RequiresSession": false
+              }
+            },
+            {
+              "Name": "riskinsure.ratingandunderwriting.endpoint",
+              "Properties": {
+                "DeadLetteringOnMessageExpiration": false,
+                "DefaultMessageTimeToLive": "PT1H",
+                "DuplicateDetectionHistoryTimeWindow": "PT20S",
+                "ForwardDeadLetteredMessagesTo": "",
+                "ForwardTo": "",
+                "LockDuration": "PT1M",
+                "MaxDeliveryCount": 10,
+                "RequiresDuplicateDetection": false,
+                "RequiresSession": false
+              }
+            },
+            {
+              "Name": "riskinsure.ratingandunderwriting.api",
+              "Properties": {
+                "DeadLetteringOnMessageExpiration": false,
+                "DefaultMessageTimeToLive": "PT1H",
+                "DuplicateDetectionHistoryTimeWindow": "PT20S",
+                "ForwardDeadLetteredMessagesTo": "",
+                "ForwardTo": "",
+                "LockDuration": "PT1M",
+                "MaxDeliveryCount": 10,
+                "RequiresDuplicateDetection": false,
+                "RequiresSession": false
+              }
+            },
+            {
+              "Name": "riskinsure.billing.endpoint",
+              "Properties": {
+                "DeadLetteringOnMessageExpiration": false,
+                "DefaultMessageTimeToLive": "PT1H",
+                "DuplicateDetectionHistoryTimeWindow": "PT20S",
+                "ForwardDeadLetteredMessagesTo": "",
+                "ForwardTo": "",
+                "LockDuration": "PT1M",
+                "MaxDeliveryCount": 10,
+                "RequiresDuplicateDetection": false,
+                "RequiresSession": false
+              }
+            },
+            {
+              "Name": "riskinsure.billing.api",
+              "Properties": {
+                "DeadLetteringOnMessageExpiration": false,
+                "DefaultMessageTimeToLive": "PT1H",
+                "DuplicateDetectionHistoryTimeWindow": "PT20S",
+                "ForwardDeadLetteredMessagesTo": "",
+                "ForwardTo": "",
+                "LockDuration": "PT1M",
+                "MaxDeliveryCount": 10,
+                "RequiresDuplicateDetection": false,
+                "RequiresSession": false
+              }
+            },
+            {
+              "Name": "riskinsure.fundtransfermgt.endpoint",
+              "Properties": {
+                "DeadLetteringOnMessageExpiration": false,
+                "DefaultMessageTimeToLive": "PT1H",
+                "DuplicateDetectionHistoryTimeWindow": "PT20S",
+                "ForwardDeadLetteredMessagesTo": "",
+                "ForwardTo": "",
+                "LockDuration": "PT1M",
+                "MaxDeliveryCount": 10,
+                "RequiresDuplicateDetection": false,
+                "RequiresSession": false
+              }
+            },
+            {
+              "Name": "riskinsure.fundtransfermgt.api",
+              "Properties": {
+                "DeadLetteringOnMessageExpiration": false,
+                "DefaultMessageTimeToLive": "PT1H",
+                "DuplicateDetectionHistoryTimeWindow": "PT20S",
+                "ForwardDeadLetteredMessagesTo": "",
+                "ForwardTo": "",
+                "LockDuration": "PT1M",
+                "MaxDeliveryCount": 10,
+                "RequiresDuplicateDetection": false,
+                "RequiresSession": false
+              }
+            }
+          ],
+          "Topics": [
+            {
+              "Name": "bundle-1",
+              "Properties": {
+                "DefaultMessageTimeToLive": "PT1H",
+                "DuplicateDetectionHistoryTimeWindow": "PT20S",
+                "RequiresDuplicateDetection": false
+              },
+              "Subscriptions": [
+                {
+                  "Name": "myservicebussubscription",
+                  "Properties": {
+                    "DeadLetteringOnMessageExpiration": false,
+                    "DefaultMessageTimeToLive": "PT1H",
+                    "LockDuration": "PT1M",
+                    "MaxDeliveryCount": 10,
+                    "ForwardDeadLetteredMessagesTo": "",
+                    "ForwardTo": "",
+                    "RequiresSession": false
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "Logging": {
+        "Type": "File"
+      }
+    }
+  }
