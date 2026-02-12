@@ -50,7 +50,7 @@
   },
 
   "postCreateCommand": "bash -lc 'bash .devcontainer/post-create.sh 2>&1 | tee /tmp/post-create.log || true'",
-  
+
   "forwardPorts": [
     7071, // Billing API
     7073, // Customer API
