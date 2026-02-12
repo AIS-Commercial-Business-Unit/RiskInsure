@@ -110,3 +110,21 @@ variable "tags" {
     Layer       = "SharedServices"
   }
 }
+
+variable "enable_private_endpoints" {
+  description = "Enable private endpoints for Cosmos DB and Service Bus"
+  type        = bool
+  default     = false
+}
+
+output "servicebus_connection_string" {
+  description = "Service Bus connection string (sensitive - for dev/test)"
+  value       = var.environment == "dev" ? azurerm_servicebus_namespace_authorization_rule.root_manage[0].primary_connection_string : null
+  sensitive   = true
+}
+
+output "servicebus_primary_key" {
+  description = "Service Bus primary key (sensitive)"
+  value       = var.environment == "dev" ? azurerm_servicebus_namespace_authorization_rule.root_manage[0].primary_key : null
+  sensitive   = true
+}
