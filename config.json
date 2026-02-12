@@ -190,7 +190,7 @@
                   "LockDuration": "PT1M",
                   "MaxDeliveryCount": 10,
                   "ForwardDeadLetteredMessagesTo": "",
-                  "ForwardTo": "",
+                  "ForwardTo": "riskinsure.billing.endpoint",
                   "RequiresSession": false
                 }
               }
@@ -212,7 +212,7 @@
                   "LockDuration": "PT1M",
                   "MaxDeliveryCount": 10,
                   "ForwardDeadLetteredMessagesTo": "",
-                  "ForwardTo": "",
+                  "ForwardTo": "riskinsure.billing.endpoint",
                   "RequiresSession": false
                 }
               }
@@ -234,7 +234,7 @@
                   "LockDuration": "PT1M",
                   "MaxDeliveryCount": 10,
                   "ForwardDeadLetteredMessagesTo": "",
-                  "ForwardTo": "",
+                  "ForwardTo": "riskinsure.billing.endpoint",
                   "RequiresSession": false
                 }
               }
@@ -256,7 +256,7 @@
                   "LockDuration": "PT1M",
                   "MaxDeliveryCount": 10,
                   "ForwardDeadLetteredMessagesTo": "",
-                  "ForwardTo": "",
+                  "ForwardTo": "riskinsure.policy.endpoint",
                   "RequiresSession": false
                 }
               }
