@@ -104,7 +104,7 @@ try
     };
     
     var cosmosClient = new CosmosClient(cosmosConnectionString, cosmosClientOptions);
-    
+
     // Initialize database and container on startup
     // For serverless accounts, pass throughput: null
     // For provisioned accounts, specify RU/s (e.g., throughput: 400)
@@ -115,7 +115,8 @@ try
         billingContainerName, 
         "/accountId",
         databaseThroughput: 1000); // Database-level: 1000 RU/s shared across ALL containers (FREE TIER)
-    
+    Log.Information("Cosmos DB database initialization complete");
+
     var container = cosmosClient.GetContainer(databaseName, billingContainerName);
     builder.Services.AddSingleton(container);
 

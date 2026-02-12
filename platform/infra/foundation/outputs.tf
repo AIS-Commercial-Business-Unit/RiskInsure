@@ -4,17 +4,17 @@
 
 output "resource_group_name" {
   description = "Name of the resource group"
-  value       = azurerm_resource_group.riskinsure.name
+  value       = data.azurerm_resource_group.riskinsure.name
 }
 
 output "resource_group_id" {
   description = "ID of the resource group"
-  value       = azurerm_resource_group.riskinsure.id
+  value       = data.azurerm_resource_group.riskinsure.id
 }
 
 output "location" {
   description = "Azure region"
-  value       = azurerm_resource_group.riskinsure.location
+  value       = data.azurerm_resource_group.riskinsure.location
 }
 
 # ============================================================================

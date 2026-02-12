@@ -28,11 +28,26 @@ echo "CosmosDB is available."
 # Download the CosmosDB Cert and add it to the Trusted Certs
 echo "Downloading CosmosDB Cert..."
 # See note above about the --insecure flag
-curl --insecure https://$cosmosHost:${cosmosPort}/_explorer/emulator.pem > cosmosemulatorcert.crt
+curl --insecure --silent https://$cosmosHost:${cosmosPort}/_explorer/emulator.pem > cosmosemulatorcert.crt
 
 echo "Adding CosmosDB Cert to Trusted Certs..."
 cp cosmosemulatorcert.crt /usr/local/share/ca-certificates/
 update-ca-certificates
+
+echo "Verifying we can connect securely to CosmosDB..."
+# We should be able to connect securely now that we have the cert in our trusted certs
+testConnectUrl="https://$cosmosHost:${cosmosPort}/_explorer/index.html"
+testConnectResponse=$(curl --silent --connect-timeout 10 --write-out "%{http_code}" $testConnectUrl)
+testConnectHttpCode=$(tail -n1 <<< "$testConnectResponse")  # get the last line
+testConnectContent=$(sed '$ d' <<< "$testConnectResponse")   # get all but the last line which contains the status code
+
+if [[ $testConnectHttpCode != 200 ]]; then
+    echo "Successfully connected securely to CosmosDB at $cosmosHost:$cosmosPort with imported SSL certificate."
+else
+    echo "Unable to connect securely to CosmosDB at $cosmosHost:$cosmosPort. HTTP status code: $testConnectHttpCode"
+    echo "Response content: $testConnectContent"
+    exit $testConnectHttpCode
+fi
 
 #echo "-------------------"
 # echo "Openssl diagnostics"
