@@ -5,7 +5,7 @@
 
 terraform {
   required_version = ">= 1.11.0"
-  
+
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
@@ -35,7 +35,7 @@ provider "azurerm" {
       purge_soft_delete_on_destroy = false
     }
   }
-  
+
   # Use Azure AD authentication for storage account operations
   # This allows shared_access_key_enabled = false while still managing storage
   storage_use_azuread = true
@@ -60,7 +60,7 @@ resource "azurerm_virtual_network" "riskinsure" {
   location            = data.azurerm_resource_group.riskinsure.location
   resource_group_name = data.azurerm_resource_group.riskinsure.name
   address_space       = [var.vnet_address_space]
-  
+
   tags = var.tags
 }
 
@@ -172,11 +172,11 @@ resource "azurerm_key_vault" "riskinsure" {
 }
 
 # Grant current user Key Vault Administrator role (for initial setup)
-resource "azurerm_role_assignment" "kv_admin" {
-  scope                = azurerm_key_vault.riskinsure.id
-  role_definition_name = "Key Vault Administrator"
-  principal_id         = data.azurerm_client_config.current.object_id
-}
+# resource "azurerm_role_assignment" "kv_admin" {
+#   scope                = azurerm_key_vault.riskinsure.id
+#   role_definition_name = "Key Vault Administrator"
+#   principal_id         = data.azurerm_client_config.current.object_id
+# }
 
 # ============================================================================
 # Network Security Group (for production security)
