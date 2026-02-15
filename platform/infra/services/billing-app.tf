@@ -17,6 +17,16 @@ resource "azurerm_container_app" "billing_api" {
     identity = "system" 
   }
 
+  secret {
+    name  = "cosmos-connection-string"
+    value = data.terraform_remote_state.shared_services.outputs.cosmosdb_connection_string
+  }
+
+  secret {
+    name  = "servicebus-connection-string"
+    value = data.terraform_remote_state.shared_services.outputs.servicebus_connection_string
+  }
+
   template {
     min_replicas = var.services["billing"].api.min_replicas
     max_replicas = var.services["billing"].api.max_replicas
@@ -46,6 +56,16 @@ resource "azurerm_container_app" "billing_api" {
       env {
         name  = "AzureServiceBus__FullyQualifiedNamespace"
         value = data.terraform_remote_state.shared_services.outputs.servicebus_namespace_fqdn
+      }
+
+      env {
+        name        = "CosmosDb__ConnectionString"
+        secret_name = "cosmos-connection-string"
+      }
+
+      env {
+        name        = "ServiceBus__ConnectionString"
+        secret_name = "servicebus-connection-string"
       }
 
       env {
@@ -108,6 +128,16 @@ resource "azurerm_container_app" "billing_endpoint" {
     identity = "system" 
   }
 
+  secret {
+    name  = "cosmos-connection-string"
+    value = data.terraform_remote_state.shared_services.outputs.cosmosdb_connection_string
+  }
+
+  secret {
+    name  = "servicebus-connection-string"
+    value = data.terraform_remote_state.shared_services.outputs.servicebus_connection_string
+  }
+
   template {
     min_replicas = var.services["billing"].endpoint.min_replicas
     max_replicas = var.services["billing"].endpoint.max_replicas
@@ -131,6 +161,16 @@ resource "azurerm_container_app" "billing_endpoint" {
       env {
         name  = "AzureServiceBus__FullyQualifiedNamespace"
         value = data.terraform_remote_state.shared_services.outputs.servicebus_namespace_fqdn
+      }
+
+      env {
+        name        = "CosmosDb__ConnectionString"
+        secret_name = "cosmos-connection-string"
+      }
+
+      env {
+        name        = "ServiceBus__ConnectionString"
+        secret_name = "servicebus-connection-string"
       }
 
       env {
