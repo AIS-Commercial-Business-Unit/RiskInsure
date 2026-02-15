@@ -12,6 +12,11 @@ resource "azurerm_container_app" "billing_api" {
     type = "SystemAssigned"
   }
 
+  registry {
+    server   = data.terraform_remote_state.foundation.outputs.acr_login_server
+    identity = "system" 
+  }
+
   template {
     min_replicas = var.services["billing"].api.min_replicas
     max_replicas = var.services["billing"].api.max_replicas
@@ -96,6 +101,11 @@ resource "azurerm_container_app" "billing_endpoint" {
 
   identity {
     type = "SystemAssigned"
+  }
+
+  registry {
+    server   = data.terraform_remote_state.foundation.outputs.acr_login_server
+    identity = "system" 
   }
 
   template {
