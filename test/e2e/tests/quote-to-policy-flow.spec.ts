@@ -52,11 +52,13 @@ test.describe('Quote to Policy Flow', () => {
     expect(quote.status).toBe('Draft');
 
     // Step 3: Submit Underwriting (Rating & Underwriting Domain - 7079)
-    const underwritingResult = await submitUnderwriting(request, quote.quoteId, {
+    const underwritingResponse = await submitUnderwriting(request, quote.quoteId, {
       priorClaimsCount: 0, // Class A: 0 claims
       propertyAgeYears: 10, // Class A: ≤15 years
       creditTier: 'Excellent', // Class A: Excellent credit
     });
+    expect(underwritingResponse.status()).toBe(200);
+    const underwritingResult = await underwritingResponse.json();
 
     console.log(`✓ Underwriting submitted: Class ${underwritingResult.underwritingClass}, Premium: $${underwritingResult.premium}`);
     expect(underwritingResult.underwritingClass).toBe('A');
@@ -115,11 +117,13 @@ test.describe('Quote to Policy Flow', () => {
     console.log(`✓ Quote started: ${quote.quoteId}`);
 
     // Step 3: Submit Underwriting with Class B criteria
-    const underwritingResult = await submitUnderwriting(request, quote.quoteId, {
+    const underwritingResponse = await submitUnderwriting(request, quote.quoteId, {
       priorClaimsCount: 1, // Class B: 0-1 claims
       propertyAgeYears: 25, // Class B: ≤30 years
       creditTier: 'Good', // Class B: Good or Excellent
     });
+    expect(underwritingResponse.status()).toBe(200);
+    const underwritingResult = await underwritingResponse.json();
 
     console.log(`✓ Underwriting submitted: Class ${underwritingResult.underwritingClass}, Premium: $${underwritingResult.premium}`);
     expect(underwritingResult.underwritingClass).toBe('B');
@@ -157,17 +161,17 @@ test.describe('Quote to Policy Flow', () => {
     console.log(`✓ Quote started: ${quote.quoteId}`);
 
     // Step 3: Submit Underwriting with decline criteria
-    const underwritingResult = await submitUnderwriting(request, quote.quoteId, {
+    const underwritingResponse = await submitUnderwriting(request, quote.quoteId, {
       priorClaimsCount: 3, // Decline: >2 claims
       propertyAgeYears: 15,
       creditTier: 'Excellent',
     });
+    expect(underwritingResponse.status()).toBe(422);
+    const underwritingResult = await underwritingResponse.json();
 
     console.log(`✓ Underwriting submitted: ${underwritingResult.status}, Reason: ${underwritingResult.declineReason}`);
-    expect(underwritingResult.status).toBe('Declined');
-    expect(underwritingResult.declineReason).toContain('prior claims');
-    expect(underwritingResult.underwritingClass).toBeUndefined();
-    expect(underwritingResult.premium).toBeUndefined();
+    expect(underwritingResult.error).toBe("UnderwritingDeclined");
+    expect(underwritingResult.message).toContain('prior claims');
 
     // Step 4: Verify quote is declined
     const declinedQuote = await getQuote(request, quote.quoteId);

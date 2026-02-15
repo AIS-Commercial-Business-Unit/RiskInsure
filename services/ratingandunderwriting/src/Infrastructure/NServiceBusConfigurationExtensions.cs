@@ -99,9 +99,6 @@ public static class NServiceBusConfigurationExtensions
         var transport = new AzureServiceBusTransport(serviceBusConnectionString, TopicTopology.Default);
         var transportExtensions = endpointConfiguration.UseTransport(transport);
 
-        // Disabled because the servicebus emulator does not support auto-subscribe
-        endpointConfiguration.DisableFeature<AutoSubscribe>();
-
         var cosmosConnectionString = configuration.GetConnectionString("CosmosDb") ??
                                     configuration["CosmosDbConnectionString"];
 
@@ -120,8 +117,21 @@ public static class NServiceBusConfigurationExtensions
         recoverability.Immediate(immediate => immediate.NumberOfRetries(0));
         recoverability.Delayed(delayed => delayed.NumberOfRetries(0));
 
-        // Disabled because the ServiceBus Emulator does not support installers
-        // endpointConfiguration.EnableInstallers();
+        if (serviceBusConnectionString.Contains("UseDevelopmentEmulator=true", StringComparison.OrdinalIgnoreCase))
+        {
+            // Disabled because the servicebus emulator does not support auto-subscribe
+            endpointConfiguration.DisableFeature<AutoSubscribe>();
+        }
+        else
+        {
+            // Installers are useful in development to automatically create queues and topics, 
+            // but in production we should use infrastructure-as-code (e.g. ARM templates, 
+            // Terraform) to manage these resources explicitly.  But since the Azure ServiceBus
+            // emulator does not support installers, we only turn this on when we're 
+            // not using the Service Bus Emulator.
+            Console.WriteLine($"[NServiceBus] Development: enabling installers");
+            endpointConfiguration.EnableInstallers();
+        }
 
         return transportExtensions;
     }

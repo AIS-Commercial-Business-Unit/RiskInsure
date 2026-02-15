@@ -1,4 +1,4 @@
-import { APIRequestContext, expect } from '@playwright/test';
+import { APIRequestContext, APIResponse, expect } from '@playwright/test';
 import { getTestConfig } from '../config/api-endpoints';
 
 const config = getTestConfig();
@@ -89,7 +89,7 @@ export async function submitUnderwriting(
   request: APIRequestContext,
   quoteId: string,
   underwritingData?: Partial<SubmitUnderwritingRequest>
-): Promise<UnderwritingResponse> {
+): Promise<APIResponse> {
   const defaultData: SubmitUnderwritingRequest = {
     priorClaimsCount: 0,
     propertyAgeYears: 10,
@@ -106,8 +106,7 @@ export async function submitUnderwriting(
     }
   );
 
-  expect(response.status()).toBe(200);
-  return await response.json();
+  return response;
 }
 
 /**
