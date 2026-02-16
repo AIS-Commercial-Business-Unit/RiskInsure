@@ -81,7 +81,7 @@ public class BillingPaymentManagerTests
 
         _mockMessageSession.Verify(m => m.Publish(
             It.IsAny<object>(), 
-            It.IsAny<CancellationToken>()), 
+            It.IsAny<PublishOptions>()), 
             Times.Once);
     }
 
