@@ -147,7 +147,7 @@ jobs:
         run: terraform validate
 
       - name: Select tfvars file
-        id: tfvars
+        id: tfvars-shared-services
         run: |
           ENV="${{ inputs.environment }}"
           if [ -f "${ENV}.tfvars" ]; then
@@ -253,6 +253,16 @@ jobs:
 
       - name: Terraform Validate
         run: terraform validate
+      
+      - name: Select tfvars file
+        id: tfvars-services
+        run: |
+          ENV="${{ inputs.environment }}"
+          if [ -f "${ENV}.tfvars" ]; then
+            echo "file=${ENV}.tfvars" >> $GITHUB_OUTPUT
+          else
+            echo "file=" >> $GITHUB_OUTPUT
+          fi
 
       - name: Terraform Plan
         run: |
