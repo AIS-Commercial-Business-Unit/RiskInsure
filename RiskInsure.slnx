@@ -6,8 +6,13 @@
   <Folder Name="/services/" />
   <Folder Name="/services/billing/" />
   <Folder Name="/services/billing/src/">
+    <Project Path="services/billing/src/Api/Api.csproj" />
     <Project Path="services/billing/src/Domain/Domain.csproj" />
     <Project Path="services/billing/src/Endpoint.In/Endpoint.In.csproj" />
+    <Project Path="services/billing/src/Infrastructure/Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/services/billing/test/">
+    <Project Path="services/billing/test/Unit.Tests/Unit.Tests.csproj" />
   </Folder>
   <Folder Name="/services/customer/" />
   <Folder Name="/services/customer/src/">

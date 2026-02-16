@@ -36,24 +36,35 @@ public class CustomerManagerTests
     public async Task CreateCustomerAsync_ValidData_CreatesCustomerAndPublishesEvent()
     {
         // Arrange
-        var customerId = Guid.NewGuid().ToString();
+        var firstName = "John";
+        var lastName = "Doe";
         var email = "test@example.com";
+        var phoneNumber = "+1-555-0100";
         var birthDate = DateTimeOffset.UtcNow.AddYears(-25);
-        var zipCode = "90210";
+        var mailingAddress = new Address
+        {
+            Street = "123 Main St",
+            City = "Beverly Hills",
+            State = "CA",
+            ZipCode = "90210"
+        };
 
-        _mockValidator.Setup(v => v.ValidateCreateCustomerAsync(email, birthDate, zipCode))
+        _mockValidator.Setup(v => v.ValidateCreateCustomerAsync(email, birthDate, mailingAddress.ZipCode))
             .ReturnsAsync(new ValidationResult { IsValid = true });
 
         _mockRepository.Setup(r => r.CreateAsync(It.IsAny<Domain.Models.Customer>()))
             .ReturnsAsync((Domain.Models.Customer c) => c);
 
         // Act
-        var result = await _manager.CreateCustomerAsync(customerId, email, birthDate, zipCode);
+        var result = await _manager.CreateCustomerAsync(firstName, lastName, email, phoneNumber, mailingAddress, birthDate);
 
         // Assert
         result.Should().NotBeNull();
-        result.CustomerId.Should().Be(customerId);
+        result.CustomerId.Should().StartWith("CUST-");
+        result.FirstName.Should().Be(firstName);
+        result.LastName.Should().Be(lastName);
         result.Email.Should().Be(email);
+        result.PhoneNumber.Should().Be(phoneNumber);
         result.Status.Should().Be("Active");
 
         _mockRepository.Verify(r => r.CreateAsync(It.IsAny<Domain.Models.Customer>()), Times.Once);
@@ -66,20 +77,28 @@ public class CustomerManagerTests
     public async Task CreateCustomerAsync_InvalidEmail_ThrowsValidationException()
     {
         // Arrange
-        var customerId = Guid.NewGuid().ToString();
+        var firstName = "John";
+        var lastName = "Doe";
         var email = "invalid-email";
+        var phoneNumber = "+1-555-0100";
         var birthDate = DateTimeOffset.UtcNow.AddYears(-25);
-        var zipCode = "90210";
+        var mailingAddress = new Address
+        {
+            Street = "123 Main St",
+            City = "Beverly Hills",
+            State = "CA",
+            ZipCode = "90210"
+        };
 
         var validationResult = new ValidationResult { IsValid = false };
         validationResult.AddError("Email", "Email format is invalid");
 
-        _mockValidator.Setup(v => v.ValidateCreateCustomerAsync(email, birthDate, zipCode))
+        _mockValidator.Setup(v => v.ValidateCreateCustomerAsync(email, birthDate, mailingAddress.ZipCode))
             .ReturnsAsync(validationResult);
 
         // Act & Assert
         await Assert.ThrowsAsync<ValidationException>(
-            () => _manager.CreateCustomerAsync(customerId, email, birthDate, zipCode));
+            () => _manager.CreateCustomerAsync(firstName, lastName, email, phoneNumber, mailingAddress, birthDate));
 
         _mockRepository.Verify(r => r.CreateAsync(It.IsAny<Domain.Models.Customer>()), Times.Never);
     }
