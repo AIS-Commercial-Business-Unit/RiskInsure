@@ -47,7 +47,6 @@ jobs:
     name: 'Build & Push'
     needs: parse-services
     runs-on: ubuntu-latest
-    environment: ${{ inputs.environment }}
     
     permissions:
       id-token: write
@@ -133,7 +132,6 @@ jobs:
     name: 'Deploy Container Apps'
     needs: build-and-push
     runs-on: ubuntu-latest
-    environment: ${{ inputs.environment }}
     
     permissions:
       id-token: write
