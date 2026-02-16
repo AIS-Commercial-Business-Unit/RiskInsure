@@ -34,6 +34,7 @@ public class PaymentMethodManagerTests
     public async Task AddCreditCardAsync_ValidCard_CreatesPaymentMethod(string cardNumber, string expectedBrand)
     {
         // Arrange
+        var paymentMethodId = "PM-123";
         var customerId = "CUST-123";
         var cardholderName = "John Doe";
         var expiryMonth = 12;
@@ -56,7 +57,7 @@ public class PaymentMethodManagerTests
 
         // Act
         var result = await _manager.AddCreditCardAsync(
-            customerId, cardholderName, cardNumber, expiryMonth, expiryYear, cvv, billingAddress);
+            paymentMethodId, customerId, cardholderName, cardNumber, expiryMonth, expiryYear, cvv, billingAddress);
 
         // Assert
         result.Should().NotBeNull();
@@ -82,6 +83,7 @@ public class PaymentMethodManagerTests
     public async Task AddCreditCardAsync_InvalidLuhnChecksum_ThrowsArgumentException(string cardNumber)
     {
         // Arrange
+        var paymentMethodId = "PM-123";
         var customerId = "CUST-123";
         var cardholderName = "John Doe";
         var expiryMonth = 12;
@@ -91,7 +93,7 @@ public class PaymentMethodManagerTests
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(() =>
-            _manager.AddCreditCardAsync(customerId, cardholderName, cardNumber, expiryMonth, expiryYear, cvv, billingAddress));
+            _manager.AddCreditCardAsync(paymentMethodId, customerId, cardholderName, cardNumber, expiryMonth, expiryYear, cvv, billingAddress));
 
         _mockRepository.Verify(r => r.CreateAsync(It.IsAny<PaymentMethod>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -103,6 +105,7 @@ public class PaymentMethodManagerTests
     public async Task AddCreditCardAsync_InvalidExpiry_ThrowsArgumentException(int expiryMonth, int expiryYear)
     {
         // Arrange
+        var paymentMethodId = "PM-123";
         var customerId = "CUST-123";
         var cardNumber = "4532015112830366"; // Valid Visa
         var cardholderName = "John Doe";
@@ -111,7 +114,7 @@ public class PaymentMethodManagerTests
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(() =>
-            _manager.AddCreditCardAsync(customerId, cardholderName, cardNumber, expiryMonth, expiryYear, cvv, billingAddress));
+            _manager.AddCreditCardAsync(paymentMethodId, customerId, cardholderName, cardNumber, expiryMonth, expiryYear, cvv, billingAddress));
 
         _mockRepository.Verify(r => r.CreateAsync(It.IsAny<PaymentMethod>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -120,6 +123,7 @@ public class PaymentMethodManagerTests
     public async Task AddCreditCardAsync_EmptyCardholderName_ThrowsArgumentException()
     {
         // Arrange
+        var paymentMethodId = "PM-123";
         var customerId = "CUST-123";
         var cardNumber = "4532015112830366"; // Valid Visa
         var cardholderName = "";
@@ -130,7 +134,7 @@ public class PaymentMethodManagerTests
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(() =>
-            _manager.AddCreditCardAsync(customerId, cardholderName, cardNumber, expiryMonth, expiryYear, cvv, billingAddress));
+            _manager.AddCreditCardAsync(paymentMethodId, customerId, cardholderName, cardNumber, expiryMonth, expiryYear, cvv, billingAddress));
 
         _mockRepository.Verify(r => r.CreateAsync(It.IsAny<PaymentMethod>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -145,6 +149,7 @@ public class PaymentMethodManagerTests
     public async Task AddAchAccountAsync_ValidRoutingNumber_CreatesPaymentMethod(string routingNumber)
     {
         // Arrange
+        var paymentMethodId = "PM-ACH-123";
         var customerId = "CUST-123";
         var accountNumber = "123456789";
         var accountHolderName = "Jane Smith";
@@ -158,7 +163,7 @@ public class PaymentMethodManagerTests
 
         // Act
         var result = await _manager.AddAchAccountAsync(
-            customerId, accountHolderName, routingNumber, accountNumber, accountType);
+            paymentMethodId, customerId, accountHolderName, routingNumber, accountNumber, accountType);
 
         // Assert
         result.Should().NotBeNull();
@@ -182,6 +187,7 @@ public class PaymentMethodManagerTests
     public async Task AddAchAccountAsync_InvalidRoutingNumber_ThrowsArgumentException(string routingNumber)
     {
         // Arrange
+        var paymentMethodId = "PM-ACH-123";
         var customerId = "CUST-123";
         var accountNumber = "123456789";
         var accountHolderName = "Jane Smith";
@@ -189,7 +195,7 @@ public class PaymentMethodManagerTests
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(() =>
-            _manager.AddAchAccountAsync(customerId, accountHolderName, routingNumber, accountNumber, accountType));
+            _manager.AddAchAccountAsync(paymentMethodId, customerId, accountHolderName, routingNumber, accountNumber, accountType));
 
         _mockRepository.Verify(r => r.CreateAsync(It.IsAny<PaymentMethod>(), It.IsAny<CancellationToken>()), Times.Never);
     }
@@ -198,6 +204,7 @@ public class PaymentMethodManagerTests
     public async Task AddAchAccountAsync_EmptyAccountNumber_ThrowsArgumentException()
     {
         // Arrange
+        var paymentMethodId = "PM-ACH-123";
         var customerId = "CUST-123";
         var routingNumber = "011000015"; // Valid ABA routing number
         var accountNumber = "";
@@ -206,7 +213,7 @@ public class PaymentMethodManagerTests
 
         // Act & Assert
         await Assert.ThrowsAsync<ArgumentException>(() =>
-            _manager.AddAchAccountAsync(customerId, accountHolderName, routingNumber, accountNumber, accountType));
+            _manager.AddAchAccountAsync(paymentMethodId, customerId, accountHolderName, routingNumber, accountNumber, accountType));
 
         _mockRepository.Verify(r => r.CreateAsync(It.IsAny<PaymentMethod>(), It.IsAny<CancellationToken>()), Times.Never);
     }
