@@ -146,7 +146,7 @@ jobs:
 
     outputs:
       billing_api_url: ${{ steps.outputs.outputs.billing_api_url }}
-      customer_api_url: ${{ steps.outputs.outputs.customer_api_url }}
+      # customer_api_url: ${{ steps.outputs.outputs.customer_api_url }}
 
     steps:
       - name: Checkout

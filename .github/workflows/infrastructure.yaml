@@ -215,73 +215,73 @@ jobs:
   # ==========================================================================
   # Services Environment
   # ==========================================================================
-  services-environment:
-    name: 'Services Environment'
-    needs: [foundation, shared-services]
-    if: |
-      always() &&
-      needs.shared-services.result == 'success' &&
-      (inputs.terraform_layer == 'all' || inputs.terraform_layer == 'services-environment')
-    runs-on: ubuntu-latest
+  # services-environment:
+    # name: 'Services Environment'
+    # needs: [foundation, shared-services]
+    # if: |
+    #   always() &&
+    #   needs.shared-services.result == 'success' &&
+    #   (inputs.terraform_layer == 'all' || inputs.terraform_layer == 'services-environment')
+    # runs-on: ubuntu-latest
     
-    permissions:
-      id-token: write
-      contents: read
+    # permissions:
+    #   id-token: write
+    #   contents: read
 
-    defaults:
-      run:
-        shell: bash
-        working-directory: platform/infra/services
+    # defaults:
+    #   run:
+    #     shell: bash
+    #     working-directory: platform/infra/services
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    # steps:
+    #   - name: Checkout
+    #     uses: actions/checkout@v4
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TERRAFORM_VERSION }}
-          terraform_wrapper: false
+    #   - name: Setup Terraform
+    #     uses: hashicorp/setup-terraform@v3
+    #     with:
+    #       terraform_version: ${{ env.TERRAFORM_VERSION }}
+    #       terraform_wrapper: false
 
-      - name: Terraform Init
-        run: terraform init -input=false
-        env:
-          ARM_USE_OIDC: true
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+    #   - name: Terraform Init
+    #     run: terraform init -input=false
+    #     env:
+    #       ARM_USE_OIDC: true
+    #       ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+    #       ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+    #       ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Terraform Validate
-        run: terraform validate
+    #   - name: Terraform Validate
+    #     run: terraform validate
       
-      - name: Select tfvars file
-        id: tfvars-services
-        run: |
-          ENV="${{ inputs.environment }}"
-          if [ -f "${ENV}.tfvars" ]; then
-            echo "file=${ENV}.tfvars" >> $GITHUB_OUTPUT
-          else
-            echo "file=" >> $GITHUB_OUTPUT
-          fi
+    #   - name: Select tfvars file
+    #     id: tfvars-services
+    #     run: |
+    #       ENV="${{ inputs.environment }}"
+    #       if [ -f "${ENV}.tfvars" ]; then
+    #         echo "file=${ENV}.tfvars" >> $GITHUB_OUTPUT
+    #       else
+    #         echo "file=" >> $GITHUB_OUTPUT
+    #       fi
 
-      - name: Terraform Plan
-        run: |
-          terraform plan \
-            -var="environment=${{ inputs.environment }}" \
-            -var="image_tag=latest" \
-            -out=tfplan \
-            -input=false
-        env:
-          ARM_USE_OIDC: true
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+    #   - name: Terraform Plan
+    #     run: |
+    #       terraform plan \
+    #         -var="environment=${{ inputs.environment }}" \
+    #         -var="image_tag=latest" \
+    #         -out=tfplan \
+    #         -input=false
+    #     env:
+    #       ARM_USE_OIDC: true
+    #       ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+    #       ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+    #       ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Terraform Apply
-        if: inputs.terraform_action == 'apply'
-        run: terraform apply -auto-approve tfplan
-        env:
-          ARM_USE_OIDC: true
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+    #   - name: Terraform Apply
+    #     if: inputs.terraform_action == 'apply'
+    #     run: terraform apply -auto-approve tfplan
+    #     env:
+    #       ARM_USE_OIDC: true
+    #       ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+    #       ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+    #       ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
