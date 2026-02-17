@@ -24,7 +24,7 @@ Everything below is derived from that conversation; I’ve avoided adding generi
 
 ### Each service = its own module
 
-*   Every infrastructure “service” (VNet, Key Vault, Service Bus, Storage, DB, etc.) lives in **its own module folder**.
+*   Every infrastructure “service” (VNet, Key Vault, RabbitMQ, Storage, DB, etc.) lives in **its own module folder**.
 *   No shared “mega‑module” or catch‑all infra file.
 
 Example (as discussed):

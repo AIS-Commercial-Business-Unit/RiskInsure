@@ -28,9 +28,9 @@ notepad .env
 
 **Required in `.env`**:
 - `COSMOSDB_CONNECTION_STRING=AccountEndpoint=https://...;AccountKey=...;`
-- `SERVICEBUS_CONNECTION_STRING=Endpoint=sb://...;SharedAccessKeyName=...;SharedAccessKey=...;`
+- `RABBITMQ_CONNECTION_STRING=host=rabbitmq;username=guest;password=guest`
 
-**⚠️ Common Mistake**: Don't duplicate `Endpoint=` in Service Bus connection string.
+**⚠️ Common Mistake**: Use RabbitMQ format (`host=...;username=...;password=...`) instead of legacy endpoint-style connection string formats.
 
 ### 3. Configure WSL DNS (One-Time)
 
@@ -195,17 +195,17 @@ EOF'
 
 Restart Rancher Desktop after changes.
 
-### Invalid Service Bus Connection String
+### Invalid RabbitMQ Connection String
 
-**Symptom**: `System.UriFormatException: Invalid URI: The hostname could not be parsed`
+**Symptom**: Transport fails during startup or cannot connect to broker.
 
-**Solution**: Check `.env` file for duplicate `Endpoint=` prefix:
+**Solution**: Check `.env` for RabbitMQ key/value format:
 ```bash
 # ❌ Wrong
-SERVICEBUS_CONNECTION_STRING=Endpoint=Endpoint=sb://...
+RABBITMQ_CONNECTION_STRING=amqp://...
 
 # ✅ Correct
-SERVICEBUS_CONNECTION_STRING=Endpoint=sb://...
+RABBITMQ_CONNECTION_STRING=host=rabbitmq;username=guest;password=guest
 ```
 
 ### Container Exited (139) - Segmentation Fault
@@ -311,7 +311,7 @@ docker-compose.yml
 
 Passed from `.env` → `docker-compose.yml` → containers:
 - `COSMOSDB_CONNECTION_STRING`
-- `SERVICEBUS_CONNECTION_STRING`
+- `RABBITMQ_CONNECTION_STRING`
 - `ASPNETCORE_ENVIRONMENT=Development`
 - `ASPNETCORE_URLS=http://+:8080` (internal port, mapped to 707X)
 

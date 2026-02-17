@@ -199,7 +199,7 @@ ghcr.io/{organization}/{domain}-{component}
 ### Environment Variables
 Set via Container App configuration:
 - `CosmosDb__ConnectionString`
-- `ServiceBus__ConnectionString`
+- `RabbitMQ__ConnectionString`
 - `ASPNETCORE_ENVIRONMENT`
 - Azure Managed Identity configurations
 
@@ -237,7 +237,7 @@ Deployment Complete
 ## Environment Strategy
 
 ### Environments
-1. **Development**: Local development, Cosmos emulator, local Service Bus
+1. **Development**: Local development, Cosmos emulator, local RabbitMQ
 2. **Staging**: Azure resources, pre-production testing
 3. **Production**: Azure resources, live traffic
 
@@ -298,13 +298,13 @@ docker build -f src/Message/Dockerfile -t eventmgmt-msg:local .
 # Run API
 docker run -p 5271:5271 \
   -e CosmosDb__ConnectionString="..." \
-  -e ServiceBus__ConnectionString="..." \
+  -e RabbitMQ__ConnectionString="..." \
   eventmgmt-api:local
 
 # Run Message Processor
 docker run \
   -e CosmosDb__ConnectionString="..." \
-  -e ServiceBus__ConnectionString="..." \
+  -e RabbitMQ__ConnectionString="..." \
   eventmgmt-msg:local
 ```
 
@@ -320,7 +320,7 @@ services:
       - "5271:5271"
     environment:
       - CosmosDb__ConnectionString=${COSMOS_CONNECTION}
-      - ServiceBus__ConnectionString=${SERVICEBUS_CONNECTION}
+      - RabbitMQ__ConnectionString=${RABBITMQ_CONNECTION}
   
   message:
     build:
@@ -328,7 +328,7 @@ services:
       dockerfile: src/Message/Dockerfile
     environment:
       - CosmosDb__ConnectionString=${COSMOS_CONNECTION}
-      - ServiceBus__ConnectionString=${SERVICEBUS_CONNECTION}
+      - RabbitMQ__ConnectionString=${RABBITMQ_CONNECTION}
 ```
 
 ## Secrets Management
@@ -343,7 +343,7 @@ Required secrets for CI/CD:
 ### Azure Key Vault
 Production secrets stored in Key Vault:
 - Cosmos DB connection strings
-- Service Bus connection strings
+- RabbitMQ connection strings
 - External API keys
 
 ### Container App Secret References

@@ -24,7 +24,7 @@ When documenting this section, include:
 // Example configuration needed
 builder.Services.AddHealthChecks()
     .AddCheck("self", () => HealthCheckResult.Healthy())
-    .AddAzureServiceBusQueue(...)
+  .AddCheck<RabbitMqHealthCheck>("rabbitmq")
     .AddCosmosDb(...);
 
 app.MapHealthChecks("/health");
@@ -33,7 +33,7 @@ app.MapHealthChecks("/health");
 ### Dependencies to Check
 - **Self**: Basic liveness (process running)
 - **Cosmos DB**: Database connectivity and authentication
-- **Azure Service Bus**: Message queue connectivity
+- **RabbitMQ**: Message broker connectivity
 - **External Services**: Any external APIs or services
 - **Storage**: Azure Storage if used
 
@@ -100,6 +100,7 @@ public class CosmosDbHealthCheck : IHealthCheck
       "description": "Cosmos DB is responding"
     },
     "service_bus": {
+    "rabbitmq": {
       "status": "Degraded",
       "description": "High queue depth",
       "data": {
@@ -190,7 +191,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddHealthChecks()
     .AddCheck("self", () => HealthCheckResult.Healthy())
     .AddCheck<CosmosDbHealthCheck>("cosmos_db")
-    .AddCheck<ServiceBusHealthCheck>("service_bus");
+    .AddCheck<RabbitMqHealthCheck>("rabbitmq");
 
 var app = builder.Build();
 

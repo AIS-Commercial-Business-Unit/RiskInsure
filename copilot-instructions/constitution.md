@@ -144,7 +144,7 @@ This constitution defines **non-negotiable architectural rules** for all project
 
 ### VI. Message-Based Integration
 
-**The Rule**: Components integrate through Azure Service Bus messages (commands and events).
+**The Rule**: Components integrate through brokered messages (commands and events) using NServiceBus with RabbitMQ transport.
 
 **Message Types**:
 - **Commands**: Imperative, unicast, directed actions (e.g., `ProcessEntity`)
@@ -158,7 +158,7 @@ This constitution defines **non-negotiable architectural rules** for all project
 
 **Rationale**: Message-based integration maintains loose coupling, enables independent scaling, provides natural retry/error handling.
 
-**Verification**: No direct service-to-service HTTP calls; all integration through Service Bus.
+**Verification**: No direct service-to-service HTTP calls; all integration through message transport.
 
 ---
 
@@ -216,8 +216,8 @@ This constitution defines **non-negotiable architectural rules** for all project
 - ✅ .NET 10.0
 - ✅ C# 13 with nullable reference types enabled
 - ✅ Azure Cosmos DB
-- ✅ Azure Service Bus for messaging
-- ✅ NServiceBus 9.x+ with Azure Service Bus transport
+- ✅ RabbitMQ for messaging transport
+- ✅ NServiceBus 9.x+ with RabbitMQ transport
 - ✅ Azure Logic Apps Standard for orchestration workflows
 - ✅ Azure Container Apps for hosting NServiceBus endpoints
 - ✅ xUnit for testing
@@ -226,7 +226,7 @@ This constitution defines **non-negotiable architectural rules** for all project
 - ❌ Entity Framework Core (use repository pattern with Cosmos SDK)
 - ❌ Distributed transactions (`TransactionScope`)
 - ❌ Azure Functions (use Azure Container Apps)
-- ❌ RabbitMQ, Kafka (use Azure Service Bus)
+- ❌ Kafka (not part of approved messaging stack)
 
 **Rationale**: Standardized stack ensures consistency, leverages team expertise, and prevents anti-patterns.
 
@@ -335,7 +335,7 @@ This constitution defines **non-negotiable architectural rules** for all project
 - ❌ Distributed transactions (`TransactionScope` across services)
 - ❌ Synchronous HTTP calls between bounded contexts
 - ❌ Shared databases between bounded contexts
-- ❌ RabbitMQ, Kafka, or other messaging systems (use Azure Service Bus)
+- ❌ Kafka (not part of the approved messaging transport stack)
 
 **Rationale**: These constraints prevent anti-patterns that conflict with core principles.
 

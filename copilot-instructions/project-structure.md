@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the standard project structure for a bounded context in the platform. Each bounded context follows a multi-layer architecture using Azure Functions, NServiceBus messaging, and CosmosDB persistence.
+This document describes the standard project structure for a bounded context in the platform. Each bounded context follows a multi-layer architecture using ASP.NET Core APIs, NServiceBus messaging, and CosmosDB persistence.
 
 ## What is a Bounded Context?
 
@@ -13,7 +13,7 @@ A **bounded context** is a logical boundary around a specific business domain wi
 - **Message contracts**: Integration points via commands and events
 - **Independent deployment**: Can be deployed and scaled separately
 
-Anytime you see Endpoint.In in this document that is another way of saying an endpoint that processes messages off Azure Service Bus
+Anytime you see Endpoint.In in this document that is another way of saying an endpoint that processes messages from the configured transport (RabbitMQ).
 
 ## Project Structure
 
@@ -436,7 +436,7 @@ Analytics Handler → Updates metrics
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
     "CosmosDb__ConnectionString": "<<COSMOS_CONNECTION_STRING>>",
-    "ServiceBus__ConnectionString": "<<ASB_CONNECTION_STRING>>"
+        "RabbitMQ__ConnectionString": "<<RABBITMQ_CONNECTION_STRING>>"
   }
 }
 ```

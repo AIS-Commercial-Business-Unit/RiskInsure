@@ -38,7 +38,7 @@ GitHub Codespaces provides a fully configured development container with all too
 
 ### 2️⃣ Create Azure Resources
 
-You'll need two Azure resources: **Cosmos DB** (database) and **Service Bus** (messaging).
+You'll need Cosmos DB for persistence and RabbitMQ for messaging transport.
 
 #### Option A: Azure CLI (Command Line)
 
@@ -61,12 +61,10 @@ az cosmosdb create \
   --default-consistency-level Session \
   --locations regionName=eastus
 
-# Create Service Bus namespace
-az servicebus namespace create \
-  --resource-group riskinsure-dev \
-  --name acmecorp-dev-servicebus \
-  --location eastus \
-  --sku Standard
+# Provision RabbitMQ broker (example: local Docker)
+docker run -d --name rabbitmq \
+  -p 5672:5672 -p 15672:15672 \
+  rabbitmq:3-management
 ```
 
 #### Option B: Azure Portal (Visual)
@@ -84,15 +82,10 @@ az servicebus namespace create \
    - **Apply Free Tier Discount**: Yes (if available)
 5. Click **Review + create** → **Create** (takes ~5 minutes)
 
-**Service Bus:**
-1. Click **+ Create a resource** → Search "Service Bus"
-2. Fill in:
-   - **Subscription**: Your subscription
-   - **Resource Group**: `riskinsure-dev`
-   - **Namespace name**: `acmecorp-dev-servicebus`
-   - **Location**: East US
-   - **Pricing tier**: Standard
-3. Click **Review + create** → **Create** (takes ~2 minutes)
+**RabbitMQ:**
+1. Use your RabbitMQ provider of choice (Docker, CloudAMQP, self-hosted VM, etc.)
+2. Create a broker and credentials
+3. Save connection info in NServiceBus RabbitMQ format, e.g. `host=localhost;username=guest;password=guest`
 
 ---
 
@@ -112,65 +105,28 @@ az cosmosdb keys list \
 1. Go to your Cosmos DB account → **Keys** (left menu)
 2. Copy **PRIMARY CONNECTION STRING**
 
-#### Service Bus Connection String
+#### RabbitMQ Connection String
 
 ```bash
-az servicebus namespace authorization-rule keys list \
-  --resource-group riskinsure-dev \
-  --namespace-name acmecorp-dev-servicebus \
-  --name RootManageSharedAccessKey \
-  --query primaryConnectionString -o tsv
+echo "host=localhost;username=guest;password=guest"
 ```
 
-**Or via Portal:**
-1. Go to your Service Bus namespace → **Shared access policies** (left menu)
-2. Click **RootManageSharedAccessKey**
-3. Copy **Primary Connection String**
+Use the RabbitMQ broker credentials/endpoint you provisioned.
 
 ---
 
-### 4️⃣ Create Service Bus Queues
+### 4️⃣ Messaging Topology Notes
 
-Install the NServiceBus transport CLI tool and create all required queues:
+RabbitMQ transport does not require legacy queue bootstrap CLI tooling.
 
-```bash
-# Install the ASB transport CLI tool (one-time installation)
-dotnet tool install --global NServiceBus.Transport.AzureServiceBus.CommandLine
-
-# Set your Service Bus connection string (use the one from Step 3)
-export AzureServiceBus_ConnectionString="YOUR-SERVICEBUS-CONNECTION-STRING-FROM-STEP-3"
-
-# Run the queue setup script for each service
-./services/billing/src/Infrastructure/queues.sh
-
-# Or create queues manually:
-# Create shared infrastructure queues (run once)
-asb-transport queue create error
-asb-transport queue create audit
-asb-transport queue create particular.monitoring
-
-# Create endpoints for each service
-asb-transport endpoint create RiskInsure.Billing.Endpoint
-asb-transport endpoint subscribe RiskInsure.Billing.Endpoint RiskInsure.PublicContracts.Events.PolicyBound
-
-asb-transport endpoint create RiskInsure.Customer.Endpoint
-
-asb-transport endpoint create RiskInsure.Policy.Endpoint
-asb-transport endpoint subscribe RiskInsure.Policy.Endpoint RiskInsure.PublicContracts.Events.QuoteAccepted
-
-asb-transport endpoint create RiskInsure.RatingAndUnderwriting.Endpoint
-
-asb-transport endpoint create RiskInsure.FundTransferMgt.Endpoint
-asb-transport endpoint subscribe RiskInsure.FundTransferMgt.Endpoint RiskInsure.PublicContracts.Events.FundsSettled
-```
-
-**💡 Tip**: Each service has a `queues.sh` script in its Infrastructure folder for automated setup.
+- NServiceBus endpoints create required queues/exchanges with installers enabled in development.
+- Ensure your RabbitMQ user has permissions to create/bind exchanges and queues.
 
 ---
 
 ### 5️⃣ Configure Environment Variables
 
-Create a `.env` file in the repository root with your Azure connection strings:
+Create a `.env` file in the repository root with your connection strings:
 
 ```bash
 cd /workspaces/RiskInsure
@@ -179,8 +135,8 @@ cat > .env << 'EOF'
 # Azure Cosmos DB Connection String
 COSMOSDB_CONNECTION_STRING=YOUR-COSMOS-CONNECTION-STRING-HERE
 
-# Azure Service Bus Connection String
-SERVICEBUS_CONNECTION_STRING=YOUR-SERVICEBUS-CONNECTION-STRING-HERE
+# RabbitMQ Connection String
+RABBITMQ_CONNECTION_STRING=host=localhost;username=guest;password=guest
 EOF
 ```
 
@@ -190,7 +146,7 @@ EOF
 ```bash
 COSMOSDB_CONNECTION_STRING=AccountEndpoint=https://YOUR-COSMOSDB-ACCOUNT.documents.azure.com:443/;AccountKey=YOUR-COSMOS-KEY-HERE==;
 
-SERVICEBUS_CONNECTION_STRING=Endpoint=sb://YOUR-SERVICEBUS-NAMESPACE.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=YOUR-SERVICEBUS-KEY-HERE=
+RABBITMQ_CONNECTION_STRING=host=localhost;username=guest;password=guest
 ```
 
 #### Make Environment Variables Persistent
@@ -203,7 +159,7 @@ cat >> ~/.bashrc << 'EOF'
 
 # RiskInsure Azure Connection Strings
 export COSMOSDB_CONNECTION_STRING="$(grep COSMOSDB_CONNECTION_STRING /workspaces/RiskInsure/.env | cut -d'=' -f2-)"
-export SERVICEBUS_CONNECTION_STRING="$(grep SERVICEBUS_CONNECTION_STRING /workspaces/RiskInsure/.env | cut -d'=' -f2-)"
+export RABBITMQ_CONNECTION_STRING="$(grep RABBITMQ_CONNECTION_STRING /workspaces/RiskInsure/.env | cut -d'=' -f2-)"
 EOF
 
 # Reload shell
@@ -213,7 +169,7 @@ source ~/.bashrc
 **Verify environment variables:**
 ```bash
 echo $COSMOSDB_CONNECTION_STRING | cut -c1-50
-echo $SERVICEBUS_CONNECTION_STRING | cut -c1-50
+echo $RABBITMQ_CONNECTION_STRING | cut -c1-50
 ```
 
 You should see the beginning of your connection strings.
@@ -258,7 +214,7 @@ Run the smoke test to verify all services are healthy:
 [CONFIGURATION]
   ✓ .env file: Found
   ✓ Cosmos DB connection: Valid format
-  ✓ Service Bus connection: Valid format
+  ✓ RabbitMQ connection: Valid format
 
 [OVERALL RESULT]
 ✓ PASS - All services operational
@@ -401,7 +357,7 @@ This means the container is trying to use the local emulator instead of Azure. *
 ```bash
 # Ensure environment variables are set
 export COSMOSDB_CONNECTION_STRING="YOUR-AZURE-COSMOS-STRING"
-export SERVICEBUS_CONNECTION_STRING="YOUR-AZURE-SERVICEBUS-STRING"
+export RABBITMQ_CONNECTION_STRING="host=localhost;username=guest;password=guest"
 
 # Restart containers
 docker compose down
@@ -450,8 +406,8 @@ Follow the same steps as Codespaces (above), but:
 # Cosmos DB Emulator (Docker)
 docker compose --profile infra up -d cosmos-emulator
 
-# Service Bus Emulator (Docker)
-docker compose --profile infra up -d servicebus-emulator
+# RabbitMQ (Docker)
+docker compose --profile infra up -d rabbitmq
 
 # Note: Emulators may be less stable than Azure resources
 ```
@@ -461,7 +417,7 @@ docker compose --profile infra up -d servicebus-emulator
 # .env for local emulators
 COSMOSDB_CONNECTION_STRING=AccountEndpoint=https://cosmos-emulator:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==;DisableServerCertificateValidation=true
 
-SERVICEBUS_CONNECTION_STRING=Endpoint=sb://servicebus-emulator:5672;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;
+RABBITMQ_CONNECTION_STRING=host=rabbitmq;username=guest;password=guest
 ```
 
 ⚠️ **Recommendation**: Use real Azure resources even for local development. Emulators can be memory-intensive and less reliable
@@ -624,10 +580,10 @@ docker compose logs --tail=100 billing-endpoint
 - Navigate to `RiskInsure` database → containers
 - Query documents: `SELECT * FROM c WHERE c.type = 'Quote'`
 
-**Service Bus**:
-- Go to your Service Bus namespace → **Queues**
-- View active/dead-letter message counts
-- Use **Service Bus Explorer** to inspect messages
+**RabbitMQ**:
+- Open RabbitMQ management UI (default: `http://localhost:15672`)
+- Review queues/exchanges and message rates
+- Verify endpoint queues exist and are consuming
 
 ### Application Insights (Optional)
 
@@ -743,12 +699,12 @@ env | grep CONNECTION_STRING
 # Show Cosmos DB details
 az cosmosdb show -n riskinsure-cosmosdb -g riskinsure-dev
 
-# List Service Bus queues
-az servicebus queue list --namespace-name acmecorp-dev-servicebus -g riskinsure-dev -o table
+# List RabbitMQ queues (inside container)
+docker exec rabbitmq rabbitmqctl list_queues name messages consumers
 
 # Get connection strings
 az cosmosdb keys list --name riskinsure-cosmosdb -g riskinsure-dev --type connection-strings --query "connectionStrings[0].connectionString" -o tsv
-az servicebus namespace authorization-rule keys list -g riskinsure-dev --namespace-name acmecorp-dev-servicebus --name RootManageSharedAccessKey --query primaryConnectionString -o tsv
+echo "host=localhost;username=guest;password=guest"
 ```
 
 ### Useful Docker Commands
@@ -788,8 +744,8 @@ docker system prune -a
 - First 1000 RU/s free with [free tier](https://docs.microsoft.com/azure/cosmos-db/free-tier)
 - ~$24/month after free tier
 
-**Service Bus:**
-- Standard tier: ~$10/month (includes first 12.5M operations)
+**RabbitMQ:**
+- Cost depends on hosting option (self-hosted, VM, managed broker)
 
 **Codespaces:**
 - First 60 hours/month free for 2-core machines

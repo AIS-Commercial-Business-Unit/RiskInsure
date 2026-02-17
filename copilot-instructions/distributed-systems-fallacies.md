@@ -34,10 +34,9 @@ Peter Deutsch and colleagues at Sun Microsystems articulated these in the 1990s,
     timeIncrease: TimeSpan.FromSeconds(30)))
 ```
 
-**Azure Service Bus Features**:
-- Built-in message persistence
-- Duplicate detection
-- Dead-letter queues for failed messages
+**Broker Transport Features**:
+- Message persistence
+- Retry/dead-letter handling through transport + endpoint configuration
 - At-least-once delivery guarantee
 
 **Idempotent Message Handlers**:
@@ -91,7 +90,7 @@ return Accepted(); // User doesn't wait
 - Queries: Direct database access, optimized for read
 - No waiting for command processing in user flow
 
-**Azure Service Bus**:
+**RabbitMQ Transport**:
 - Queues absorb latency spikes
 - Messages processed asynchronously
 - System remains responsive under varying latency
@@ -167,7 +166,7 @@ var client = new CosmosClient(endpoint, credential);
 
 **TLS/HTTPS Everywhere**:
 - All HTTP traffic over HTTPS
-- Azure Service Bus uses TLS
+- RabbitMQ connections use TLS in hosted environments
 - Cosmos DB connections encrypted
 
 **Azure Key Vault**:
@@ -214,14 +213,14 @@ var client = new CosmosClient(endpoint, credential);
 
 **NServiceBus Routing**:
 - Logical endpoint names, not physical addresses
-- Azure Service Bus handles message routing
+- RabbitMQ transport handles message routing
 - Decoupled from physical topology
 
 **Configuration-Based Endpoints**:
 ```csharp
 // Use logical names, not IPs
 var cosmosEndpoint = configuration["CosmosDb:Endpoint"];
-var serviceBusConnection = configuration["ServiceBus:ConnectionString"];
+var rabbitMqConnection = configuration["RabbitMQ:ConnectionString"];
 ```
 
 **Health Checks and Readiness Probes**:
@@ -304,11 +303,11 @@ var serviceBusConnection = configuration["ServiceBus:ConnectionString"];
 - Use autoscale for cost efficiency
 - Design partition keys for balanced distribution
 
-**Azure Service Bus Batching**:
+**Message Batching**:
 ```csharp
 // Send messages in batches when possible
-var messages = events.Select(e => new ServiceBusMessage(JsonSerializer.Serialize(e)));
-await sender.SendMessagesAsync(messages);
+var publishTasks = events.Select(e => messageSession.Publish(e));
+await Task.WhenAll(publishTasks);
 ```
 
 ---
