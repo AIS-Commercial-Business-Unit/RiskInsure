@@ -66,7 +66,7 @@ resource "azurerm_cosmosdb_sql_database" "riskinsure" {
 # ==========================================================================
 
 resource "azurerm_cosmosdb_sql_container" "billing" {
-  name                  = "billing"
+  name                  = "Billing"
   resource_group_name   = local.resource_group_name
   account_name          = azurerm_cosmosdb_account.riskinsure.name
   database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
