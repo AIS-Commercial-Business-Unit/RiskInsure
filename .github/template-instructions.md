@@ -116,7 +116,7 @@ After creating from template:
 - [ ] Update `CODEOWNERS` with your team/organization
 - [ ] Configure branch protection rules (require reviews)
 - [ ] Set up CI/CD workflows
-- [ ] Configure Azure resources (Cosmos DB, Service Bus)
+- [ ] Configure Azure resources (Cosmos DB) and RabbitMQ broker
 - [ ] Delete template-specific files (optional):
   - [ ] `scripts/Initialize-Template.ps1`
   - [ ] `.github/template-instructions.md` (this file)
@@ -157,7 +157,7 @@ After creating from template:
 ## ❓ FAQ
 
 **Q: Can I use this template for non-Azure projects?**  
-A: Yes, but you'll need to replace Azure-specific components (Cosmos DB, Service Bus, Container Apps). Update `constitution.md` Principle IX (Technology Constraints) with your stack.
+A: Yes, but you'll need to replace cloud-specific components as needed (e.g., Cosmos DB, RabbitMQ broker, Container Apps). Update `constitution.md` Principle IX (Technology Constraints) with your stack.
 
 **Q: What's the difference between `PublicContracts` and `ServiceName.Domain/Contracts`?**  
 A: `PublicContracts` contains **shared** events/commands used between services. `ServiceName.Domain/Contracts` contains **internal** contracts used only within that service.

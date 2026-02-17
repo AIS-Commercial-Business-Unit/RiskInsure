@@ -1,11 +1,11 @@
 # RiskInsure
 
-Event-driven .NET 10 monorepo using NServiceBus, Azure Cosmos DB, and Azure Container Apps.
+Event-driven .NET 10 monorepo using NServiceBus, RabbitMQ transport, Azure Cosmos DB, and Azure Container Apps.
 
 ## 🏗️ Architecture
 
 This repository implements an **event-driven architecture** with:
-- **NServiceBus 10** for message-based integration via Azure Service Bus
+- **NServiceBus 9.x** for message-based integration via RabbitMQ transport
 - **Azure Cosmos DB** for single-partition NoSQL persistence
 - **Azure Container Apps** for hosting NServiceBus endpoints with KEDA scaling
 - **Azure Logic Apps Standard** for orchestration workflows
@@ -17,7 +17,7 @@ This repository implements an **event-driven architecture** with:
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://github.com/codespaces/new?hide_repo_select=true&ref=main)
 
 GitHub Codespaces provides a fully configured development environment with:
-- ✅ Azure Service Bus Emulator (local message queuing)
+- ✅ RabbitMQ broker (local message queuing)
 - ✅ Cosmos DB Emulator (local database)
 - ✅ All 10 microservices pre-configured
 - ✅ .NET 10 SDK, Docker, and Node.js
@@ -69,7 +69,7 @@ See [☁️ GitHub Codespaces](#️-github-codespaces-recommended-for-new-develo
 
 2. **Start emulators**:
    ```bash
-   docker-compose up -d servicebus-emulator cosmos-emulator
+   docker-compose up -d rabbitmq cosmos-emulator
    ```
 
 3. **Start all services**:
@@ -111,11 +111,10 @@ See [docs/EMULATOR-SETUP.md](docs/EMULATOR-SETUP.md) for detailed instructions.
    # Create resource group
    az group create --name riskinsure-dev --location eastus
 
-   # Create Service Bus namespace
-   az servicebus namespace create \
-     --resource-group riskinsure-dev \
-     --name riskinsure-dev-bus \
-     --sku Standard
+    # Provision RabbitMQ broker (example: local Docker)
+    docker run -d --name rabbitmq \
+       -p 5672:5672 -p 15672:15672 \
+       rabbitmq:3-management
 
    # Create Cosmos DB account (free tier)
    az cosmosdb create \
@@ -126,16 +125,9 @@ See [docs/EMULATOR-SETUP.md](docs/EMULATOR-SETUP.md) for detailed instructions.
 
 3. **Get connection strings and create .env file**:
    ```bash
-   # Get Service Bus connection string
-   az servicebus namespace authorization-rule keys list \
-     --resource-group riskinsure-dev \
-     --namespace-name riskinsure-dev-bus \
-     --name RootManageSharedAccessKey \
-     --query primaryConnectionString -o tsv
-
    # Create .env file
    cat > .env << EOF
-   SERVICEBUS_CONNECTION_STRING="<paste-service-bus-connection-string>"
+   RABBITMQ_CONNECTION_STRING="host=localhost;username=guest;password=guest"
    COSMOSDB_CONNECTION_STRING="<paste-cosmos-connection-string>"
    EOF
    ```
@@ -168,7 +160,7 @@ See [copilot-instructions/project-structure.md](copilot-instructions/project-str
 ### Start Infrastructure Only (SQL Server and Emulators)
 
 ```bash
-# Start Cosmos DB and Service Bus emulators
+# Start Cosmos DB and RabbitMQ infrastructure
 docker-compose --profile infra up -d
 
 # Verify emulators are healthy
@@ -209,8 +201,8 @@ docker-compose down -v
 **Cosmos Emulator SSL Certificate**:
 The Cosmos emulator uses a self-signed certificate. In production code, you'll need to configure the `CosmosClient` to accept the emulator certificate or import it into your trust store.
 
-**Service Bus Emulator Connection**:
-The Azure Service Bus emulator is in preview. If you encounter issues, use a real Azure Service Bus namespace and update the `.env` file.
+**RabbitMQ Connection**:
+If you encounter broker connection issues, verify `RABBITMQ_CONNECTION_STRING` in `.env` and check the RabbitMQ container health (`docker-compose ps`).
 
 ## 📖 Documentation
 

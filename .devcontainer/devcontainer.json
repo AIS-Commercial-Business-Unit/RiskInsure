@@ -55,7 +55,7 @@
     7077, // Policy API
     7079, // Rating API
     8081, // Cosmos DB Emulator
-    5672  // Service Bus Emulator
+    5672  // RabbitMQ
   ],
 
   "portsAttributes": {
@@ -65,11 +65,11 @@
     "7077": { "label": "Policy API", "onAutoForward": "notify" },
     "7079": { "label": "Rating API", "onAutoForward": "notify" },
     "8081": { "label": "Cosmos DB Emulator", "onAutoForward": "silent" },
-    "5672": { "label": "Service Bus Emulator", "onAutoForward": "silent" }
+    "5672": { "label": "RabbitMQ", "onAutoForward": "silent" }
   },
 
   "remoteEnv": {
     "COSMOSDB_CONNECTION_STRING": "AccountEndpoint=https://cosmos.domain:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==",
-    "SERVICEBUS_CONNECTION_STRING": "Endpoint=sb://servicebus-emulator;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=EMULATOR_KEY;UseDevelopmentEmulator=true"
+    "RABBITMQ_CONNECTION_STRING": "host=rabbitmq;username=guest;password=guest"
   }
 }

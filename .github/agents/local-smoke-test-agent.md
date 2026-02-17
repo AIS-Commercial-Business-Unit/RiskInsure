@@ -24,7 +24,7 @@
 4. **Quick Integration Tests**
    - Test simple API calls (GET endpoints, health checks)
    - Verify Cosmos DB connectivity (read operations)
-   - Confirm Service Bus connectivity (queue existence)
+   - Confirm RabbitMQ connectivity (broker and queue existence)
 
 5. **Report Generation**
    - Provide pass/fail summary for each service
@@ -74,7 +74,7 @@ wsl docker ps --filter "name=endpoint" --format "{{.Names}}: {{.Status}}"
 
 ### 5. Dependency Verification
 - **Cosmos DB**: Check connection string format in .env
-- **Service Bus**: Verify connection string validity
+- **RabbitMQ**: Verify connection string validity
 - **DNS**: Ensure WSL can resolve external domains
 
 ### 6. Log Sampling
@@ -180,7 +180,7 @@ Execution time: 12 seconds
 ## Dependencies
 - Docker/Rancher Desktop with WSL2
 - PowerShell 7+
-- Active Azure Cosmos DB and Service Bus (or emulators)
+- Active Azure Cosmos DB and RabbitMQ (or local containers)
 
 ## Notes
 - **Does not** validate business logic - only infrastructure availability
@@ -193,7 +193,7 @@ Execution time: 12 seconds
 1. Add health check endpoints to all APIs (next step)
 2. Test sample message publishing
 3. Verify Cosmos container creation
-4. Check Service Bus queue creation
+4. Check RabbitMQ queue creation
 5. Validate API authentication (if configured)
 6. Performance metrics (response times)
 7. Memory/CPU usage sampling
