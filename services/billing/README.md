@@ -170,6 +170,6 @@ curl -X POST http://localhost:5000/api/billing/payments `
 - Application/Infrastructure: 80%+
 
 ## Related Documentation
-- [Constitution](../../../copilot-instructions/constitution.md) - Architectural principles
+- [Constitution](../../../.specify/memory/constitution.md) - Architectural principles
 - [Project Structure](../../../copilot-instructions/project-structure.md) - Multi-layer architecture
 - [Getting Started](../../../docs/getting-started.md) - Local development setup

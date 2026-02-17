@@ -545,7 +545,7 @@ export default defineConfig({
 
 ## Support
 
-**Documentation**: See [Architecture Constitution](../../copilot-instructions/constitution.md)  
+**Documentation**: See [Architecture Constitution](../../.specify/memory/constitution.md)  
 **Domain Tests**: Each service has its own integration tests in `services/{domain}/test/Integration.Tests`  
 **Issues**: File issues with `[E2E]` prefix for cross-domain test failures
 

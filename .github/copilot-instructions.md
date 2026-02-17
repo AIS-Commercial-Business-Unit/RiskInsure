@@ -4,7 +4,7 @@
 
 ## Critical First Steps
 
-1. **Read the Constitution**: [copilot-instructions/constitution.md](../copilot-instructions/constitution.md) contains non-negotiable architectural rules
+1. **Read the Constitution**: [.specify/memory/constitution.md](../.specify/memory/constitution.md) contains non-negotiable architectural rules
 2. **Understand Project Structure**: [copilot-instructions/project-structure.md](../copilot-instructions/project-structure.md) defines the multi-layer template
 3. **Check Domain Standards**: Each service may have `docs/domain-specific-standards.md` (e.g., [FileIntegration standards](../platform/fileintegration/docs/filerun-processing-standards.md))
 
@@ -43,7 +43,7 @@ RiskInsure/
 
 ## Architecture Principles
 
-**Primary Reference**: [copilot-instructions/constitution.md](../copilot-instructions/constitution.md)
+**Primary Reference**: [.specify/memory/constitution.md](../.specify/memory/constitution.md)
 
 ### Core Patterns
 
@@ -525,7 +525,7 @@ Each service MAY define domain-specific standards in `docs/domain-specific-stand
 
 ## Related Documentation
 
-- **[copilot-instructions/constitution.md](../copilot-instructions/constitution.md)** - Non-negotiable architectural rules (READ THIS FIRST)
+- **[.specify/memory/constitution.md](../.specify/memory/constitution.md)** - Non-negotiable architectural rules (READ THIS FIRST)
 - **[copilot-instructions/project-structure.md](../copilot-instructions/project-structure.md)** - Multi-layer project structure template
 - **[docs/architecture.md](../docs/architecture.md)** - System architecture overview (if exists)
 - **Service-specific standards**: `services/{ServiceName}/docs/domain-specific-standards.md`
@@ -544,7 +544,7 @@ Each service MAY define domain-specific standards in `docs/domain-specific-stand
 7. Document domain-specific standards
 
 ### When adding a feature:
-1. Review [constitution.md](../copilot-instructions/constitution.md) principles
+1. Review [constitution.md](../.specify/memory/constitution.md) principles
 2. Design messages (commands/events) first
 3. Write tests (TDD encouraged)
 4. Implement in Domain → Infrastructure → API order
