@@ -1,6 +1,5 @@
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import Home from './routes/Home.jsx';
-import Category from './routes/Category.jsx';
 import Pattern from './routes/Pattern.jsx';
 import { getCategories, getPatterns } from './data/patternsRepository.js';
 
@@ -18,7 +17,6 @@ export default function App() {
         <main>
           <Routes>
             <Route path="/" element={<Home categories={categories} patterns={patterns} />} />
-            <Route path="/category/:category" element={<Category />} />
             <Route path="/pattern/:slug" element={<Pattern />} />
           </Routes>
         </main>

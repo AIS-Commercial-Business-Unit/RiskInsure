@@ -1,5 +1,5 @@
 import { Link, useParams } from 'react-router-dom';
-import { getPatternBySlug, getPatternById, getSources, getSubcategoryInfo } from '../data/patternsRepository.js';
+import { getPatternBySlug, getPatternById, getSources } from '../data/patternsRepository.js';
 import { categoryMetadata } from '../data/taxonomy.js';
 
 function toTitleCase(value) {
@@ -25,7 +25,6 @@ export default function Pattern() {
   }
 
   const category = categoryMetadata[pattern.category];
-  const subcategory = getSubcategoryInfo(pattern.category, pattern.subcategory);
   const sources = getSources();
 
   return (
@@ -33,133 +32,179 @@ export default function Pattern() {
       <div className="breadcrumb">
         <Link to="/">Index</Link>
         <span>/</span>
-        <Link to={`/category/${category.key}`}>{category.title}</Link>
-        <span>/</span>
-        <span>{subcategory?.title ?? pattern.subcategory}</span>
-        <span>/</span>
-        <span className={`crumb-chip category-${category.colorKey}`}>{pattern.title}</span>
+        <span>{pattern.title}</span>
       </div>
 
-      <div className="pattern-header">
-        <div>
-          <p className={`category-label category-text-${category.colorKey}`}>{category.title}</p>
-          <h1>{pattern.title}</h1>
+      {/* Two-column layout: 2/3 content + 1/3 metadata */}
+      <div className="pattern-detail-layout">
+        {/* Left column: Content (2/3) - SINGLE BOX */}
+        <div className="pattern-content">
+          {/* Title + Category Chip */}
+          <div className="pattern-detail-header">
+            <span className={`category-chip category-${category.colorKey}`}>
+              {category.title}
+            </span>
+            <h1>{pattern.title}</h1>
+          </div>
+
+          {/* Summary */}
           <p className="lede">{pattern.summary}</p>
-        </div>
-        <div className="meta-panel">
-          <div>
-            <strong>Complexity</strong>
-            <p>{toTitleCase(pattern.complexity.level)}</p>
+
+          {/* Problem Solved */}
+          <div className="content-section">
+            <h2>Problem Solved</h2>
+            <p>{pattern.decisionGuidance.problemSolved}</p>
           </div>
-          <div>
-            <strong>Updated</strong>
-            <p>{pattern.lastUpdated}</p>
+
+          {/* When to Use */}
+          <div className="content-section">
+            <h2>When to Use</h2>
+            <ul>
+              {pattern.decisionGuidance.whenToUse.map((item, idx) => (
+                <li key={idx}>{item}</li>
+              ))}
+            </ul>
           </div>
-        </div>
-      </div>
 
-      <div className="pattern-grid">
-        <article className="detail-card">
-          <h2>Problem and fit</h2>
-          <p>{pattern.decisionGuidance.problemSolved}</p>
-          <h3>When to use</h3>
-          <ul>
-            {pattern.decisionGuidance.whenToUse.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
-          <h3>When not to use</h3>
-          <ul>
-            {pattern.decisionGuidance.whenNotToUse.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
-        </article>
+          {/* When Not to Use */}
+          <div className="content-section">
+            <h2>When Not to Use</h2>
+            <ul>
+              {pattern.decisionGuidance.whenNotToUse.map((item, idx) => (
+                <li key={idx}>{item}</li>
+              ))}
+            </ul>
+          </div>
 
-        <article className="detail-card">
-          <h2>Enabling technologies</h2>
-          <ul>
-            {pattern.enablingTechnologies.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
-        </article>
+          {/* Opinionated Guidance */}
+          <div className="content-section">
+            <h2>Opinionated Guidance</h2>
+            <p>{pattern.thingsToWatchOutFor.opinionatedGuidance}</p>
+          </div>
 
-        <article className="detail-card">
-          <h2>Things to watch out for</h2>
-          <ul>
-            {pattern.thingsToWatchOutFor.gotchas.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
-          <h3>Opinionated guidance</h3>
-          <p>{pattern.thingsToWatchOutFor.opinionatedGuidance}</p>
-        </article>
+          {/* Gotchas */}
+          <div className="content-section">
+            <h2>Things to Watch Out For</h2>
+            <ul>
+              {pattern.thingsToWatchOutFor.gotchas.map((item, idx) => (
+                <li key={idx}>{item}</li>
+              ))}
+            </ul>
+          </div>
 
-        <article className="detail-card">
-          <h2>Complexity assessment</h2>
-          <p><strong>Rationale:</strong> {pattern.complexity.rationale}</p>
-          <p><strong>Team impact:</strong> {pattern.complexity.teamImpact}</p>
-          <p><strong>Skill demand:</strong> {pattern.complexity.skillDemand}</p>
-          <p><strong>Operational demand:</strong> {pattern.complexity.operationalDemand}</p>
-          <p><strong>Tooling demand:</strong> {pattern.complexity.toolingDemand}</p>
-        </article>
-
-        <article className="detail-card">
-          <h2>Starter diagram</h2>
-          <p>{pattern.starterDiagram.description}</p>
-          <div className="diagram">
-            {pattern.starterDiagram.nodes.map((node) => (
-              <div key={node} className="diagram-node">
-                <span>{node}</span>
+          {/* Starter Diagram */}
+          {pattern.starterDiagram && (
+            <div className="content-section">
+              <h2>Starter Diagram</h2>
+              <p className="diagram-description">{pattern.starterDiagram.description}</p>
+              <div className="diagram">
+                {pattern.starterDiagram.nodes.map((node, idx) => (
+                  <div key={idx} className="diagram-node">
+                    <span>{node}</span>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
+          )}
+
+          {/* Real-world Example */}
+          <div className="content-section">
+            <h2>Real-World Example</h2>
+            <div className="example-block">
+              <p><strong>Context:</strong> {pattern.realWorldExample.context}</p>
+              <p><strong>Approach:</strong> {pattern.realWorldExample.approach}</p>
+              <p><strong>Outcome:</strong> {pattern.realWorldExample.outcome}</p>
+            </div>
           </div>
-        </article>
 
-        <article className="detail-card">
-          <h2>Real-world example</h2>
-          <p><strong>Context:</strong> {pattern.realWorldExample.context}</p>
-          <p><strong>Approach:</strong> {pattern.realWorldExample.approach}</p>
-          <p><strong>Outcome:</strong> {pattern.realWorldExample.outcome}</p>
-        </article>
+          {/* Further Reading */}
+          {pattern.furtherReading && pattern.furtherReading.length > 0 && (
+            <div className="content-section">
+              <h2>Further Reading</h2>
+              <ul>
+                {pattern.furtherReading.map((item, idx) => {
+                  const source = sources.find((entry) => entry.id === item.sourceId);
+                  return (
+                    <li key={idx}>
+                      <strong>{item.title}</strong>
+                      {item.link && (
+                        <span> - <a href={item.link} target="_blank" rel="noreferrer">Source link</a></span>
+                      )}
+                      {(source?.citationRequired || item.citationRequired) && (
+                        <span> (Citation required)</span>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+        </div>
 
-        <article className="detail-card">
-          <h2>Related patterns</h2>
-          <div className="related-links">
-            {pattern.relatedPatterns.map((relatedId) => {
-              const relatedPattern = getPatternById(relatedId);
-              if (!relatedPattern) {
-                return <span key={relatedId}>{relatedId}</span>;
-              }
-              return (
-                <Link key={relatedId} to={`/pattern/${relatedPattern.slug}`}>
-                  {relatedPattern.title}
-                </Link>
-              );
-            })}
+        {/* Right column: Metadata (1/3) - SINGLE BOX */}
+        <aside className="pattern-metadata">
+          {/* Complexity */}
+          <div className="meta-group">
+            <h3>Complexity</h3>
+            <p className="complexity-level">{toTitleCase(pattern.complexity.level)}</p>
+            <p className="metadata-detail">{pattern.complexity.rationale}</p>
           </div>
-        </article>
 
-        <article className="detail-card">
-          <h2>Further reading</h2>
-          <ul>
-            {pattern.furtherReading.map((item) => {
-              const source = sources.find((entry) => entry.id === item.sourceId);
-              return (
-                <li key={`${item.title}-${item.sourceId ?? 'none'}`}>
-                  <strong>{item.title}</strong>
-                  {item.link ? (
-                    <span> - <a href={item.link} target="_blank" rel="noreferrer">Source link</a></span>
-                  ) : null}
-                  {source?.citationRequired || item.citationRequired ? (
-                    <span> (Citation required)</span>
-                  ) : null}
-                </li>
-              );
-            })}
-          </ul>
-        </article>
+          {/* Team Impact */}
+          <div className="meta-group">
+            <h3>Team Impact</h3>
+            <p className="metadata-detail">{pattern.complexity.teamImpact}</p>
+          </div>
+
+          {/* Skill Demand */}
+          <div className="meta-group">
+            <h3>Skill Demand</h3>
+            <p className="metadata-detail">{pattern.complexity.skillDemand}</p>
+          </div>
+
+          {/* Operational Demand */}
+          <div className="meta-group">
+            <h3>Operational Demand</h3>
+            <p className="metadata-detail">{pattern.complexity.operationalDemand}</p>
+          </div>
+
+          {/* Tooling Demand */}
+          <div className="meta-group">
+            <h3>Tooling Demand</h3>
+            <p className="metadata-detail">{pattern.complexity.toolingDemand}</p>
+          </div>
+
+          {/* Related Patterns */}
+          {pattern.relatedPatterns && pattern.relatedPatterns.length > 0 && (
+            <div className="meta-group">
+              <h3>Related Patterns</h3>
+              <div className="related-pattern-chips">
+                {pattern.relatedPatterns.map((relatedId) => {
+                  const relatedPattern = getPatternById(relatedId);
+                  if (!relatedPattern) {
+                    return <span key={relatedId} className="related-chip">{relatedId}</span>;
+                  }
+                  const relatedCategory = categoryMetadata[relatedPattern.category];
+                  return (
+                    <Link
+                      key={relatedId}
+                      to={`/pattern/${relatedPattern.slug}`}
+                      className={`related-chip category-${relatedCategory.colorKey}`}
+                    >
+                      {relatedPattern.title}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Last Updated */}
+          <div className="meta-group">
+            <h3>Last Updated</h3>
+            <p className="metadata-detail">{pattern.lastUpdated}</p>
+          </div>
+        </aside>
       </div>
     </section>
   );

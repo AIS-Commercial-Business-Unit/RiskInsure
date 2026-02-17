@@ -1,0 +1,93 @@
+{
+  "id": "everything-runs-locally",
+  "slug": "everything-runs-locally",
+  "title": "Everything runs locally (zero-external-dependency development)",
+  "category": "devops",
+  "subcategory": "operational-excellence",
+  "summary": "Build platforms where developers can run all services, data stores, and operational tooling locally using Docker, emulators, and gateway stubs to maximize velocity and minimize environment dependencies.",
+  "decisionGuidance": {
+    "problemSolved": "Mainframe and middleware modernization dependencies force developers to connect to remote systems via VPN, wait for environments to be available, and coordinate cross-team integrations early, killing velocity.",
+    "whenToUse": [
+      "Modernizing off mainframe, middleware, or tightly-coupled legacy systems",
+      "Multiple domains or services need to interact during development",
+      "External dependencies are hard to reach, slow, or unreliable",
+      "Team velocity is blocked by environment availability"
+    ],
+    "whenNotToUse": [
+      "System is simple with few dependencies",
+      "External APIs are stable, fast, and well-documented test environments exist",
+      "Team doesn't have Docker/containerization skills"
+    ]
+  },
+  "enablingTechnologies": [
+    "Docker and Docker Compose",
+    "Cloud service emulators (Cosmos, Service Bus, Storage)",
+    "Database containers (SQL Server, PostgreSQL)",
+    "Gateway/stub services for external endpoints",
+    "Infrastructure-as-code for local orchestration"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Upfront investment required to containerize everything",
+      "Gateway stubs must return representative responses or tests are misleading",
+      "Local resource constraints (memory, disk) for running 7+ services",
+      "Keeping local stack in sync with production configuration",
+      "Hard to fake certain services (authentication, complex third parties)"
+    ],
+    "opinionatedGuidance": "Invest heavily at the start. Containerize all domains, operational tooling (logging, error handling, chaos engineering), and data stores. Build gateway facades for hard-to-reach externals. Defer real integration to the last minute when all systems can line up in a proper environment. This is the only way to maintain velocity during complex modernizations."
+  },
+  "complexity": {
+    "level": "high",
+    "rationale": "Requires significant upfront investment to containerize services, build emulators, create gateway stubs, and orchestrate complex Docker Compose setups. Ongoing maintenance as systems evolve.",
+    "teamImpact": "multi-team",
+    "skillDemand": "Docker expertise, emulator setup, gateway design, local orchestration. Developers must understand container networking and resource limits.",
+    "operationalDemand": "High initially—must build and maintain local stack. Lower over time as velocity increases.",
+    "toolingDemand": "Docker, Docker Compose, cloud emulators, stub frameworks, infrastructure-as-code."
+  },
+  "starterDiagram": {
+    "title": "Local development stack",
+    "description": "All domains and dependencies run in containers.",
+    "nodes": [
+      "Docker Compose",
+      "Domain Services (7+)",
+      "Emulators (DB, Queue, Storage)",
+      "Gateway Stubs (External APIs)",
+      "Operational Tools (Logs, Errors, Chaos)"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Insurance platform modernization with 7 domains and legacy mainframe/middleware dependencies",
+    "approach": "Built Docker Compose stack with all domains, Cosmos emulator, Service Bus emulator, Storage emulator, gateway stubs for legacy endpoints. Developer runs 'docker-compose up' and has full platform locally including logging, error handling, and chaos testing.",
+    "outcome": "Team velocity increased 3x. Developers iterate independently without VPN or environment coordination. Real integration deferred to final environment testing. Gateway stubs evolved into integration test fixtures."
+  },
+  "relatedPatterns": [
+    "time-as-ticks",
+    "developer-experience-kpi",
+    "devsecops-first-class",
+    "replay-reprocessing",
+    "shim-and-facade"
+  ],
+  "furtherReading": [
+    {
+      "title": "Docker development environments",
+      "sourceId": "docker-docs",
+      "link": null,
+      "citationRequired": false
+    },
+    {
+      "title": "Azure emulators for local development",
+      "sourceId": "azure-emulators",
+      "link": null,
+      "citationRequired": false
+    }
+  ],
+  "tags": [
+    "docker",
+    "local-development",
+    "emulators",
+    "developer-productivity",
+    "velocity",
+    "gateway-pattern"
+  ],
+  "lastUpdated": "2026-02-17"
+}
