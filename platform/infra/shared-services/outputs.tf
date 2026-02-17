@@ -1,4 +1,28 @@
 # ==========================================================================
+# Shared Managed Identity Outputs
+# ==========================================================================
+
+output "apps_shared_identity_id" {
+  description = "Shared Managed Identity ID (used by all Container Apps)"
+  value       = azurerm_user_assigned_identity.apps_shared.id
+}
+
+output "apps_shared_identity_principal_id" {
+  description = "Shared Managed Identity Principal ID"
+  value       = azurerm_user_assigned_identity.apps_shared.principal_id
+}
+
+output "apps_shared_identity_client_id" {
+  description = "Shared Managed Identity Client ID"
+  value       = azurerm_user_assigned_identity.apps_shared.client_id
+}
+
+output "apps_shared_identity_name" {
+  description = "Shared Managed Identity name"
+  value       = azurerm_user_assigned_identity.apps_shared.name
+}
+
+# ==========================================================================
 # Cosmos DB Outputs
 # ==========================================================================
 
