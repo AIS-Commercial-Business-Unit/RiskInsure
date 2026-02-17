@@ -254,7 +254,7 @@ jobs:
 **Solutions**:
 1. Increase timeout: `EVENTUAL_CONSISTENCY_TIMEOUT=20000`
 2. Add retries: `retries: 2` in playwright.config.ts (already configured for CI)
-3. Check Service Bus processing in deployed environment
+3. Check RabbitMQ/NServiceBus processing in deployed environment
 4. Verify Cosmos DB connection from deployed endpoints
 
 ### Issue: "npm ci" fails

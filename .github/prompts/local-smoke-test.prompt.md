@@ -90,10 +90,10 @@ if ($env -match "COSMOSDB_CONNECTION_STRING=AccountEndpoint=") {
     Write-Host "❌ Invalid Cosmos DB connection string" -ForegroundColor Red
 }
 
-if ($env -match "SERVICEBUS_CONNECTION_STRING=Endpoint=sb://") {
-    Write-Host "✅ Service Bus connection string valid format" -ForegroundColor Green
+if ($env -match "RABBITMQ_CONNECTION_STRING=host=") {
+    Write-Host "✅ RabbitMQ connection string valid format" -ForegroundColor Green
 } else {
-    Write-Host "❌ Invalid Service Bus connection string" -ForegroundColor Red
+    Write-Host "❌ Invalid RabbitMQ connection string" -ForegroundColor Red
 }
 ```
 
@@ -177,9 +177,9 @@ Timestamp: <current-timestamp>
 
 ### Common Error Patterns
 
-**"Invalid URI: The hostname could not be parsed"**
-→ Malformed Service Bus connection string in .env
-→ Fix: Check for duplicate "Endpoint=" prefix
+**"RabbitMQ connection failed"**
+→ Malformed RabbitMQ connection string in .env
+→ Fix: Use `host=...;username=...;password=...` format
 
 **"Exited (139)" (Segmentation fault)**
 → .NET runtime crash, usually DI configuration issue

@@ -139,7 +139,7 @@ public class EarningHistory
 **Purpose**: Handle `PolicyIssued` event and initialize earning calculation
 
 **Process**:
-1. Receive `PolicyIssued` event from Service Bus
+1. Receive `PolicyIssued` event via RabbitMQ transport
 2. Create PremiumEarning document
 3. Set status to "Active"
 4. Initialize earned = $0, unearned = total premium
