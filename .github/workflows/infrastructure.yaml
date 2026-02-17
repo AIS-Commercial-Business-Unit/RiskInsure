@@ -611,7 +611,7 @@ jobs:
 
       - name: Verify Role Assignments
         run: |
-          UAMI_ID="${{ needs.shared-services.outputs.apps_shared_identity_id }}"
+          UAMI_ID="${{ needs.shared-services.outputs.apps_shared_identity_principal_id }}"
           echo "🔍 Verifying role assignments for UAMI"
           echo ""
 
