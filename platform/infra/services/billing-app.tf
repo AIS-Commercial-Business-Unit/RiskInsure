@@ -14,7 +14,7 @@ resource "azurerm_container_app" "billing_api" {
 
   registry {
     server   = data.terraform_remote_state.foundation.outputs.acr_login_server
-    identity = "SystemAssigned" 
+    identity = "system" 
   }
 
   secret {
@@ -97,7 +97,6 @@ resource "azurerm_role_assignment" "billing_api_acr_pull" {
   scope              = data.terraform_remote_state.foundation.outputs.acr_id
   role_definition_name = "AcrPull"
   principal_id       = azurerm_container_app.billing_api.identity[0].principal_id
-  depends_on = [ azurerm_container_app.billing_api ]
 }
 
 # Grant Cosmos DB access
@@ -132,7 +131,7 @@ resource "azurerm_container_app" "billing_endpoint" {
 
   registry {
     server   = data.terraform_remote_state.foundation.outputs.acr_login_server
-    identity = "SystemAssigned" 
+    identity = "system" 
   }
 
   secret {
@@ -193,13 +192,6 @@ resource "azurerm_container_app" "billing_endpoint" {
   }
 
   tags = var.tags
-}
-
-resource "azurerm_role_assignment" "billing_endpoint_acr_pull" {
-  scope              = data.terraform_remote_state.foundation.outputs.acr_id
-  role_definition_name = "AcrPull"
-  principal_id       = azurerm_container_app.billing_endpoint.identity[0].principal_id
-  depends_on = [ azurerm_container_app.billing_endpoint ]
 }
 
 # Grant permissions
