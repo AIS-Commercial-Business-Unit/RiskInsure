@@ -1,9 +1,21 @@
 # ==========================================================================
 # Billing API (HTTP REST)
 # ==========================================================================
-# User-assigned identity and ACR role assignment are created in the
-# foundation layer to ensure proper permissions for role assignments.
-# ==========================================================================
+
+# User-Assigned Managed Identity for Billing API
+resource "azurerm_user_assigned_identity" "billing_api" {
+  name                = "billing-api-identity"
+  resource_group_name = data.terraform_remote_state.foundation.outputs.resource_group_name
+  location            = data.terraform_remote_state.foundation.outputs.location
+  tags                = var.tags
+}
+
+# Grant AcrPull role BEFORE creating the container app
+resource "azurerm_role_assignment" "billing_api_acr_pull" {
+  scope                = data.terraform_remote_state.foundation.outputs.acr_id
+  role_definition_name = "AcrPull"
+  principal_id         = azurerm_user_assigned_identity.billing_api.principal_id
+}
 
 resource "azurerm_container_app" "billing_api" {
   name                         = "billing-api"
@@ -13,12 +25,12 @@ resource "azurerm_container_app" "billing_api" {
 
   identity {
     type         = "UserAssigned"
-    identity_ids = [data.terraform_remote_state.foundation.outputs.billing_api_identity_id]
+    identity_ids = [azurerm_user_assigned_identity.billing_api.id]
   }
 
   registry {
     server   = data.terraform_remote_state.foundation.outputs.acr_login_server
-    identity = data.terraform_remote_state.foundation.outputs.billing_api_identity_id
+    identity = azurerm_user_assigned_identity.billing_api.id
   }
 
   secret {
@@ -95,6 +107,10 @@ resource "azurerm_container_app" "billing_api" {
   }
 
   tags = var.tags
+
+  depends_on = [
+    azurerm_role_assignment.billing_api_acr_pull
+  ]
 }
 
 # Grant Cosmos DB access
@@ -102,7 +118,7 @@ resource "azurerm_cosmosdb_sql_role_assignment" "billing_api_cosmos" {
   resource_group_name = data.terraform_remote_state.foundation.outputs.resource_group_name
   account_name        = data.terraform_remote_state.shared_services.outputs.cosmosdb_account_name
   role_definition_id  = "${data.terraform_remote_state.shared_services.outputs.cosmosdb_account_id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002"
-  principal_id        = data.terraform_remote_state.foundation.outputs.billing_api_identity_principal_id
+  principal_id        = azurerm_user_assigned_identity.billing_api.principal_id
   scope               = data.terraform_remote_state.shared_services.outputs.cosmosdb_account_id
 }
 
@@ -110,15 +126,27 @@ resource "azurerm_cosmosdb_sql_role_assignment" "billing_api_cosmos" {
 resource "azurerm_role_assignment" "billing_api_servicebus" {
   scope                = data.terraform_remote_state.shared_services.outputs.servicebus_namespace_id
   role_definition_name = "Azure Service Bus Data Owner"
-  principal_id         = data.terraform_remote_state.foundation.outputs.billing_api_identity_principal_id
+  principal_id         = azurerm_user_assigned_identity.billing_api.principal_id
 }
 
 # ==========================================================================
 # Billing Endpoint (NServiceBus)
 # ==========================================================================
-# User-assigned identity and ACR role assignment are created in the
-# foundation layer to ensure proper permissions for role assignments.
-# ==========================================================================
+
+# User-Assigned Managed Identity for Billing Endpoint
+resource "azurerm_user_assigned_identity" "billing_endpoint" {
+  name                = "billing-endpoint-identity"
+  resource_group_name = data.terraform_remote_state.foundation.outputs.resource_group_name
+  location            = data.terraform_remote_state.foundation.outputs.location
+  tags                = var.tags
+}
+
+# Grant AcrPull role BEFORE creating the container app
+resource "azurerm_role_assignment" "billing_endpoint_acr_pull" {
+  scope                = data.terraform_remote_state.foundation.outputs.acr_id
+  role_definition_name = "AcrPull"
+  principal_id         = azurerm_user_assigned_identity.billing_endpoint.principal_id
+}
 
 resource "azurerm_container_app" "billing_endpoint" {
   name                         = "billing-endpoint"
@@ -128,12 +156,12 @@ resource "azurerm_container_app" "billing_endpoint" {
 
   identity {
     type         = "UserAssigned"
-    identity_ids = [data.terraform_remote_state.foundation.outputs.billing_endpoint_identity_id]
+    identity_ids = [azurerm_user_assigned_identity.billing_endpoint.id]
   }
 
   registry {
     server   = data.terraform_remote_state.foundation.outputs.acr_login_server
-    identity = data.terraform_remote_state.foundation.outputs.billing_endpoint_identity_id
+    identity = azurerm_user_assigned_identity.billing_endpoint.id
   }
 
   secret {
@@ -194,6 +222,10 @@ resource "azurerm_container_app" "billing_endpoint" {
   }
 
   tags = var.tags
+
+  depends_on = [
+    azurerm_role_assignment.billing_endpoint_acr_pull
+  ]
 }
 
 # Grant permissions
@@ -201,12 +233,12 @@ resource "azurerm_cosmosdb_sql_role_assignment" "billing_endpoint_cosmos" {
   resource_group_name = data.terraform_remote_state.foundation.outputs.resource_group_name
   account_name        = data.terraform_remote_state.shared_services.outputs.cosmosdb_account_name
   role_definition_id  = "${data.terraform_remote_state.shared_services.outputs.cosmosdb_account_id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002"
-  principal_id        = data.terraform_remote_state.foundation.outputs.billing_endpoint_identity_principal_id
+  principal_id        = azurerm_user_assigned_identity.billing_endpoint.principal_id
   scope               = data.terraform_remote_state.shared_services.outputs.cosmosdb_account_id
 }
 
 resource "azurerm_role_assignment" "billing_endpoint_servicebus" {
   scope                = data.terraform_remote_state.shared_services.outputs.servicebus_namespace_id
   role_definition_name = "Azure Service Bus Data Owner"
-  principal_id         = data.terraform_remote_state.foundation.outputs.billing_endpoint_identity_principal_id
+  principal_id         = azurerm_user_assigned_identity.billing_endpoint.principal_id
 }

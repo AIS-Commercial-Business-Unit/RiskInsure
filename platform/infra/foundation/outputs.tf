@@ -120,27 +120,3 @@ output "storage_account_primary_connection_string" {
   value       = azurerm_storage_account.riskinsure.primary_connection_string
   sensitive   = true
 }
-
-# ============================================================================
-# Managed Identity Outputs
-# ============================================================================
-
-output "billing_api_identity_id" {
-  description = "Billing API user-assigned managed identity ID"
-  value       = azurerm_user_assigned_identity.billing_api.id
-}
-
-output "billing_api_identity_principal_id" {
-  description = "Billing API user-assigned managed identity principal ID"
-  value       = azurerm_user_assigned_identity.billing_api.principal_id
-}
-
-output "billing_endpoint_identity_id" {
-  description = "Billing Endpoint user-assigned managed identity ID"
-  value       = azurerm_user_assigned_identity.billing_endpoint.id
-}
-
-output "billing_endpoint_identity_principal_id" {
-  description = "Billing Endpoint user-assigned managed identity principal ID"
-  value       = azurerm_user_assigned_identity.billing_endpoint.principal_id
-}
