@@ -1,4 +1,4 @@
-using Infrastructure;
+using RiskInsure.RatingAndUnderwriting.Infrastructure;
 using Microsoft.Azure.Cosmos;
 using RiskInsure.RatingAndUnderwriting.Domain.Managers;
 using RiskInsure.RatingAndUnderwriting.Domain.Repositories;

@@ -1,4 +1,8 @@
 {
+  "Messaging":
+  {
+    "MessageBroker": "<<RabbitMQ or AzureServiceBus>>" 
+  },
   "ConnectionStrings": {
     "CosmosDb": "<<COSMOS_CONNECTION_STRING>>",
     "ServiceBus": "<<SERVICE_BUS_CONNECTION_STRING>>",

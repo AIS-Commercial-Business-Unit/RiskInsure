@@ -6,7 +6,7 @@ using NServiceBus;
 using RiskInsure.Billing.Domain.Managers;
 using RiskInsure.Billing.Domain.Services.BillingDb;
 using Serilog;
-using Infrastructure;
+using RiskInsure.Billing.Infrastructure;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()

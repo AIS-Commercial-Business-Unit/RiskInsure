@@ -168,6 +168,7 @@ services:
       - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__BillingContainerName=Billing
+      - Messaging__MessageBroker=RabbitMQ
     networks:
       - riskinsure
     depends_on:
@@ -190,6 +191,7 @@ services:
       - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__BillingContainerName=Billing
+      - Messaging__MessageBroker=RabbitMQ
     depends_on:
       cosmos-emulator:
         condition: service_healthy
@@ -218,6 +220,7 @@ services:
       - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=customer
+      - Messaging__MessageBroker=RabbitMQ
     networks:
       - riskinsure
     depends_on:
@@ -240,6 +243,7 @@ services:
       - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=customer
+      - Messaging__MessageBroker=RabbitMQ
     depends_on:
       cosmos-emulator:
         condition: service_healthy
@@ -268,6 +272,7 @@ services:
       - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=fundstransfermgt
+      - Messaging__MessageBroker=RabbitMQ
     networks:
       - riskinsure
     depends_on:
@@ -290,6 +295,7 @@ services:
       - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=fundstransfermgt
+      - Messaging__MessageBroker=RabbitMQ
     depends_on:
       cosmos-emulator:
         condition: service_healthy
@@ -318,6 +324,7 @@ services:
       - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=policy
+      - Messaging__MessageBroker=RabbitMQ
     networks:
       - riskinsure
     depends_on:
@@ -340,6 +347,7 @@ services:
       - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=policy
+      - Messaging__MessageBroker=RabbitMQ
     depends_on:
       cosmos-emulator:
         condition: service_healthy
@@ -368,6 +376,7 @@ services:
       - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=ratingunderwriting
+      - Messaging__MessageBroker=RabbitMQ
     networks:
       - riskinsure
     depends_on:
@@ -390,6 +399,7 @@ services:
       - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=ratingunderwriting
+      - Messaging__MessageBroker=RabbitMQ
     depends_on:
       cosmos-emulator:
         condition: service_healthy

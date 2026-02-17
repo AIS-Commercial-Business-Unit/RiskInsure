@@ -1,18 +1,18 @@
+using System.Configuration;
 using Azure.Identity;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
-using NServiceBus;
-using NServiceBus.Transport.RabbitMQ;
+using NServiceBus.Features;
 
-namespace Infrastructure;
+namespace RiskInsure.Billing.Infrastructure;
 
 public static class NServiceBusConfigurationExtensions
 {
     public static IHostBuilder NServiceBusEnvironmentConfiguration(
         this IHostBuilder hostBuilder,
         string endpointName,
-        Action<IConfiguration, EndpointConfiguration, RoutingSettings<RabbitMQTransport>>? configurationAction = null)
+        Action<IConfiguration, EndpointConfiguration, RoutingSettings>? configurationAction = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(endpointName);
 
@@ -23,17 +23,44 @@ public static class NServiceBusConfigurationExtensions
 
             Console.WriteLine($"[NServiceBus] Configuring endpoint '{endpointName}' for environment: {environment}");
 
-            RoutingSettings<RabbitMQTransport> routing;
-            if (environment.Equals("Production", StringComparison.OrdinalIgnoreCase))
+            endpointConfiguration
+                .ApplyNServiceBusLicense(context.Configuration)
+                .PersistWithCosmosDb(context.Configuration)
+                .ApplySharedEndpointConfiguration();
+
+            RoutingSettings routing;
+            var messageBroker = context.Configuration["Messaging:MessageBroker"];
+            switch (messageBroker)
             {
-                routing = ConfigureForProduction(context.Configuration, endpointConfiguration);
-            }
-            else
-            {
-                routing = ConfigureForDevelopment(context.Configuration, endpointConfiguration);
+                case "AzureServiceBus":
+                    Console.WriteLine($"[NServiceBus] Messaging: using Azure Service Bus transport based on configuration");
+                    routing = ConfigureAzureServiceBus(context.Configuration, endpointConfiguration);
+                    break;
+                case "RabbitMQ":
+                    Console.WriteLine($"[NServiceBus] Messaging: using RabbitMQ transport based on configuration");
+                    routing = ConfigureRabbitMQ(context.Configuration, endpointConfiguration);
+                    break;
+                default:
+                    throw new ConfigurationErrorsException(
+                        "Invalid or missing Messaging:MessageBroker configuration. " +
+                        "Please specify a message broker (e.g. AzureServiceBus, RabbitMQ) in configuration.");
             }
 
-            ApplySharedEndpointConfiguration(endpointConfiguration);
+            if (environment.Equals("Development", StringComparison.OrdinalIgnoreCase))
+            {
+                // For development, we want to disable retries for faster feedback loop. 
+                // In production, we want retries enabled for resiliency.
+                Console.WriteLine("[NServiceBus]: Disabling recovery (retries)");
+                endpointConfiguration.DisableRecovery();
+
+                // Installers are useful in development to automatically create queues and topics, 
+                // but in production we should use infrastructure-as-code (e.g. ARM templates, 
+                // Terraform) to manage these resources explicitly.  But since the Azure ServiceBus
+                // emulator does not support installers, we only turn this on when we're 
+                // not using the Service Bus Emulator.
+                Console.WriteLine("[NServiceBus]: Enabling installers");
+                endpointConfiguration.EnableInstallers();
+            }
 
             // Allow per-endpoint customization
             configurationAction?.Invoke(context.Configuration, endpointConfiguration, routing);
@@ -42,92 +69,52 @@ public static class NServiceBusConfigurationExtensions
         });
     }
 
-    private static RoutingSettings<RabbitMQTransport> ConfigureForProduction(
+    private static RoutingSettings<AzureServiceBusTransport> ConfigureAzureServiceBus(
+        IConfiguration configuration,
+        EndpointConfiguration endpointConfiguration)
+    {
+        var serviceBusConnectionString = configuration.GetConnectionString("ServiceBus");
+        if (string.IsNullOrWhiteSpace(serviceBusConnectionString))
+        {
+            throw new InvalidOperationException(
+                "ServiceBus connection string missing. Add ConnectionStrings:ServiceBus to configuration");
+        }
+        if (serviceBusConnectionString.Contains("UseDevelopmentEmulator=true", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ConfigurationErrorsException(
+                "The Azure Service Bus emulator does not support all features required by this application (e.g. auto-subscribe). " +
+                "For local development, please use RabbitMQ as the message broker. " +
+                "To use RabbitMQ, set Messaging:MessageBroker=RabbitMQ in configuration and provide a RabbitMQ connection string.");            
+        }
+        Console.WriteLine($"[NServiceBus]: using Service Bus connection string");
+        
+        var transport = new AzureServiceBusTransport(serviceBusConnectionString, TopicTopology.Default);
+        var transportExtensions = endpointConfiguration.UseTransport(transport);
+        return transportExtensions;
+    }
+
+    private static RoutingSettings<RabbitMQTransport> ConfigureRabbitMQ(
         IConfiguration configuration,
         EndpointConfiguration endpointConfiguration)
     {
         var rabbitMqConnectionString = configuration.GetConnectionString("RabbitMQ");
-
         if (string.IsNullOrWhiteSpace(rabbitMqConnectionString))
         {
             throw new InvalidOperationException(
                 "Production requires ConnectionStrings:RabbitMQ or RabbitMQ:ConnectionString in configuration");
         }
 
-        Console.WriteLine("[NServiceBus] Production: using RabbitMQ transport");
-
-        var transportExtensions = endpointConfiguration.UseTransport<RabbitMQTransport>();
-        transportExtensions.ConnectionString(rabbitMqConnectionString);
-
-        // Cosmos DB persistence with Managed Identity
-        var cosmosEndpoint = configuration["CosmosDb:Endpoint"] ??
-                           Environment.GetEnvironmentVariable("CosmosDb__Endpoint");
-
-        if (!string.IsNullOrWhiteSpace(cosmosEndpoint))
-        {
-            var persistence = endpointConfiguration.UsePersistence<CosmosPersistence>();
-            persistence.CosmosClient(new CosmosClient(cosmosEndpoint, new DefaultAzureCredential()));
-            persistence.DatabaseName("RiskInsure");
-            persistence.DefaultContainer("Billing-Sagas", "/id");
-        }
-
-        // License for production
-        var license = configuration["NSERVICEBUS_LICENSE"] ?? Environment.GetEnvironmentVariable("NSERVICEBUS_LICENSE");
-        if (!string.IsNullOrWhiteSpace(license))
-        {
-            endpointConfiguration.License(license);
-        }
-        
-        return transportExtensions.Routing();
-    }
-
-    private static RoutingSettings<RabbitMQTransport> ConfigureForDevelopment(
-        IConfiguration configuration,
-        EndpointConfiguration endpointConfiguration)
-    {
-        var rabbitMqConnectionString = configuration.GetConnectionString("RabbitMQ") ??
-                                       configuration["RabbitMQ:ConnectionString"];
-
-        if (string.IsNullOrWhiteSpace(rabbitMqConnectionString))
-        {
-            throw new InvalidOperationException(
-                "RabbitMQ connection string missing. Add ConnectionStrings:RabbitMQ to appsettings.Development.json");
-        }
-
-        Console.WriteLine("[NServiceBus] Development: using RabbitMQ transport");
+        Console.WriteLine("[NServiceBus]: using RabbitMQ transport");
 
         var transportExtensions = endpointConfiguration.UseTransport<RabbitMQTransport>()
             .UseConventionalRoutingTopology(QueueType.Classic);
         transportExtensions.ConnectionString(rabbitMqConnectionString);
-
-        // Cosmos DB connection string
-        var cosmosConnectionString = configuration.GetConnectionString("CosmosDb") ??
-                                    configuration["CosmosDbConnectionString"];
-
-        if (string.IsNullOrWhiteSpace(cosmosConnectionString))
-        {
-            throw new InvalidOperationException(
-                "CosmosDb connection string missing. Add ConnectionStrings:CosmosDb to appsettings.Development.json");
-        }
-
-        var persistence = endpointConfiguration.UsePersistence<CosmosPersistence>();
-        persistence.CosmosClient(new CosmosClient(cosmosConnectionString));
-        persistence.DatabaseName("RiskInsure");
-        persistence.DefaultContainer("Billing-Sagas", "/id");
-
-        // Disable retries for faster dev cycle
-        var recoverability = endpointConfiguration.Recoverability();
-        recoverability.Immediate(immediate => immediate.NumberOfRetries(0));
-        recoverability.Delayed(delayed => delayed.NumberOfRetries(0));
-
-        Console.WriteLine("[NServiceBus] Development: enabling installers");
-        endpointConfiguration.EnableInstallers();
-
+        
         return transportExtensions.Routing();
     }
 
-    private static void ApplySharedEndpointConfiguration(
-        EndpointConfiguration endpointConfiguration)
+    private static EndpointConfiguration ApplySharedEndpointConfiguration(
+        this EndpointConfiguration endpointConfiguration)
     {
         // Serialization
         endpointConfiguration.UseSerialization<SystemJsonSerializer>();
@@ -151,5 +138,54 @@ public static class NServiceBusConfigurationExtensions
             type.Namespace != null && type.Namespace.EndsWith("Commands"));
         conventions.DefiningMessagesAs(type =>
             type.Namespace != null && type.Namespace.EndsWith("Messages"));
+
+        return endpointConfiguration;
+    }
+
+    private static EndpointConfiguration PersistWithCosmosDb(this 
+    EndpointConfiguration endpointConfiguration, IConfiguration configuration)
+    {
+        var cosmosConnectionString = configuration["ConnectionStrings:CosmosDb"];
+        if (string.IsNullOrWhiteSpace(cosmosConnectionString))
+        {
+            throw new InvalidOperationException(
+                "CosmosDb endpoint missing. Add ConnectionStrings:CosmosDb to configuration");
+        }
+
+        Console.WriteLine($"[NServiceBus]: using Cosmos DB connection string: {cosmosConnectionString}");
+
+        var persistence = endpointConfiguration.UsePersistence<CosmosPersistence>();
+        persistence.CosmosClient(new CosmosClient(cosmosConnectionString));
+        // Todo: Configuration item
+        persistence.DatabaseName("RiskInsure");
+        // Todo: Configuration item
+        persistence.DefaultContainer("Billing-Sagas", "/id");
+
+        return endpointConfiguration;
+    }
+
+    private static EndpointConfiguration ApplyNServiceBusLicense(this 
+        EndpointConfiguration endpointConfiguration, IConfiguration configuration)
+    {
+        // License for production
+        var license = configuration["NSERVICEBUS_LICENSE"] 
+            ?? Environment.GetEnvironmentVariable("NSERVICEBUS_LICENSE");
+        if (!string.IsNullOrWhiteSpace(license))
+        {
+            endpointConfiguration.License(license);
+        }
+
+        return endpointConfiguration;
+    }
+
+    /// For development, we want to disable retries for faster feedback loop. In 
+    /// production, we want retries enabled for resiliency. 
+    private static EndpointConfiguration DisableRecovery(this EndpointConfiguration endpointConfiguration)
+    {
+        var recoverability = endpointConfiguration.Recoverability();
+        recoverability.Immediate(immediate => immediate.NumberOfRetries(0));
+        recoverability.Delayed(delayed => delayed.NumberOfRetries(0));
+
+        return endpointConfiguration;
     }
 }
