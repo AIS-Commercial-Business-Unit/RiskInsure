@@ -9,7 +9,7 @@ resource "azurerm_container_app" "billing_api" {
   revision_mode                = "Single"
 
   identity {
-    type         = "SystemAssigned, UserAssigned"
+    type         = "UserAssigned"
     identity_ids = [data.terraform_remote_state.shared_services.outputs.apps_shared_identity_id]
   }
 
@@ -105,7 +105,7 @@ resource "azurerm_container_app" "billing_endpoint" {
   revision_mode                = "Single"
 
   identity {
-    type         = "SystemAssigned, UserAssigned"
+    type         = "UserAssigned"
     identity_ids = [data.terraform_remote_state.shared_services.outputs.apps_shared_identity_id]
   }
 

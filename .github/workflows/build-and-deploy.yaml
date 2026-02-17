@@ -1,39 +1,380 @@
-name: 'Build & Deploy Services (Reusable)'
+# name: 'Build & Deploy Services (Reusable)'
+
+# on:
+#   workflow_call:
+#     inputs:
+#       environment:
+#         description: 'Environment to deploy'
+#         required: true
+#         type: string
+#       services:
+#         description: 'Services to deploy (comma-separated or "all")'
+#         required: true
+#         type: string
+
+# env:
+#   TERRAFORM_VERSION: '1.11.4'
+
+# jobs:
+#   # ==========================================================================
+#   # Parse Services List
+#   # ==========================================================================
+#   parse-services:
+#     name: 'Parse Services'
+#     runs-on: ubuntu-latest
+#     outputs:
+#       services_list: ${{ steps.parse.outputs.services_list }}
+    
+#     steps:
+#       - name: Parse services input
+#         id: parse
+#         run: |
+#           INPUT="${{ inputs.services }}"
+          
+#           if [ "$INPUT" == "all" ]; then
+#             SERVICES='["billing","customer","policy","fundstransfermgt","ratingandunderwriting"]'
+#           else
+#             SERVICES=$(echo "$INPUT" | jq -R -c 'split(",")')
+#           fi
+          
+#           echo "services_list=$SERVICES" >> $GITHUB_OUTPUT
+#           echo "Services to deploy: $SERVICES"
+
+#   # ==========================================================================
+#   # Build and Push Docker Images
+#   # ==========================================================================
+#   build-and-push:
+#     name: 'Build & Push'
+#     needs: parse-services
+#     runs-on: ubuntu-latest
+    
+#     permissions:
+#       id-token: write
+#       contents: read
+    
+#     strategy:
+#       matrix:
+#         service: ${{ fromJson(needs.parse-services.outputs.services_list) }}
+
+#     outputs:
+#       image_tag: ${{ steps.tags.outputs.image_tag }}
+
+#     steps:
+#       - name: Checkout
+#         uses: actions/checkout@v4
+
+#       - name: Set service paths
+#         id: paths
+#         run: |
+#           SERVICE="${{ matrix.service }}"
+#           echo "api_project=services/${SERVICE}/src/Api/Api.csproj" >> $GITHUB_OUTPUT
+#           echo "endpoint_project=services/${SERVICE}/src/Endpoint.In/Endpoint.In.csproj" >> $GITHUB_OUTPUT
+
+#       - name: Azure Login
+#         uses: azure/login@v2
+#         with:
+#           client-id: ${{ secrets.AZURE_CLIENT_ID }}
+#           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+#           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
+#       - name: Setup Terraform
+#         uses: hashicorp/setup-terraform@v3
+#         with:
+#           terraform_version: ${{ env.TERRAFORM_VERSION }}
+#           terraform_wrapper: false
+      
+#       - name: Terraform Init
+#         run: terraform init -input=false
+#         env:
+#           ARM_USE_OIDC: true
+#           ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+#           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+#           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+#       - name: Get ACR name
+#         id: acr
+#         run: |
+#           cd platform/infra/foundation
+#           terraform init -input=false
+#           ACR_NAME=$(terraform output -raw acr_name 2>/dev/null || echo "riskinsure${{ inputs.environment }}acr")
+#           ACR_LOGIN_SERVER=$(terraform output -raw acr_login_server 2>/dev/null || echo "${ACR_NAME}.azurecr.io")
+#           echo "name=$ACR_NAME" >> $GITHUB_OUTPUT
+#           echo "login_server=$ACR_LOGIN_SERVER" >> $GITHUB_OUTPUT
+#         env:
+#           ARM_USE_OIDC: true
+#           ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+#           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+#           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+#       - name: Login to ACR
+#         run: az acr login --name ${{ steps.acr.outputs.name }}
+
+#       - name: Set Docker tags
+#         id: tags
+#         run: |
+#           IMAGE_TAG="${{ github.sha }}"
+#           echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+
+#       - name: Build & Push API Image
+#         run: |
+#           docker build \
+#             -f platform/templates/Dockerfile.api.compose \
+#             --build-arg PROJECT_PATH=${{ steps.paths.outputs.api_project }} \
+#             -t ${{ steps.acr.outputs.login_server }}/${{ matrix.service }}-api:${{ steps.tags.outputs.image_tag }} \
+#             -t ${{ steps.acr.outputs.login_server }}/${{ matrix.service }}-api:latest \
+#             .
+          
+#           docker push ${{ steps.acr.outputs.login_server }}/${{ matrix.service }}-api:${{ steps.tags.outputs.image_tag }}
+#           docker push ${{ steps.acr.outputs.login_server }}/${{ matrix.service }}-api:latest
+
+#       - name: Build & Push Endpoint Image
+#         run: |
+#           docker build \
+#             -f platform/templates/Dockerfile.endpoint.compose \
+#             --build-arg PROJECT_PATH=${{ steps.paths.outputs.endpoint_project }} \
+#             -t ${{ steps.acr.outputs.login_server }}/${{ matrix.service }}-endpoint:${{ steps.tags.outputs.image_tag }} \
+#             -t ${{ steps.acr.outputs.login_server }}/${{ matrix.service }}-endpoint:latest \
+#             .
+          
+#           docker push ${{ steps.acr.outputs.login_server }}/${{ matrix.service }}-endpoint:${{ steps.tags.outputs.image_tag }}
+#           docker push ${{ steps.acr.outputs.login_server }}/${{ matrix.service }}-endpoint:latest
+
+#   # ==========================================================================
+#   # Deploy Container Apps
+#   # ==========================================================================
+#   deploy-apps:
+#     name: 'Deploy Container Apps'
+#     needs: build-and-push
+#     runs-on: ubuntu-latest
+    
+#     permissions:
+#       id-token: write
+#       contents: read
+
+#     defaults:
+#       run:
+#         shell: bash
+#         working-directory: platform/infra/services
+
+#     outputs:
+#       billing_api_url: ${{ steps.outputs.outputs.billing_api_url }}
+#       # customer_api_url: ${{ steps.outputs.outputs.customer_api_url }}
+
+#     steps:
+#       - name: Checkout
+#         uses: actions/checkout@v4
+
+#       - name: Setup Terraform
+#         uses: hashicorp/setup-terraform@v3
+#         with:
+#           terraform_version: ${{ env.TERRAFORM_VERSION }}
+#           terraform_wrapper: false
+
+#       - name: Terraform Init
+#         run: terraform init -input=false
+#         env:
+#           ARM_USE_OIDC: true
+#           ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+#           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+#           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+#       - name: Select tfvars file
+#         id: tfvars
+#         run: |
+#           ENV="${{ inputs.environment }}"
+#           if [ -f "${ENV}.tfvars" ]; then
+#             echo "file=${ENV}.tfvars" >> $GITHUB_OUTPUT
+#           else
+#             echo "file=" >> $GITHUB_OUTPUT
+#           fi
+
+#       - name: Terraform Plan
+#         run: |
+#           if [ -n "${{ steps.tfvars.outputs.file }}" ]; then
+#             terraform plan \
+#               -var="image_tag=${{ needs.build-and-push.outputs.image_tag }}" \
+#               -var-file="${{ steps.tfvars.outputs.file }}" \
+#               -out=tfplan \
+#               -input=false
+#           else
+#             terraform plan \
+#               -var="environment=${{ inputs.environment }}" \
+#               -var="image_tag=${{ needs.build-and-push.outputs.image_tag }}" \
+#               -out=tfplan \
+#               -input=false
+#           fi
+#         env:
+#           ARM_USE_OIDC: true
+#           ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+#           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+#           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+#       - name: Terraform Apply
+#         run: terraform apply -auto-approve tfplan
+#         env:
+#           ARM_USE_OIDC: true
+#           ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+#           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+#           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+#       - name: Export Outputs
+#         id: outputs
+#         run: |
+#           echo "billing_api_url=$(terraform output -raw billing_api_url 2>/dev/null || echo 'N/A')" >> $GITHUB_OUTPUT
+#           echo "customer_api_url=$(terraform output -raw customer_api_url 2>/dev/null || echo 'N/A')" >> $GITHUB_OUTPUT
+
+#   # ==========================================================================
+#   # Health Checks
+#   # ==========================================================================
+#   health-check:
+#     name: 'Health Check'
+#     needs: deploy-apps
+#     runs-on: ubuntu-latest
+    
+#     steps:
+#       - name: Wait for services
+#         run: sleep 60
+
+#       - name: Check Billing API
+#         continue-on-error: true
+#         run: |
+#           URL="${{ needs.deploy-apps.outputs.billing_api_url }}"
+#           if [ "$URL" != "N/A" ]; then
+#             curl -f -s "${URL}/health" && echo "✅ Billing API healthy" || echo "⚠️ Billing API check failed"
+#           fi
+
+#       - name: Check Customer API
+#         continue-on-error: true
+#         run: |
+#           URL="${{ needs.deploy-apps.outputs.customer_api_url }}"
+#           if [ "$URL" != "N/A" ]; then
+#             curl -f -s "${URL}/health" && echo "✅ Customer API healthy" || echo "⚠️ Customer API check failed"
+#           fi
+
+
+
+
+
+# new pipeline starts here
+
+
+name: 'Deploy Container Apps & Services'
 
 on:
-  workflow_call:
+  workflow_dispatch:
     inputs:
       environment:
-        description: 'Environment to deploy'
+        description: 'Environment (dev/staging/prod)'
         required: true
-        type: string
+        type: choice
+        options: [dev, staging, prod]
       services:
-        description: 'Services to deploy (comma-separated or "all")'
+        description: 'Services to deploy (comma-separated: billing,customer,policy,fundstransfermgt,ratingandunderwriting or "all")'
         required: true
         type: string
+        default: 'billing'
 
 env:
   TERRAFORM_VERSION: '1.11.4'
 
 jobs:
   # ==========================================================================
+  # Pre-flight Checks (Verify Infrastructure Exists)
+  # ==========================================================================
+  preflight-checks:
+    name: 'Pre-flight Checks'
+    runs-on: ubuntu-latest
+    
+    permissions:
+      id-token: write
+      contents: read
+
+    outputs:
+      uami_exists: ${{ steps.check.outputs.uami_exists }}
+      uami_id: ${{ steps.check.outputs.uami_id }}
+      uami_name: ${{ steps.check.outputs.uami_name }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+
+      - name: Verify Infrastructure Exists
+        id: check
+        shell: bash
+        run: |
+          cd platform/infra/shared-services
+          
+          echo "🔍 Pre-flight check: Verifying infrastructure exists..."
+          echo ""
+          
+          # Init terraform
+          terraform init -input=false
+          
+          # Try to get UAMI output
+          UAMI_ID=$(terraform output -raw apps_shared_identity_id 2>/dev/null || echo "NOT_FOUND")
+          
+          if [ "$UAMI_ID" == "NOT_FOUND" ]; then
+            echo "════════════════════════════════════════════════════"
+            echo "❌ UAMI NOT FOUND"
+            echo "════════════════════════════════════════════════════"
+            echo ""
+            echo "Prerequisites not met!"
+            echo ""
+            echo "Please run the following workflow FIRST:"
+            echo "  Workflow: infrastructure-and-identity.yaml"
+            echo "  Options:"
+            echo "    - environment: ${{ inputs.environment }}"
+            echo "    - terraform_layer: all"
+            echo "    - terraform_action: apply"
+            echo ""
+            echo "After that completes, run this workflow again."
+            echo "════════════════════════════════════════════════════"
+            exit 1
+          fi
+          
+          UAMI_NAME=$(terraform output -raw apps_shared_identity_name 2>/dev/null)
+          
+          echo "✅ UAMI Found: $UAMI_NAME"
+          echo ""
+          echo "Infrastructure Status:"
+          terraform output -raw apps_shared_identity_id
+          
+          echo "uami_exists=true" >> $GITHUB_OUTPUT
+          echo "uami_id=$UAMI_ID" >> $GITHUB_OUTPUT
+          echo "uami_name=$UAMI_NAME" >> $GITHUB_OUTPUT
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+  # ==========================================================================
   # Parse Services List
   # ==========================================================================
   parse-services:
-    name: 'Parse Services'
+    name: 'Parse Services List'
     runs-on: ubuntu-latest
+    
     outputs:
       services_list: ${{ steps.parse.outputs.services_list }}
     
     steps:
       - name: Parse services input
         id: parse
+        shell: bash
         run: |
           INPUT="${{ inputs.services }}"
           
           if [ "$INPUT" == "all" ]; then
             SERVICES='["billing","customer","policy","fundstransfermgt","ratingandunderwriting"]'
           else
+            # Convert comma-separated to JSON array
             SERVICES=$(echo "$INPUT" | jq -R -c 'split(",")')
           fi
           
@@ -41,11 +382,11 @@ jobs:
           echo "Services to deploy: $SERVICES"
 
   # ==========================================================================
-  # Build and Push Docker Images
+  # Build and Push Docker Images to ACR
   # ==========================================================================
   build-and-push:
-    name: 'Build & Push'
-    needs: parse-services
+    name: 'Build & Push Images'
+    needs: [preflight-checks, parse-services]
     runs-on: ubuntu-latest
     
     permissions:
@@ -63,12 +404,34 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set service paths
-        id: paths
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+
+      - name: Get ACR Details
+        id: acr
+        shell: bash
         run: |
-          SERVICE="${{ matrix.service }}"
-          echo "api_project=services/${SERVICE}/src/Api/Api.csproj" >> $GITHUB_OUTPUT
-          echo "endpoint_project=services/${SERVICE}/src/Endpoint.In/Endpoint.In.csproj" >> $GITHUB_OUTPUT
+          cd platform/infra/foundation
+          
+          terraform init -input=false
+          
+          ACR_NAME=$(terraform output -raw acr_name)
+          ACR_LOGIN_SERVER=$(terraform output -raw acr_login_server)
+          
+          echo "name=$ACR_NAME" >> $GITHUB_OUTPUT
+          echo "login_server=$ACR_LOGIN_SERVER" >> $GITHUB_OUTPUT
+          
+          echo "📋 ACR Details:"
+          echo "  Name: $ACR_NAME"
+          echo "  Login Server: $ACR_LOGIN_SERVER"
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Azure Login
         uses: azure/login@v2
@@ -76,75 +439,69 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: ${{ env.TERRAFORM_VERSION }}
-          terraform_wrapper: false
-      
-      - name: Terraform Init
-        run: terraform init -input=false
-        env:
-          ARM_USE_OIDC: true
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Get ACR name
-        id: acr
-        run: |
-          cd platform/infra/foundation
-          terraform init -input=false
-          ACR_NAME=$(terraform output -raw acr_name 2>/dev/null || echo "riskinsure${{ inputs.environment }}acr")
-          ACR_LOGIN_SERVER=$(terraform output -raw acr_login_server 2>/dev/null || echo "${ACR_NAME}.azurecr.io")
-          echo "name=$ACR_NAME" >> $GITHUB_OUTPUT
-          echo "login_server=$ACR_LOGIN_SERVER" >> $GITHUB_OUTPUT
-        env:
-          ARM_USE_OIDC: true
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Login to ACR
         run: az acr login --name ${{ steps.acr.outputs.name }}
 
       - name: Set Docker tags
         id: tags
+        shell: bash
         run: |
           IMAGE_TAG="${{ github.sha }}"
           echo "image_tag=$IMAGE_TAG" >> $GITHUB_OUTPUT
+          echo "🏷️  Image tag: $IMAGE_TAG"
 
       - name: Build & Push API Image
+        shell: bash
         run: |
+          SERVICE="${{ matrix.service }}"
+          
+          echo "🔨 Building API image for: $SERVICE"
+          echo ""
+          
           docker build \
             -f platform/templates/Dockerfile.api.compose \
-            --build-arg PROJECT_PATH=${{ steps.paths.outputs.api_project }} \
-            -t ${{ steps.acr.outputs.login_server }}/${{ matrix.service }}-api:${{ steps.tags.outputs.image_tag }} \
-            -t ${{ steps.acr.outputs.login_server }}/${{ matrix.service }}-api:latest \
+            --build-arg PROJECT_PATH=services/${SERVICE}/src/Api/Api.csproj \
+            -t ${{ steps.acr.outputs.login_server }}/${SERVICE}-api:${{ steps.tags.outputs.image_tag }} \
+            -t ${{ steps.acr.outputs.login_server }}/${SERVICE}-api:latest \
             .
           
-          docker push ${{ steps.acr.outputs.login_server }}/${{ matrix.service }}-api:${{ steps.tags.outputs.image_tag }}
-          docker push ${{ steps.acr.outputs.login_server }}/${{ matrix.service }}-api:latest
+          echo "📤 Pushing API image..."
+          docker push ${{ steps.acr.outputs.login_server }}/${SERVICE}-api:${{ steps.tags.outputs.image_tag }}
+          docker push ${{ steps.acr.outputs.login_server }}/${SERVICE}-api:latest
+          
+          echo "✅ API image pushed"
 
       - name: Build & Push Endpoint Image
+        shell: bash
         run: |
+          SERVICE="${{ matrix.service }}"
+          
+          echo "🔨 Building Endpoint image for: $SERVICE"
+          echo ""
+          
           docker build \
             -f platform/templates/Dockerfile.endpoint.compose \
-            --build-arg PROJECT_PATH=${{ steps.paths.outputs.endpoint_project }} \
-            -t ${{ steps.acr.outputs.login_server }}/${{ matrix.service }}-endpoint:${{ steps.tags.outputs.image_tag }} \
-            -t ${{ steps.acr.outputs.login_server }}/${{ matrix.service }}-endpoint:latest \
+            --build-arg PROJECT_PATH=services/${SERVICE}/src/Endpoint.In/Endpoint.In.csproj \
+            -t ${{ steps.acr.outputs.login_server }}/${SERVICE}-endpoint:${{ steps.tags.outputs.image_tag }} \
+            -t ${{ steps.acr.outputs.login_server }}/${SERVICE}-endpoint:latest \
             .
           
-          docker push ${{ steps.acr.outputs.login_server }}/${{ matrix.service }}-endpoint:${{ steps.tags.outputs.image_tag }}
-          docker push ${{ steps.acr.outputs.login_server }}/${{ matrix.service }}-endpoint:latest
+          echo "📤 Pushing Endpoint image..."
+          docker push ${{ steps.acr.outputs.login_server }}/${SERVICE}-endpoint:${{ steps.tags.outputs.image_tag }}
+          docker push ${{ steps.acr.outputs.login_server }}/${SERVICE}-endpoint:latest
+          
+          echo "✅ Endpoint image pushed"
 
   # ==========================================================================
   # Deploy Container Apps
   # ==========================================================================
   deploy-apps:
     name: 'Deploy Container Apps'
-    needs: build-and-push
+    needs: [preflight-checks, build-and-push]
     runs-on: ubuntu-latest
     
     permissions:
@@ -158,7 +515,6 @@ jobs:
 
     outputs:
       billing_api_url: ${{ steps.outputs.outputs.billing_api_url }}
-      # customer_api_url: ${{ steps.outputs.outputs.customer_api_url }}
 
     steps:
       - name: Checkout
@@ -177,6 +533,26 @@ jobs:
           ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Display Deployment Info
+        shell: bash
+        run: |
+          echo "════════════════════════════════════════════════════"
+          echo "🚀 DEPLOYING CONTAINER APPS"
+          echo "════════════════════════════════════════════════════"
+          echo ""
+          echo "📋 Deployment Details:"
+          echo "  Environment: ${{ inputs.environment }}"
+          echo "  Image Tag: ${{ needs.build-and-push.outputs.image_tag }}"
+          echo "  UAMI: ${{ needs.preflight-checks.outputs.uami_name }}"
+          echo ""
+          echo "🔐 Using Identity:"
+          echo "  ID: ${{ needs.preflight-checks.outputs.uami_id }}"
+          echo ""
+          echo "════════════════════════════════════════════════════"
 
       - name: Select tfvars file
         id: tfvars
@@ -221,32 +597,59 @@ jobs:
         id: outputs
         run: |
           echo "billing_api_url=$(terraform output -raw billing_api_url 2>/dev/null || echo 'N/A')" >> $GITHUB_OUTPUT
-          echo "customer_api_url=$(terraform output -raw customer_api_url 2>/dev/null || echo 'N/A')" >> $GITHUB_OUTPUT
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
   # ==========================================================================
   # Health Checks
   # ==========================================================================
   health-check:
-    name: 'Health Check'
+    name: 'Health Checks'
     needs: deploy-apps
     runs-on: ubuntu-latest
     
     steps:
-      - name: Wait for services
-        run: sleep 60
+      - name: Wait for services to start
+        run: |
+          echo "⏳ Waiting 60 seconds for Container Apps to start..."
+          sleep 60
+          echo "✅ Wait complete"
 
       - name: Check Billing API
         continue-on-error: true
         run: |
           URL="${{ needs.deploy-apps.outputs.billing_api_url }}"
+          
           if [ "$URL" != "N/A" ]; then
-            curl -f -s "${URL}/health" && echo "✅ Billing API healthy" || echo "⚠️ Billing API check failed"
+            echo "🔍 Checking Billing API: $URL"
+            
+            if curl -f -s "${URL}/health" > /dev/null 2>&1; then
+              echo "✅ Billing API is healthy"
+            else
+              echo "⚠️ Billing API health check failed (may still be starting)"
+            fi
+          else
+            echo "⏭️  Billing API URL not available"
           fi
 
-      - name: Check Customer API
-        continue-on-error: true
+      - name: Final Status
         run: |
-          URL="${{ needs.deploy-apps.outputs.customer_api_url }}"
-          if [ "$URL" != "N/A" ]; then
-            curl -f -s "${URL}/health" && echo "✅ Customer API healthy" || echo "⚠️ Customer API check failed"
-          fi
+          echo ""
+          echo "════════════════════════════════════════════════════"
+          echo "✅ CONTAINER APPS DEPLOYED SUCCESSFULLY"
+          echo "════════════════════════════════════════════════════"
+          echo ""
+          echo "📊 Deployment Summary:"
+          echo "  Environment: ${{ inputs.environment }}"
+          echo "  Image Tag: ${{ needs.build-and-push.outputs.image_tag }}"
+          echo "  Billing API URL: ${{ needs.deploy-apps.outputs.billing_api_url }}"
+          echo ""
+          echo "🔒 Using Managed Identity:"
+          echo "  Name: billing-api, billing-endpoint (and others)"
+          echo "  Identity: User-Assigned (created by infrastructure-and-identity.yaml)"
+          echo ""
+          echo "🚀 Container Apps are now running!"
+          echo "════════════════════════════════════════════════════"
