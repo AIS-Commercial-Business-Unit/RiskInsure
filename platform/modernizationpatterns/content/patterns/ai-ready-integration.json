@@ -1,0 +1,71 @@
+{
+  "id": "ai-ready-integration",
+  "slug": "ai-ready-integration",
+  "title": "AI-ready integration foundation",
+  "category": "technical",
+  "subcategory": "ai-readiness",
+  "summary": "Design integration contracts, observability, and data access paths so AI capabilities can be safely added later.",
+  "decisionGuidance": {
+    "problemSolved": "AI initiatives stall when integrations are opaque, inconsistent, or not observable.",
+    "whenToUse": [
+      "You want AI to assist ops or accelerate development",
+      "You have fragmented interfaces"
+    ],
+    "whenNotToUse": [
+      "You have no intent to use AI and prefer minimal telemetry"
+    ]
+  },
+  "enablingTechnologies": [
+    "Event catalog",
+    "Traceability",
+    "Data access controls"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Over-collecting sensitive data",
+      "Adding AI before stabilizing contracts"
+    ],
+    "opinionatedGuidance": "Stabilize contracts and observability first; AI comes after foundations are in place."
+  },
+  "complexity": {
+    "level": "medium",
+    "rationale": "Foundational discipline more than advanced ML.",
+    "teamImpact": "multi-team",
+    "skillDemand": "Architecture + governance + basic AI literacy.",
+    "operationalDemand": "Moderate—needs secure logging and traceability.",
+    "toolingDemand": "Telemetry + access controls + indexing for RAG."
+  },
+  "starterDiagram": {
+    "title": "Foundation first",
+    "description": "Contracts and traces enable AI later.",
+    "nodes": [
+      "Contracts",
+      "Telemetry",
+      "Index",
+      "AI assistants"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Ops assistant enablement",
+    "approach": "Standardized events and traces then indexed audit logs for query.",
+    "outcome": "AI features delivered faster with fewer safety issues."
+  },
+  "relatedPatterns": [
+    "observability-first",
+    "operational-ai-agent"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": null,
+      "citationRequired": true
+    }
+  ],
+  "tags": [
+    "ai",
+    "contracts",
+    "observability"
+  ],
+  "lastUpdated": "2026-02-17"
+}

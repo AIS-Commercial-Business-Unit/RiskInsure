@@ -1,0 +1,71 @@
+{
+  "id": "minimal-viable-increment",
+  "slug": "minimal-viable-increment",
+  "title": "Minimal viable increment",
+  "category": "strategic",
+  "subcategory": "delivery-strategy",
+  "summary": "Deliver the smallest production slice that proves the path, then expand through repeatable patterns.",
+  "decisionGuidance": {
+    "problemSolved": "Large programs stall when they wait for the ‘perfect platform’ before shipping.",
+    "whenToUse": [
+      "You need momentum and proof",
+      "Stakeholders need operational confidence"
+    ],
+    "whenNotToUse": [
+      "Regulatory or safety constraints require full scope before any release"
+    ]
+  },
+  "enablingTechnologies": [
+    "Backlog slicing",
+    "Release playbooks",
+    "Templates"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Too small to be meaningful",
+      "Teams skip quality for speed"
+    ],
+    "opinionatedGuidance": "Pick an increment that is production-real: security, telemetry, and rollback included."
+  },
+  "complexity": {
+    "level": "medium",
+    "rationale": "Slicing is hard, but it reduces risk.",
+    "teamImpact": "multi-team",
+    "skillDemand": "Product slicing + architecture sequencing skill.",
+    "operationalDemand": "Moderate—each increment must be production-ready.",
+    "toolingDemand": "CI/CD templates + observability + runbooks."
+  },
+  "starterDiagram": {
+    "title": "Small to real",
+    "description": "Ship a slice then repeat.",
+    "nodes": [
+      "Slice 1",
+      "Learn",
+      "Slice 2",
+      "Scale"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Integration platform modernization",
+    "approach": "Shipped one low-risk integration end-to-end with full ops, then reused the pattern.",
+    "outcome": "Built confidence and accelerated subsequent migrations."
+  },
+  "relatedPatterns": [
+    "devsecops-first-class",
+    "enablement-team-model"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": null,
+      "citationRequired": true
+    }
+  ],
+  "tags": [
+    "mvi",
+    "delivery",
+    "momentum"
+  ],
+  "lastUpdated": "2026-02-17"
+}

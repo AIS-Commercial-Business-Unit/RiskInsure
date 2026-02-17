@@ -1,0 +1,72 @@
+{
+  "id": "listening-tour",
+  "slug": "listening-tour",
+  "title": "Listening tour",
+  "category": "discovery",
+  "subcategory": "alignment",
+  "summary": "Structured interviews across business, ops, and engineering to surface constraints, risks, and success criteria.",
+  "decisionGuidance": {
+    "problemSolved": "Modernization fails when only a small technical group defines the plan and misses operational and business realities.",
+    "whenToUse": [
+      "You need cross-region alignment",
+      "Tribal knowledge is a known risk",
+      "Ops and security must support the end state"
+    ],
+    "whenNotToUse": [
+      "A decision has already been made and you only need execution planning"
+    ]
+  },
+  "enablingTechnologies": [
+    "Interview guides",
+    "Stakeholder map",
+    "Theme synthesis"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Turns into unstructured conversations with no decisions",
+      "Findings never enter backlog"
+    ],
+    "opinionatedGuidance": "Time-box to 2–3 weeks and produce: top risks, top patterns, and a decision log."
+  },
+  "complexity": {
+    "level": "medium",
+    "rationale": "Requires broad stakeholder access and synthesis discipline.",
+    "teamImpact": "multi-team",
+    "skillDemand": "Facilitation and synthesis; ability to translate concerns into architecture decisions.",
+    "operationalDemand": "Moderate—must capture operational constraints and turn them into guardrails.",
+    "toolingDemand": "Basic documentation tooling; shared repository for decisions."
+  },
+  "starterDiagram": {
+    "title": "Tour to decisions",
+    "description": "Capture signals and convert to decisions.",
+    "nodes": [
+      "Stakeholders",
+      "Signals",
+      "Themes",
+      "Decisions"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Integration platform modernization kickoff",
+    "approach": "Ran interviews across regions and functions; summarized constraints and success criteria.",
+    "outcome": "Earlier risk surfacing and fewer late surprises."
+  },
+  "relatedPatterns": [
+    "business-context-outcomes",
+    "success-metrics-before-migration"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": null,
+      "citationRequired": true
+    }
+  ],
+  "tags": [
+    "discovery",
+    "alignment",
+    "ocm"
+  ],
+  "lastUpdated": "2026-02-17"
+}

@@ -4,8 +4,10 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "validate-content": "node content-tools/validate-content.mjs",
+    "suggest-complexity": "node content-tools/suggest-complexity.mjs",
+    "dev": "npm run validate-content && vite",
+    "build": "npm run validate-content && vite build",
     "preview": "vite preview --host"
   },
   "dependencies": {

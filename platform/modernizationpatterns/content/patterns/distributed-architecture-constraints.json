@@ -1,0 +1,70 @@
+{
+  "id": "distributed-architecture-constraints",
+  "slug": "distributed-architecture-constraints",
+  "title": "Distributed architecture constraints",
+  "category": "strategic",
+  "subcategory": "guardrails",
+  "summary": "A small set of rules that prevent accidental coupling as the platform grows.",
+  "decisionGuidance": {
+    "problemSolved": "Teams unintentionally recreate a central broker by overusing synchronous calls and shared models.",
+    "whenToUse": [
+      "Multiple teams are building integrations in parallel",
+      "You want predictable outcomes"
+    ],
+    "whenNotToUse": [
+      "One team owns all integrations and releases together"
+    ]
+  },
+  "enablingTechnologies": [
+    "Architecture decision records",
+    "Reference architecture",
+    "Policy checks"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Constraints ignored without enforcement",
+      "Too many constraints block delivery"
+    ],
+    "opinionatedGuidance": "Enforce a few critical constraints (contracts, tracing, idempotency, versioning)."
+  },
+  "complexity": {
+    "level": "medium",
+    "rationale": "Constraints are simple; enforcement is the work.",
+    "teamImpact": "multi-team",
+    "skillDemand": "Architecture governance and facilitation.",
+    "operationalDemand": "Moderate—reduces incident blast radius.",
+    "toolingDemand": "Policy-as-code, templates, CI checks."
+  },
+  "starterDiagram": {
+    "title": "Guardrails",
+    "description": "Constraints applied to every integration.",
+    "nodes": [
+      "Patterns",
+      "Constraints",
+      "Implementations"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Large integration program",
+    "approach": "Defined constraints and validated them in CI templates.",
+    "outcome": "Reduced divergence and operational surprises."
+  },
+  "relatedPatterns": [
+    "devsecops-first-class",
+    "enablement-team-model"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": null,
+      "citationRequired": true
+    }
+  ],
+  "tags": [
+    "guardrails",
+    "governance",
+    "consistency"
+  ],
+  "lastUpdated": "2026-02-17"
+}

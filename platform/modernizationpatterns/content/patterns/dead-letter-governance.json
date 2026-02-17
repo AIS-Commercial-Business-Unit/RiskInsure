@@ -1,0 +1,72 @@
+{
+  "id": "dead-letter-governance",
+  "slug": "dead-letter-governance",
+  "title": "Dead-letter governance",
+  "category": "technical",
+  "subcategory": "operability",
+  "summary": "A standard policy for how messages are dead-lettered, investigated, and re-driven safely.",
+  "decisionGuidance": {
+    "problemSolved": "DLQs become black holes; teams lose trust and incidents repeat.",
+    "whenToUse": [
+      "You use messaging with retries",
+      "You need predictable recovery"
+    ],
+    "whenNotToUse": [
+      "Workloads are best-effort and can be dropped"
+    ]
+  },
+  "enablingTechnologies": [
+    "DLQ dashboards",
+    "Triage workflow",
+    "Replay tooling"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "DLQ grows silently until crisis",
+      "No ownership of poison messages"
+    ],
+    "opinionatedGuidance": "Define owners per integration, triage SLAs, and a standard re-drive workflow."
+  },
+  "complexity": {
+    "level": "medium",
+    "rationale": "Mostly process + tooling, but essential.",
+    "teamImpact": "multi-team",
+    "skillDemand": "Operational discipline and messaging internals.",
+    "operationalDemand": "High—directly impacts resilience and MTTR.",
+    "toolingDemand": "Dashboards + runbooks + tooling."
+  },
+  "starterDiagram": {
+    "title": "DLQ lifecycle",
+    "description": "Fail → DLQ → triage → fix → replay.",
+    "nodes": [
+      "Processing",
+      "Retries",
+      "DLQ",
+      "Triage",
+      "Replay"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Platform operations",
+    "approach": "Implemented DLQ triage workflow and ownership mapping.",
+    "outcome": "Lower MTTR and fewer repeated failures."
+  },
+  "relatedPatterns": [
+    "replay-reprocessing",
+    "operational-ai-agent"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": null,
+      "citationRequired": true
+    }
+  ],
+  "tags": [
+    "dlq",
+    "operations",
+    "reliability"
+  ],
+  "lastUpdated": "2026-02-17"
+}

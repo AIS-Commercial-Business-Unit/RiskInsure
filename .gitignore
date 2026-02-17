@@ -122,3 +122,7 @@ override.tf.json
 terraform.rc
 crash.log
 crash.*.log
+
+# Modernization patterns raw content inbox (do not check in uploads)
+platform/modernizationpatterns/content/_inbox/**
+!platform/modernizationpatterns/content/_inbox/README.md

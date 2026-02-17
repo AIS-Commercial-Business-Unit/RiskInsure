@@ -1,0 +1,70 @@
+{
+  "id": "domain-event-contracts",
+  "slug": "domain-event-contracts",
+  "title": "Domain event as integration contract",
+  "category": "strategic",
+  "subcategory": "contract-strategy",
+  "summary": "Use business events as the stable integration surface between domains and platform capabilities.",
+  "decisionGuidance": {
+    "problemSolved": "Integration fails when contracts are technical or implicit; teams cannot evolve independently.",
+    "whenToUse": [
+      "Multiple consumers need the same signal",
+      "You want independent deployment"
+    ],
+    "whenNotToUse": [
+      "You need immediate synchronous confirmation for every interaction"
+    ]
+  },
+  "enablingTechnologies": [
+    "Schema versioning",
+    "Event catalog",
+    "Contract testing"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Events become ‘data dumps’",
+      "No ownership of event meaning"
+    ],
+    "opinionatedGuidance": "Events must represent business facts, be owned, and have a deprecation policy."
+  },
+  "complexity": {
+    "level": "medium",
+    "rationale": "Mostly discipline and governance.",
+    "teamImpact": "multi-team",
+    "skillDemand": "Event modeling and contract governance skill.",
+    "operationalDemand": "Moderate—needs tracing and DLQ processes.",
+    "toolingDemand": "Schema registry or contract validation in CI."
+  },
+  "starterDiagram": {
+    "title": "Event contract",
+    "description": "Event published then consumed.",
+    "nodes": [
+      "Producer",
+      "Domain event",
+      "Consumers"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Insurance policy lifecycle",
+    "approach": "Published policy lifecycle events used by billing and notifications.",
+    "outcome": "New consumers added without changing producers."
+  },
+  "relatedPatterns": [
+    "event-driven-architecture",
+    "bounded-context-first"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": null,
+      "citationRequired": true
+    }
+  ],
+  "tags": [
+    "events",
+    "contracts",
+    "versioning"
+  ],
+  "lastUpdated": "2026-02-17"
+}

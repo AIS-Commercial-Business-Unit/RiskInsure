@@ -1,0 +1,71 @@
+{
+  "id": "change-data-capture-transition",
+  "slug": "change-data-capture-transition",
+  "title": "Change data capture transition",
+  "category": "strategic",
+  "subcategory": "data-transition",
+  "summary": "Use CDC to synchronize data changes during phased migration without tight coupling.",
+  "decisionGuidance": {
+    "problemSolved": "Legacy systems and new services must share data during transition; direct coupling creates brittleness.",
+    "whenToUse": [
+      "You need near-real-time data sync",
+      "You are decomposing a shared database"
+    ],
+    "whenNotToUse": [
+      "You can cut over data ownership quickly with minimal overlap"
+    ]
+  },
+  "enablingTechnologies": [
+    "CDC tooling",
+    "Event streaming",
+    "Data landing zone"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "CDC without ownership creates confusion",
+      "Event contracts drift from true semantics"
+    ],
+    "opinionatedGuidance": "Treat CDC events as transitional; move to domain events owned by the new domain over time."
+  },
+  "complexity": {
+    "level": "high",
+    "rationale": "Data correctness and ownership are difficult.",
+    "teamImpact": "multi-team",
+    "skillDemand": "Data engineering + domain modeling skill.",
+    "operationalDemand": "High—requires monitoring lag and correctness.",
+    "toolingDemand": "CDC tooling + tracing + reconciliation."
+  },
+  "starterDiagram": {
+    "title": "Sync during migration",
+    "description": "Capture changes and publish.",
+    "nodes": [
+      "Legacy DB",
+      "CDC",
+      "Stream",
+      "New service"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Database decomposition program",
+    "approach": "Published CDC to keep read models current during transition.",
+    "outcome": "Enabled phased cutover without freezing delivery."
+  },
+  "relatedPatterns": [
+    "event-driven-architecture",
+    "parallel-run-reconciliation"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": null,
+      "citationRequired": true
+    }
+  ],
+  "tags": [
+    "cdc",
+    "data",
+    "migration"
+  ],
+  "lastUpdated": "2026-02-17"
+}

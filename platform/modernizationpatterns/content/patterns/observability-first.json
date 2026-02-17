@@ -1,0 +1,72 @@
+{
+  "id": "observability-first",
+  "slug": "observability-first",
+  "title": "Observability-first platform",
+  "category": "devops",
+  "subcategory": "operational-excellence",
+  "summary": "Standardize logs, metrics, traces, and correlation so every integration is diagnosable and supportable.",
+  "decisionGuidance": {
+    "problemSolved": "Integration platforms become opaque without consistent telemetry; incidents become guesswork.",
+    "whenToUse": [
+      "You run distributed services and messaging",
+      "You need reliable operations"
+    ],
+    "whenNotToUse": [
+      "You can tolerate limited visibility and manual debugging"
+    ]
+  },
+  "enablingTechnologies": [
+    "Tracing",
+    "Correlation IDs",
+    "Dashboards"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Telemetry inconsistent across teams",
+      "No ownership of dashboards/runbooks"
+    ],
+    "opinionatedGuidance": "Mandate correlation IDs and standard dashboards for every integration from day one."
+  },
+  "complexity": {
+    "level": "medium",
+    "rationale": "Requires consistent adoption across teams.",
+    "teamImpact": "multi-team",
+    "skillDemand": "SRE/observability literacy and platform enforcement.",
+    "operationalDemand": "High—directly affects MTTR and reliability.",
+    "toolingDemand": "Tracing + log aggregation + dashboards."
+  },
+  "starterDiagram": {
+    "title": "See end-to-end",
+    "description": "Trace one request across services.",
+    "nodes": [
+      "Ingress",
+      "Services",
+      "Bus",
+      "Downstream",
+      "Dashboards"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Distributed integration ops",
+    "approach": "Standardized correlation and dashboards across integrations.",
+    "outcome": "Faster incident resolution and better platform trust."
+  },
+  "relatedPatterns": [
+    "operational-ai-agent",
+    "dead-letter-governance"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": null,
+      "citationRequired": true
+    }
+  ],
+  "tags": [
+    "observability",
+    "operations",
+    "telemetry"
+  ],
+  "lastUpdated": "2026-02-17"
+}

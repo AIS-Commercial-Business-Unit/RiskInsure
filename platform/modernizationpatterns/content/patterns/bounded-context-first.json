@@ -1,0 +1,70 @@
+{
+  "id": "bounded-context-first",
+  "slug": "bounded-context-first",
+  "title": "Bounded context first",
+  "category": "strategic",
+  "subcategory": "architecture-boundaries",
+  "summary": "Define domain boundaries and ownership before designing integration flows.",
+  "decisionGuidance": {
+    "problemSolved": "Without boundaries, integration becomes a shared dumping ground and recreates broker-style coupling.",
+    "whenToUse": [
+      "Multiple teams contribute integrations",
+      "Domain ownership is unclear"
+    ],
+    "whenNotToUse": [
+      "A single team owns the full flow end-to-end and will remain so"
+    ]
+  },
+  "enablingTechnologies": [
+    "Context maps",
+    "Ownership model",
+    "Contract repository"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Boundaries defined on org charts instead of business capabilities",
+      "Shared databases leak coupling"
+    ],
+    "opinionatedGuidance": "Use business capabilities to define boundaries; enforce contracts between contexts."
+  },
+  "complexity": {
+    "level": "high",
+    "rationale": "Boundary definition drives sequencing and team structure.",
+    "teamImpact": "multi-team",
+    "skillDemand": "Domain modeling and architecture facilitation skill.",
+    "operationalDemand": "High—boundaries reduce incident blast radius.",
+    "toolingDemand": "Contract tooling and schema governance."
+  },
+  "starterDiagram": {
+    "title": "Boundaries and contracts",
+    "description": "Context to context via contracts.",
+    "nodes": [
+      "Context A",
+      "Contract",
+      "Context B"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Integration platform redesign",
+    "approach": "Established 6–9 contexts and made contracts explicit.",
+    "outcome": "Fewer cross-team release dependencies."
+  },
+  "relatedPatterns": [
+    "bounded-context-first",
+    "anti-corruption-layer"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": null,
+      "citationRequired": true
+    }
+  ],
+  "tags": [
+    "ddd",
+    "boundaries",
+    "ownership"
+  ],
+  "lastUpdated": "2026-02-17"
+}

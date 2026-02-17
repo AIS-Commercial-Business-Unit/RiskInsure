@@ -1,39 +1,25 @@
-import { BrowserRouter, Link, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import Home from './routes/Home.jsx';
 import Category from './routes/Category.jsx';
-import { categories } from './data/patterns.js';
-
-const navItems = categories.map((category) => ({
-  slug: category.slug,
-  title: category.title
-}));
+import Pattern from './routes/Pattern.jsx';
+import { getCategories, getPatterns } from './data/patternsRepository.js';
 
 export default function App() {
+  const categories = getCategories();
+  const patterns = getPatterns();
+
   return (
     <BrowserRouter>
       <div className="app-shell">
-        <header className="site-header">
-          <div className="brand">
-            <Link to="/" className="brand-mark">
-              Modernization Patterns Atlas
-            </Link>
-            <p className="brand-tagline">
-              Clear patterns for complex systems.
-            </p>
-          </div>
-          <nav className="top-nav">
-            {navItems.map((item) => (
-              <Link key={item.slug} to={`/patterns/${item.slug}`}>
-                {item.title}
-              </Link>
-            ))}
-          </nav>
+        <header className="simple-header">
+          <h1>Modernization Patterns</h1>
         </header>
 
         <main>
           <Routes>
-            <Route path="/" element={<Home categories={categories} />} />
-            <Route path="/patterns/:slug" element={<Category categories={categories} />} />
+            <Route path="/" element={<Home categories={categories} patterns={patterns} />} />
+            <Route path="/category/:category" element={<Category />} />
+            <Route path="/pattern/:slug" element={<Pattern />} />
           </Routes>
         </main>
 

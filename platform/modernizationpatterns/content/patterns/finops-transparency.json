@@ -1,0 +1,71 @@
+{
+  "id": "finops-transparency",
+  "slug": "finops-transparency",
+  "title": "FinOps transparency",
+  "category": "devops",
+  "subcategory": "finops",
+  "summary": "Make cost and scaling visible per integration workload so the platform stays sustainable.",
+  "decisionGuidance": {
+    "problemSolved": "Modernization can increase run cost if scaling and usage are opaque.",
+    "whenToUse": [
+      "Many integrations run 24/7",
+      "Leaders need cost control and chargeback/showback"
+    ],
+    "whenNotToUse": [
+      "Cost is irrelevant compared to risk and time (rare)"
+    ]
+  },
+  "enablingTechnologies": [
+    "Cost dashboards",
+    "Tagging standards",
+    "Budget alerts"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Wrong tagging breaks reporting",
+      "Teams optimize cost at the expense of reliability"
+    ],
+    "opinionatedGuidance": "Show cost per integration and tie it to throughput and SLOs; optimize with data."
+  },
+  "complexity": {
+    "level": "medium",
+    "rationale": "Requires tagging discipline and good dashboards.",
+    "teamImpact": "multi-team",
+    "skillDemand": "Cloud cost management and platform governance skill.",
+    "operationalDemand": "Moderate—impacts scaling choices and operational policies.",
+    "toolingDemand": "Cost management tooling + tags + alerts."
+  },
+  "starterDiagram": {
+    "title": "Cost by workload",
+    "description": "Tag and report by integration.",
+    "nodes": [
+      "Workloads",
+      "Tags",
+      "Cost reports",
+      "Decisions"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Integration platform operations",
+    "approach": "Introduced tagging and cost dashboards for integration workloads.",
+    "outcome": "More predictable spend and better scaling decisions."
+  },
+  "relatedPatterns": [
+    "platform-simplification-mandate",
+    "success-metrics-before-migration"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": null,
+      "citationRequired": true
+    }
+  ],
+  "tags": [
+    "finops",
+    "cost",
+    "governance"
+  ],
+  "lastUpdated": "2026-02-17"
+}

@@ -1,0 +1,70 @@
+{
+  "id": "shim-and-facade",
+  "slug": "shim-and-facade",
+  "title": "Shim and facade strategy",
+  "category": "strategic",
+  "subcategory": "compatibility",
+  "summary": "Introduce thin adapters to keep old consumers stable while modernizing behind the interface.",
+  "decisionGuidance": {
+    "problemSolved": "Legacy consumers often cannot change quickly; modernization must proceed anyway.",
+    "whenToUse": [
+      "Many consumers depend on WCF/SOAP/SFTP formats",
+      "You need backward compatibility"
+    ],
+    "whenNotToUse": [
+      "You can update all consumers quickly with coordinated releases"
+    ]
+  },
+  "enablingTechnologies": [
+    "API gateway",
+    "Protocol translation",
+    "Contract mapping"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Facade becomes a permanent crutch",
+      "Too much logic in shims"
+    ],
+    "opinionatedGuidance": "Keep shims thin and time-box them; move logic into domain services."
+  },
+  "complexity": {
+    "level": "medium",
+    "rationale": "Compatibility layers add work but enable progress.",
+    "teamImpact": "multi-team",
+    "skillDemand": "Integration mapping and API gateway experience.",
+    "operationalDemand": "Moderate—must monitor and secure edge adapters.",
+    "toolingDemand": "Gateway policies + contract tests."
+  },
+  "starterDiagram": {
+    "title": "Edge compatibility",
+    "description": "Consumers call facade; internals modernize.",
+    "nodes": [
+      "Legacy consumer",
+      "Facade",
+      "Modern services"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Protocol modernization",
+    "approach": "Kept SOAP endpoints while moving internals to events and APIs.",
+    "outcome": "Reduced consumer disruption and enabled phased migration."
+  },
+  "relatedPatterns": [
+    "anti-corruption-layer",
+    "composite-api"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": null,
+      "citationRequired": true
+    }
+  ],
+  "tags": [
+    "facade",
+    "compatibility",
+    "migration"
+  ],
+  "lastUpdated": "2026-02-17"
+}

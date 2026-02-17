@@ -1,0 +1,71 @@
+{
+  "id": "ai-ready-enablement",
+  "slug": "ai-ready-enablement",
+  "title": "AI-ready enablement",
+  "category": "enablement",
+  "subcategory": "ai-adoption",
+  "summary": "Prepare teams and governance so AI-assisted delivery and AI-ops can be adopted safely and consistently.",
+  "decisionGuidance": {
+    "problemSolved": "AI initiatives fail when teams lack guardrails, patterns, and operational readiness.",
+    "whenToUse": [
+      "You plan to use Copilot/agents at scale",
+      "You need consistent outputs and safety"
+    ],
+    "whenNotToUse": [
+      "AI is not in scope for the organization"
+    ]
+  },
+  "enablingTechnologies": [
+    "Copilot instructions",
+    "Prompt patterns",
+    "Governance"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Inconsistent prompts create inconsistent systems",
+      "Over-trusting AI outputs"
+    ],
+    "opinionatedGuidance": "Constrain AI with architecture boundaries, examples, and definition of done; measure outcomes."
+  },
+  "complexity": {
+    "level": "medium",
+    "rationale": "Mostly governance and enablement work.",
+    "teamImpact": "multi-team",
+    "skillDemand": "Context engineering + platform governance skill.",
+    "operationalDemand": "Moderate—affects how changes are produced and reviewed.",
+    "toolingDemand": "Repo-based instructions + policy checks."
+  },
+  "starterDiagram": {
+    "title": "Constrain then scale",
+    "description": "Guardrails enable safe adoption.",
+    "nodes": [
+      "Standards",
+      "Instructions",
+      "Review",
+      "Scale"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Agentic delivery rollout",
+    "approach": "Created instructions and review gates for AI-generated changes.",
+    "outcome": "Higher consistency and lower rework."
+  },
+  "relatedPatterns": [
+    "operational-ai-agent",
+    "devsecops-first-class"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": null,
+      "citationRequired": true
+    }
+  ],
+  "tags": [
+    "ai",
+    "enablement",
+    "governance"
+  ],
+  "lastUpdated": "2026-02-17"
+}

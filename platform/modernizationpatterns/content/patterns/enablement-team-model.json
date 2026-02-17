@@ -1,0 +1,71 @@
+{
+  "id": "enablement-team-model",
+  "slug": "enablement-team-model",
+  "title": "Enablement team model",
+  "category": "enablement",
+  "subcategory": "team-topologies",
+  "summary": "A coaching-focused team that accelerates adoption of patterns through pairing, workshops, and templates.",
+  "decisionGuidance": {
+    "problemSolved": "Patterns fail when teams are told to change but not supported in how to change.",
+    "whenToUse": [
+      "New architecture introduces new skills",
+      "You need broad adoption quickly"
+    ],
+    "whenNotToUse": [
+      "Only a small group will build on the platform"
+    ]
+  },
+  "enablingTechnologies": [
+    "Workshops",
+    "Pairing",
+    "Office hours"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Enablement becomes training-only and loses feedback loops",
+      "No measurable outcomes"
+    ],
+    "opinionatedGuidance": "Measure adoption and outcomes; treat enablement as continuous, not one-time training."
+  },
+  "complexity": {
+    "level": "low",
+    "rationale": "Mostly people and process; high leverage.",
+    "teamImpact": "multi-team",
+    "skillDemand": "Coaching, facilitation, and architecture translation skill.",
+    "operationalDemand": "Low—indirect operational impact via better adoption.",
+    "toolingDemand": "Docs, examples, and learning paths."
+  },
+  "starterDiagram": {
+    "title": "Accelerate teams",
+    "description": "Enablement supports product teams.",
+    "nodes": [
+      "Enablement team",
+      "Teams",
+      "Patterns",
+      "Feedback"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Integration platform rollout",
+    "approach": "Paired with teams to ship first integrations and captured lessons into templates.",
+    "outcome": "Faster adoption and fewer divergent implementations."
+  },
+  "relatedPatterns": [
+    "enablement-team-model",
+    "platform-simplification-mandate"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": null,
+      "citationRequired": true
+    }
+  ],
+  "tags": [
+    "enablement",
+    "adoption",
+    "teams"
+  ],
+  "lastUpdated": "2026-02-17"
+}

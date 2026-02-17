@@ -1,0 +1,71 @@
+{
+  "id": "strangler-fig-migration",
+  "slug": "strangler-fig-migration",
+  "title": "Strangler fig migration",
+  "category": "strategic",
+  "subcategory": "transition-strategy",
+  "summary": "Incrementally replace legacy flows by routing traffic to new capabilities while legacy continues to run.",
+  "decisionGuidance": {
+    "problemSolved": "Big-bang cutovers fail under operational and dependency complexity.",
+    "whenToUse": [
+      "Legacy platform must stay up during migration",
+      "You need incremental releases"
+    ],
+    "whenNotToUse": [
+      "The component is small and low-risk to replace outright"
+    ]
+  },
+  "enablingTechnologies": [
+    "Routing layer",
+    "Facade APIs",
+    "Traffic switching"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Routing becomes messy without ownership",
+      "Hard to prove equivalence without reconciliation"
+    ],
+    "opinionatedGuidance": "Tie routing to domain slices and measure equivalence before expanding cutover."
+  },
+  "complexity": {
+    "level": "high",
+    "rationale": "Requires sequencing, routing, and validation.",
+    "teamImpact": "multi-team",
+    "skillDemand": "Modernization architecture + release engineering skill.",
+    "operationalDemand": "High—must maintain stability while shifting traffic.",
+    "toolingDemand": "Routing controls + observability + feature flags."
+  },
+  "starterDiagram": {
+    "title": "Incremental cutover",
+    "description": "Route some traffic to new service.",
+    "nodes": [
+      "Clients",
+      "Router/facade",
+      "Legacy",
+      "New service"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Integration migration waves",
+    "approach": "Moved one flow at a time behind a facade with telemetry and rollback.",
+    "outcome": "Safer transition with visible progress."
+  },
+  "relatedPatterns": [
+    "parallel-run-reconciliation",
+    "feature-flag-release"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": null,
+      "citationRequired": true
+    }
+  ],
+  "tags": [
+    "migration",
+    "strangler",
+    "cutover"
+  ],
+  "lastUpdated": "2026-02-17"
+}

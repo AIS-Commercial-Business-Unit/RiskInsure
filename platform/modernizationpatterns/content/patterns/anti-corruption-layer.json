@@ -1,0 +1,70 @@
+{
+  "id": "anti-corruption-layer",
+  "slug": "anti-corruption-layer",
+  "title": "Anti-corruption layer",
+  "category": "strategic",
+  "subcategory": "modernization-guardrails",
+  "summary": "Isolate legacy models and behaviors so they do not leak into modern services.",
+  "decisionGuidance": {
+    "problemSolved": "Legacy middleware often encodes legacy semantics; copying them forward locks in complexity.",
+    "whenToUse": [
+      "Legacy systems have awkward schemas or behaviors",
+      "You need incremental migration"
+    ],
+    "whenNotToUse": [
+      "You can replace the legacy system in a short time with low risk"
+    ]
+  },
+  "enablingTechnologies": [
+    "Facade services",
+    "Mapping layer",
+    "Contract translators"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "ACL becomes a permanent dumping ground",
+      "Too much transformation hides business meaning"
+    ],
+    "opinionatedGuidance": "Keep ACL thin: translate terms, not business decisions."
+  },
+  "complexity": {
+    "level": "medium",
+    "rationale": "Introduces an extra layer but reduces long-term coupling.",
+    "teamImpact": "multi-team",
+    "skillDemand": "Architecture and integration mapping skill.",
+    "operationalDemand": "Moderate—must be observable and testable.",
+    "toolingDemand": "Contract tests, mapping test harness."
+  },
+  "starterDiagram": {
+    "title": "Legacy shield",
+    "description": "Modern system calls through ACL.",
+    "nodes": [
+      "Modern service",
+      "ACL",
+      "Legacy system"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Broker replacement wave",
+    "approach": "Wrapped legacy endpoints with contract translators and gradual cutover.",
+    "outcome": "Reduced churn in modern domains while retiring legacy."
+  },
+  "relatedPatterns": [
+    "domain-event-contracts",
+    "branch-by-abstraction"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": null,
+      "citationRequired": true
+    }
+  ],
+  "tags": [
+    "acl",
+    "decoupling",
+    "modernization"
+  ],
+  "lastUpdated": "2026-02-17"
+}

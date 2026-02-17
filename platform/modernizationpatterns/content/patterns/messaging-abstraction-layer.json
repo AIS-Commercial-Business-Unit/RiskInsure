@@ -1,0 +1,70 @@
+{
+  "id": "messaging-abstraction-layer",
+  "slug": "messaging-abstraction-layer",
+  "title": "Messaging abstraction layer",
+  "category": "technical",
+  "subcategory": "platform-implementation",
+  "summary": "A standard library and conventions for producing/consuming messages so teams implement patterns consistently.",
+  "decisionGuidance": {
+    "problemSolved": "Teams re-implement retries, correlation, headers, and DLQ handling differently, increasing operational cost.",
+    "whenToUse": [
+      "Many teams build message handlers",
+      "You need consistent telemetry and safety"
+    ],
+    "whenNotToUse": [
+      "Only one team builds all handlers and will remain so"
+    ]
+  },
+  "enablingTechnologies": [
+    "Shared library",
+    "Header conventions",
+    "Telemetry wrappers"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Abstraction hides important behavior",
+      "Library becomes a bottleneck if not owned"
+    ],
+    "opinionatedGuidance": "Make it opinionated and small: correlation, idempotency hooks, telemetry, and error routing."
+  },
+  "complexity": {
+    "level": "medium",
+    "rationale": "Good leverage when owned and versioned.",
+    "teamImpact": "multi-team",
+    "skillDemand": "Platform engineering skill and API design discipline.",
+    "operationalDemand": "Moderate—reduces operational variance.",
+    "toolingDemand": "Package management + versioning + CI integration."
+  },
+  "starterDiagram": {
+    "title": "Consistent handlers",
+    "description": "Handlers built on shared primitives.",
+    "nodes": [
+      "Handler template",
+      "Shared library",
+      "Bus"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Integration platform build-out",
+    "approach": "Provided a shared library for correlation and error routing across services.",
+    "outcome": "More consistent behavior and easier support."
+  },
+  "relatedPatterns": [
+    "devsecops-first-class",
+    "enablement-team-model"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": null,
+      "citationRequired": true
+    }
+  ],
+  "tags": [
+    "messaging",
+    "platform",
+    "consistency"
+  ],
+  "lastUpdated": "2026-02-17"
+}

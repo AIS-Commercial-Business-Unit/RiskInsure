@@ -1,0 +1,70 @@
+{
+  "id": "bus-over-broker-strategy",
+  "slug": "bus-over-broker-strategy",
+  "title": "Bus over broker strategy",
+  "category": "strategic",
+  "subcategory": "platform-direction",
+  "summary": "Prefer distributed eventing and explicit contracts over centralized broker orchestration for long-term agility.",
+  "decisionGuidance": {
+    "problemSolved": "Central brokers become bottlenecks and knowledge silos; modernization needs scalable ownership.",
+    "whenToUse": [
+      "Integration portfolio is large and growing",
+      "You need multi-team parallelism"
+    ],
+    "whenNotToUse": [
+      "The platform is small, stable, and centrally owned with low change frequency"
+    ]
+  },
+  "enablingTechnologies": [
+    "Eventing backbone",
+    "Contract governance",
+    "Process managers"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Teams assume the bus removes need for design",
+      "Operational maturity is required"
+    ],
+    "opinionatedGuidance": "Use the bus to decouple, not to avoid responsibility. Ownership and contracts are mandatory."
+  },
+  "complexity": {
+    "level": "medium",
+    "rationale": "Strategic choice with downstream impacts.",
+    "teamImpact": "multi-team",
+    "skillDemand": "Enterprise architecture and platform strategy skill.",
+    "operationalDemand": "High—changes ops model and observability requirements.",
+    "toolingDemand": "Messaging + observability + governance tooling."
+  },
+  "starterDiagram": {
+    "title": "Direction setting",
+    "description": "Broker model shifts toward distributed patterns.",
+    "nodes": [
+      "Legacy broker",
+      "Transition patterns",
+      "Event bus"
+    ]
+  },
+  "realWorldExample": {
+    "context": "BizTalk retirement planning",
+    "approach": "Framed platform direction around contracts and events, with orchestration moved into process managers.",
+    "outcome": "More scalable delivery across teams."
+  },
+  "relatedPatterns": [
+    "event-driven-architecture",
+    "saga-process-manager"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": null,
+      "citationRequired": true
+    }
+  ],
+  "tags": [
+    "strategy",
+    "integration",
+    "platform"
+  ],
+  "lastUpdated": "2026-02-17"
+}

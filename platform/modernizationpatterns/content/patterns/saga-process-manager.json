@@ -1,0 +1,71 @@
+{
+  "id": "saga-process-manager",
+  "slug": "saga-process-manager",
+  "title": "Saga / process manager",
+  "category": "technical",
+  "subcategory": "workflow-consistency",
+  "summary": "Coordinate long-running, multi-step workflows with explicit state, timeouts, and compensation.",
+  "decisionGuidance": {
+    "problemSolved": "BizTalk orchestrations hide workflow state; modernization needs explicit coordination and recovery.",
+    "whenToUse": [
+      "Workflows span multiple systems and time",
+      "Failures need compensation or manual recovery"
+    ],
+    "whenNotToUse": [
+      "A single system can complete the work transactionally in one step"
+    ]
+  },
+  "enablingTechnologies": [
+    "Service Bus",
+    "Durable state store",
+    "Timers"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Sagas become mini-monoliths",
+      "Unclear ownership of process state"
+    ],
+    "opinionatedGuidance": "Model sagas around business processes; keep state minimal; make timeouts explicit."
+  },
+  "complexity": {
+    "level": "high",
+    "rationale": "Workflow coordination is complex and operationally sensitive.",
+    "teamImpact": "multi-team",
+    "skillDemand": "Distributed workflow design and failure-mode expertise.",
+    "operationalDemand": "High—requires tracing, replay strategy, and runbooks.",
+    "toolingDemand": "Message correlation + durable storage + observability."
+  },
+  "starterDiagram": {
+    "title": "Long-running flow",
+    "description": "Events drive state transitions.",
+    "nodes": [
+      "Start event",
+      "Process manager",
+      "Commands",
+      "Completion event"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Policy cancellation and reinstatement",
+    "approach": "Used a saga to manage delinquency → notice → cancel with timers and compensation.",
+    "outcome": "Predictable behavior and easier recovery than hidden orchestration."
+  },
+  "relatedPatterns": [
+    "outbox-idempotency",
+    "replay-reprocessing"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": null,
+      "citationRequired": true
+    }
+  ],
+  "tags": [
+    "saga",
+    "workflow",
+    "consistency"
+  ],
+  "lastUpdated": "2026-02-17"
+}

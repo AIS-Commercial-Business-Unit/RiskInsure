@@ -1,0 +1,71 @@
+{
+  "id": "feature-flag-release",
+  "slug": "feature-flag-release",
+  "title": "Feature flag release strategy",
+  "category": "strategic",
+  "subcategory": "release-safety",
+  "summary": "Control rollout, risk, and rollback by gating new integration capabilities with flags.",
+  "decisionGuidance": {
+    "problemSolved": "Integration changes can cause large blast radius; flags reduce impact while learning.",
+    "whenToUse": [
+      "You need safe rollouts across regions/business lines",
+      "You expect iterative changes"
+    ],
+    "whenNotToUse": [
+      "You cannot tolerate any behavior divergence in production"
+    ]
+  },
+  "enablingTechnologies": [
+    "Feature flag service",
+    "Config management",
+    "Progressive delivery"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Flags left on forever create complexity",
+      "Too many flags become unmanageable"
+    ],
+    "opinionatedGuidance": "Time-box flags and require cleanup in the definition of done."
+  },
+  "complexity": {
+    "level": "low",
+    "rationale": "Implementation is straightforward; discipline is the challenge.",
+    "teamImpact": "multi-team",
+    "skillDemand": "Release management and operational discipline.",
+    "operationalDemand": "Moderate—rollout and rollback must be practiced.",
+    "toolingDemand": "Flag tooling and deployment automation."
+  },
+  "starterDiagram": {
+    "title": "Progressive rollout",
+    "description": "Enable for small cohorts first.",
+    "nodes": [
+      "Deploy",
+      "Flag off",
+      "Enable cohort",
+      "Expand"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Integration platform rollout",
+    "approach": "Rolled out new handlers to one region at a time using flags.",
+    "outcome": "Reduced incidents and improved learning speed."
+  },
+  "relatedPatterns": [
+    "devsecops-first-class",
+    "canary-deployment"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": null,
+      "citationRequired": true
+    }
+  ],
+  "tags": [
+    "feature-flags",
+    "progressive-delivery",
+    "safety"
+  ],
+  "lastUpdated": "2026-02-17"
+}

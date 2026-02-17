@@ -1,0 +1,71 @@
+{
+  "id": "devsecops-first-class",
+  "slug": "devsecops-first-class",
+  "title": "DevSecOps as a first-class capability",
+  "category": "devops",
+  "subcategory": "security-delivery",
+  "summary": "Bake security, compliance, and quality controls into delivery paths so modernization can move fast safely.",
+  "decisionGuidance": {
+    "problemSolved": "Security and compliance gates become blockers if they are not designed into the platform from the start.",
+    "whenToUse": [
+      "Regulated workloads",
+      "Multiple teams deliver integrations"
+    ],
+    "whenNotToUse": [
+      "A short-lived spike with no intent to productionize"
+    ]
+  },
+  "enablingTechnologies": [
+    "Policy as code",
+    "Secrets scanning",
+    "Environment gates"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Security exceptions become invisible risk",
+      "Overly heavy gates slow delivery"
+    ],
+    "opinionatedGuidance": "Automate the basics (scans, policies) and focus humans on true risk decisions."
+  },
+  "complexity": {
+    "level": "medium",
+    "rationale": "Tooling exists; alignment and enforcement are hard.",
+    "teamImpact": "multi-team",
+    "skillDemand": "Security engineering + CI/CD literacy.",
+    "operationalDemand": "High—directly affects production safety.",
+    "toolingDemand": "CI/CD checks, policy tooling, secret management."
+  },
+  "starterDiagram": {
+    "title": "Secure pipeline",
+    "description": "Build → verify → deploy with checks.",
+    "nodes": [
+      "Code",
+      "CI checks",
+      "Approve",
+      "Deploy"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Platform productionization",
+    "approach": "Integrated security scans and environment approvals into standard pipelines.",
+    "outcome": "Fewer late-stage security surprises."
+  },
+  "relatedPatterns": [
+    "devsecops-first-class",
+    "platform-simplification-mandate"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": null,
+      "citationRequired": true
+    }
+  ],
+  "tags": [
+    "devsecops",
+    "security",
+    "compliance"
+  ],
+  "lastUpdated": "2026-02-17"
+}

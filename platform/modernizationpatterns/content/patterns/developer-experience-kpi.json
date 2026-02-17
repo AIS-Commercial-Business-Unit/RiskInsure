@@ -1,0 +1,71 @@
+{
+  "id": "developer-experience-kpi",
+  "slug": "developer-experience-kpi",
+  "title": "Developer experience as a KPI",
+  "category": "enablement",
+  "subcategory": "dx",
+  "summary": "Measure and improve the time and friction it takes teams to deliver an integration from idea to production.",
+  "decisionGuidance": {
+    "problemSolved": "Modern platforms fail when they are hard to use; teams route around them and create sprawl.",
+    "whenToUse": [
+      "You want broad adoption",
+      "Multiple teams deliver regularly"
+    ],
+    "whenNotToUse": [
+      "Only a specialized team will use the platform"
+    ]
+  },
+  "enablingTechnologies": [
+    "Golden paths",
+    "Self-service docs",
+    "Templates"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Measuring only satisfaction misses outcomes",
+      "No action taken on feedback"
+    ],
+    "opinionatedGuidance": "Measure lead time, first-deploy time, and % using golden path; improve monthly."
+  },
+  "complexity": {
+    "level": "low",
+    "rationale": "Mostly measurement and continuous improvement.",
+    "teamImpact": "multi-team",
+    "skillDemand": "Platform product thinking and analytics.",
+    "operationalDemand": "Low—improves consistency indirectly.",
+    "toolingDemand": "Telemetry on templates and pipeline usage."
+  },
+  "starterDiagram": {
+    "title": "Measure friction",
+    "description": "Capture metrics and improve.",
+    "nodes": [
+      "Onboard",
+      "Build",
+      "Deploy",
+      "Measure"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Platform adoption",
+    "approach": "Tracked onboarding time and standardized templates to reduce friction.",
+    "outcome": "Higher adoption and faster delivery."
+  },
+  "relatedPatterns": [
+    "enablement-team-model",
+    "devsecops-first-class"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": null,
+      "citationRequired": true
+    }
+  ],
+  "tags": [
+    "dx",
+    "metrics",
+    "adoption"
+  ],
+  "lastUpdated": "2026-02-17"
+}

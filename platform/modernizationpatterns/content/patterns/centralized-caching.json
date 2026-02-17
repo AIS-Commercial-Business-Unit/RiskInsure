@@ -1,0 +1,70 @@
+{
+  "id": "centralized-caching",
+  "slug": "centralized-caching",
+  "title": "Centralized caching with delegated ownership",
+  "category": "technical",
+  "subcategory": "performance-patterns",
+  "summary": "Cache external reference data once, while delegating cache population logic to the owning domain teams.",
+  "decisionGuidance": {
+    "problemSolved": "Modernization often increases external calls; without caching, cost and latency explode.",
+    "whenToUse": [
+      "External data is reused across many flows",
+      "External systems have rate limits or high latency"
+    ],
+    "whenNotToUse": [
+      "Data must always be real-time and cannot be cached"
+    ]
+  },
+  "enablingTechnologies": [
+    "Cache store",
+    "Cache API",
+    "TTL policies"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Stale cache causes incorrect business decisions",
+      "Ownership ambiguity creates data drift"
+    ],
+    "opinionatedGuidance": "Cache is a product: define owners, TTL, invalidation, and fallback behavior."
+  },
+  "complexity": {
+    "level": "medium",
+    "rationale": "Implementation is manageable; correctness is the challenge.",
+    "teamImpact": "multi-team",
+    "skillDemand": "Distributed caching design and domain ownership discipline.",
+    "operationalDemand": "Moderate—monitor hit rate, staleness, and fallbacks.",
+    "toolingDemand": "Cache infrastructure + metrics."
+  },
+  "starterDiagram": {
+    "title": "Shared lookup",
+    "description": "Domains use cache instead of calling external each time.",
+    "nodes": [
+      "Domain service",
+      "Cache",
+      "External system"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Shared underwriting lookups",
+    "approach": "Central cache served common lookups and reduced repeated calls.",
+    "outcome": "Lower latency and more predictable cost."
+  },
+  "relatedPatterns": [
+    "composite-integration-layer",
+    "ai-ready-integration"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": null,
+      "citationRequired": true
+    }
+  ],
+  "tags": [
+    "cache",
+    "performance",
+    "cost"
+  ],
+  "lastUpdated": "2026-02-17"
+}

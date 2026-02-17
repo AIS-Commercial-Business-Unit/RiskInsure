@@ -1,0 +1,72 @@
+{
+  "id": "event-storming",
+  "slug": "event-storming",
+  "title": "Event Storming for integration clarity",
+  "category": "discovery",
+  "subcategory": "domain-modeling",
+  "summary": "Facilitated modeling to make workflows, handoffs, and integration contracts visible and testable.",
+  "decisionGuidance": {
+    "problemSolved": "Hidden orchestration complexity (parallel flows, batch dependencies, rules) causes migration rework and outages.",
+    "whenToUse": [
+      "Integrations are poorly documented",
+      "Long-running workflows and batch jobs exist",
+      "Multiple teams share ownership"
+    ],
+    "whenNotToUse": [
+      "The scope is a single, simple interface with clear documentation"
+    ]
+  },
+  "enablingTechnologies": [
+    "Workshop facilitation",
+    "Domain event vocabulary",
+    "Process modeling tools"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Workshops produce posters but no backlog",
+      "Teams model without deciding ownership"
+    ],
+    "opinionatedGuidance": "End each session with: contracts, owners, and migration slices that map to backlog items."
+  },
+  "complexity": {
+    "level": "medium",
+    "rationale": "Requires cross-team participation and strong facilitation.",
+    "teamImpact": "multi-team",
+    "skillDemand": "Facilitation plus enough technical knowledge to translate models into implementation slices.",
+    "operationalDemand": "Moderate—improves downstream operability by making flows explicit.",
+    "toolingDemand": "Whiteboarding tools + repo for contracts and decisions."
+  },
+  "starterDiagram": {
+    "title": "From events to contracts",
+    "description": "Model process and extract contracts.",
+    "nodes": [
+      "Actors",
+      "Commands",
+      "Domain Events",
+      "Integrations"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Representative integration workflow selection",
+    "approach": "Modeled 2–3 critical flows and extracted event contracts and ownership.",
+    "outcome": "Reduced ambiguity and improved migration sequencing."
+  },
+  "relatedPatterns": [
+    "bounded-context-first",
+    "domain-event-contracts"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": null,
+      "citationRequired": true
+    }
+  ],
+  "tags": [
+    "event-storming",
+    "domains",
+    "contracts"
+  ],
+  "lastUpdated": "2026-02-17"
+}

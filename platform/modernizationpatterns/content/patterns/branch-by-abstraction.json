@@ -1,0 +1,71 @@
+{
+  "id": "branch-by-abstraction",
+  "slug": "branch-by-abstraction",
+  "title": "Branch by abstraction",
+  "category": "strategic",
+  "subcategory": "transition-strategy",
+  "summary": "Introduce an abstraction layer so multiple implementations can run in parallel and be switched safely.",
+  "decisionGuidance": {
+    "problemSolved": "Direct rewrites force risky cutovers and make testing difficult.",
+    "whenToUse": [
+      "You need to swap providers (BizTalk → Azure) gradually",
+      "Multiple consumers depend on the interface"
+    ],
+    "whenNotToUse": [
+      "The interface is short-lived or will be discarded"
+    ]
+  },
+  "enablingTechnologies": [
+    "Interface contracts",
+    "Adapters",
+    "Feature flags"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Abstraction leaks legacy semantics",
+      "Too many variants become unmanageable"
+    ],
+    "opinionatedGuidance": "Keep the interface stable and small; measure usage and retire old implementations quickly."
+  },
+  "complexity": {
+    "level": "medium",
+    "rationale": "Adds indirection but reduces migration risk.",
+    "teamImpact": "multi-team",
+    "skillDemand": "Strong interface design and testing discipline.",
+    "operationalDemand": "Moderate—switching needs safety and observability.",
+    "toolingDemand": "Contract tests, feature flags, routing."
+  },
+  "starterDiagram": {
+    "title": "Swap behind interface",
+    "description": "Two implementations behind one contract.",
+    "nodes": [
+      "Caller",
+      "Abstraction",
+      "Legacy impl",
+      "New impl"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Middleware platform transition",
+    "approach": "Added a stable contract and ran implementations side-by-side.",
+    "outcome": "Reduced cutover risk and improved confidence."
+  },
+  "relatedPatterns": [
+    "parallel-run-reconciliation",
+    "bounded-context-first"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": null,
+      "citationRequired": true
+    }
+  ],
+  "tags": [
+    "abstraction",
+    "migration",
+    "safety"
+  ],
+  "lastUpdated": "2026-02-17"
+}

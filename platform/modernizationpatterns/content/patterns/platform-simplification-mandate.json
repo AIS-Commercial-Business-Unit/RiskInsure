@@ -1,0 +1,71 @@
+{
+  "id": "platform-simplification-mandate",
+  "slug": "platform-simplification-mandate",
+  "title": "Platform simplification mandate",
+  "category": "discovery",
+  "subcategory": "platform-strategy",
+  "summary": "An explicit constraint to reduce tools, languages, and operational variation while modernizing.",
+  "decisionGuidance": {
+    "problemSolved": "Modernization often increases sprawl, creating a new platform that is harder to operate than BizTalk.",
+    "whenToUse": [
+      "Teams are proposing many tools and frameworks",
+      "Ops capacity is limited"
+    ],
+    "whenNotToUse": [
+      "You are in early R&D with no operational commitment"
+    ]
+  },
+  "enablingTechnologies": [
+    "Reference architecture",
+    "Approved stack list",
+    "Exception process"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Over-standardization blocks needed innovation",
+      "Exceptions become the norm without governance"
+    ],
+    "opinionatedGuidance": "Standardize the common path (80%) and create a visible exception process for the rest."
+  },
+  "complexity": {
+    "level": "medium",
+    "rationale": "Requires executive backing and governance discipline.",
+    "teamImpact": "multi-team",
+    "skillDemand": "Architecture leadership plus platform product thinking.",
+    "operationalDemand": "High—directly impacts operability and cost.",
+    "toolingDemand": "Standards repo, policy checks, and templates."
+  },
+  "starterDiagram": {
+    "title": "Sprawl to standards",
+    "description": "Converge on a small set of approved paths.",
+    "nodes": [
+      "Current sprawl",
+      "Target standards",
+      "Golden paths",
+      "Exception process"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Integration platform target-state definition",
+    "approach": "Set an approved stack and limited patterns for initial waves.",
+    "outcome": "Lower run cost and faster onboarding."
+  },
+  "relatedPatterns": [
+    "enablement-team-model",
+    "devsecops-first-class"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": null,
+      "citationRequired": true
+    }
+  ],
+  "tags": [
+    "platform",
+    "standards",
+    "simplification"
+  ],
+  "lastUpdated": "2026-02-17"
+}
