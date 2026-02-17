@@ -52,7 +52,6 @@
     "outcome": "Faster change and reduced integration breakage."
   },
   "relatedPatterns": [
-    "messaging-abstraction-layer",
     "bounded-context-first"
   ],
   "furtherReading": [

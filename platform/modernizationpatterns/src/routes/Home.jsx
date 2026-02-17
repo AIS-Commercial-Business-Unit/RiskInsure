@@ -17,8 +17,9 @@ export default function Home({ categories, patterns }) {
     { key: 'discovery', label: 'Discovery', count: patterns.filter(p => p.category === 'discovery').length },
     { key: 'strategic', label: 'Strategic', count: patterns.filter(p => p.category === 'strategic').length },
     { key: 'technical', label: 'Technical', count: patterns.filter(p => p.category === 'technical').length },
-    { key: 'enablement', label: 'Enablement', count: patterns.filter(p => p.category === 'enablement').length },
-    { key: 'devops', label: 'DevOps', count: patterns.filter(p => p.category === 'devops').length }
+    { key: 'migration', label: 'Migration', count: patterns.filter(p => p.category === 'migration').length },
+    { key: 'devops', label: 'DevOps', count: patterns.filter(p => p.category === 'devops').length },
+    { key: 'enablement', label: 'Enablement', count: patterns.filter(p => p.category === 'enablement').length }
   ];
 
   return (

@@ -2,8 +2,8 @@
   "id": "canary-deployment",
   "slug": "canary-deployment",
   "title": "Canary deployment",
-  "category": "strategic",
-  "subcategory": "release-safety",
+  "category": "devops",
+  "subcategory": "delivery-flow",
   "summary": "Release changes to a small subset of traffic to validate behavior before full rollout.",
   "decisionGuidance": {
     "problemSolved": "Integration changes can cause system-wide impact; canaries reduce blast radius.",

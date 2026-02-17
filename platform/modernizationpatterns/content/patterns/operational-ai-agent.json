@@ -2,8 +2,8 @@
   "id": "operational-ai-agent",
   "slug": "operational-ai-agent",
   "title": "Operational AI agent",
-  "category": "enablement",
-  "subcategory": "ai-ops",
+  "category": "devops",
+  "subcategory": "operational-excellence",
   "summary": "Use AI to summarize system health, detect anomalies, and answer operational questions using telemetry and audit events.",
   "decisionGuidance": {
     "problemSolved": "SLA breach alerts are late; ops needs earlier signals and faster diagnosis.",

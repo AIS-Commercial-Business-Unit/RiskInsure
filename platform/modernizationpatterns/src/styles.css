@@ -23,6 +23,9 @@
   --discovery-bg: #eaf8fb;
   --discovery-border: #bde5ef;
   --discovery-text: #1d6d7f;
+  --migration-bg: #fff0f6;
+  --migration-border: #f7c5e0;
+  --migration-text: #a03771;
 }
 
 * {
@@ -119,10 +122,10 @@ a {
 .breadcrumb {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.75rem;
+  gap: 4px;
+  font-size: 0.72rem;
   color: var(--ink-soft);
-  padding: 4px 0;
+  padding: 2px 0 4px 0;
 }
 
 .pattern-count {
@@ -315,18 +318,19 @@ a {
 .diagram {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 6px;
   align-items: center;
 }
 
 .diagram-node {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  border-radius: 10px;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 6px;
   background: var(--bg-alt);
   border: 1px solid #cddcef;
+  font-size: 0.85rem;
 }
 
 .section-header {
@@ -467,6 +471,11 @@ a {
   border-color: var(--discovery-border);
 }
 
+.category-migration {
+  background: var(--migration-bg);
+  border-color: var(--migration-border);
+}
+
 .category-text-strategic {
   color: var(--strategic-text);
 }
@@ -486,6 +495,10 @@ a {
 
 .category-text-discovery {
   color: var(--discovery-text);
+}
+
+.category-text-migration {
+  color: var(--migration-text);
 }
 
 .index-header,
@@ -688,6 +701,48 @@ a {
   border-color: var(--devops-text);
 }
 
+.filter-button.filter-migration.active {
+  background: var(--migration-text);
+  border-color: var(--migration-text);
+}
+
+/* Non-active filter buttons with category colors */
+.filter-button.filter-discovery {
+  background: var(--discovery-bg);
+  border-color: var(--discovery-border);
+  color: var(--discovery-text);
+}
+
+.filter-button.filter-strategic {
+  background: var(--strategic-bg);
+  border-color: var(--strategic-border);
+  color: var(--strategic-text);
+}
+
+.filter-button.filter-technical {
+  background: var(--technical-bg);
+  border-color: var(--technical-border);
+  color: var(--technical-text);
+}
+
+.filter-button.filter-migration {
+  background: var(--migration-bg);
+  border-color: var(--migration-border);
+  color: var(--migration-text);
+}
+
+.filter-button.filter-enablement {
+  background: var(--enablement-bg);
+  border-color: var(--enablement-border);
+  color: var(--enablement-text);
+}
+
+.filter-button.filter-devops {
+  background: var(--devops-bg);
+  border-color: var(--devops-border);
+  color: var(--devops-text);
+}
+
 /* Pattern Card Grid */
 .pattern-card-grid {
   display: grid;
@@ -772,104 +827,108 @@ a {
 .pattern-detail-layout {
   display: grid;
   grid-template-columns: 2fr 1fr;
-  gap: 32px;
-  margin-top: 24px;
+  gap: 16px;
+  margin-top: 8px;
 }
 
 /* Left column: SINGLE BOX with all content */
 .pattern-content {
   background: var(--card);
-  padding: 32px;
-  border-radius: 10px;
-  box-shadow: 0 2px 12px var(--shadow);
+  padding: 16px 20px;
+  border-radius: 8px;
+  box-shadow: 0 1px 6px var(--shadow);
   border: 1px solid #dbe5f2;
 }
 
 .pattern-detail-header {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-bottom: 24px;
+  gap: 6px;
+  margin-bottom: 12px;
 }
 
 .pattern-detail-header h1 {
   margin: 0;
-  font-size: clamp(1.6rem, 1.2rem + 1.5vw, 2.2rem);
+  font-size: clamp(1.4rem, 1rem + 1.2vw, 1.9rem);
   font-weight: 700;
   line-height: 1.2;
 }
 
 /* Content sections (no individual boxes, just spacing) */
 .content-section {
-  margin-top: 28px;
-  padding-top: 24px;
+  margin-top: 14px;
+  padding-top: 12px;
   border-top: 1px solid #e8eff7;
 }
 
 .content-section:first-of-type {
   border-top: none;
   padding-top: 0;
+  margin-top: 8px;
 }
 
 .content-section h2 {
-  margin: 0 0 12px 0;
-  font-size: 1.3rem;
+  margin: 0 0 6px 0;
+  font-size: 1.1rem;
   font-weight: 600;
   color: var(--ink);
 }
 
 .content-section p {
-  margin: 8px 0;
-  line-height: 1.6;
+  margin: 4px 0;
+  line-height: 1.5;
   color: var(--ink-soft);
+  font-size: 0.9rem;
 }
 
 .content-section ul {
-  margin: 8px 0;
-  padding-left: 20px;
+  margin: 4px 0;
+  padding-left: 18px;
 }
 
 .content-section li {
-  margin: 6px 0;
-  line-height: 1.6;
+  margin: 3px 0;
+  line-height: 1.5;
   color: var(--ink-soft);
+  font-size: 0.9rem;
 }
 
 .lede {
-  font-size: 1.1rem;
-  line-height: 1.6;
+  font-size: 1rem;
+  line-height: 1.5;
   color: var(--ink);
-  margin: 0 0 16px 0;
-  padding-bottom: 16px;
+  margin: 0 0 10px 0;
+  padding-bottom: 10px;
   border-bottom: 1px solid #e8eff7;
 }
 
 .example-block p {
-  margin: 10px 0;
+  margin: 4px 0;
 }
 
 .diagram-description {
-  margin-bottom: 12px;
+  margin-bottom: 6px;
   font-style: italic;
+  font-size: 0.85rem;
 }
 
 /* Right column: SINGLE BOX with all metadata */
 .pattern-metadata {
   background: var(--card);
-  padding: 24px;
-  border-radius: 10px;
-  box-shadow: 0 2px 12px var(--shadow);
+  padding: 14px 16px;
+  border-radius: 8px;
+  box-shadow: 0 1px 6px var(--shadow);
   border: 1px solid #dbe5f2;
   border-left: 3px solid var(--accent);
   align-self: flex-start;
   position: sticky;
-  top: 20px;
+  top: 10px;
 }
 
 /* Metadata groups (no individual boxes, just spacing) */
 .meta-group {
-  margin-bottom: 24px;
-  padding-bottom: 20px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
   border-bottom: 1px solid #e8eff7;
 }
 
@@ -880,8 +939,8 @@ a {
 }
 
 .meta-group h3 {
-  margin: 0 0 8px 0;
-  font-size: 0.85rem;
+  margin: 0 0 5px 0;
+  font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -889,30 +948,30 @@ a {
 }
 
 .complexity-level {
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   font-weight: 600;
-  margin: 0 0 6px 0;
+  margin: 0 0 4px 0;
   color: var(--ink);
 }
 
 .metadata-detail {
   margin: 0;
-  font-size: 0.9rem;
-  line-height: 1.5;
+  font-size: 0.82rem;
+  line-height: 1.4;
   color: var(--ink-soft);
 }
 
 .related-pattern-chips {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .related-chip {
   display: block;
-  padding: 8px 10px;
-  font-size: 0.85rem;
-  border-radius: 6px;
+  padding: 6px 8px;
+  font-size: 0.78rem;
+  border-radius: 4px;
   transition: all 0.15s ease;
   text-decoration: none;
   color: var(--ink);

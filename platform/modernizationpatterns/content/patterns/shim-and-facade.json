@@ -2,8 +2,8 @@
   "id": "shim-and-facade",
   "slug": "shim-and-facade",
   "title": "Shim and facade strategy",
-  "category": "strategic",
-  "subcategory": "compatibility",
+  "category": "migration",
+  "subcategory": "migration-mechanics",
   "summary": "Introduce thin adapters to keep old consumers stable while modernizing behind the interface.",
   "decisionGuidance": {
     "problemSolved": "Legacy consumers often cannot change quickly; modernization must proceed anyway.",

@@ -2,8 +2,8 @@
   "id": "parallel-run-reconciliation",
   "slug": "parallel-run-reconciliation",
   "title": "Parallel run with reconciliation",
-  "category": "strategic",
-  "subcategory": "validation-strategy",
+  "category": "migration",
+  "subcategory": "migration-validation",
   "summary": "Run legacy and new flows in parallel and reconcile outputs before cutover.",
   "decisionGuidance": {
     "problemSolved": "Complex integrations fail at cutover due to subtle differences in ordering, timing, and transformation.",

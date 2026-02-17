@@ -2,8 +2,8 @@
   "id": "feature-flag-release",
   "slug": "feature-flag-release",
   "title": "Feature flag release strategy",
-  "category": "strategic",
-  "subcategory": "release-safety",
+  "category": "devops",
+  "subcategory": "delivery-flow",
   "summary": "Control rollout, risk, and rollback by gating new integration capabilities with flags.",
   "decisionGuidance": {
     "problemSolved": "Integration changes can cause large blast radius; flags reduce impact while learning.",

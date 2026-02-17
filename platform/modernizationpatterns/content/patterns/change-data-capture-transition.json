@@ -2,8 +2,8 @@
   "id": "change-data-capture-transition",
   "slug": "change-data-capture-transition",
   "title": "Change data capture transition",
-  "category": "strategic",
-  "subcategory": "data-transition",
+  "category": "migration",
+  "subcategory": "migration-mechanics",
   "summary": "Use CDC to synchronize data changes during phased migration without tight coupling.",
   "decisionGuidance": {
     "problemSolved": "Legacy systems and new services must share data during transition; direct coupling creates brittleness.",

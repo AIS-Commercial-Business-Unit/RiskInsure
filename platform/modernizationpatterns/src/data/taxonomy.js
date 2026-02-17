@@ -1,4 +1,4 @@
-export const categoryOrder = ['strategic', 'technical', 'devops', 'enablement', 'discovery'];
+export const categoryOrder = ['strategic', 'technical', 'migration', 'devops', 'enablement', 'discovery'];
 
 export const categoryMetadata = {
   strategic: {
@@ -12,6 +12,12 @@ export const categoryMetadata = {
     title: 'Technical patterns',
     summary: 'Engineering architecture and implementation patterns.',
     colorKey: 'technical'
+  },
+  migration: {
+    key: 'migration',
+    title: 'Migration patterns',
+    summary: 'Tactical patterns for executing safe, incremental migration to new systems.',
+    colorKey: 'migration'
   },
   devops: {
     key: 'devops',
@@ -156,6 +162,23 @@ export const subcategoryMetadata = {
       key: 'workflow-consistency',
       title: 'Workflow consistency',
       summary: 'Patterns that align process and workflow design.'
+    }
+  },
+  migration: {
+    'migration-strategy': {
+      key: 'migration-strategy',
+      title: 'Migration strategy',
+      summary: 'Strategic approaches for incremental migration to new systems.'
+    },
+    'migration-mechanics': {
+      key: 'migration-mechanics',
+      title: 'Migration mechanics',
+      summary: 'Tactical techniques for decoupling and transitioning from legacy systems.'
+    },
+    'migration-validation': {
+      key: 'migration-validation',
+      title: 'Migration validation',
+      summary: 'Patterns for ensuring migration safety and correctness.'
     }
   },
   devops: {

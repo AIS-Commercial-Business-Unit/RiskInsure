@@ -2,8 +2,8 @@
   "id": "branch-by-abstraction",
   "slug": "branch-by-abstraction",
   "title": "Branch by abstraction",
-  "category": "strategic",
-  "subcategory": "transition-strategy",
+  "category": "migration",
+  "subcategory": "migration-mechanics",
   "summary": "Introduce an abstraction layer so multiple implementations can run in parallel and be switched safely.",
   "decisionGuidance": {
     "problemSolved": "Direct rewrites force risky cutovers and make testing difficult.",

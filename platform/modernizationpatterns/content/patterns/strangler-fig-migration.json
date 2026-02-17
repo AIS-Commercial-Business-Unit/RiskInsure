@@ -2,8 +2,8 @@
   "id": "strangler-fig-migration",
   "slug": "strangler-fig-migration",
   "title": "Strangler fig migration",
-  "category": "strategic",
-  "subcategory": "transition-strategy",
+  "category": "migration",
+  "subcategory": "migration-strategy",
   "summary": "Incrementally replace legacy flows by routing traffic to new capabilities while legacy continues to run.",
   "decisionGuidance": {
     "problemSolved": "Big-bang cutovers fail under operational and dependency complexity.",

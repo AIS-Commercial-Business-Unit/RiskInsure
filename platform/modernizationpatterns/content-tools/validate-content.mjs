@@ -3,7 +3,7 @@ import path from 'node:path';
 
 const root = process.cwd();
 const patternsFolder = path.join(root, 'content', 'patterns');
-const allowedCategories = new Set(['strategic', 'technical', 'devops', 'enablement', 'discovery']);
+const allowedCategories = new Set(['strategic', 'technical', 'migration', 'devops', 'enablement', 'discovery']);
 
 const requiredTopLevel = [
   'id',
