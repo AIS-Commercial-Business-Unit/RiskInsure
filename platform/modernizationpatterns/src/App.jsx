@@ -18,7 +18,7 @@ export default function App() {
               Modernization Patterns Atlas
             </Link>
             <p className="brand-tagline">
-              Map the patterns. Move with clarity. Keep the factory floor clean.
+              Clear patterns for complex systems.
             </p>
           </div>
           <nav className="top-nav">
@@ -38,7 +38,7 @@ export default function App() {
         </main>
 
         <footer className="site-footer">
-          <p>Modernization Patterns Atlas - built for quick orientation and fast recall.</p>
+          <p>Built for clarity, intent, and practical decisions.</p>
         </footer>
       </div>
     </BrowserRouter>

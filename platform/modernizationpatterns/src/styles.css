@@ -1,13 +1,13 @@
 :root {
-  --bg: #f6f2ed;
-  --bg-alt: #f1ece6;
-  --ink: #1f1a16;
-  --ink-soft: #52473f;
-  --accent: #c95f1a;
-  --accent-soft: #f2b08a;
-  --accent-deep: #2a6a6b;
+  --bg: #f4f7fb;
+  --bg-alt: #eaf0f8;
+  --ink: #0f1f36;
+  --ink-soft: #405876;
+  --accent: #0a66c2;
+  --accent-soft: #d9e9fb;
+  --accent-deep: #173f73;
   --card: #ffffff;
-  --shadow: rgba(31, 26, 22, 0.12);
+  --shadow: rgba(15, 31, 54, 0.1);
 }
 
 * {
@@ -16,9 +16,9 @@
 
 body {
   margin: 0;
-  font-family: 'Source Serif 4', 'Times New Roman', serif;
+  font-family: 'Space Grotesk', 'Segoe UI', sans-serif;
   color: var(--ink);
-  background: radial-gradient(circle at top left, #fff7ef 0%, #f4ede6 40%, #efe6dc 100%);
+  background: var(--bg);
   min-height: 100vh;
 }
 
@@ -38,25 +38,16 @@ a {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  position: relative;
-}
-
-.site-header::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(120deg, rgba(201, 95, 26, 0.12), transparent 55%);
-  pointer-events: none;
+  background: linear-gradient(180deg, #ffffff 0%, #f4f8fd 100%);
+  border-bottom: 1px solid #dbe5f2;
 }
 
 .brand {
   display: grid;
   gap: 8px;
-  z-index: 1;
 }
 
 .brand-mark {
-  font-family: 'Space Grotesk', sans-serif;
   font-size: clamp(1.6rem, 1rem + 2vw, 2.6rem);
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -71,21 +62,19 @@ a {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
-  z-index: 1;
 }
 
 .top-nav a {
-  font-family: 'Space Grotesk', sans-serif;
   padding: 8px 14px;
-  border-radius: 999px;
-  background: var(--card);
-  box-shadow: 0 8px 18px var(--shadow);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid #d8e4f3;
+  transition: background 0.2s ease, border-color 0.2s ease;
 }
 
 .top-nav a:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 20px rgba(31, 26, 22, 0.18);
+  background: var(--accent-soft);
+  border-color: #c0d8f5;
 }
 
 .page {
@@ -103,13 +92,11 @@ a {
 }
 
 .hero-content h1 {
-  font-family: 'Space Grotesk', sans-serif;
   font-size: clamp(2rem, 1.2rem + 3vw, 3.4rem);
   margin: 0 0 12px;
 }
 
 .eyebrow {
-  font-family: 'Space Grotesk', sans-serif;
   text-transform: uppercase;
   letter-spacing: 0.2em;
   font-size: 0.75rem;
@@ -125,10 +112,9 @@ a {
 .hero-card {
   background: var(--card);
   padding: 24px;
-  border-radius: 22px;
-  box-shadow: 0 20px 40px var(--shadow);
-  border: 1px solid rgba(201, 95, 26, 0.18);
-  animation: float-in 0.6s ease both;
+  border-radius: 14px;
+  box-shadow: 0 8px 20px var(--shadow);
+  border: 1px solid #d5e2f2;
 }
 
 .hero-card ul {
@@ -148,22 +134,21 @@ a {
 .reading-card {
   background: var(--card);
   padding: 20px;
-  border-radius: 18px;
-  box-shadow: 0 14px 30px var(--shadow);
-  border: 1px solid rgba(42, 106, 107, 0.12);
+  border-radius: 12px;
+  box-shadow: 0 6px 16px var(--shadow);
+  border: 1px solid #d6e2f1;
   display: grid;
   gap: 12px;
   min-height: 180px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .category-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 20px 36px rgba(31, 26, 22, 0.2);
+  border-color: #b9cfe9;
+  box-shadow: 0 10px 20px rgba(23, 63, 115, 0.12);
 }
 
 .category-label {
-  font-family: 'Space Grotesk', sans-serif;
   color: var(--accent);
   text-transform: uppercase;
   letter-spacing: 0.18em;
@@ -171,7 +156,6 @@ a {
 }
 
 .card-cta {
-  font-family: 'Space Grotesk', sans-serif;
   color: var(--accent-deep);
   font-weight: 600;
 }
@@ -181,10 +165,10 @@ a {
   gap: 20px;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   align-items: stretch;
-  background: linear-gradient(120deg, #fdf3ea 0%, #f7efe6 100%);
+  background: #eef4fb;
   padding: 24px;
-  border-radius: 26px;
-  border: 1px solid rgba(201, 95, 26, 0.2);
+  border-radius: 14px;
+  border: 1px solid #d5e2f2;
 }
 
 .reading-cards {
@@ -202,17 +186,17 @@ a {
 .category-purpose {
   background: var(--card);
   padding: 18px 20px;
-  border-radius: 18px;
-  border: 1px solid rgba(201, 95, 26, 0.15);
-  box-shadow: 0 12px 26px var(--shadow);
+  border-radius: 12px;
+  border: 1px solid #d6e2f1;
+  box-shadow: 0 6px 16px var(--shadow);
 }
 
 .diagram-card {
   background: var(--card);
   padding: 20px;
-  border-radius: 20px;
-  border: 1px solid rgba(42, 106, 107, 0.2);
-  box-shadow: 0 16px 28px var(--shadow);
+  border-radius: 12px;
+  border: 1px solid #d6e2f1;
+  box-shadow: 0 6px 16px var(--shadow);
   display: grid;
   gap: 12px;
 }
@@ -228,11 +212,10 @@ a {
   display: flex;
   align-items: center;
   gap: 10px;
-  font-family: 'Space Grotesk', sans-serif;
   padding: 8px 12px;
-  border-radius: 999px;
+  border-radius: 10px;
   background: var(--bg-alt);
-  border: 1px solid rgba(42, 106, 107, 0.2);
+  border: 1px solid #cddcef;
 }
 
 .diagram-arrow {
@@ -249,14 +232,13 @@ a {
 }
 
 .secondary-link {
-  font-family: 'Space Grotesk', sans-serif;
   color: var(--accent-deep);
 }
 
 .example-meta {
   font-size: 0.85rem;
   color: var(--ink-soft);
-  border-top: 1px dashed rgba(42, 106, 107, 0.2);
+  border-top: 1px dashed #c2d5eb;
   padding-top: 8px;
 }
 
@@ -265,9 +247,9 @@ a {
   gap: 12px;
   background: var(--card);
   padding: 18px 22px;
-  border-radius: 20px;
-  border: 1px solid rgba(201, 95, 26, 0.2);
-  box-shadow: 0 16px 30px var(--shadow);
+  border-radius: 12px;
+  border: 1px solid #d6e2f1;
+  box-shadow: 0 6px 16px var(--shadow);
 }
 
 .related-links {
@@ -277,10 +259,10 @@ a {
 }
 
 .related-links a {
-  font-family: 'Space Grotesk', sans-serif;
   padding: 6px 14px;
-  border-radius: 999px;
+  border-radius: 10px;
   background: var(--bg-alt);
+  border: 1px solid #cddcef;
 }
 
 .site-footer {
@@ -292,8 +274,8 @@ a {
 .empty-state {
   background: var(--card);
   padding: 32px;
-  border-radius: 20px;
-  box-shadow: 0 16px 30px var(--shadow);
+  border-radius: 12px;
+  box-shadow: 0 8px 20px var(--shadow);
   text-align: center;
 }
 
@@ -303,19 +285,7 @@ a {
   padding: 10px 18px;
   background: var(--accent);
   color: #fff;
-  border-radius: 999px;
-  font-family: 'Space Grotesk', sans-serif;
-}
-
-@keyframes float-in {
-  from {
-    transform: translateY(12px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
+  border-radius: 10px;
 }
 
 @media (max-width: 720px) {

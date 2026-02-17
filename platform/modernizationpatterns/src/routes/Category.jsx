@@ -58,7 +58,7 @@ export default function Category({ categories }) {
       <div className="section-header">
         <div>
           <h2>Example patterns</h2>
-          <p>High-level starters to confirm the drill-in experience.</p>
+          <p>High-level examples that explain intent without overload.</p>
         </div>
         <Link to="/" className="secondary-link">
           Browse other categories
@@ -79,7 +79,7 @@ export default function Category({ categories }) {
       <div className="related-panel">
         <div>
           <h2>Related categories</h2>
-          <p>Keep moving across the map without losing momentum.</p>
+          <p>Explore connected ideas while staying focused on the problem at hand.</p>
         </div>
         <div className="related-links">
           {related.map((item) => (

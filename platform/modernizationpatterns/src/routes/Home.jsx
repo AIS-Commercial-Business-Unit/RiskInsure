@@ -6,14 +6,13 @@ export default function Home({ categories }) {
       <div className="hero">
         <div className="hero-content">
           <p className="eyebrow">Modernization Patterns</p>
-          <h1>Find the pattern, then move with momentum.</h1>
+          <h1>Simple map. Complex ideas.</h1>
           <p className="lede">
-            Start with five pattern families. Each family highlights what to focus on, when to use it, and
-            where to drill deeper later.
+            Start with five pattern families. Pick one, understand intent, and move to action.
           </p>
         </div>
         <div className="hero-card">
-          <h2>Five lenses for fast decisions</h2>
+          <h2>Five lenses</h2>
           <ul>
             <li>Enablement - remove friction and unblock execution</li>
             <li>Technical - core platform and capability choices</li>
@@ -39,22 +38,19 @@ export default function Home({ categories }) {
 
       <section className="reading-strip">
         <div>
-          <h2>Rapid scan, deeper dives later</h2>
-          <p>
-            Each category keeps content lightweight now, with placeholders for diagrams and recommended
-            reading you will add later.
-          </p>
+          <h2>Clarity over volume</h2>
+          <p>Each page stays concise. You can add depth only where it helps decisions.</p>
         </div>
         <div className="reading-cards">
           <div className="reading-card">
             <p className="category-label">Next additions</p>
             <h3>Curated sources</h3>
-            <p>Modernization architecture, enterprise integration patterns, and more.</p>
+            <p>Add references when they strengthen understanding.</p>
           </div>
           <div className="reading-card">
             <p className="category-label">Interactive layer</p>
             <h3>Future chat assistant</h3>
-            <p>Ask questions across the patterns once content is indexed.</p>
+            <p>Ask targeted questions across your curated pattern content.</p>
           </div>
         </div>
       </section>
