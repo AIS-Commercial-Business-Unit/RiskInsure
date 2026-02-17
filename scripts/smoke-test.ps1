@@ -177,11 +177,11 @@ if (Test-Path ".env") {
         $failCount++
     }
     
-    if ($envContent -match "SERVICEBUS_CONNECTION_STRING=Endpoint=sb://") {
-        Write-Host "  Service Bus connection: Valid format" -ForegroundColor Green
+    if ($envContent -match "RABBITMQ_CONNECTION_STRING=host=") {
+        Write-Host "  RabbitMQ connection: Valid format" -ForegroundColor Green
         $passCount++
     } else {
-        Write-Host "  Service Bus connection: Invalid or missing" -ForegroundColor Red
+        Write-Host "  RabbitMQ connection: Invalid or missing" -ForegroundColor Red
         $failCount++
     }
 } else {

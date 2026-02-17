@@ -33,7 +33,7 @@ if (-not (Test-Path ".env")) {
         Write-Host ""
         Write-Host "[!] IMPORTANT: Edit .env file with your connection strings!" -ForegroundColor Red
         Write-Host "   - COSMOSDB_CONNECTION_STRING" -ForegroundColor Yellow
-        Write-Host "   - SERVICEBUS_CONNECTION_STRING" -ForegroundColor Yellow
+        Write-Host "   - RABBITMQ_CONNECTION_STRING" -ForegroundColor Yellow
         Write-Host ""
         Read-Host "Press Enter after updating .env file..."
     } else {
