@@ -93,12 +93,6 @@ resource "azurerm_container_app" "billing_api" {
   tags = var.tags
 }
 
-resource "azurerm_role_assignment" "billing_api_acr_pull" {
-  scope              = data.terraform_remote_state.foundation.outputs.acr_id
-  role_definition_name = "AcrPull"
-  principal_id       = azurerm_container_app.billing_api.identity[0].principal_id
-}
-
 # Grant Cosmos DB access
 resource "azurerm_cosmosdb_sql_role_assignment" "billing_api_cosmos" {
   resource_group_name = data.terraform_remote_state.foundation.outputs.resource_group_name
