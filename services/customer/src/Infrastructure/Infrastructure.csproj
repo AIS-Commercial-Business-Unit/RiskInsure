@@ -14,7 +14,7 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="NServiceBus" />
     <PackageReference Include="NServiceBus.Extensions.Hosting" />
-    <PackageReference Include="NServiceBus.Transport.AzureServiceBus" />
+    <PackageReference Include="NServiceBus.RabbitMQ" />
     <PackageReference Include="NServiceBus.Persistence.CosmosDB" />
     <PackageReference Include="NServiceBus.SagaAudit" />
   </ItemGroup>

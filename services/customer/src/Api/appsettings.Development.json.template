@@ -1,13 +1,14 @@
 {
+  "ConnectionStrings": {
+    "CosmosDb": "<<COSMOS_CONNECTION_STRING>>",
+    "ServiceBus": "<<SERVICE_BUS_CONNECTION_STRING>>",
+    "RabbitMQ": "<<RABBITMQ_CONNECTION_STRING>>"
+  },
   "Logging": {
     "LogLevel": {
       "Default": "Information",
       "Microsoft.AspNetCore": "Warning",
       "NServiceBus": "Information"
     }
-  },
-  "ConnectionStrings": {
-    "CosmosDb": "<<COSMOS_CONNECTION_STRING>>",
-    "ServiceBus": "<<SERVICE_BUS_CONNECTION_STRING>>"
   }
 }

@@ -9,7 +9,6 @@
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="NServiceBus" />
     <PackageReference Include="NServiceBus.Extensions.Hosting" />
-    <PackageReference Include="NServiceBus.Transport.AzureServiceBus" />
     <PackageReference Include="NServiceBus.Persistence.CosmosDB" />
     <PackageReference Include="Newtonsoft.Json" />
     <PackageReference Include="Serilog.Extensions.Hosting" />

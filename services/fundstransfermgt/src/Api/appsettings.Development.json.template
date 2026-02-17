@@ -1,4 +1,9 @@
 {
+  "ConnectionStrings": {
+    "CosmosDb": "<<COSMOS_CONNECTION_STRING>>",
+    "ServiceBus": "<<SERVICE_BUS_CONNECTION_STRING>>",
+    "RabbitMQ": "<<RABBITMQ_CONNECTION_STRING>>"
+  },
   "Logging": {
     "LogLevel": {
       "Default": "Information",
@@ -6,9 +11,5 @@
       "NServiceBus": "Information"
     }
   },
-  "AllowedHosts": "*",
-  "ConnectionStrings": {
-    "CosmosDb": "<<COSMOS_CONNECTION_STRING>>",
-    "ServiceBus": "<<SERVICEBUS_CONNECTION_STRING>>"
-  }
+  "AllowedHosts": "*"
 }

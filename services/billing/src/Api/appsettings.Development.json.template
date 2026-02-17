@@ -1,7 +1,8 @@
 {
   "ConnectionStrings": {
     "CosmosDb": "<<COSMOS_CONNECTION_STRING>>",
-    "ServiceBus": "<<SERVICE_BUS_CONNECTION_STRING>>"
+    "ServiceBus": "<<SERVICE_BUS_CONNECTION_STRING>>",
+    "RabbitMQ": "<<RABBITMQ_CONNECTION_STRING>>"
   },
   "Logging": {
     "LogLevel": {

@@ -7,6 +7,7 @@
     <!-- NServiceBus - Updated to compatible versions with Persistence.CosmosDB 3.x -->
     <PackageVersion Include="NServiceBus" Version="9.2.6" />
     <PackageVersion Include="NServiceBus.Transport.AzureServiceBus" Version="5.0.0" />
+    <PackageVersion Include="NServiceBus.RabbitMQ" Version="10.0.0" />
     <PackageVersion Include="NServiceBus.Extensions.Hosting" Version="3.0.0" />
     <PackageVersion Include="NServiceBus.Persistence.CosmosDB" Version="3.1.2" />
     <PackageVersion Include="NServiceBus.CustomChecks" Version="5.0.1" />

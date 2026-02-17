@@ -14,6 +14,7 @@
     <PackageReference Include="NServiceBus.Extensions.Hosting" />
     <PackageReference Include="NServiceBus.Persistence.CosmosDB" />
     <PackageReference Include="NServiceBus.Transport.AzureServiceBus" />
+    <PackageReference Include="NServiceBus.RabbitMQ" />
     <PackageReference Include="NServiceBus.CustomChecks" />
     <PackageReference Include="NServiceBus.Heartbeat" />
     <PackageReference Include="NServiceBus.Metrics.ServiceControl" />

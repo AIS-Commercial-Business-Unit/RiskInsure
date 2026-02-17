@@ -3,8 +3,7 @@ using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using NServiceBus;
-using NServiceBus.Features;
-using NServiceBus.Transport.AzureServiceBus;
+using NServiceBus.Transport.RabbitMQ;
 
 namespace Infrastructure;
 
@@ -13,7 +12,7 @@ public static class NServiceBusConfigurationExtensions
     public static IHostBuilder NServiceBusEnvironmentConfiguration(
         this IHostBuilder hostBuilder,
         string endpointName,
-        Action<IConfiguration, EndpointConfiguration, RoutingSettings<AzureServiceBusTransport>>? configurationAction = null)
+        Action<IConfiguration, EndpointConfiguration, TransportExtensions<RabbitMQTransport>>? configurationAction = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(endpointName);
 
@@ -24,7 +23,7 @@ public static class NServiceBusConfigurationExtensions
 
             Console.WriteLine($"[NServiceBus] Configuring endpoint '{endpointName}' for environment: {environment}");
 
-            RoutingSettings<AzureServiceBusTransport> routing;
+            TransportExtensions<RabbitMQTransport> routing;
             if (environment.Equals("Production", StringComparison.OrdinalIgnoreCase))
             {
                 routing = ConfigureForProduction(context.Configuration, endpointConfiguration);
@@ -42,23 +41,24 @@ public static class NServiceBusConfigurationExtensions
         });
     }
 
-    private static RoutingSettings<AzureServiceBusTransport> ConfigureForProduction(
+    private static TransportExtensions<RabbitMQTransport> ConfigureForProduction(
         IConfiguration configuration,
         EndpointConfiguration endpointConfiguration)
     {
-        var fqn = configuration["AzureServiceBus:FullyQualifiedNamespace"] ??
-                  Environment.GetEnvironmentVariable("AzureServiceBus__FullyQualifiedNamespace");
+        var rabbitMqConnectionString = configuration.GetConnectionString("RabbitMQ") ??
+                                       configuration["RabbitMQ:ConnectionString"] ??
+                                       Environment.GetEnvironmentVariable("RabbitMQ__ConnectionString");
 
-        if (string.IsNullOrWhiteSpace(fqn))
+        if (string.IsNullOrWhiteSpace(rabbitMqConnectionString))
         {
             throw new InvalidOperationException(
-                "Production requires AzureServiceBus:FullyQualifiedNamespace in configuration");
+                "Production requires ConnectionStrings:RabbitMQ or RabbitMQ:ConnectionString in configuration");
         }
 
-        Console.WriteLine($"[NServiceBus] Production: using Service Bus namespace {fqn}");
+        Console.WriteLine("[NServiceBus] Production: using RabbitMQ transport");
 
-        var transport = new AzureServiceBusTransport(fqn, new DefaultAzureCredential(), TopicTopology.Default);
-        var transportExtensions = endpointConfiguration.UseTransport(transport);
+        var transportExtensions = endpointConfiguration.UseTransport<RabbitMQTransport>();
+        transportExtensions.ConnectionString(rabbitMqConnectionString);
 
         var cosmosEndpoint = configuration["CosmosDb:Endpoint"] ??
                            Environment.GetEnvironmentVariable("CosmosDb__Endpoint");
@@ -81,23 +81,24 @@ public static class NServiceBusConfigurationExtensions
         return transportExtensions;
     }
 
-    private static RoutingSettings<AzureServiceBusTransport> ConfigureForDevelopment(
+    private static TransportExtensions<RabbitMQTransport> ConfigureForDevelopment(
         IConfiguration configuration,
         EndpointConfiguration endpointConfiguration)
     {
-        var serviceBusConnectionString = configuration.GetConnectionString("ServiceBus") ??
-                                        configuration["AzureWebJobsServiceBus"];
+        var rabbitMqConnectionString = configuration.GetConnectionString("RabbitMQ") ??
+                                       configuration["RabbitMQ:ConnectionString"];
 
-        if (string.IsNullOrWhiteSpace(serviceBusConnectionString))
+        if (string.IsNullOrWhiteSpace(rabbitMqConnectionString))
         {
             throw new InvalidOperationException(
-                "ServiceBus connection string missing. Add ConnectionStrings:ServiceBus to appsettings.Development.json");
+                "RabbitMQ connection string missing. Add ConnectionStrings:RabbitMQ to appsettings.Development.json");
         }
 
-        Console.WriteLine($"[NServiceBus] Development: using Service Bus connection string");
+        Console.WriteLine("[NServiceBus] Development: using RabbitMQ transport");
 
-        var transport = new AzureServiceBusTransport(serviceBusConnectionString, TopicTopology.Default);
-        var transportExtensions = endpointConfiguration.UseTransport(transport);
+        var transportExtensions = endpointConfiguration.UseTransport<RabbitMQTransport>()
+            .UseConventionalRoutingTopology(QueueType.Classic);
+        transportExtensions.ConnectionString(rabbitMqConnectionString);
 
         var cosmosConnectionString = configuration.GetConnectionString("CosmosDb") ??
                                     configuration["CosmosDbConnectionString"];
@@ -117,21 +118,8 @@ public static class NServiceBusConfigurationExtensions
         recoverability.Immediate(immediate => immediate.NumberOfRetries(0));
         recoverability.Delayed(delayed => delayed.NumberOfRetries(0));
 
-        if (serviceBusConnectionString.Contains("UseDevelopmentEmulator=true", StringComparison.OrdinalIgnoreCase))
-        {
-            // Disabled because the servicebus emulator does not support auto-subscribe
-            endpointConfiguration.DisableFeature<AutoSubscribe>();
-        }
-        else
-        {
-            // Installers are useful in development to automatically create queues and topics, 
-            // but in production we should use infrastructure-as-code (e.g. ARM templates, 
-            // Terraform) to manage these resources explicitly.  But since the Azure ServiceBus
-            // emulator does not support installers, we only turn this on when we're 
-            // not using the Service Bus Emulator.
-            Console.WriteLine($"[NServiceBus] Development: enabling installers");
-            endpointConfiguration.EnableInstallers();
-        }
+        Console.WriteLine("[NServiceBus] Development: enabling installers");
+        endpointConfiguration.EnableInstallers();
 
         return transportExtensions;
     }

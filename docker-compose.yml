@@ -1,45 +1,123 @@
 services:
   # ============================================================================
-  # Local Emulators (for Codespaces/Local Dev)
+  # Monitoring with ServiceControl
+  # Example: https://github.com/Particular/PlatformContainerExamples/blob/main/docker-compose/compose.yml
   # ============================================================================
 
-  sql-server:
-    container_name: sql-server
-    image: mcr.microsoft.com/mssql/server:2022-latest
-    environment:
-      - ACCEPT_EULA=Y
-      - MSSQL_SA_PASSWORD=${SQL_SERVER_SA_PASSWORD}
-      - MSSQL_PID=Developer
+  servicecontrol:
+    container_name: servicecontrol
+    image: particular/servicecontrol:latest
+    command: --setup-and-run
     ports:
-      - "1433:1433"
-    volumes:
-      - sql-data:/var/opt/mssql
-    networks:
-      - riskinsure
-    healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P ${SQL_SERVER_SA_PASSWORD} -Q 'SELECT 1' -C -b"]
-      interval: 5s
-      timeout: 5s
-      retries: 4
-      start_period: 20s
-
-  servicebus-emulator:
-    container_name: servicebus-emulator
-    image: mcr.microsoft.com/azure-messaging/servicebus-emulator:latest
-    ports:
-      - "5672:5672"   # AMQP
+      - "33333:33333"
     environment:
-      - ACCEPT_EULA=Y
-      - SQL_SERVER=sql-server
-      - MSSQL_SA_PASSWORD=${SQL_SERVER_SA_PASSWORD}
-    volumes:
-      - servicebus-data:/data
-      - ./platform/servicebus/emulator/config.json:/ServiceBus_Emulator/ConfigFiles/Config.json:ro
+      - TRANSPORTTYPE=RabbitMQ.ClassicConventionalRouting
+      - CONNECTIONSTRING=${RABBITMQ_CONNECTION_STRING}
+      - PARTICULARSOFTWARE_LICENSE=${PARTICULARSOFTWARE_LICENSE}
+      - RAVENDB_CONNECTIONSTRING=http://servicecontrol-ravendb:8080
+      - REMOTEINSTANCES=[{"api_uri":"http://servicecontrol-audit:44444/api"}]
     networks:
       - riskinsure
     depends_on:
-      sql-server:
+      # servicebus-emulator:
+      #   condition: service_started
+      rabbitmq:
         condition: service_healthy
+      servicecontrol-ravendb:
+        condition: service_healthy
+
+  servicecontrol-audit:
+    container_name: servicecontrol-audit  
+    image: particular/servicecontrol-audit:latest
+    command: --setup-and-run
+    restart: unless-stopped
+    networks:
+      - riskinsure
+    ports:
+      - "44445:44444"
+    environment:
+      - TRANSPORTTYPE=RabbitMQ.ClassicConventionalRouting
+      - CONNECTIONSTRING=${RABBITMQ_CONNECTION_STRING}
+      - RAVENDB_CONNECTIONSTRING=http://servicecontrol-ravendb:8080
+      - SERVICECONTROLQUEUEADDRESS=Particular.ServiceControl
+    depends_on:
+      servicecontrol-ravendb:
+        condition: service_healthy
+      # servicebus-emulator:
+      #   condition: service_started
+      rabbitmq:
+        condition: service_healthy
+
+  servicecontrol-monitoring:
+    container_name: servicecontrol-monitoring
+    image: particular/servicecontrol-monitoring:latest
+    command: --setup-and-run
+    environment:
+      - TRANSPORTTYPE=RabbitMQ.ClassicConventionalRouting
+      - CONNECTIONSTRING=${RABBITMQ_CONNECTION_STRING}
+    restart: unless-stopped
+    networks:
+      - riskinsure
+    ports:
+      - "33633:33633"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      # servicebus-emulator:
+      #   condition: service_started
+
+  servicepulse:
+    container_name: servicepulse
+    image: particular/servicepulse:latest
+    networks:
+      - riskinsure
+    ports:
+      - "9090:9090"
+    environment:
+      SERVICECONTROL_URL: http://servicecontrol:33333
+      MONITORING_URL: http://servicecontrol-monitoring:33633
+    restart: unless-stopped
+    depends_on:
+      servicecontrol:
+        condition: service_healthy
+      servicecontrol-monitoring:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      # servicebus-emulator:
+      #   condition: service_started
+
+
+  # WARNING: A single database container should not be shared between multiple ServiceControl instances in production scenarios.
+  servicecontrol-ravendb:
+    container_name: servicecontrol-ravendb
+    image: particular/servicecontrol-ravendb:latest
+    networks:
+      - riskinsure
+    ports:
+      - "8080:8080"
+    volumes:
+      - raven-config:/var/lib/ravendb/config
+      - raven-data:/var/lib/ravendb/data
+
+  rabbitmq:
+    container_name: rabbitmq
+    image: rabbitmq:3-management #try updating to 4.2.3-management later (or 'management'?)
+    networks:
+      - riskinsure
+    ports:
+      - "5672:5672"
+      - "15672:15672" # Management UI 
+    restart: unless-stopped
+    healthcheck:
+      test: rabbitmq-diagnostics check_port_connectivity
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      start_interval: 10s
+      retries: 3
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
 
   cosmos-emulator:
     # Web UI available at https://localhost:8081/_explorer/index.html
@@ -87,7 +165,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
-      - ConnectionStrings__ServiceBus=${SERVICEBUS_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__BillingContainerName=Billing
     networks:
@@ -95,8 +173,10 @@ services:
     depends_on:
       cosmos-emulator:
         condition: service_healthy
-      servicebus-emulator:
-        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+      # servicebus-emulator:
+      #   condition: service_started
 
   billing-endpoint:
     build:
@@ -107,14 +187,16 @@ services:
     environment:
       - DOTNET_ENVIRONMENT=Development
       - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
-      - ConnectionStrings__ServiceBus=${SERVICEBUS_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__BillingContainerName=Billing
     depends_on:
       cosmos-emulator:
         condition: service_healthy
-      servicebus-emulator:
-        condition: service_started
+      # servicebus-emulator:
+      #   condition: service_started
+      rabbitmq:
+        condition: service_healthy
     networks:
       - riskinsure
 
@@ -133,7 +215,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
-      - ConnectionStrings__ServiceBus=${SERVICEBUS_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=customer
     networks:
@@ -141,8 +223,10 @@ services:
     depends_on:
       cosmos-emulator:
         condition: service_healthy
-      servicebus-emulator:
-        condition: service_started
+      # servicebus-emulator:
+      #   condition: service_started
+      rabbitmq:
+        condition: service_healthy
 
   customer-endpoint:
     build:
@@ -153,14 +237,16 @@ services:
     environment:
       - DOTNET_ENVIRONMENT=Development
       - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
-      - ConnectionStrings__ServiceBus=${SERVICEBUS_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=customer
     depends_on:
       cosmos-emulator:
         condition: service_healthy
-      servicebus-emulator:
-        condition: service_started
+      # servicebus-emulator:
+      #   condition: service_started
+      rabbitmq:
+        condition: service_healthy
     networks:
       - riskinsure
 
@@ -179,7 +265,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
-      - ConnectionStrings__ServiceBus=${SERVICEBUS_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=fundstransfermgt
     networks:
@@ -187,8 +273,10 @@ services:
     depends_on:
       cosmos-emulator:
         condition: service_healthy
-      servicebus-emulator:
-        condition: service_started
+      # servicebus-emulator:
+      #   condition: service_started
+      rabbitmq:
+        condition: service_healthy
 
   fundstransfermgt-endpoint:
     build:
@@ -199,14 +287,16 @@ services:
     environment:
       - DOTNET_ENVIRONMENT=Development
       - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
-      - ConnectionStrings__ServiceBus=${SERVICEBUS_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=fundstransfermgt
     depends_on:
       cosmos-emulator:
         condition: service_healthy
-      servicebus-emulator:
-        condition: service_started
+      # servicebus-emulator:
+      #   condition: service_started
+      rabbitmq:
+        condition: service_healthy
     networks:
       - riskinsure
 
@@ -225,7 +315,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
-      - ConnectionStrings__ServiceBus=${SERVICEBUS_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=policy
     networks:
@@ -233,8 +323,10 @@ services:
     depends_on:
       cosmos-emulator:
         condition: service_healthy
-      servicebus-emulator:
-        condition: service_started
+      # servicebus-emulator:
+      #   condition: service_started
+      rabbitmq:
+        condition: service_healthy
 
   policy-endpoint:
     build:
@@ -245,14 +337,16 @@ services:
     environment:
       - DOTNET_ENVIRONMENT=Development
       - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
-      - ConnectionStrings__ServiceBus=${SERVICEBUS_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=policy
     depends_on:
       cosmos-emulator:
         condition: service_healthy
-      servicebus-emulator:
-        condition: service_started
+      # servicebus-emulator:
+      #   condition: service_started
+      rabbitmq:
+        condition: service_healthy
     networks:
       - riskinsure
 
@@ -271,7 +365,7 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
-      - ConnectionStrings__ServiceBus=${SERVICEBUS_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=ratingunderwriting
     networks:
@@ -279,8 +373,10 @@ services:
     depends_on:
       cosmos-emulator:
         condition: service_healthy
-      servicebus-emulator:
-        condition: service_started
+      # servicebus-emulator:
+      #   condition: service_started
+      rabbitmq:
+        condition: service_healthy
 
   ratingandunderwriting-endpoint:
     build:
@@ -291,14 +387,16 @@ services:
     environment:
       - DOTNET_ENVIRONMENT=Development
       - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
-      - ConnectionStrings__ServiceBus=${SERVICEBUS_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=ratingunderwriting
     depends_on:
       cosmos-emulator:
         condition: service_healthy
-      servicebus-emulator:
-        condition: service_started
+      # servicebus-emulator:
+      #   condition: service_started
+      rabbitmq:
+        condition: service_healthy
     networks:
       - riskinsure
 
@@ -311,3 +409,6 @@ volumes:
   cosmos-data: {}
   servicebus-data: {}
   sql-data: {}
+  raven-config: {}
+  raven-data: {}
+  rabbitmq-data: {}

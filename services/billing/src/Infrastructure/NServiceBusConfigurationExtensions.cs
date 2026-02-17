@@ -3,9 +3,7 @@ using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using NServiceBus;
-using NServiceBus.Features;
-using NServiceBus.Metrics.ServiceControl;
-using NServiceBus.Transport.AzureServiceBus;
+using NServiceBus.Transport.RabbitMQ;
 
 namespace Infrastructure;
 
@@ -14,7 +12,7 @@ public static class NServiceBusConfigurationExtensions
     public static IHostBuilder NServiceBusEnvironmentConfiguration(
         this IHostBuilder hostBuilder,
         string endpointName,
-        Action<IConfiguration, EndpointConfiguration, RoutingSettings<AzureServiceBusTransport>>? configurationAction = null)
+        Action<IConfiguration, EndpointConfiguration, RoutingSettings<RabbitMQTransport>>? configurationAction = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(endpointName);
 
@@ -25,7 +23,7 @@ public static class NServiceBusConfigurationExtensions
 
             Console.WriteLine($"[NServiceBus] Configuring endpoint '{endpointName}' for environment: {environment}");
 
-            RoutingSettings<AzureServiceBusTransport> routing;
+            RoutingSettings<RabbitMQTransport> routing;
             if (environment.Equals("Production", StringComparison.OrdinalIgnoreCase))
             {
                 routing = ConfigureForProduction(context.Configuration, endpointConfiguration);
@@ -35,7 +33,7 @@ public static class NServiceBusConfigurationExtensions
                 routing = ConfigureForDevelopment(context.Configuration, endpointConfiguration);
             }
 
-            ApplySharedEndpointConfiguration(endpointConfiguration, context.Configuration);
+            ApplySharedEndpointConfiguration(endpointConfiguration);
 
             // Allow per-endpoint customization
             configurationAction?.Invoke(context.Configuration, endpointConfiguration, routing);
@@ -44,24 +42,22 @@ public static class NServiceBusConfigurationExtensions
         });
     }
 
-    private static RoutingSettings<AzureServiceBusTransport> ConfigureForProduction(
+    private static RoutingSettings<RabbitMQTransport> ConfigureForProduction(
         IConfiguration configuration,
         EndpointConfiguration endpointConfiguration)
     {
-        // Azure Service Bus with Managed Identity
-        var fqn = configuration["AzureServiceBus:FullyQualifiedNamespace"] ??
-                  Environment.GetEnvironmentVariable("AzureServiceBus__FullyQualifiedNamespace");
+        var rabbitMqConnectionString = configuration.GetConnectionString("RabbitMQ");
 
-        if (string.IsNullOrWhiteSpace(fqn))
+        if (string.IsNullOrWhiteSpace(rabbitMqConnectionString))
         {
             throw new InvalidOperationException(
-                "Production requires AzureServiceBus:FullyQualifiedNamespace in configuration");
+                "Production requires ConnectionStrings:RabbitMQ or RabbitMQ:ConnectionString in configuration");
         }
 
-        Console.WriteLine($"[NServiceBus] Production: using Service Bus namespace {fqn}");
+        Console.WriteLine("[NServiceBus] Production: using RabbitMQ transport");
 
-        var transport = new AzureServiceBusTransport(fqn, new DefaultAzureCredential(), TopicTopology.Default);
-        var transportExtensions = endpointConfiguration.UseTransport(transport);
+        var transportExtensions = endpointConfiguration.UseTransport<RabbitMQTransport>();
+        transportExtensions.ConnectionString(rabbitMqConnectionString);
 
         // Cosmos DB persistence with Managed Identity
         var cosmosEndpoint = configuration["CosmosDb:Endpoint"] ??
@@ -70,40 +66,39 @@ public static class NServiceBusConfigurationExtensions
         if (!string.IsNullOrWhiteSpace(cosmosEndpoint))
         {
             var persistence = endpointConfiguration.UsePersistence<CosmosPersistence>();
-            persistence.CosmosClient(new CosmosClient(cosmosEndpoint, new Azure.Identity.DefaultAzureCredential()));
+            persistence.CosmosClient(new CosmosClient(cosmosEndpoint, new DefaultAzureCredential()));
             persistence.DatabaseName("RiskInsure");
             persistence.DefaultContainer("Billing-Sagas", "/id");
         }
 
         // License for production
-        var license = configuration["NSERVICEBUS_LICENSE"] ??                     Environment.GetEnvironmentVariable("NSERVICEBUS_LICENSE");
+        var license = configuration["NSERVICEBUS_LICENSE"] ?? Environment.GetEnvironmentVariable("NSERVICEBUS_LICENSE");
         if (!string.IsNullOrWhiteSpace(license))
         {
             endpointConfiguration.License(license);
         }
         
-        return transportExtensions;
+        return transportExtensions.Routing();
     }
 
-    private static RoutingSettings<AzureServiceBusTransport> ConfigureForDevelopment(
+    private static RoutingSettings<RabbitMQTransport> ConfigureForDevelopment(
         IConfiguration configuration,
         EndpointConfiguration endpointConfiguration)
     {
-        // Azure Service Bus connection string
-        var serviceBusConnectionString = configuration.GetConnectionString("ServiceBus") ??
-                                        configuration["AzureWebJobsServiceBus"];
+        var rabbitMqConnectionString = configuration.GetConnectionString("RabbitMQ") ??
+                                       configuration["RabbitMQ:ConnectionString"];
 
-        if (string.IsNullOrWhiteSpace(serviceBusConnectionString))
+        if (string.IsNullOrWhiteSpace(rabbitMqConnectionString))
         {
             throw new InvalidOperationException(
-                "ServiceBus connection string missing. Add ConnectionStrings:ServiceBus to appsettings.Development.json");
+                "RabbitMQ connection string missing. Add ConnectionStrings:RabbitMQ to appsettings.Development.json");
         }
 
-        Console.WriteLine($"[NServiceBus] Development: using Service Bus connection string");
+        Console.WriteLine("[NServiceBus] Development: using RabbitMQ transport");
 
-        var transport = new AzureServiceBusTransport(serviceBusConnectionString, TopicTopology.Default);
-
-        var transportExtensions = endpointConfiguration.UseTransport(transport);
+        var transportExtensions = endpointConfiguration.UseTransport<RabbitMQTransport>()
+            .UseConventionalRoutingTopology(QueueType.Classic);
+        transportExtensions.ConnectionString(rabbitMqConnectionString);
 
         // Cosmos DB connection string
         var cosmosConnectionString = configuration.GetConnectionString("CosmosDb") ??
@@ -125,28 +120,14 @@ public static class NServiceBusConfigurationExtensions
         recoverability.Immediate(immediate => immediate.NumberOfRetries(0));
         recoverability.Delayed(delayed => delayed.NumberOfRetries(0));
 
-        if (serviceBusConnectionString.Contains("UseDevelopmentEmulator=true", StringComparison.OrdinalIgnoreCase))
-        {
-            // Disabled because the servicebus emulator does not support auto-subscribe
-            endpointConfiguration.DisableFeature<AutoSubscribe>();
-        }
-        else
-        {
-            // Installers are useful in development to automatically create queues and topics, 
-            // but in production we should use infrastructure-as-code (e.g. ARM templates, 
-            // Terraform) to manage these resources explicitly.  But since the Azure ServiceBus
-            // emulator does not support installers, we only turn this on when we're 
-            // not using the Service Bus Emulator.
-            Console.WriteLine($"[NServiceBus] Development: enabling installers");
-            endpointConfiguration.EnableInstallers();
-        }
+        Console.WriteLine("[NServiceBus] Development: enabling installers");
+        endpointConfiguration.EnableInstallers();
 
-        return transportExtensions;
+        return transportExtensions.Routing();
     }
 
     private static void ApplySharedEndpointConfiguration(
-        EndpointConfiguration endpointConfiguration,
-        IConfiguration configuration)
+        EndpointConfiguration endpointConfiguration)
     {
         // Serialization
         endpointConfiguration.UseSerialization<SystemJsonSerializer>();
