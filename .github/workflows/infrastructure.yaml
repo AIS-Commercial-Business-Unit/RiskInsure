@@ -296,23 +296,20 @@
 name: 'Infrastructure & Identity Setup'
 
 on:
-  workflow_dispatch:
-    inputs:
+  workflow_call:
+     inputs:
       environment:
-        description: 'Environment (dev/staging/prod)'
+        description: 'Environment to deploy'
         required: true
-        type: choice
-        options: [dev, staging, prod]
+        type: string
       terraform_layer:
-        description: 'Layer to deploy (foundation, shared-services, or all)'
+        description: 'Which layer to deploy'
         required: true
-        type: choice
-        options: [foundation, shared-services, all]
+        type: string
       terraform_action:
-        description: 'Action (plan or apply)'
+        description: 'Terraform action (plan or apply)'
         required: true
-        type: choice
-        options: [plan, apply]
+        type: string
 
 env:
   TERRAFORM_VERSION: '1.11.4'

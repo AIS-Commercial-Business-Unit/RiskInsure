@@ -261,18 +261,16 @@
 name: 'Deploy Container Apps & Services'
 
 on:
-  workflow_dispatch:
+   workflow_call:
     inputs:
       environment:
-        description: 'Environment (dev/staging/prod)'
-        required: true
-        type: choice
-        options: [dev, staging, prod]
-      services:
-        description: 'Services to deploy (comma-separated: billing,customer,policy,fundstransfermgt,ratingandunderwriting or "all")'
+        description: 'Environment to deploy'
         required: true
         type: string
-        default: 'billing'
+      services:
+        description: 'Services to deploy (comma-separated or "all")'
+        required: true
+        type: string
 
 env:
   TERRAFORM_VERSION: '1.11.4'
