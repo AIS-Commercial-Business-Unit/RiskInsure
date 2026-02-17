@@ -1,4 +1,28 @@
 # ==========================================================================
+# Shared Managed Identity Outputs
+# ==========================================================================
+
+output "apps_shared_identity_id" {
+  description = "Shared Managed Identity ID (used by all Container Apps)"
+  value       = azurerm_user_assigned_identity.apps_shared.id
+}
+
+output "apps_shared_identity_principal_id" {
+  description = "Shared Managed Identity Principal ID"
+  value       = azurerm_user_assigned_identity.apps_shared.principal_id
+}
+
+output "apps_shared_identity_client_id" {
+  description = "Shared Managed Identity Client ID"
+  value       = azurerm_user_assigned_identity.apps_shared.client_id
+}
+
+output "apps_shared_identity_name" {
+  description = "Shared Managed Identity name"
+  value       = azurerm_user_assigned_identity.apps_shared.name
+}
+
+# ==========================================================================
 # Cosmos DB Outputs
 # ==========================================================================
 
@@ -55,12 +79,12 @@ output "servicebus_namespace_id" {
 
 output "servicebus_connection_string" {
   description = "Service Bus connection string (sensitive - for dev/test)"
-  value       = azurerm_servicebus_namespace_authorization_rule.root_manage.primary_connection_string
+  value       = var.environment == "dev" ? data.azurerm_servicebus_namespace_authorization_rule.root_manage.primary_connection_string : null
   sensitive   = true
 }
 
 output "servicebus_primary_key" {
   description = "Service Bus primary key (sensitive)"
-  value       = azurerm_servicebus_namespace_authorization_rule.root_manage.primary_key
+  value       = var.environment == "dev" ? data.azurerm_servicebus_namespace_authorization_rule.root_manage.primary_key : null
   sensitive   = true
 }

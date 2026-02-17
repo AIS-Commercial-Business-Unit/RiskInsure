@@ -31,11 +31,13 @@ resource "azurerm_servicebus_topic" "bundle" {
 # Authorization Rule (for dev/test - use Managed Identity in prod)
 # ==========================================================================
 
-resource "azurerm_servicebus_namespace_authorization_rule" "root_manage" {
+data "azurerm_servicebus_namespace_authorization_rule" "root_manage" {
+  # count = var.environment == "dev" ? 1 : 0
+
   name         = "RootManageSharedAccessKey"
   namespace_id = azurerm_servicebus_namespace.riskinsure.id
 
-  listen = true
-  send   = true
-  manage = true
+  # listen = true
+  # send   = true
+  # manage = true
 }

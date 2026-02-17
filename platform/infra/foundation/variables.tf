@@ -30,13 +30,13 @@ variable "vnet_address_space" {
 variable "container_apps_subnet_cidr" {
   description = "CIDR block for Container Apps subnet"
   type        = string
-  default     = "10.0.1.0/23" # /23 provides 512 IPs (Container Apps need larger subnet)
+  default     = "10.0.0.0/23" # /23 provides 512 IPs (10.0.0.0 - 10.0.1.255)
 }
 
 variable "private_endpoints_subnet_cidr" {
   description = "CIDR block for private endpoints subnet"
   type        = string
-  default     = "10.0.3.0/24"
+  default     = "10.0.2.0/24" # /24 provides 256 IPs (10.0.2.0 - 10.0.2.255)
 }
 
 variable "acr_geo_replications" {
