@@ -297,7 +297,7 @@ name: 'Infrastructure & Identity Setup'
 
 on:
   workflow_call:
-     inputs:
+    inputs:
       environment:
         description: 'Environment to deploy'
         required: true
