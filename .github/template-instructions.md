@@ -79,7 +79,7 @@ Follow the interactive prompts.
 After initialization:
 
 1. **Review documentation**:
-   - [copilot-instructions/constitution.md](../copilot-instructions/constitution.md) - Architectural rules
+   - [.specify/memory/constitution.md](../.specify/memory/constitution.md) - Architectural rules
    - [copilot-instructions/project-structure.md](../copilot-instructions/project-structure.md) - Service template
 
 2. **Create service structure**:
@@ -179,7 +179,7 @@ A: Domain layer 90%+, Application layer 80%+. See `constitution.md` Principle VI
 ## 📖 Additional Resources
 
 - **[Template Initialization Guide](../docs/TEMPLATE-INITIALIZATION.md)** - Detailed setup instructions
-- **[Constitution](../copilot-instructions/constitution.md)** - Architectural principles
+- **[Constitution](../.specify/memory/constitution.md)** - Architectural principles
 - **[Project Structure](../copilot-instructions/project-structure.md)** - Service template
 - **[Copilot Instructions](copilot-instructions.md)** - Coding standards
 
@@ -189,7 +189,7 @@ A: Domain layer 90%+, Application layer 80%+. See `constitution.md` Principle VI
 
 **Issues with template**:
 - Check [TEMPLATE-INITIALIZATION.md](../docs/TEMPLATE-INITIALIZATION.md)
-- Review [constitution.md](../copilot-instructions/constitution.md)
+- Review [constitution.md](../.specify/memory/constitution.md)
 - File issue in template repository (not your project repo)
 
 **Issues with your project**:

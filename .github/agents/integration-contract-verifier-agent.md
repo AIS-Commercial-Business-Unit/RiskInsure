@@ -763,7 +763,7 @@ graph TD
 
 - [cross-domain-integration.md](../../copilot-instructions/cross-domain-integration.md) - Integration patterns and documentation templates
 - [messaging-patterns.md](../../copilot-instructions/messaging-patterns.md) - Message design patterns
-- [constitution.md](../../copilot-instructions/constitution.md) - Architectural principles
+- [constitution.md](../../.specify/memory/constitution.md) - Architectural principles
 - [copilot-instructions.md](../copilot-instructions.md) - Development standards
 
 ---

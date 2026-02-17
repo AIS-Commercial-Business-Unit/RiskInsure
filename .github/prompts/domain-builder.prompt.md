@@ -306,7 +306,7 @@ services/customer/
 ## Agent Configuration
 
 The domain-builder agent follows:
-- **Constitutional principles I-X** from copilot-instructions/constitution.md
+- **Constitutional principles I-X** from .specify/memory/constitution.md
 - **Project structure template** from copilot-instructions/project-structure.md
 - **API initialization** from copilot-instructions/init.api.md
 - **Technical specification** from services/{domain}/docs/technical/

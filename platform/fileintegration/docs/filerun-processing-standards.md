@@ -332,4 +332,4 @@ public async Task Handle_DuplicateMessage_DoesNotCreateDuplicate()
 
 - [architecture.md](architecture.md) - System architecture overview
 - [message-contracts.md](message-contracts.md) - Complete message contract specifications
-- [../copilot-instructions/constitution.md](../copilot-instructions/constitution.md) - Architecture constitution
+- [../../.specify/memory/constitution.md](../../.specify/memory/constitution.md) - Architecture constitution

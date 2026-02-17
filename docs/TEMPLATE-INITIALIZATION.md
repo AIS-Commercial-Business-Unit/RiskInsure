@@ -42,6 +42,6 @@ You can now delete these template-specific files:
 
 ## Reference Documentation
 
-- **[Constitution](../copilot-instructions/constitution.md)** - Architectural principles
+- **[Constitution](../.specify/memory/constitution.md)** - Architectural principles
 - **[Project Structure](../copilot-instructions/project-structure.md)** - Service template
 - **[Copilot Instructions](../.github/copilot-instructions.md)** - Coding standards

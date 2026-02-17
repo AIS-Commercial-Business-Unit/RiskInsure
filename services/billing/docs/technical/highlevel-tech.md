@@ -549,5 +549,5 @@ npm run test:debug      # Step-through debugger
 
 * **[Business Requirements - Billing Account](../business/billing-account.md)** - Account lifecycle business rules
 * **[Business Requirements - Billing Payment](../business/billing-payment.md)** - Payment processing business rules
-* **[Constitution](../../../../copilot-instructions/constitution.md)** - Architectural principles
+* **[Constitution](../../../../.specify/memory/constitution.md)** - Architectural principles
 * **[Project Structure](../../../../copilot-instructions/project-structure.md)** - Multi-layer architecture template

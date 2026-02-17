@@ -305,7 +305,7 @@ public async Task<Policy> CancelPolicyAsync(string policyId, DateTimeOffset canc
 
 ## Constitutional Compliance
 
-This domain follows all principles from [constitution.md](../../../copilot-instructions/constitution.md):
+This domain follows all principles from [constitution.md](../../../.specify/memory/constitution.md):
 
 - ✅ **I. Domain Language**: Uses "Policy", "Bound", "Issued", "Cancelled" consistently
 - ✅ **II. Single-Partition Data Model**: `/policyId` partition key, all related data co-located

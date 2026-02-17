@@ -392,5 +392,5 @@ Published when the billing frequency is changed for an account.
 ## Related Documentation
 
 - [Billing Payment Management](billing-payment.md) - Recording payments to billing accounts
-- [Architecture Constitution](../../copilot-instructions/constitution.md) - System-wide architectural rules
+- [Architecture Constitution](../../../../.specify/memory/constitution.md) - System-wide architectural rules
 - [Manager Pattern](../../copilot-instructions/manager-and-facade.md) - Manager architecture guidelines
