@@ -101,7 +101,7 @@ sequenceDiagram
 **Legend:**
 - **Solid arrows (→)**: Synchronous API calls (HTTP requests)
 - **Dashed arrows (-->>)**: Synchronous responses
-- **Solid arrows to/from ServiceBus**: Asynchronous events/commands over RabbitMQ transport
+- **Solid arrows to/from ServiceBus**: Asynchronous events/commands over Azure Service Bus or RabbitMQ transport
 - **Commands**: Imperative actions (CreateCustomer, InitiateFundTransfer)
 - **Events**: Past-tense notifications (CustomerCreated, PolicyIssued)
 
