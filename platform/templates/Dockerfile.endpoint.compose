@@ -32,5 +32,10 @@ RUN apt-get update && apt-get install -y wget curl --no-install-recommends && rm
 
 # Copy published application
 COPY --from=build /app/publish .
-# NServiceBus Endpoint.In runs with default .NET host entrypoint
 
+# This entrypoint copies the Cosmos DB emulator's SSL certificate
+# to the container and configures the application to trust it,
+# enabling secure communication with the emulator.
+COPY --chmod=+x "entrypoint.sh" "/entrypoint.sh"
+
+ENTRYPOINT ["/entrypoint.sh", "cosmos.domain", "8081", "Endpoint.In.dll"]
