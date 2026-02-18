@@ -200,7 +200,7 @@ Published when all payment instructions have been processed but some failed.
 **Responsibilities**:
 - Receive ACH/NACHA files from external sources
 - Store raw files in Azure Blob Storage
-- Publish `FileReceived` event to Service Bus
+- Publish `FileReceived` event to Service Bus or RabbitMQ transport
 - Handle operational notifications and error handling
 - Trigger downstream workflows on completion events
 
@@ -212,7 +212,7 @@ Published when all payment instructions have been processed but some failed.
 - Create FileRun document with initial counts
 - Publish `AchPaymentInstructionReady` event per instruction
 
-**Hosting**: Azure Container Apps with KEDA Service Bus scaling
+**Hosting**: Azure Container Apps with KEDA queue-based scaling
 
 ### Processor Endpoint (NServiceBus)
 
@@ -222,7 +222,7 @@ Published when all payment instructions have been processed but some failed.
 - Create PaymentInstruction documents
 - Publish `AchPaymentInstructionProcessed` or `AchPaymentInstructionFailed`
 
-**Hosting**: Azure Container Apps with KEDA Service Bus scaling
+**Hosting**: Azure Container Apps with KEDA queue-based scaling
 
 ### Control Plane Endpoint (NServiceBus)
 
@@ -232,7 +232,7 @@ Published when all payment instructions have been processed but some failed.
 - Detect file completion (all instructions processed)
 - Publish `FileCompleted` or `FileCompletedWithErrors`
 
-**Hosting**: Azure Container Apps with KEDA Service Bus scaling
+**Hosting**: Azure Container Apps with KEDA queue-based scaling
 
 ---
 

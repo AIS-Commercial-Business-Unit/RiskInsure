@@ -192,7 +192,7 @@ Continue? (yes/no):
    
 2. **Configure local development**
    - Set up Cosmos DB emulator
-   - Set up Azure Service Bus
+   - Set up RabbitMQ broker
    
 3. **Define your domain**
    - Document terminology in domain-specific-standards.md

@@ -176,12 +176,18 @@ if (Test-Path ".env") {
         Write-Host "  Cosmos DB connection: Invalid or missing" -ForegroundColor Red
         $failCount++
     }
-    
+
     if ($envContent -match "SERVICEBUS_CONNECTION_STRING=Endpoint=sb://") {
-        Write-Host "  Service Bus connection: Valid format" -ForegroundColor Green
+        Write-Host "  Service Bus connection: Valid format" -ForegroundColor Green        
+    }
+    if ($envContent -match "RABBITMQ_CONNECTION_STRING=host=") {
+        Write-Host "  RabbitMQ connection: Valid format" -ForegroundColor Green
+        $passCount++
+    }
+    if (($envContent -match "SERVICEBUS_CONNECTION_STRING=Endpoint=sb://") -or ($envContent -match "RABBITMQ_CONNECTION_STRING=host=")) {
         $passCount++
     } else {
-        Write-Host "  Service Bus connection: Invalid or missing" -ForegroundColor Red
+        Write-Host "  RabbitMQ connection and Service Bus connection: Invalid or missing" -ForegroundColor Red
         $failCount++
     }
 } else {

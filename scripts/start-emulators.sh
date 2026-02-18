@@ -1,6 +1,6 @@
 #!/bin/bash
 # Start Local Emulators for RiskInsure Development
-# This script starts the Azure Service Bus and Cosmos DB emulators
+# This script starts RabbitMQ and Cosmos DB for local development
 
 set -e
 
@@ -14,31 +14,31 @@ if ! docker info >/dev/null 2>&1; then
 fi
 
 # Start emulators
-echo "📦 Starting Azure Service Bus Emulator (port 5672)..."
+echo "📦 Starting RabbitMQ (port 5672)..."
 echo "📦 Starting Cosmos DB Emulator (ports 8081, 10251-10254)..."
 echo ""
 
-docker-compose up -d servicebus-emulator cosmos-emulator
+docker-compose up -d rabbitmq cosmos-emulator
 
 echo ""
 echo "⏳ Waiting for emulators to be ready..."
 echo "   (This can take 2-3 minutes on first start)"
 echo ""
 
-# Wait for Service Bus (faster to start)
-SB_READY=false
+# Wait for RabbitMQ (faster to start)
+RABBITMQ_READY=false
 for i in {1..30}; do
-    if docker logs servicebus-emulator 2>&1 | grep -q "listening"; then
-        echo "✅ Service Bus Emulator ready!"
-        SB_READY=true
+    if docker ps --filter "name=rabbitmq" --format "{{.Status}}" 2>/dev/null | grep -Eq "healthy|Up"; then
+        echo "✅ RabbitMQ ready!"
+        RABBITMQ_READY=true
         break
     fi
     sleep 2
-    echo "   Checking Service Bus... ($i/30)"
+    echo "   Checking RabbitMQ... ($i/30)"
 done
 
-if [ "$SB_READY" = false ]; then
-    echo "⚠️  Service Bus Emulator may not be ready yet"
+if [ "$RABBITMQ_READY" = false ]; then
+    echo "⚠️  RabbitMQ may not be ready yet"
 fi
 
 # Wait for Cosmos DB (slower to start)
@@ -70,9 +70,9 @@ echo "   3. View logs:                  docker-compose logs -f"
 echo "   4. Run tests:                  cd test/e2e && npm test"
 echo ""
 echo "🔗 Emulator URLs:"
-echo "   Service Bus:  amqp://localhost:5672"
+echo "   RabbitMQ:    amqp://localhost:5672"
 echo "   Cosmos DB:    https://localhost:8081/_explorer"
 echo ""
 echo "🛑 To stop emulators:"
-echo "   docker-compose stop servicebus-emulator cosmos-emulator"
+echo "   docker-compose stop rabbitmq cosmos-emulator"
 echo ""

@@ -116,6 +116,6 @@ terraform apply -var-file="prod.tfvars"
 
 After deploying foundation:
 
-1. Deploy **shared-services** (Cosmos DB + Service Bus)
+1. Deploy **shared-services** (Cosmos DB + messaging broker)
 2. Deploy **services** (microservices)
 3. Deploy **03-monitoring** (dashboards, alerts)

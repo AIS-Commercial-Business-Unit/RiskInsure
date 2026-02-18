@@ -221,7 +221,7 @@ await context.Publish(new SomethingHappenedEvent());
 ### Dead Letter Queue
 - **Purpose**: Store messages that exceed retry limits
 - **Action Required**: Manual investigation and resolution
-- **Access**: Via Azure Service Bus Explorer or monitoring tools
+- **Access**: Via broker management UI and monitoring tools
 
 ### Poison Messages
 - **Detection**: Messages that consistently fail processing
@@ -317,7 +317,7 @@ public async Task Handler_ProcessesCommand_Successfully()
 
 ### Integration Testing
 - Use NServiceBus testing framework
-- Test with real transport (in-memory or Azure Service Bus)
+- Test with real transport (RabbitMQ)
 - Verify message routing and handler invocation
 
 ## Common Patterns

@@ -29,7 +29,7 @@ When documenting this section, include:
 - Transient vs permanent errors
 
 ### Dead Letter Handling
-- Azure Service Bus dead-letter queues
+- Transport dead-letter queues
 - Monitoring dead-letter queues
 - Investigating failed messages
 - Reprocessing strategies

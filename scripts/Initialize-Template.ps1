@@ -191,7 +191,7 @@ Event-driven .NET 10 monorepo using NServiceBus, Azure Cosmos DB, and Azure Cont
 ## 🏗️ Architecture
 
 This repository implements an **event-driven architecture** with:
-- **NServiceBus 10** for message-based integration via Azure Service Bus
+- **NServiceBus 9.x** for message-based integration via RabbitMQ transport
 - **Azure Cosmos DB** for single-partition NoSQL persistence
 - **Azure Container Apps** for hosting NServiceBus endpoints with KEDA scaling
 - **Azure Logic Apps Standard** for orchestration workflows
@@ -328,7 +328,7 @@ $initDocPath = "docs/TEMPLATE-INITIALIZATION.md"
 
 2. **Configure local development**
    - Set up Cosmos DB emulator
-   - Set up Azure Service Bus (local emulator or cloud)
+   - Set up Azure Service Bus (cloud) or RabbitMQ (local container or managed broker)
    - Copy appsettings.Development.json.template files
 
 3. **Define your domain**
@@ -338,7 +338,7 @@ $initDocPath = "docs/TEMPLATE-INITIALIZATION.md"
 
 4. **Set up CI/CD**
    - Configure GitHub Actions workflows
-   - Set up Azure resources (Cosmos DB, Service Bus, Container Apps)
+    - Set up Azure resources (Cosmos DB, Service Bus or RabbitMQ broker, Container Apps)
 
 ## Template Cleanup (Optional)
 
