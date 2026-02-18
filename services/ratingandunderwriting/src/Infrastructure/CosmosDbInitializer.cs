@@ -1,4 +1,4 @@
-namespace Infrastructure;
+namespace RiskInsure.RatingAndUnderwriting.Infrastructure;
 
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;

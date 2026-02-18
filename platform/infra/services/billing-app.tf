@@ -9,7 +9,23 @@ resource "azurerm_container_app" "billing_api" {
   revision_mode                = "Single"
 
   identity {
-    type = "SystemAssigned"
+    type         = "UserAssigned"
+    identity_ids = [data.terraform_remote_state.shared_services.outputs.apps_shared_identity_id]
+  }
+
+  registry {
+    server   = data.terraform_remote_state.foundation.outputs.acr_login_server
+    identity = data.terraform_remote_state.shared_services.outputs.apps_shared_identity_id
+  }
+
+  secret {
+    name  = "cosmos-connection-string"
+    value = data.terraform_remote_state.shared_services.outputs.cosmosdb_connection_string
+  }
+
+  secret {
+    name  = "servicebus-connection-string"
+    value = data.terraform_remote_state.shared_services.outputs.servicebus_connection_string
   }
 
   template {
@@ -44,6 +60,16 @@ resource "azurerm_container_app" "billing_api" {
       }
 
       env {
+        name        = "ConnectionStrings__CosmosDb"
+        secret_name = "cosmos-connection-string"
+      }
+
+      env {
+        name        = "ConnectionStrings__ServiceBus"
+        secret_name = "servicebus-connection-string"
+      }
+
+      env {
         name  = "CosmosDb__DatabaseName"
         value = "RiskInsure"
       }
@@ -58,7 +84,7 @@ resource "azurerm_container_app" "billing_api" {
   ingress {
     external_enabled = true
     target_port      = 8080
-    
+
     traffic_weight {
       percentage      = 100
       latest_revision = true
@@ -66,22 +92,6 @@ resource "azurerm_container_app" "billing_api" {
   }
 
   tags = var.tags
-}
-
-# Grant Cosmos DB access
-resource "azurerm_cosmosdb_sql_role_assignment" "billing_api_cosmos" {
-  resource_group_name = data.terraform_remote_state.foundation.outputs.resource_group_name
-  account_name        = data.terraform_remote_state.shared_services.outputs.cosmosdb_account_name
-  role_definition_id  = "${data.terraform_remote_state.shared_services.outputs.cosmosdb_account_id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002"
-  principal_id        = azurerm_container_app.billing_api.identity[0].principal_id
-  scope               = data.terraform_remote_state.shared_services.outputs.cosmosdb_account_id
-}
-
-# Grant Service Bus access
-resource "azurerm_role_assignment" "billing_api_servicebus" {
-  scope                = data.terraform_remote_state.shared_services.outputs.servicebus_namespace_id
-  role_definition_name = "Azure Service Bus Data Owner"
-  principal_id         = azurerm_container_app.billing_api.identity[0].principal_id
 }
 
 # ==========================================================================
@@ -95,7 +105,23 @@ resource "azurerm_container_app" "billing_endpoint" {
   revision_mode                = "Single"
 
   identity {
-    type = "SystemAssigned"
+    type         = "UserAssigned"
+    identity_ids = [data.terraform_remote_state.shared_services.outputs.apps_shared_identity_id]
+  }
+
+  registry {
+    server   = data.terraform_remote_state.foundation.outputs.acr_login_server
+    identity = data.terraform_remote_state.shared_services.outputs.apps_shared_identity_id
+  }
+
+  secret {
+    name  = "cosmos-connection-string"
+    value = data.terraform_remote_state.shared_services.outputs.cosmosdb_connection_string
+  }
+
+  secret {
+    name  = "servicebus-connection-string"
+    value = data.terraform_remote_state.shared_services.outputs.servicebus_connection_string
   }
 
   template {
@@ -124,6 +150,16 @@ resource "azurerm_container_app" "billing_endpoint" {
       }
 
       env {
+        name        = "ConnectionStrings__CosmosDb"
+        secret_name = "cosmos-connection-string"
+      }
+
+      env {
+        name        = "ConnectionStrings__ServiceBus"
+        secret_name = "servicebus-connection-string"
+      }
+
+      env {
         name  = "CosmosDb__DatabaseName"
         value = "RiskInsure"
       }
@@ -136,19 +172,4 @@ resource "azurerm_container_app" "billing_endpoint" {
   }
 
   tags = var.tags
-}
-
-# Grant permissions
-resource "azurerm_cosmosdb_sql_role_assignment" "billing_endpoint_cosmos" {
-  resource_group_name = data.terraform_remote_state.foundation.outputs.resource_group_name
-  account_name        = data.terraform_remote_state.shared_services.outputs.cosmosdb_account_name
-  role_definition_id  = "${data.terraform_remote_state.shared_services.outputs.cosmosdb_account_id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002"
-  principal_id        = azurerm_container_app.billing_endpoint.identity[0].principal_id
-  scope               = data.terraform_remote_state.shared_services.outputs.cosmosdb_account_id
-}
-
-resource "azurerm_role_assignment" "billing_endpoint_servicebus" {
-  scope                = data.terraform_remote_state.shared_services.outputs.servicebus_namespace_id
-  role_definition_name = "Azure Service Bus Data Owner"
-  principal_id         = azurerm_container_app.billing_endpoint.identity[0].principal_id
 }

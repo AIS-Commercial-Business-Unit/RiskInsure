@@ -2,7 +2,7 @@ using System.Threading.Tasks;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
 
-namespace Infrastructure
+namespace RiskInsure.Billing.Infrastructure
 {
     /// <summary>
     /// Initializes Cosmos DB database and containers on application startup.
