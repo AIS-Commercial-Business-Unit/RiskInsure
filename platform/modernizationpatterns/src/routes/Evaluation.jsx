@@ -241,6 +241,8 @@ export default function Evaluation() {
               </ul>
               <h3>Plus Additional Capabilities</h3>
               <ul className="additional-features">
+                <li><strong>Domain and Integration Modeling</strong> - Proven process for requirments and design to facilitate automated code gen</li>
+                <li><strong>AI augmented discovery</strong> - AI and tool based discovery verified with domain modeling</li>
                 <li><strong>Patterns framework</strong> - Architectural guardrails (outbox, saga, anti-corruption layer)</li>
                 <li><strong>Container Based Workload</strong> - Kubernetes/ARO - based microservices processing</li>
                 <li><strong>Azure AI Foundry</strong> - AI/ML integration and agentic workflows</li>
