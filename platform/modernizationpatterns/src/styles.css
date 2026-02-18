@@ -1358,6 +1358,67 @@ a {
   font-size: 0.95rem;
 }
 
+/* Search Section */
+.search-section {
+  margin: 32px 0;
+  padding: 20px 24px;
+  background: var(--page-bg);
+  border-radius: 12px;
+  border: 2px solid var(--accent);
+}
+
+.search-box {
+  position: relative;
+  max-width: 600px;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px 40px 12px 16px;
+  font-size: 1rem;
+  border: 2px solid var(--strategic-border);
+  border-radius: 8px;
+  background: white;
+  color: var(--ink);
+  transition: border-color 0.2s;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.search-input::placeholder {
+  color: var(--ink-soft);
+}
+
+.clear-search {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--ink-soft);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.clear-search:hover {
+  color: var(--accent);
+}
+
+.search-results-count {
+  margin: 12px 0 0 0;
+  color: var(--accent-deep);
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
 /* Status Badges */
 .status-badge {
   display: inline-block;

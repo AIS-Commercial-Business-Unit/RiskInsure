@@ -5,12 +5,26 @@ import { getPatternIcon } from '../data/patternIcons.js';
 
 export default function Home({ categories, patterns }) {
   const [activeFilter, setActiveFilter] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
 
-  // Filter patterns based on active category
-  const filteredPatterns =
-    activeFilter === 'all'
-      ? patterns
-      : patterns.filter((p) => p.category === activeFilter);
+  // Filter patterns based on active category and search term
+  const filteredPatterns = patterns.filter((p) => {
+    // First apply category filter
+    const matchesCategory = activeFilter === 'all' || p.category === activeFilter;
+    
+    // Then apply search filter
+    if (!searchTerm) return matchesCategory;
+    
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch = (
+      p.title.toLowerCase().includes(searchLower) ||
+      p.summary.toLowerCase().includes(searchLower) ||
+      (p.description && p.description.toLowerCase().includes(searchLower)) ||
+      p.id.toLowerCase().includes(searchLower)
+    );
+    
+    return matchesCategory && matchesSearch;
+  });
 
   const filterOptions = [
     { key: 'all', label: 'All', count: patterns.length },
@@ -29,6 +43,32 @@ export default function Home({ categories, patterns }) {
           Curated patterns for mainframe, middleware, and COTS modernization. 
           Domain-driven design, cloud-native architecture, and pragmatic migration strategies.
         </p>
+      </div>
+
+      <div className="search-section">
+        <div className="search-box">
+          <input
+            type="text"
+            placeholder="Search patterns (e.g., 'distributed', 'saga', 'database')..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="search-input"
+          />
+          {searchTerm && (
+            <button 
+              className="clear-search" 
+              onClick={() => setSearchTerm('')}
+              aria-label="Clear search"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+        {searchTerm && (
+          <p className="search-results-count">
+            Found {filteredPatterns.length} pattern{filteredPatterns.length !== 1 ? 's' : ''}
+          </p>
+        )}
       </div>
 
       <div className="filter-bar">
