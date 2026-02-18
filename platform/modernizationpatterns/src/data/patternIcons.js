@@ -37,6 +37,7 @@ import {
   Clock,
   ToggleLeft,
   Users,
+  Waves,
   Workflow,
   Server,
   GitMerge
@@ -65,6 +66,7 @@ export const patternIconMap = {
   'event-driven-architecture': Activity,
   'distributed-architecture-constraints': SlidersHorizontal,
   'bus-over-broker-strategy': ArrowLeftRight,
+  'modernization-waves': Waves,
 
   // Migration/Technical patterns (using from user's mapping)
   'strangler-fig-migration': GitBranch,
@@ -110,6 +112,7 @@ const categoryFallbackIcons = {
   discovery: Radar,
   strategic: Map,
   technical: Workflow,
+  migration: GitBranch,
   enablement: Users,
   devops: GitMerge
 };

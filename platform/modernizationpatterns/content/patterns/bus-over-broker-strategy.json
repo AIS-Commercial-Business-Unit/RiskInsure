@@ -1,70 +1,96 @@
 {
   "id": "bus-over-broker-strategy",
   "slug": "bus-over-broker-strategy",
-  "title": "Bus over broker strategy",
+  "title": "Enterprise bus over broker strategy",
   "category": "strategic",
   "subcategory": "platform-direction",
-  "summary": "Prefer distributed eventing and explicit contracts over centralized broker orchestration for long-term agility.",
+  "summary": "Prefer service bus architecture with explicit contracts over centralized broker strategies like MuleSoft, BizTalk, Boomi, or Tibco.",
   "decisionGuidance": {
-    "problemSolved": "Central brokers become bottlenecks and knowledge silos; modernization needs scalable ownership.",
+    "problemSolved": "Central brokers become bottlenecks where knowledge is centralized. They're difficult to scale, hard to operate, don't work well in the cloud, and force teams to use whatever technologies and patterns the broker supports. The drag-and-drop WYSIWYG configurations only get you 90% of the way there—there's always code or modifications needed beyond what the platform supports. This scope/feature creep limits your ability to build a cohesive system.",
     "whenToUse": [
-      "Integration portfolio is large and growing",
-      "You need multi-team parallelism"
+      "Always — if you're building cloud-native applications",
+      "Your integration portfolio is large and growing",
+      "You're building a large enterprise application",
+      "You need multi-team parallelism and independent deployment",
+      "You want to avoid vendor lock-in to broker platforms"
     ],
     "whenNotToUse": [
-      "The platform is small, stable, and centrally owned with low change frequency"
+      "Small, centrally owned applications with low change rate",
+      "Simple integration scenarios with few systems",
+      "Short-term tactical solutions that won't grow"
     ]
   },
   "enablingTechnologies": [
-    "Eventing backbone",
-    "Contract governance",
-    "Process managers"
+    "Azure Service Bus",
+    "Azure API Management",
+    "Azure Event Grid (Azure's eventing backbone)",
+    "Enterprise service bus frameworks (MassTransit, Wolverine, NServiceBus)",
+    "DAPR (Distributed Application Runtime)",
+    "Message patterns (pub/sub, competing consumers, saga/process manager)",
+    "Contract governance and versioning"
   ],
   "thingsToWatchOutFor": {
     "gotchas": [
-      "Teams assume the bus removes need for design",
-      "Operational maturity is required"
+      "This isn't as simple as it seems — requires understanding what an enterprise bus is and its requirements",
+      "Must understand logging, auditing, and observability requirements for distributed messaging",
+      "Need to send messages to logical endpoints without worrying about physical endpoints",
+      "Must understand communication patterns in enterprise bus that relies on centralized messaging infrastructure (like Azure Service Bus) but distributed processing",
+      "Teams may assume the bus removes need for design and ownership",
+      "Operational maturity is required — can't just 'go distributed' without discipline"
     ],
-    "opinionatedGuidance": "Use the bus to decouple, not to avoid responsibility. Ownership and contracts are mandatory."
+    "opinionatedGuidance": "Always use an enterprise service bus to decouple systems and build robust, modular applications. BUT take the time to understand distributed architecture and enterprise bus patterns so you're addressing concerns up front. Use the bus to decouple, not to avoid responsibility. Ownership and explicit contracts are mandatory. Build this strategically for loose coupling over the long term."
   },
   "complexity": {
-    "level": "medium",
-    "rationale": "Strategic choice with downstream impacts.",
-    "teamImpact": "multi-team",
-    "skillDemand": "Enterprise architecture and platform strategy skill.",
-    "operationalDemand": "High—changes ops model and observability requirements.",
-    "toolingDemand": "Messaging + observability + governance tooling."
+    "level": "high",
+    "rationale": "This is a strategic decision to loosely couple your architecture over a long period of time. Requires implementing enterprise service bus patterns correctly. Start simple, get everyone used to how it works and the constraints it applies (which are good constraints), then build up slowly over time. Goal is to pick up speed in deployment velocity.",
+    "teamImpact": "Affects all teams — changes how systems integrate, requires new patterns and discipline around messaging, contracts, and distributed ownership.",
+    "skillDemand": "Azure Service Bus, distributed architecture, messaging patterns, high availability, competing consumers, pub/sub, saga pattern, process manager pattern, contract design and versioning.",
+    "operationalDemand": "High — changes operational model, requires observability across distributed components, monitoring message flows, handling failures, managing dead-letter queues.",
+    "toolingDemand": "Azure Service Bus (or equivalent), enterprise service bus framework (MassTransit/Wolverine/NServiceBus), DAPR, observability platforms (Application Insights, distributed tracing), contract registries, API Management."
   },
   "starterDiagram": {
-    "title": "Direction setting",
-    "description": "Broker model shifts toward distributed patterns.",
+    "title": "From centralized broker to distributed enterprise bus",
+    "description": "Move from monolithic broker orchestration to distributed service bus architecture with explicit contracts and event-driven communication.",
     "nodes": [
-      "Legacy broker",
-      "Transition patterns",
-      "Event bus"
+      "Legacy Broker (BizTalk, MuleSoft, Boomi, Tibco) → Centralized orchestration, WYSIWYG config, bottleneck",
+      "Enterprise Service Bus Architecture → Distributed processing, explicit contracts, message-based integration",
+      "Logical Endpoints → Send to logical addresses, not physical IPs/servers",
+      "Eventing Backbone → Azure Service Bus, Event Grid, publish/subscribe patterns",
+      "Process Managers → Saga pattern for long-running workflows, orchestration in code",
+      "Contract Governance → Versioned message schemas, backward compatibility",
+      "Temporal Decoupling → Systems react to events asynchronously, no tight coupling",
+      "Isolated Blast Radius → Failures contained to individual services, not entire broker"
     ]
   },
   "realWorldExample": {
-    "context": "BizTalk retirement planning",
-    "approach": "Framed platform direction around contracts and events, with orchestration moved into process managers.",
-    "outcome": "More scalable delivery across teams."
+    "context": "Large billing modernization from mainframe to cloud-native architecture. Seven bounded contexts with 35 different components needed to communicate and integrate.",
+    "approach": "Used domain-driven design and event storming to understand different applications and how they would communicate. Chose RabbitMQ with a hand-written service bus client to implement enterprise bus patterns. Systems communicated via events on the service bus. For example, one system takes a payment and raises a 'PaymentReceived' event—other systems react to that event asynchronously. This provided temporal decoupling, allowing systems to prepare for end-user interactions without blocking.",
+    "outcome": "Much more scalable system that was fundamentally easier to operate because blast radius for problems was isolated to individual processes and applications rather than bringing down a central broker. Successfully processed $18 billion in payment files. Teams could deploy independently. Event-driven architecture enabled loose coupling and high throughput."
   },
   "relatedPatterns": [
     "event-driven-architecture",
-    "saga-process-manager"
+    "saga-process-manager",
+    "distributed-architecture-constraints",
+    "outbox-idempotency",
+    "bounded-context-first"
   ],
   "furtherReading": [
     {
       "title": "Architecture Modernization",
       "sourceId": "architecture-modernization",
-      "link": null,
-      "citationRequired": true
+      "link": "https://www.amazon.com/Architecture-Modernization-Socio-technical-alignment-structure/dp/1633438155",
+      "citationRequired": false
     }
   ],
   "tags": [
     "strategy",
     "integration",
-    "platform"
+    "platform",
+    "enterprise-service-bus",
+    "messaging",
+    "distributed-architecture",
+    "event-driven",
+    "loose-coupling"
   ],
-  "lastUpdated": "2026-02-17"
+  "lastUpdated": "2026-02-18"
 }
