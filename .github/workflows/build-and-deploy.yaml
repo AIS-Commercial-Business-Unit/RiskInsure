@@ -24,19 +24,19 @@
 #     runs-on: ubuntu-latest
 #     outputs:
 #       services_list: ${{ steps.parse.outputs.services_list }}
-    
+
 #     steps:
 #       - name: Parse services input
 #         id: parse
 #         run: |
 #           INPUT="${{ inputs.services }}"
-          
+
 #           if [ "$INPUT" == "all" ]; then
 #             SERVICES='["billing","customer","policy","fundstransfermgt","ratingandunderwriting"]'
 #           else
 #             SERVICES=$(echo "$INPUT" | jq -R -c 'split(",")')
 #           fi
-          
+
 #           echo "services_list=$SERVICES" >> $GITHUB_OUTPUT
 #           echo "Services to deploy: $SERVICES"
 
@@ -47,11 +47,11 @@
 #     name: 'Build & Push'
 #     needs: parse-services
 #     runs-on: ubuntu-latest
-    
+
 #     permissions:
 #       id-token: write
 #       contents: read
-    
+
 #     strategy:
 #       matrix:
 #         service: ${{ fromJson(needs.parse-services.outputs.services_list) }}
@@ -76,13 +76,13 @@
 #           client-id: ${{ secrets.AZURE_CLIENT_ID }}
 #           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
 #           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      
+
 #       - name: Setup Terraform
 #         uses: hashicorp/setup-terraform@v3
 #         with:
 #           terraform_version: ${{ env.TERRAFORM_VERSION }}
 #           terraform_wrapper: false
-      
+
 #       - name: Terraform Init
 #         run: terraform init -input=false
 #         env:
@@ -123,7 +123,7 @@
 #             -t ${{ steps.acr.outputs.login_server }}/${{ matrix.service }}-api:${{ steps.tags.outputs.image_tag }} \
 #             -t ${{ steps.acr.outputs.login_server }}/${{ matrix.service }}-api:latest \
 #             .
-          
+
 #           docker push ${{ steps.acr.outputs.login_server }}/${{ matrix.service }}-api:${{ steps.tags.outputs.image_tag }}
 #           docker push ${{ steps.acr.outputs.login_server }}/${{ matrix.service }}-api:latest
 
@@ -135,7 +135,7 @@
 #             -t ${{ steps.acr.outputs.login_server }}/${{ matrix.service }}-endpoint:${{ steps.tags.outputs.image_tag }} \
 #             -t ${{ steps.acr.outputs.login_server }}/${{ matrix.service }}-endpoint:latest \
 #             .
-          
+
 #           docker push ${{ steps.acr.outputs.login_server }}/${{ matrix.service }}-endpoint:${{ steps.tags.outputs.image_tag }}
 #           docker push ${{ steps.acr.outputs.login_server }}/${{ matrix.service }}-endpoint:latest
 
@@ -146,7 +146,7 @@
 #     name: 'Deploy Container Apps'
 #     needs: build-and-push
 #     runs-on: ubuntu-latest
-    
+
 #     permissions:
 #       id-token: write
 #       contents: read
@@ -230,7 +230,7 @@
 #     name: 'Health Check'
 #     needs: deploy-apps
 #     runs-on: ubuntu-latest
-    
+
 #     steps:
 #       - name: Wait for services
 #         run: sleep 60
@@ -258,7 +258,7 @@
 # new pipeline starts here
 
 
-name: 'Deploy Container Apps & Services'
+name: 'Build & Deploy Container Services (Reusable)'
 
 on:
   workflow_call:
@@ -282,7 +282,7 @@ jobs:
   preflight-checks:
     name: 'Pre-flight Checks'
     runs-on: ubuntu-latest
-    
+
     permissions:
       id-token: write
       contents: read
@@ -307,16 +307,16 @@ jobs:
         shell: bash
         run: |
           cd platform/infra/shared-services
-          
+
           echo "🔍 Pre-flight check: Verifying infrastructure exists..."
           echo ""
-          
+
           # Init terraform
           terraform init -input=false
-          
+
           # Try to get UAMI output
           UAMI_ID=$(terraform output -raw apps_shared_identity_id 2>/dev/null || echo "NOT_FOUND")
-          
+
           if [ "$UAMI_ID" == "NOT_FOUND" ]; then
             echo "════════════════════════════════════════════════════"
             echo "❌ UAMI NOT FOUND"
@@ -335,14 +335,14 @@ jobs:
             echo "════════════════════════════════════════════════════"
             exit 1
           fi
-          
+
           UAMI_NAME=$(terraform output -raw apps_shared_identity_name 2>/dev/null)
-          
+
           echo "✅ UAMI Found: $UAMI_NAME"
           echo ""
           echo "Infrastructure Status:"
           terraform output -raw apps_shared_identity_id
-          
+
           echo "uami_exists=true" >> $GITHUB_OUTPUT
           echo "uami_id=$UAMI_ID" >> $GITHUB_OUTPUT
           echo "uami_name=$UAMI_NAME" >> $GITHUB_OUTPUT
@@ -358,24 +358,24 @@ jobs:
   parse-services:
     name: 'Parse Services List'
     runs-on: ubuntu-latest
-    
+
     outputs:
       services_list: ${{ steps.parse.outputs.services_list }}
-    
+
     steps:
       - name: Parse services input
         id: parse
         shell: bash
         run: |
           INPUT="${{ inputs.services }}"
-          
+
           if [ "$INPUT" == "all" ]; then
             SERVICES='["billing","customer","policy","fundstransfermgt","ratingandunderwriting"]'
           else
             # Convert comma-separated to JSON array
             SERVICES=$(echo "$INPUT" | jq -R -c 'split(",")')
           fi
-          
+
           echo "services_list=$SERVICES" >> $GITHUB_OUTPUT
           echo "Services to deploy: $SERVICES"
 
@@ -386,11 +386,11 @@ jobs:
     name: 'Build & Push Images'
     needs: [preflight-checks, parse-services]
     runs-on: ubuntu-latest
-    
+
     permissions:
       id-token: write
       contents: read
-    
+
     strategy:
       matrix:
         service: ${{ fromJson(needs.parse-services.outputs.services_list) }}
@@ -413,15 +413,15 @@ jobs:
         shell: bash
         run: |
           cd platform/infra/foundation
-          
+
           terraform init -input=false
-          
+
           ACR_NAME=$(terraform output -raw acr_name)
           ACR_LOGIN_SERVER=$(terraform output -raw acr_login_server)
-          
+
           echo "name=$ACR_NAME" >> $GITHUB_OUTPUT
           echo "login_server=$ACR_LOGIN_SERVER" >> $GITHUB_OUTPUT
-          
+
           echo "📋 ACR Details:"
           echo "  Name: $ACR_NAME"
           echo "  Login Server: $ACR_LOGIN_SERVER"
@@ -456,42 +456,42 @@ jobs:
         shell: bash
         run: |
           SERVICE="${{ matrix.service }}"
-          
+
           echo "🔨 Building API image for: $SERVICE"
           echo ""
-          
+
           docker build \
             -f platform/templates/Dockerfile.api.compose \
             --build-arg PROJECT_PATH=services/${SERVICE}/src/Api/Api.csproj \
             -t ${{ steps.acr.outputs.login_server }}/${SERVICE}-api:${{ steps.tags.outputs.image_tag }} \
             -t ${{ steps.acr.outputs.login_server }}/${SERVICE}-api:latest \
             .
-          
+
           echo "📤 Pushing API image..."
           docker push ${{ steps.acr.outputs.login_server }}/${SERVICE}-api:${{ steps.tags.outputs.image_tag }}
           docker push ${{ steps.acr.outputs.login_server }}/${SERVICE}-api:latest
-          
+
           echo "✅ API image pushed"
 
       - name: Build & Push Endpoint Image
         shell: bash
         run: |
           SERVICE="${{ matrix.service }}"
-          
+
           echo "🔨 Building Endpoint image for: $SERVICE"
           echo ""
-          
+
           docker build \
             -f platform/templates/Dockerfile.endpoint.compose \
             --build-arg PROJECT_PATH=services/${SERVICE}/src/Endpoint.In/Endpoint.In.csproj \
             -t ${{ steps.acr.outputs.login_server }}/${SERVICE}-endpoint:${{ steps.tags.outputs.image_tag }} \
             -t ${{ steps.acr.outputs.login_server }}/${SERVICE}-endpoint:latest \
             .
-          
+
           echo "📤 Pushing Endpoint image..."
           docker push ${{ steps.acr.outputs.login_server }}/${SERVICE}-endpoint:${{ steps.tags.outputs.image_tag }}
           docker push ${{ steps.acr.outputs.login_server }}/${SERVICE}-endpoint:latest
-          
+
           echo "✅ Endpoint image pushed"
 
   # ==========================================================================
@@ -501,7 +501,7 @@ jobs:
     name: 'Deploy Container Apps'
     needs: [preflight-checks, build-and-push]
     runs-on: ubuntu-latest
-    
+
     permissions:
       id-token: write
       contents: read
@@ -608,7 +608,7 @@ jobs:
     name: 'Health Checks'
     needs: deploy-apps
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Wait for services to start
         run: |
@@ -620,10 +620,10 @@ jobs:
         continue-on-error: true
         run: |
           URL="${{ needs.deploy-apps.outputs.billing_api_url }}"
-          
+
           if [ "$URL" != "N/A" ]; then
             echo "🔍 Checking Billing API: $URL"
-            
+
             if curl -f -s "${URL}/health" > /dev/null 2>&1; then
               echo "✅ Billing API is healthy"
             else
