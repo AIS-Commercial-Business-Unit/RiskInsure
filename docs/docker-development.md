@@ -28,8 +28,10 @@ notepad .env
 
 **Required in `.env`**:
 - `COSMOSDB_CONNECTION_STRING=AccountEndpoint=https://...;AccountKey=...;`
+- `SERVICEBUS_CONNECTION_STRING=Endpoint=sb://...;SharedAccessKeyName=...;SharedAccessKey=...;`
 - `RABBITMQ_CONNECTION_STRING=host=rabbitmq;username=guest;password=guest`
 
+**⚠️ Common Mistake**: Don't duplicate `Endpoint=` in Service Bus connection string.
 **⚠️ Common Mistake**: Use RabbitMQ format (`host=...;username=...;password=...`) instead of legacy endpoint-style connection string formats.
 
 ### 3. Configure WSL DNS (One-Time)
@@ -311,6 +313,7 @@ docker-compose.yml
 
 Passed from `.env` → `docker-compose.yml` → containers:
 - `COSMOSDB_CONNECTION_STRING`
+- `SERVICEBUS_CONNECTION_STRING`
 - `RABBITMQ_CONNECTION_STRING`
 - `ASPNETCORE_ENVIRONMENT=Development`
 - `ASPNETCORE_URLS=http://+:8080` (internal port, mapped to 707X)

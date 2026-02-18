@@ -317,7 +317,7 @@ public async Task Handler_ProcessesCommand_Successfully()
 
 ### Integration Testing
 - Use NServiceBus testing framework
-- Test with real transport (in-memory or RabbitMQ)
+- Test with real transport (RabbitMQ)
 - Verify message routing and handler invocation
 
 ## Common Patterns

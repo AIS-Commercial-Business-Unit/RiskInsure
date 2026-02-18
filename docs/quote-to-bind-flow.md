@@ -22,7 +22,7 @@ sequenceDiagram
     participant PolicyAPI as Policy API
     participant BillingAPI as Billing API
     participant FundsAPI as FundsTransferMgt API
-    participant ServiceBus as RabbitMQ Transport
+    participant ServiceBus as Azure Service Bus or RabbitMQ Transport
     participant PolicyEndpoint as Policy Endpoint.In
     participant BillingEndpoint as Billing Endpoint.In
 

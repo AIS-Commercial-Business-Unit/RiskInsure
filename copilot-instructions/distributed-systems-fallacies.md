@@ -90,7 +90,7 @@ return Accepted(); // User doesn't wait
 - Queries: Direct database access, optimized for read
 - No waiting for command processing in user flow
 
-**RabbitMQ Transport**:
+**Message Transport**:
 - Queues absorb latency spikes
 - Messages processed asynchronously
 - System remains responsive under varying latency
@@ -166,7 +166,7 @@ var client = new CosmosClient(endpoint, credential);
 
 **TLS/HTTPS Everywhere**:
 - All HTTP traffic over HTTPS
-- RabbitMQ connections use TLS in hosted environments
+- Azure Service Bus and RabbitMQ connections use TLS in hosted environments
 - Cosmos DB connections encrypted
 
 **Azure Key Vault**:
@@ -213,14 +213,15 @@ var client = new CosmosClient(endpoint, credential);
 
 **NServiceBus Routing**:
 - Logical endpoint names, not physical addresses
-- RabbitMQ transport handles message routing
+- Azure Service Bus and RabbitMQ transport handles message routing
 - Decoupled from physical topology
 
 **Configuration-Based Endpoints**:
 ```csharp
 // Use logical names, not IPs
-var cosmosEndpoint = configuration["CosmosDb:Endpoint"];
-var rabbitMqConnection = configuration["RabbitMQ:ConnectionString"];
+var cosmosEndpoint = configuration["ConnectionStrings:CosmosDb"];
+var rabbitMqConnection = configuration["ConnectionStrings:RabbitMQ"];
+var serviceBusConnection = configuration["ConnectionStrings:ServiceBus"];
 ```
 
 **Health Checks and Readiness Probes**:

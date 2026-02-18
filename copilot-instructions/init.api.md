@@ -6,7 +6,7 @@ This guide provides step-by-step instructions for creating an ASP.NET Core Web A
 
 **Prerequisites**:
 - .NET 10.0 SDK
-- RabbitMQ connection string
+- RabbitMQ connection string or Azure Service Bus namespace (or connection string)
 - Azure Cosmos DB account (or local emulator)
 - Infrastructure project with NServiceBusConfigurationExtensions
 
@@ -170,7 +170,8 @@ return 0;
     }
   },
   "ConnectionStrings": {
-    "RabbitMQ": "host=localhost;username=guest;password=guest",
+    "ServiceBus": "<<YOUR_SERVICE_BUS_CONNECTION_STRING>>",
+    "RabbitMQ": "<<YOUR_RABBITMQ_CONNECTION_STRING>>",
     "CosmosDb": "<<YOUR_COSMOS_DB_CONNECTION_STRING>>"
   },
   "CosmosDb": {
@@ -463,6 +464,7 @@ Add health check packages:
 
 ```xml
 <PackageReference Include="AspNetCore.HealthChecks.CosmosDb" />
+<PackageReference Include="AspNetCore.HealthChecks.AzureServiceBus" />
 <PackageReference Include="AspNetCore.HealthChecks.RabbitMQ" />
 ```
 
@@ -472,8 +474,13 @@ Update `Program.cs`:
 // Add health checks
 builder.Services.AddHealthChecks()
     .AddCheck("self", () => HealthCheckResult.Healthy())
-  .AddRabbitMQ(
-    builder.Configuration.GetConnectionString("RabbitMQ"))
+    // Only when using Service Bus
+    .AddAzureServiceBusTopic(
+        builder.Configuration.GetConnectionString("ServiceBus"),
+        topicName: "bundle-1")
+    // Only when using RabbitMQ
+    .AddRabbitMQ(
+        builder.Configuration.GetConnectionString("RabbitMQ"))
     .AddCosmosDb(
         builder.Configuration.GetConnectionString("CosmosDb"),
         database: builder.Configuration["CosmosDb:DatabaseName"]);
@@ -717,7 +724,7 @@ app.MapOpenApi();
 
 1. **Create Endpoint.In project** for message processing (see `init.endpoint.md`)
    - ⚠️ **CRITICAL**: Endpoint.In projects also need `Properties/launchSettings.json` with `DOTNET_ENVIRONMENT=Development`
-  - Without this, the endpoint will default to Production mode and fail with "Production requires ConnectionStrings:RabbitMQ or RabbitMQ:ConnectionString"
+  - Without this, the endpoint will default to Production mode and fail with "Production requires ConnectionStrings:RabbitMQ or ConnectionStrings:ServiceBus
 2. **Add authentication** (JWT, OAuth2, etc.)
 3. **Add rate limiting** (AspNetCoreRateLimit package)
 4. **Set up CI/CD** for deployment

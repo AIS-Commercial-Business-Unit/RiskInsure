@@ -169,11 +169,18 @@ if [[ -f ".env" ]]; then
         ((FAIL_COUNT++))
     fi
 
+    if grep -q "SERVICEBUS_CONNECTION_STRING=Endpoint=sb://" .env; then
+        echo -e "  ${GREEN}Service Bus connection: Valid format${NC}"
+    fi
+
     if grep -q "RABBITMQ_CONNECTION_STRING=host=" .env; then
         echo -e "  ${GREEN}RabbitMQ connection: Valid format${NC}"
+    fi
+
+    if [[ grep -q "SERVICEBUS_CONNECTION_STRING=Endpoint=sb://" .env || grep -q "RABBITMQ_CONNECTION_STRING=host=" .env ]]; then
         ((PASS_COUNT++))
     else
-        echo -e "  ${RED}RabbitMQ connection: Invalid or missing${NC}"
+        echo -e "  ${RED}RabbitMQ connection and Service Bus connection: Invalid or missing${NC}"
         ((FAIL_COUNT++))
     fi
 else

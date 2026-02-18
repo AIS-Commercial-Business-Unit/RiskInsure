@@ -22,7 +22,7 @@
 
 2. **Configure local development**
    - Set up Cosmos DB emulator
-   - Set up RabbitMQ (local container or hosted broker)
+   - Set up RabbitMQ (local container or hosted broker) or Azure Service Bus (cloud only)
    - Copy appsettings.Development.json.template files
 
 3. **Define your domain**
@@ -32,7 +32,7 @@
 
 4. **Set up CI/CD**
    - Configure GitHub Actions workflows
-   - Set up Azure resources (Cosmos DB, Container Apps) and messaging broker
+   - Set up Azure resources (Cosmos DB, RabbitMQ or Service Bus, Container Apps)
 
 ## Template Cleanup (Optional)
 

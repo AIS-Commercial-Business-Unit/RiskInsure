@@ -200,7 +200,7 @@ Published when all payment instructions have been processed but some failed.
 **Responsibilities**:
 - Receive ACH/NACHA files from external sources
 - Store raw files in Azure Blob Storage
-- Publish `FileReceived` event to RabbitMQ transport
+- Publish `FileReceived` event to Service Bus or RabbitMQ transport
 - Handle operational notifications and error handling
 - Trigger downstream workflows on completion events
 

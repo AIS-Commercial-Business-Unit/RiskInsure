@@ -60,7 +60,7 @@ Each service consists of **two containers**:
 
 All services use **Managed Identity** to access:
 - ✅ Azure Cosmos DB (via `CosmosDb__Endpoint`)
-- ✅ Messaging broker credentials from configuration/secrets (RabbitMQ)
+- ✅ Messaging broker (credentials from configuration/secrets)
 
 Avoid hard-coded connection strings in configuration files; use secrets/managed configuration. 🎉
 

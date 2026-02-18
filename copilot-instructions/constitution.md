@@ -144,7 +144,7 @@ This constitution defines **non-negotiable architectural rules** for all project
 
 ### VI. Message-Based Integration
 
-**The Rule**: Components integrate through brokered messages (commands and events) using NServiceBus with RabbitMQ transport.
+**The Rule**: Components integrate through brokered messages (commands and events) using NServiceBus with RabbitMQ or Azure Service Bus transport.
 
 **Message Types**:
 - **Commands**: Imperative, unicast, directed actions (e.g., `ProcessEntity`)
@@ -216,8 +216,8 @@ This constitution defines **non-negotiable architectural rules** for all project
 - ✅ .NET 10.0
 - ✅ C# 13 with nullable reference types enabled
 - ✅ Azure Cosmos DB
-- ✅ RabbitMQ for messaging transport
-- ✅ NServiceBus 9.x+ with RabbitMQ transport
+- ✅ RabbitMQ or Azure Service Bus for messaging transport
+- ✅ NServiceBus 9.x+ with Azure Service Bus and RabbitMQ transport
 - ✅ Azure Logic Apps Standard for orchestration workflows
 - ✅ Azure Container Apps for hosting NServiceBus endpoints
 - ✅ xUnit for testing

@@ -328,7 +328,7 @@ $initDocPath = "docs/TEMPLATE-INITIALIZATION.md"
 
 2. **Configure local development**
    - Set up Cosmos DB emulator
-    - Set up RabbitMQ (local container or managed broker)
+   - Set up Azure Service Bus (cloud) or RabbitMQ (local container or managed broker)
    - Copy appsettings.Development.json.template files
 
 3. **Define your domain**
@@ -338,7 +338,7 @@ $initDocPath = "docs/TEMPLATE-INITIALIZATION.md"
 
 4. **Set up CI/CD**
    - Configure GitHub Actions workflows
-    - Set up Azure resources (Cosmos DB, Container Apps) and RabbitMQ broker
+    - Set up Azure resources (Cosmos DB, Service Bus or RabbitMQ broker, Container Apps)
 
 ## Template Cleanup (Optional)
 

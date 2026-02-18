@@ -93,9 +93,14 @@ If you prefer using real Azure resources for local development:
 
 1. **Create resources**:
    ```bash
-    # RabbitMQ broker (example: local Docker)
-    docker run -d --name rabbitmq \
-       -p 5672:5672 -p 15672:15672 \
+   # Service Bus namespace (Standard SKU)
+   az servicebus namespace create \
+     --resource-group riskinsure-dev \
+     --name riskinsure-dev-bus \
+     --sku Standard
+   # RabbitMQ broker (example: local Docker)
+   docker run -d --name rabbitmq \
+      -p 5672:5672 -p 15672:15672 \
        rabbitmq:3-management
 
    # Cosmos DB account (free tier)
@@ -109,6 +114,12 @@ If you prefer using real Azure resources for local development:
    ```bash
    # RabbitMQ
    echo "host=localhost;username=guest;password=guest"
+   # Service Bus
+   az servicebus namespace authorization-rule keys list \
+     --resource-group riskinsure-dev \
+     --namespace-name riskinsure-dev-bus \
+     --name RootManageSharedAccessKey \
+     --query primaryConnectionString -o tsv
 
    # Cosmos DB
    az cosmosdb keys list \
@@ -121,6 +132,7 @@ If you prefer using real Azure resources for local development:
 3. **Create .env file**:
    ```bash
    cat > .env << EOF
+   SERVICEBUS_CONNECTION_STRING="<your-service-bus-connection-string>"
    RABBITMQ_CONNECTION_STRING="host=localhost;username=guest;password=guest"
    COSMOSDB_CONNECTION_STRING="<your-cosmos-connection-string>"
    EOF

@@ -257,7 +257,7 @@ public async Task Handle(CreateBeneficiaryCommand command, IMessageHandlerContex
 - **Repository** (CosmosDB, SQL, etc.) - Data persistence
 - **External APIs** (Payment processor, AI service, etc.) - 3rd party logic
 - **Domain Services** (CategoryService, ValidationService) - Shared business logic
-- **Message Bus** (NServiceBus over RabbitMQ) - Event publishing
+- **Message Bus** (NServiceBus over RabbitMQ or ServiceBus) - Event publishing
 
 ---
 
@@ -1362,10 +1362,10 @@ host.Run();
 ### Scenario 2: Event Handler Processing Same Manager Call
 
 ```
-┌──────────┐         ┌─────────────┐      ┌──────────┐      ┌──────────────┐      ┌──────┐
-│ Service  │         │   Handler   │      │ Manager  │      │  Repository  │      │  DB  │
-│  Bus     │         │             │      │          │      │              │      │      │
-└────┬─────┘         └──────┬──────┘      └─────┬────┘      └──────┬───────┘      └──┬───┘
+┌───────────┐        ┌─────────────┐      ┌──────────┐      ┌──────────────┐      ┌──────┐
+│ Messaging │        │   Handler   │      │ Manager  │      │  Repository  │      │  DB  │
+│           │        │             │      │          │      │              │      │      │
+└────┬──────┘        └──────┬──────┘      └─────┬────┘      └──────┬───────┘      └──┬───┘
      │                      │                   │                  │                  │
      │ PromoteProductCmd    │                   │                  │                  │
      ├─────────────────────→│                   │                  │                  │
