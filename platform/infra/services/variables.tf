@@ -155,20 +155,20 @@ variable "services" {
   default = {
     "billing" = {
       api = {
-        enabled        = true
-        cpu            = 0.5
-        memory         = "1Gi"
-        min_replicas   = 1
-        max_replicas   = 10
-        container_name = "Billing"
+      enabled        = true
+      cpu            = 0.5
+      memory         = "256Mi"
+      min_replicas   = 1
+      max_replicas   = 5
+      container_name = "Billing"
       }
       endpoint = {
-        enabled        = true
-        cpu            = 0.5
-        memory         = "1Gi"
-        min_replicas   = 1
-        max_replicas   = 5
-        container_name = "Billing"
+      enabled        = true
+      cpu            = 0.5
+      memory         = "256Mi"
+      min_replicas   = 1
+      max_replicas   = 3
+      container_name = "Billing"
       }
     }
     # "customer" = {

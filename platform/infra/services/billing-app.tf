@@ -20,12 +20,15 @@ resource "azurerm_container_app" "billing_api" {
 
   secret {
     name  = "cosmos-connection-string"
-    value = data.terraform_remote_state.shared_services.outputs.cosmosdb_connection_string
+    # value = data.terraform_remote_state.shared_services.outputs.cosmosdb_connection_string
+    key_vault_secret_id =  data.azurerm_key_vault_secret.cosmos_db_connection_string.id
+
   }
 
   secret {
     name  = "servicebus-connection-string"
-    value = data.terraform_remote_state.shared_services.outputs.servicebus_connection_string
+    # value = data.terraform_remote_state.shared_services.outputs.servicebus_connection_string
+    key_vault_secret_id =  data.azurerm_key_vault_secret.service_bus_connection_string.id
   }
 
   template {
