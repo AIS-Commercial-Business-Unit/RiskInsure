@@ -47,20 +47,14 @@ data "terraform_remote_state" "shared_services" {
   }
 }
 
-data "azurerm_key_vault" "riskinsure" {
-  name                = "riskinsure-${var.environment}-kv"
-  resource_group_name = data.terraform_remote_state.foundation.outputs.resource_group_name
-  id = data.terraform_remote_state.foundation.outputs.key_vault_id
-}
-
 data "azurerm_key_vault_secret" "cosmos_db_connection_string" {
   name         = "CosmosDbConnectionString"
-  key_vault_id = data.azurerm_key_vault.riskinsure.id
+  key_vault_id = data.terraform_remote_state.foundation.outputs.key_vault_id
 }
 
 data "azurerm_key_vault_secret" "service_bus_connection_string" {
   name         = "ServiceBusConnectionString"
-  key_vault_id = data.azurerm_key_vault.riskinsure.id
+  key_vault_id = data.terraform_remote_state.foundation.outputs.key_vault_id
 }
 
 # ==========================================================================
