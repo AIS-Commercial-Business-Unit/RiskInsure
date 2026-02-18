@@ -230,14 +230,14 @@ export default function Evaluation() {
             <div className="features-list">
               <h3>Includes All AIS Components</h3>
               <ul className="inherited-features">
-                <li>✓ Azure API Management (APIM)</li>
-                <li>✓ Azure Logic Apps (where it adds value)</li>
-                <li>✓ Azure Service Bus</li>
-                <li>✓ Azure Event Grid</li>
-                <li>✓ Azure Functions</li>
-                <li>✓ Azure Data Factory (ADF)</li>
-                <li>✓ Azure Storage / Blob</li>
-                <li>✓ Azure IoT Hub</li>
+                <li>Azure API Management (APIM)</li>
+                <li>Azure Logic Apps (where it adds value)</li>
+                <li>Azure Service Bus</li>
+                <li>Azure Event Grid</li>
+                <li>Azure Functions</li>
+                <li>Azure Data Factory (ADF)</li>
+                <li>Azure Storage / Blob</li>
+                <li>Azure IoT Hub</li>
               </ul>
               <h3>Plus Additional Capabilities</h3>
               <ul className="additional-features">
