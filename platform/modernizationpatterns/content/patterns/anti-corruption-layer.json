@@ -31,7 +31,7 @@
       "Letting the garbage from the rule breaker service leak into your new services — be disciplined about keeping new services clean",
       "Building bidirectional data updates — only do one-directional data flow to avoid synchronization nightmares",
       "Not being clear about the destination architecture — vague goals lead to messy rule breaker services",
-      "Failing to explain to business that modernization takes years — get buy-in or face pressure to rush and recreate problems",
+      "Failing to explain to business that modernization takes years — get buy-in or face pressure to rush and recreate problems"
     ],
     "opinionatedGuidance": "The rule breaker service is allowed to do whatever it needs to do to make the translation happen — poll databases, break architectural rules, move data around — but it must be temporary by design. Everything you put into the rule breaker is there temporarily until modernization is complete, then you delete the whole thing safely knowing business capabilities migrated to the new system. Keep it thin and driven by a specific purpose: make the two systems disconnected but yet jointed so you can transition safely over a period of time. Be disciplined — don't let legacy garbage leak into new services. Only do one-directional data updates (legacy to new OR new to legacy, not both). You'll have to do grunt work in the rule breaker, and that's okay, but be clear about the destination. Explain to leadership: methodical daily improvements are better than stagnation or rushing. Get buy-in that doing things the right way is important, or they'll end up where they are today or worse."
   },
