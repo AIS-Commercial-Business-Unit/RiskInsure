@@ -97,3 +97,9 @@ resource "azurerm_cosmosdb_sql_role_assignment" "apps_shared_cosmos" {
   principal_id        = azurerm_user_assigned_identity.apps_shared.principal_id
   scope               = azurerm_cosmosdb_account.riskinsure.id
 }
+
+resource "azurerm_role_assignment" "uami_kv_secrets_user" {
+  scope              = data.terraform_remote_state.foundation.outputs.key_vault_id
+  role_definition_name = "Key Vault Secrets User"
+  principal_id       = azurerm_user_assigned_identity.apps_shared.principal_id  # UAMI
+}

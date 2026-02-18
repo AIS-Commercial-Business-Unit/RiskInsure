@@ -171,12 +171,12 @@ resource "azurerm_key_vault" "riskinsure" {
   tags = var.tags
 }
 
-# Grant current user Key Vault Administrator role (for initial setup)
-# resource "azurerm_role_assignment" "kv_admin" {
-#   scope                = azurerm_key_vault.riskinsure.id
-#   role_definition_name = "Key Vault Administrator"
-#   principal_id         = data.azurerm_client_config.current.object_id
-# }
+# Grant Key Vault Secrets Officer role to Service Principal (for CI/CD secret writing)
+resource "azurerm_role_assignment" "sp_kv_secrets_officer" {
+  scope                = azurerm_key_vault.riskinsure.id
+  role_definition_name = "Key Vault Secrets Officer"
+  principal_id         = data.azurerm_client_config.current.object_id  # Service Principal
+}
 
 # ============================================================================
 # Network Security Group (for production security)
