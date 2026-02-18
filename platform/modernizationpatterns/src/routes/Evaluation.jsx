@@ -241,12 +241,11 @@ export default function Evaluation() {
               </ul>
               <h3>Plus Additional Capabilities</h3>
               <ul className="additional-features">
-                <li><strong>Code-first services</strong> - C# workers, NServiceBus handlers, domain-driven design</li>
                 <li><strong>Patterns framework</strong> - Architectural guardrails (outbox, saga, anti-corruption layer)</li>
-                <li><strong>Container Apps</strong> - Kubernetes-based microservices hosting</li>
+                <li><strong>Container Based Workload</strong> - Kubernetes/ARO - based microservices processing</li>
                 <li><strong>Azure AI Foundry</strong> - AI/ML integration and agentic workflows</li>
-                <li><strong>GitHub Copilot + Spec Kit</strong> - Agentic engineering with repository instructions</li>
-                <li><strong>Consistent CI/CD</strong> - GitHub Actions, policy gates, automated testing</li>
+                <li><strong>Agentic Development with GitHub Copilot + SpecKit</strong> - Agentic engineering with repository instructions</li>
+                <li><strong>Consistent CI/CD</strong> - ADO Pipelines or GitHub Actions(preferred), policy gates, automated testing</li>
                 <li><strong>Managed Identity everywhere</strong> - Zero secrets, secure by default</li>
                 <li><strong>Enterprise testing</strong> - Unit tests, integration tests, contract tests</li>
                 <li><strong>Advanced observability</strong> - Structured logging, distributed tracing, Application Insights</li>
