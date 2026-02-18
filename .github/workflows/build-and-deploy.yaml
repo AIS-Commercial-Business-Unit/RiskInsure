@@ -461,6 +461,7 @@ jobs:
           echo ""
 
           docker build \
+            --no-cache \
             -f platform/templates/Dockerfile.api.compose \
             --build-arg PROJECT_PATH=services/${SERVICE}/src/Api/Api.csproj \
             -t ${{ steps.acr.outputs.login_server }}/${SERVICE}-api:${{ steps.tags.outputs.image_tag }} \
@@ -482,6 +483,7 @@ jobs:
           echo ""
 
           docker build \
+            --no-cache \
             -f platform/templates/Dockerfile.endpoint.compose \
             --build-arg PROJECT_PATH=services/${SERVICE}/src/Endpoint.In/Endpoint.In.csproj \
             -t ${{ steps.acr.outputs.login_server }}/${SERVICE}-endpoint:${{ steps.tags.outputs.image_tag }} \
