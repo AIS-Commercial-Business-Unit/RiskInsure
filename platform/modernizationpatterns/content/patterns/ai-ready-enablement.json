@@ -4,57 +4,78 @@
   "title": "Agentic Engineering Enablement",
   "category": "enablement",
   "subcategory": "ai-adoption",
-  "summary": "Prepare teams and governance so AI-assisted delivery and AI-ops can be adopted safely and consistently.",
+  "summary": "Enable the organization to safely and systematically adopt AI-assisted engineering across architecture, development, DevOps, and operations to accelerate time to market while maintaining governance and quality.",
   "decisionGuidance": {
-    "problemSolved": "AI initiatives fail when teams lack guardrails, patterns, and operational readiness.",
+    "problemSolved": "Organizations struggle to scale AI adoption because teams lack context engineering practices, governance guardrails, ethical guidance, and operational integration across the SDLC.",
     "whenToUse": [
-      "You plan to use Copilot/agents at scale",
-      "You need consistent outputs and safety"
+      "You plan to use GitHub Copilot, Claude Code, or agentic workflows across multiple teams",
+      "You want AI embedded into development, DevOps, and operations processes",
+      "You need faster feature delivery without sacrificing architectural integrity",
+      "You are modernizing legacy systems and want AI to accelerate the transition"
     ],
     "whenNotToUse": [
-      "AI is not in scope for the organization"
+      "AI experimentation is isolated and not intended for production workflows",
+      "The organization is unwilling to establish human review and governance guardrails"
     ]
   },
   "enablingTechnologies": [
-    "Copilot instructions",
-    "Prompt patterns",
-    "Governance"
+    "GitHub Copilot",
+    "Claude Code",
+    "Copilot Instructions",
+    "GitHub Spec Kit",
+    "MCP Servers",
+    "Prompt Patterns",
+    "Agent Frameworks",
+    "Policy as Code",
+    "CI/CD Automation"
   ],
   "thingsToWatchOutFor": {
     "gotchas": [
-      "Inconsistent prompts create inconsistent systems",
-      "Over-trusting AI outputs"
+      "Failing to review AI-generated output from a strong architectural and domain perspective",
+      "Allowing inconsistent prompts and instructions to fragment system design",
+      "Not feeding production feedback back into prompt and instruction refinement",
+      "Letting AI operate without bounded architectural constraints",
+      "Ignoring ethical, compliance, and data sensitivity concerns"
     ],
-    "opinionatedGuidance": "Constrain AI with architecture boundaries, examples, and definition of done; measure outcomes."
+    "opinionatedGuidance": "Treat AI as a constrained co-engineer, not an autonomous system. Define architectural boundaries, domain contracts, and a clear definition of done. Establish human-in-the-loop review, measure cycle time improvements, and continuously refine prompts and Copilot instructions based on real outcomes. Start now, but scale at a pace aligned with organizational comfort and maturity."
   },
   "complexity": {
     "level": "medium",
-    "rationale": "Mostly governance and enablement work.",
+    "rationale": "Requires cultural shift, training, governance alignment, and integration across SDLC processes.",
     "teamImpact": "multi-team",
-    "skillDemand": "Context engineering + platform governance skill.",
-    "operationalDemand": "Moderate—affects how changes are produced and reviewed.",
-    "toolingDemand": "Repo-based instructions + policy checks."
+    "skillDemand": "Context engineering, architectural thinking, AI tooling configuration, and governance design skills.",
+    "operationalDemand": "Moderate to high—impacts code review, CI/CD, deployment workflows, and operational automation.",
+    "toolingDemand": "Repository-based instructions, agent configurations, MCP integrations, and policy enforcement mechanisms."
   },
   "starterDiagram": {
-    "title": "Constrain then scale",
-    "description": "Guardrails enable safe adoption.",
+    "title": "AI-enabled SDLC loop",
+    "description": "AI accelerates delivery within architectural guardrails and human review.",
     "nodes": [
-      "Standards",
-      "Instructions",
-      "Review",
-      "Scale"
+      "Business Context",
+      "Copilot Instructions & Prompts",
+      "Agentic Code Generation",
+      "Human Review",
+      "CI/CD Automation",
+      "Production Feedback",
+      "Prompt Refinement"
     ]
   },
   "realWorldExample": {
-    "context": "Agentic delivery rollout",
-    "approach": "Created instructions and review gates for AI-generated changes.",
-    "outcome": "Higher consistency and lower rework."
+    "context": "Development of a new community platform including an AI-assisted cancer care pathway.",
+    "approach": "Applied domain-driven architectural patterns and constrained AI tooling to generate a majority of platform code. Used structured Copilot instructions, agent workflows, and review gates to maintain architectural consistency.",
+    "outcome": "Significantly accelerated code creation and iteration speed while maintaining governance, architectural clarity, and production readiness."
   },
   "relatedPatterns": [
     "operational-ai-agent",
     "devsecops-first-class"
   ],
   "furtherReading": [
+    {
+      "title": "GitHub Spec Kit",
+      "sourceId": "github-spec-kit",
+      "link": "https://github.com/github/spec-kit",
+      "citationRequired": false
+    },
     {
       "title": "Architecture Modernization",
       "sourceId": "architecture-modernization",
@@ -64,8 +85,11 @@
   ],
   "tags": [
     "ai",
+    "agentic-engineering",
+    "copilot",
     "enablement",
-    "governance"
+    "governance",
+    "sdlc"
   ],
-  "lastUpdated": "2026-02-17"
+  "lastUpdated": "2026-02-18"
 }
