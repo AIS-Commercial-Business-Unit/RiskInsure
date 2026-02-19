@@ -156,8 +156,8 @@ variable "services" {
     "billing" = {
       api = {
       enabled        = true
-      cpu            = 0.5
-      memory         = "0.25Gi"
+      cpu            = 0.25
+      memory         = "0.5Gi"
       min_replicas   = 1
       max_replicas   = 5
       container_name = "Billing"
@@ -165,7 +165,7 @@ variable "services" {
       endpoint = {
       enabled        = true
       cpu            = 0.5
-      memory         = "0.25Gi"
+      memory         = "0.5Gi"
       min_replicas   = 1
       max_replicas   = 3
       container_name = "Billing"
