@@ -9,7 +9,25 @@ resource "azurerm_container_app" "customer_api" {
   revision_mode                = "Single"
 
   identity {
-    type = "SystemAssigned"
+    type         = "UserAssigned"
+    identity_ids = [data.terraform_remote_state.shared_services.outputs.apps_shared_identity_id]
+  }
+
+  registry {
+    server   = data.terraform_remote_state.foundation.outputs.acr_login_server
+    identity = data.terraform_remote_state.shared_services.outputs.apps_shared_identity_id
+  }
+
+  secret {
+    name                = "cosmos-connection-string"
+    key_vault_secret_id = data.azurerm_key_vault_secret.cosmos_db_connection_string.id
+    identity            = data.terraform_remote_state.shared_services.outputs.apps_shared_identity_id
+  }
+
+  secret {
+    name                = "servicebus-connection-string"
+    key_vault_secret_id = data.azurerm_key_vault_secret.service_bus_connection_string.id
+    identity            = data.terraform_remote_state.shared_services.outputs.apps_shared_identity_id
   }
 
   template {
@@ -51,13 +69,23 @@ resource "azurerm_container_app" "customer_api" {
         name  = "CosmosDb__ContainerName"
         value = "customer"
       }
+
+      env {
+        name        = "ConnectionStrings__CosmosDb"
+        secret_name = "cosmos-connection-string"
+      }
+
+      env {
+        name        = "ConnectionStrings__ServiceBus"
+        secret_name = "servicebus-connection-string"
+      }
     }
   }
 
   ingress {
     external_enabled = true
     target_port      = 8080
-    
+
     traffic_weight {
       percentage      = 100
       latest_revision = true
@@ -67,21 +95,7 @@ resource "azurerm_container_app" "customer_api" {
   tags = var.tags
 }
 
-# Grant Cosmos DB access
-resource "azurerm_cosmosdb_sql_role_assignment" "customer_api_cosmos" {
-  resource_group_name = data.terraform_remote_state.foundation.outputs.resource_group_name
-  account_name        = data.terraform_remote_state.shared_services.outputs.cosmosdb_account_name
-  role_definition_id  = "${data.terraform_remote_state.shared_services.outputs.cosmosdb_account_id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002"
-  principal_id        = azurerm_container_app.customer_api.identity[0].principal_id
-  scope               = data.terraform_remote_state.shared_services.outputs.cosmosdb_account_id
-}
-
-# Grant Service Bus access
-resource "azurerm_role_assignment" "customer_api_servicebus" {
-  scope                = data.terraform_remote_state.shared_services.outputs.servicebus_namespace_id
-  role_definition_name = "Azure Service Bus Data Owner"
-  principal_id         = azurerm_container_app.customer_api.identity[0].principal_id
-}
+# Note: Customer API uses shared UAMI which already has Cosmos DB and Service Bus roles assigned
 
 # ==========================================================================
 # Customer Endpoint (NServiceBus)
@@ -94,7 +108,25 @@ resource "azurerm_container_app" "customer_endpoint" {
   revision_mode                = "Single"
 
   identity {
-    type = "SystemAssigned"
+    type         = "UserAssigned"
+    identity_ids = [data.terraform_remote_state.shared_services.outputs.apps_shared_identity_id]
+  }
+
+  registry {
+    server   = data.terraform_remote_state.foundation.outputs.acr_login_server
+    identity = data.terraform_remote_state.shared_services.outputs.apps_shared_identity_id
+  }
+
+  secret {
+    name                = "cosmos-connection-string"
+    key_vault_secret_id = data.azurerm_key_vault_secret.cosmos_db_connection_string.id
+    identity            = data.terraform_remote_state.shared_services.outputs.apps_shared_identity_id
+  }
+
+  secret {
+    name                = "servicebus-connection-string"
+    key_vault_secret_id = data.azurerm_key_vault_secret.service_bus_connection_string.id
+    identity            = data.terraform_remote_state.shared_services.outputs.apps_shared_identity_id
   }
 
   template {
@@ -131,23 +163,21 @@ resource "azurerm_container_app" "customer_endpoint" {
         name  = "CosmosDb__ContainerName"
         value = "customer"
       }
+
+      env {
+        name        = "ConnectionStrings__CosmosDb"
+        secret_name = "cosmos-connection-string"
+      }
+
+      env {
+        name        = "ConnectionStrings__ServiceBus"
+        secret_name = "servicebus-connection-string"
+      }
     }
   }
 
   tags = var.tags
 }
 
-# Grant permissions
-resource "azurerm_cosmosdb_sql_role_assignment" "customer_endpoint_cosmos" {
-  resource_group_name = data.terraform_remote_state.foundation.outputs.resource_group_name
-  account_name        = data.terraform_remote_state.shared_services.outputs.cosmosdb_account_name
-  role_definition_id  = "${data.terraform_remote_state.shared_services.outputs.cosmosdb_account_id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002"
-  principal_id        = azurerm_container_app.customer_endpoint.identity[0].principal_id
-  scope               = data.terraform_remote_state.shared_services.outputs.cosmosdb_account_id
-}
+# Note: Customer Endpoint uses shared UAMI which already has Cosmos DB and Service Bus roles assigned
 
-resource "azurerm_role_assignment" "customer_endpoint_servicebus" {
-  scope                = data.terraform_remote_state.shared_services.outputs.servicebus_namespace_id
-  role_definition_name = "Azure Service Bus Data Owner"
-  principal_id         = azurerm_container_app.customer_endpoint.identity[0].principal_id
-}
