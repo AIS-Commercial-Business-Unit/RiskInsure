@@ -52,6 +52,11 @@ locals {
   cosmosdb_account_name     = var.cosmosdb_account_name != "" ? var.cosmosdb_account_name : "riskinsure-${var.environment}-cosmos"
   servicebus_namespace_name = var.servicebus_namespace_name != "" ? var.servicebus_namespace_name : "riskinsure-${var.environment}-bus"
 
+  # Cosmos DB SQL Role Definitions (built-in roles)
+  # 00000000-0000-0000-0000-000000000001 = Cosmos DB Built-in Data Reader
+  # 00000000-0000-0000-0000-000000000002 = Cosmos DB Built-in Data Contributor
+  cosmosdb_data_contributor_role_id = "00000000-0000-0000-0000-000000000002"
+
   # Merge default tags with provided tags
   common_tags = merge(
     var.tags,
@@ -89,11 +94,11 @@ resource "azurerm_role_assignment" "apps_shared_servicebus" {
   principal_id         = azurerm_user_assigned_identity.apps_shared.principal_id
 }
 
-# Grant Cosmos DB Data Contributor role for data access
+# Grant Cosmos DB Built-in Data Contributor role for read/write access to Cosmos DB
 resource "azurerm_cosmosdb_sql_role_assignment" "apps_shared_cosmos" {
   resource_group_name = data.terraform_remote_state.foundation.outputs.resource_group_name
   account_name        = azurerm_cosmosdb_account.riskinsure.name
-  role_definition_id  = "${azurerm_cosmosdb_account.riskinsure.id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002"
+  role_definition_id  = "${azurerm_cosmosdb_account.riskinsure.id}/sqlRoleDefinitions/${local.cosmosdb_data_contributor_role_id}"
   principal_id        = azurerm_user_assigned_identity.apps_shared.principal_id
   scope               = azurerm_cosmosdb_account.riskinsure.id
 }

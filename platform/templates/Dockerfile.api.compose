@@ -37,10 +37,7 @@ EXPOSE 8080
 
 # Set ASP.NET Core to listen on port 8080
 ENV ASPNETCORE_URLS=http://+:8080
-
-# This entrypoint copies the Cosmos DB emulator's SSL certificate
-# to the container and configures the application to trust it,
-# enabling secure communication with the emulator.
 COPY --chmod=+x "entrypoint.sh" "/entrypoint.sh"
 
-ENTRYPOINT ["/entrypoint.sh", "cosmos.domain", "8081", "Api.dll"]
+# Run the application directly (no emulator entrypoint for cloud deployments)
+ENTRYPOINT ["dotnet", "Api.dll"]
