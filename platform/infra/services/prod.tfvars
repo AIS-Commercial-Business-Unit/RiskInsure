@@ -32,7 +32,78 @@ services = {
       container_name = "Billing"
     }
   }
-  # ... other services with production scaling
+  "customer" = {
+    api = {
+      enabled        = true
+      cpu            = 1.0
+      memory         = "2Gi"
+      min_replicas   = 2
+      max_replicas   = 20
+      container_name = "customer"
+    }
+    endpoint = {
+      enabled        = true
+      cpu            = 1.0
+      memory         = "2Gi"
+      min_replicas   = 2
+      max_replicas   = 10
+      container_name = "customer"
+    }
+  }
+  "policy" = {
+    api = {
+      enabled        = true
+      cpu            = 1.0
+      memory         = "2Gi"
+      min_replicas   = 2
+      max_replicas   = 20
+      container_name = "policy"
+    }
+    endpoint = {
+      enabled        = true
+      cpu            = 1.0
+      memory         = "2Gi"
+      min_replicas   = 2
+      max_replicas   = 10
+      container_name = "policy"
+    }
+  }
+  "ratingandunderwriting" = {
+    api = {
+      enabled        = true
+      cpu            = 1.0
+      memory         = "2Gi"
+      min_replicas   = 2
+      max_replicas   = 20
+      container_name = "ratingandunderwriting"
+    }
+    endpoint = {
+      enabled        = true
+      cpu            = 1.0
+      memory         = "2Gi"
+      min_replicas   = 2
+      max_replicas   = 10
+      container_name = "ratingandunderwriting"
+    }
+  }
+  "fundstransfermgt" = {
+    api = {
+      enabled        = true
+      cpu            = 1.0
+      memory         = "2Gi"
+      min_replicas   = 2
+      max_replicas   = 20
+      container_name = "fundstransfermgt"
+    }
+    endpoint = {
+      enabled        = true
+      cpu            = 1.0
+      memory         = "2Gi"
+      min_replicas   = 2
+      max_replicas   = 10
+      container_name = "fundstransfermgt"
+    }
+  }
 }
 
 tags = {
