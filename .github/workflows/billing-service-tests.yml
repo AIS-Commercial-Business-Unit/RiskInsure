@@ -52,13 +52,13 @@ jobs:
 
       - name: Run Unit Tests
         run: |
-          dotnet test ./services/billing/test/Unit.Tests/Unit.Tests.csproj \
+          dotnet test Unit.Tests.csproj \
             --no-build \
             --configuration Release \
             --logger "trx;LogFileName=unit-test-results.trx" \
             --collect:"XPlat Code Coverage" \
             --results-directory ./TestResults \
-            -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+            --DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
         working-directory: ${{ env.BILLING_SERVICE_PATH }}
 
       - name: Upload Unit Test Results
