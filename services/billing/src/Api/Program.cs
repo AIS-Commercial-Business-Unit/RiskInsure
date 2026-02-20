@@ -81,8 +81,6 @@ try
         });
     });
 
-    // ✅ Add Health Checks (FIX for /health endpoint)
-    builder.Services.AddHealthChecks();
 
     // Configure Cosmos DB - Billing data container
     var cosmosConnectionString = builder.Configuration.GetConnectionString("CosmosDb")
@@ -153,8 +151,6 @@ try
     app.UseHttpsRedirection();
     app.UseAuthorization();
     app.MapControllers();
-
-    app.MapHealthChecks("/health");
 
     await app.RunAsync();
 }
