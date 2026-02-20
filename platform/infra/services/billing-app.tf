@@ -19,13 +19,15 @@ resource "azurerm_container_app" "billing_api" {
   }
 
   secret {
-    name  = "cosmos-connection-string"
-    value = data.terraform_remote_state.shared_services.outputs.cosmosdb_connection_string
+    name                = "cosmos-connection-string"
+    key_vault_secret_id = data.azurerm_key_vault_secret.cosmos_db_connection_string.id
+    identity            = data.terraform_remote_state.shared_services.outputs.apps_shared_identity_id
   }
 
   secret {
-    name  = "servicebus-connection-string"
-    value = data.terraform_remote_state.shared_services.outputs.servicebus_connection_string
+    name                = "servicebus-connection-string"
+    key_vault_secret_id = data.azurerm_key_vault_secret.service_bus_connection_string.id
+    identity            = data.terraform_remote_state.shared_services.outputs.apps_shared_identity_id
   }
 
   template {
@@ -115,13 +117,15 @@ resource "azurerm_container_app" "billing_endpoint" {
   }
 
   secret {
-    name  = "cosmos-connection-string"
-    value = data.terraform_remote_state.shared_services.outputs.cosmosdb_connection_string
+    name                = "cosmos-connection-string"
+    key_vault_secret_id = data.azurerm_key_vault_secret.cosmos_db_connection_string.id
+    identity            = data.terraform_remote_state.shared_services.outputs.apps_shared_identity_id
   }
 
   secret {
-    name  = "servicebus-connection-string"
-    value = data.terraform_remote_state.shared_services.outputs.servicebus_connection_string
+    name                = "servicebus-connection-string"
+    key_vault_secret_id = data.azurerm_key_vault_secret.service_bus_connection_string.id
+    identity            = data.terraform_remote_state.shared_services.outputs.apps_shared_identity_id
   }
 
   template {
@@ -167,6 +171,22 @@ resource "azurerm_container_app" "billing_endpoint" {
       env {
         name  = "CosmosDb__BillingContainerName"
         value = "Billing"
+      }
+    }
+
+    # KEDA Scale Rules for NServiceBus Endpoint
+    dynamic "scale_rule" {
+      for_each = var.enable_keda_scaling ? [1] : []
+      content {
+        name             = "billing-endpoint-queue-scaler"
+        custom_rule_type = "azure-servicebus"
+        custom_rule_data = {
+          "namespace"      = split("/", data.terraform_remote_state.shared_services.outputs.servicebus_namespace_fqdn)[0]
+          "queueName"      = "billing.payment-instruction-received"
+          "messageCount"   = tostring(var.keda_service_bus_queue_length)
+          "sharedAccessKeyName" = "RootManageSharedAccessKey"
+          "sharedAccessKey"     = "@Microsoft.KeyVault(SecretUri=${data.azurerm_key_vault_secret.service_bus_connection_string.id})"
+        }
       }
     }
   }

@@ -288,12 +288,12 @@
 
 
 
-# New Pipeline Starts here 
+# New Pipeline Starts here
 
 
 
 
-name: 'Infrastructure & Identity Setup'
+name: 'Infrastructure Provisioning (Reusable)'
 
 on:
   workflow_call:

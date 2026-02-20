@@ -27,10 +27,11 @@ try
             options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
             options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
         });
-    
+
     builder.Services.AddEndpointsApiExplorer();
     builder.Services.AddOpenApi();
-
+ // ✅ Add Health Checks service
+    builder.Services.AddHealthChecks();
     // Configure Cosmos DB with custom serializer
     var cosmosConnectionString = builder.Configuration.GetConnectionString("CosmosDb")
         ?? throw new InvalidOperationException("CosmosDb connection string not configured");
@@ -90,7 +91,7 @@ try
     app.UseHttpsRedirection();
     app.UseAuthorization();
     app.MapControllers();
-
+    app.MapHealthChecks("/health");
     await app.RunAsync();
 
     return 0;

@@ -24,6 +24,8 @@ builder.Host.NServiceBusEnvironmentConfiguration("RiskInsure.Customer.Api");
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
+  // ✅ Add Health Checks service
+builder.Services.AddHealthChecks();
 
 // Cosmos DB with System.Text.Json serializer
 builder.Services.AddSingleton(sp =>
@@ -31,7 +33,7 @@ builder.Services.AddSingleton(sp =>
     var configuration = sp.GetRequiredService<IConfiguration>();
     var connectionString = configuration.GetConnectionString("CosmosDb") ??
                           throw new InvalidOperationException("CosmosDb connection string is required");
-    
+
     // Configure CosmosClient to use System.Text.Json serialization
     var cosmosClientOptions = new CosmosClientOptions
     {
@@ -46,7 +48,7 @@ builder.Services.AddSingleton(sp =>
         MaxRetryAttemptsOnRateLimitedRequests = 3,
         MaxRetryWaitTimeOnRateLimitedRequests = TimeSpan.FromSeconds(5)
     };
-    
+
     return new CosmosClient(connectionString, cosmosClientOptions);
 });
 
@@ -75,5 +77,5 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();
-
+app.MapHealthChecks("/health");
 app.Run();
