@@ -27,7 +27,7 @@ env:
   DOTNET_VERSION: '10.0.x'
   NODE_VERSION: '20'
   BILLING_SERVICE_PATH: 'services/billing/test/Unit.Tests'
-
+  INTEGRATION_TESTS_PATH: 'services/billing/test/Integration.Tests'
 jobs:
   unit-tests:
     name: Unit Tests
@@ -82,7 +82,7 @@ jobs:
           filename: ${{ env.BILLING_SERVICE_PATH }}/TestResults/**/coverage.opencover.xml
           badge: true
           fail_below_min: false
-          format: markdown
+          format: opencover
           hide_branch_rate: false
           hide_complexity: false
           indicators: true
@@ -114,15 +114,15 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: services/billing/test/Integration.Tests/package-lock.json
+          cache-dependency-path: ${{ env.INTEGRATION_TESTS_PATH }}/package.json
 
       - name: Install Playwright Dependencies
-        run: npm ci
-        working-directory: services/billing/test/Integration.Tests
+        run: npm install --no-audit --no-fund
+        working-directory: ${{ env.INTEGRATION_TESTS_PATH }}
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium
-        working-directory: services/billing/test/Integration.Tests
+        working-directory: ${{ env.INTEGRATION_TESTS_PATH }}
 
       - name: Start Cosmos DB Emulator
         run: |
