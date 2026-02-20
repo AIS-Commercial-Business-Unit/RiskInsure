@@ -56,9 +56,8 @@ jobs:
             --no-build \
             --configuration Release \
             --logger "trx;LogFileName=unit-test-results.trx" \
-            --collect:"XPlat Code Coverage" \
-            --results-directory ./TestResults \
-            -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+            --collect:"XPlat Code Coverage;Format=opencover" \
+            --results-directory ./TestResults
         working-directory: ${{ env.BILLING_SERVICE_PATH }}
 
       - name: Upload Unit Test Results
@@ -114,15 +113,15 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: services/billing/test/Integration.Tests/package-lock.json
+          cache-dependency-path: 'services/billing/test/Integration.Tests/package-lock.json'
 
       - name: Install Playwright Dependencies
         run: npm ci
-        working-directory: services/billing/test/Integration.Tests
+        working-directory: 'services/billing/test/Integration.Tests'
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium
-        working-directory: services/billing/test/Integration.Tests
+        working-directory: 'services/billing/test/Integration.Tests'
 
       - name: Start Cosmos DB Emulator
         run: |
@@ -156,11 +155,11 @@ jobs:
             }
           }
           EOF
-        working-directory: services/billing
+        working-directory: 'services/billing'
 
       - name: Build Billing API
         run: dotnet build src/Api/Api.csproj --configuration Release
-        working-directory: services/billing
+        working-directory: 'services/billing'
 
       - name: Start Billing API
         run: |
@@ -172,13 +171,13 @@ jobs:
           timeout 60 bash -c 'until curl -f http://localhost:7071/health > /dev/null 2>&1 || curl -f http://localhost:7071/ > /dev/null 2>&1; do sleep 2; done' || true
           sleep 5
           echo "API is ready"
-        working-directory: services/billing
+        working-directory: 'services/billing'
         env:
           ASPNETCORE_ENVIRONMENT: Development
 
       - name: Run Integration Tests
         run: npm test
-        working-directory: services/billing/test/Integration.Tests
+        working-directory: 'services/billing/test/Integration.Tests'
         env:
           API_BASE_URL: http://localhost:7071/api
           CI: true
@@ -189,21 +188,21 @@ jobs:
           if [ -f api.pid ]; then
             kill $(cat api.pid) || true
           fi
-        working-directory: services/billing
+        working-directory: 'services/billing'
 
       - name: Upload Integration Test Results
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: integration-test-results
-          path: services/billing/test/Integration.Tests/test-results/
+          path: 'services/billing/test/Integration.Tests/test-results/'
 
       - name: Upload Playwright Report
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: playwright-report
-          path: services/billing/test/Integration.Tests/playwright-report/
+          path: 'services/billing/test/Integration.Tests/playwright-report/'
           retention-days: 30
 
   test-summary:
@@ -217,20 +216,20 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: unit-test-results
-          path: ./unit-results
+          path: './unit-results'
 
       - name: Download Integration Test Results
         uses: actions/download-artifact@v4
         with:
           name: integration-test-results
-          path: ./integration-results
+          path: './integration-results'
 
       - name: Publish Test Summary
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
         with:
           files: |
-            ./unit-results/**/*.trx
-            ./integration-results/**/*.xml
+            './unit-results/**/*.trx'
+            './integration-results/**/*.xml'
           check_name: Billing Service Test Results
           comment_mode: always
