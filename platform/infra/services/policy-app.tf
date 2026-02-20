@@ -174,6 +174,22 @@ resource "azurerm_container_app" "policy_endpoint" {
         secret_name = "servicebus-connection-string"
       }
     }
+
+    # KEDA Scale Rules for NServiceBus Endpoint
+    dynamic "scale_rule" {
+      for_each = var.enable_keda_scaling ? [1] : []
+      content {
+        name             = "policy-endpoint-queue-scaler"
+        custom_rule_type = "azure-servicebus"
+        custom_rule_data = {
+          "namespace"      = split("/", data.terraform_remote_state.shared_services.outputs.servicebus_namespace_fqdn)[0]
+          "queueName"      = "policy.quote-accepted"
+          "messageCount"   = tostring(var.keda_service_bus_queue_length)
+          "sharedAccessKeyName" = "RootManageSharedAccessKey"
+          "sharedAccessKey"     = "@Microsoft.KeyVault(SecretUri=${data.azurerm_key_vault_secret.service_bus_connection_string.id})"
+        }
+      }
+    }
   }
 
   tags = var.tags
