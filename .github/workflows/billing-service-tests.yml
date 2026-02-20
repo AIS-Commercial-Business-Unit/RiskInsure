@@ -105,7 +105,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v4 
         with:
           dotnet-version: ${{ env.DOTNET_VERSION }}
 
@@ -114,15 +114,15 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: ${{ env.BILLING_SERVICE_PATH }}/test/Integration.Tests/package-lock.json
+          cache-dependency-path: services/billing/test/Integration.Tests/package-lock.json
 
       - name: Install Playwright Dependencies
         run: npm ci
-        working-directory: ${{ env.BILLING_SERVICE_PATH }}/test/Integration.Tests
+        working-directory: services/billing/test/Integration.Tests
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium
-        working-directory: ${{ env.BILLING_SERVICE_PATH }}/test/Integration.Tests
+        working-directory: services/billing/test/Integration.Tests
 
       - name: Start Cosmos DB Emulator
         run: |
@@ -156,11 +156,11 @@ jobs:
             }
           }
           EOF
-        working-directory: ${{ env.BILLING_SERVICE_PATH }}
+        working-directory: services/billing
 
       - name: Build Billing API
         run: dotnet build src/Api/Api.csproj --configuration Release
-        working-directory: ${{ env.BILLING_SERVICE_PATH }}
+        working-directory: services/billing
 
       - name: Start Billing API
         run: |
@@ -172,13 +172,13 @@ jobs:
           timeout 60 bash -c 'until curl -f http://localhost:7071/health > /dev/null 2>&1 || curl -f http://localhost:7071/ > /dev/null 2>&1; do sleep 2; done' || true
           sleep 5
           echo "API is ready"
-        working-directory: ${{ env.BILLING_SERVICE_PATH }}
+        working-directory: services/billing
         env:
           ASPNETCORE_ENVIRONMENT: Development
 
       - name: Run Integration Tests
         run: npm test
-        working-directory: ${{ env.BILLING_SERVICE_PATH }}/test/Integration.Tests
+        working-directory: services/billing/test/Integration.Tests
         env:
           API_BASE_URL: http://localhost:7071/api
           CI: true
@@ -189,21 +189,21 @@ jobs:
           if [ -f api.pid ]; then
             kill $(cat api.pid) || true
           fi
-        working-directory: ${{ env.BILLING_SERVICE_PATH }}
+        working-directory: services/billing
 
       - name: Upload Integration Test Results
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: integration-test-results
-          path: ${{ env.BILLING_SERVICE_PATH }}/test/Integration.Tests/test-results/
+          path: services/billing/test/Integration.Tests/test-results/
 
       - name: Upload Playwright Report
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: playwright-report
-          path: ${{ env.BILLING_SERVICE_PATH }}/test/Integration.Tests/playwright-report/
+          path: services/billing/test/Integration.Tests/playwright-report/
           retention-days: 30
 
   test-summary:
