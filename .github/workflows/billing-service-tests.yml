@@ -58,7 +58,7 @@ jobs:
             --logger "trx;LogFileName=unit-test-results.trx" \
             --collect:"XPlat Code Coverage" \
             --results-directory ./TestResults \
-            --DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+            -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
         working-directory: ${{ env.BILLING_SERVICE_PATH }}
 
       - name: Upload Unit Test Results
