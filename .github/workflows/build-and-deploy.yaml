@@ -515,6 +515,10 @@ jobs:
 
     outputs:
       billing_api_url: ${{ steps.outputs.outputs.billing_api_url }}
+      customer_api_url: ${{ steps.outputs.outputs.customer_api_url }}
+      policy_api_url: ${{ steps.outputs.outputs.policy_api_url }}
+      fundstransfermgt_api_url: ${{ steps.outputs.outputs.fundstransfermgt_api_url }}
+      ratingandunderwriting_api_url: ${{ steps.outputs.outputs.ratingandunderwriting_api_url }}
 
     steps:
       - name: Checkout
@@ -597,6 +601,10 @@ jobs:
         id: outputs
         run: |
           echo "billing_api_url=$(terraform output -raw billing_api_url 2>/dev/null || echo 'N/A')" >> $GITHUB_OUTPUT
+          echo "customer_api_url=$(terraform output -raw customer_api_url 2>/dev/null || echo 'N/A')" >> $GITHUB_OUTPUT
+          echo "policy_api_url=$(terraform output -raw policy_api_url 2>/dev/null || echo 'N/A')" >> $GITHUB_OUTPUT
+          echo "fundstransfermgt_api_url=$(terraform output -raw fundstransfermgt_api_url 2>/dev/null || echo 'N/A')" >> $GITHUB_OUTPUT
+          echo "ratingandunderwriting_api_url=$(terraform output -raw ratingandunderwriting_api_url 2>/dev/null || echo 'N/A')" >> $GITHUB_OUTPUT
         env:
           ARM_USE_OIDC: true
           ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
@@ -635,6 +643,74 @@ jobs:
             echo "⏭️  Billing API URL not available"
           fi
 
+      - name: Check Customer API
+        continue-on-error: true
+        run: |
+          URL="${{ needs.deploy-apps.outputs.customer_api_url }}"
+
+          if [ "$URL" != "N/A" ]; then
+            echo "🔍 Checking Customer API: $URL"
+
+            if curl -f -s "${URL}/health" > /dev/null 2>&1; then
+              echo "✅ Customer API is healthy"
+            else
+              echo "⚠️ Customer API health check failed (may still be starting)"
+            fi
+          else
+            echo "⏭️  Customer API URL not available"
+          fi
+
+      - name: Check Policy API
+        continue-on-error: true
+        run: |
+          URL="${{ needs.deploy-apps.outputs.policy_api_url }}"
+
+          if [ "$URL" != "N/A" ]; then
+            echo "🔍 Checking Policy API: $URL"
+
+            if curl -f -s "${URL}/health" > /dev/null 2>&1; then
+              echo "✅ Policy API is healthy"
+            else
+              echo "⚠️ Policy API health check failed (may still be starting)"
+            fi
+          else
+            echo "⏭️  Policy API URL not available"
+          fi
+
+      - name: Check Funds Transfer API
+        continue-on-error: true
+        run: |
+          URL="${{ needs.deploy-apps.outputs.fundstransfermgt_api_url }}"
+
+          if [ "$URL" != "N/A" ]; then
+            echo "🔍 Checking Funds Transfer API: $URL"
+
+            if curl -f -s "${URL}/health" > /dev/null 2>&1; then
+              echo "✅ Funds Transfer API is healthy"
+            else
+              echo "⚠️ Funds Transfer API health check failed (may still be starting)"
+            fi
+          else
+            echo "⏭️  Funds Transfer API URL not available"
+          fi
+
+      - name: Check Rating & Underwriting API
+        continue-on-error: true
+        run: |
+          URL="${{ needs.deploy-apps.outputs.ratingandunderwriting_api_url }}"
+
+          if [ "$URL" != "N/A" ]; then
+            echo "🔍 Checking Rating & Underwriting API: $URL"
+
+            if curl -f -s "${URL}/health" > /dev/null 2>&1; then
+              echo "✅ Rating & Underwriting API is healthy"
+            else
+              echo "⚠️ Rating & Underwriting API health check failed (may still be starting)"
+            fi
+          else
+            echo "⏭️  Rating & Underwriting API URL not available"
+          fi
+
       - name: Final Status
         run: |
           echo ""
@@ -645,10 +721,16 @@ jobs:
           echo "📊 Deployment Summary:"
           echo "  Environment: ${{ inputs.environment }}"
           echo "  Image Tag: ${{ needs.build-and-push.outputs.image_tag }}"
-          echo "  Billing API URL: ${{ needs.deploy-apps.outputs.billing_api_url }}"
+          echo ""
+          echo "🌐 Service URLs:"
+          echo "  Billing API: ${{ needs.deploy-apps.outputs.billing_api_url }}"
+          echo "  Customer API: ${{ needs.deploy-apps.outputs.customer_api_url }}"
+          echo "  Policy API: ${{ needs.deploy-apps.outputs.policy_api_url }}"
+          echo "  Funds Transfer API: ${{ needs.deploy-apps.outputs.fundstransfermgt_api_url }}"
+          echo "  Rating & Underwriting API: ${{ needs.deploy-apps.outputs.ratingandunderwriting_api_url }}"
           echo ""
           echo "🔒 Using Managed Identity:"
-          echo "  Name: billing-api, billing-endpoint (and others)"
+          echo "  Name: billing-api, billing-endpoint, customer-api, policy-api (and others)"
           echo "  Identity: User-Assigned (created by infrastructure-and-identity.yaml)"
           echo ""
           echo "🚀 Container Apps are now running!"
