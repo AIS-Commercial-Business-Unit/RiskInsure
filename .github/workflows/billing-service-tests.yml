@@ -52,7 +52,7 @@ jobs:
 
       - name: Run Unit Tests
         run: |
-          dotnet test test/Unit.Tests/Unit.Tests.csproj \
+          dotnet test ./services/billing/test/Unit.Tests/Unit.Tests.csproj \
             --no-build \
             --configuration Release \
             --logger "trx;LogFileName=unit-test-results.trx" \
