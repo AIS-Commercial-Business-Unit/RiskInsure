@@ -56,7 +56,7 @@ jobs:
             --no-build \
             --configuration Release \
             --logger "trx;LogFileName=unit-test-results.trx" \
-            --collect:"XPlat Code Coverage;Format=opencover" \
+            --collect:"XPlat Code Coverage" \
             --results-directory ./TestResults
         working-directory: ${{ env.BILLING_SERVICE_PATH }}
 
@@ -72,21 +72,21 @@ jobs:
         if: always()
         with:
           name: code-coverage
-          path: ${{ env.BILLING_SERVICE_PATH }}/TestResults/**/coverage.opencover.xml
+          path: ${{ env.BILLING_SERVICE_PATH }}/TestResults/**/coverage.cobertura.xml
 
       - name: Debug Coverage Files
         if: always()
         run: |
           echo "Coverage files found under ${{ env.BILLING_SERVICE_PATH }}/TestResults"
           find "${{ env.BILLING_SERVICE_PATH }}/TestResults" -type f -name "coverage*.xml" -print -exec ls -lah {} \;
-          echo "\nFirst lines of OpenCover files (if any):"
-          find "${{ env.BILLING_SERVICE_PATH }}/TestResults" -type f -name "coverage.opencover.xml" -print -exec head -n 5 {} \; || true
+          echo "\nFirst lines of Cobertura files (if any):"
+          find "${{ env.BILLING_SERVICE_PATH }}/TestResults" -type f -name "coverage.cobertura.xml" -print -exec head -n 5 {} \; || true
 
       - name: Code Coverage Summary
         uses: irongut/CodeCoverageSummary@v1.3.0
         if: always()
         with:
-          filename: ${{ env.BILLING_SERVICE_PATH }}/TestResults/**/coverage.opencover.xml
+          filename: ${{ env.BILLING_SERVICE_PATH }}/TestResults/**/coverage.cobertura.xml
           badge: true
           fail_below_min: false
           format: markdown
