@@ -26,7 +26,7 @@ on:
 env:
   DOTNET_VERSION: '10.0.x'
   NODE_VERSION: '20'
-  BILLING_SERVICE_PATH: 'services/billing'
+  BILLING_SERVICE_PATH: 'services/billing/test/Unit.Tests'
 
 jobs:
   unit-tests:
