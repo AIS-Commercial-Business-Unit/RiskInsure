@@ -1,0 +1,71 @@
+{
+  "id": "canary-deployment",
+  "slug": "canary-deployment",
+  "title": "Canary deployment",
+  "category": "devops",
+  "subcategory": "delivery-flow",
+  "summary": "Release changes to a small subset of traffic to validate behavior before full rollout.",
+  "decisionGuidance": {
+    "problemSolved": "Integration changes can cause system-wide impact; canaries reduce blast radius.",
+    "whenToUse": [
+      "You can route or segment traffic",
+      "You have good telemetry and rollback"
+    ],
+    "whenNotToUse": [
+      "You cannot control traffic segmentation at all"
+    ]
+  },
+  "enablingTechnologies": [
+    "Traffic routing",
+    "Metrics gates",
+    "Automated rollback"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Canary without metrics is theater",
+      "Routing mistakes skew results"
+    ],
+    "opinionatedGuidance": "Define objective gates (error rate, latency, backlog) and automate rollback on failure."
+  },
+  "complexity": {
+    "level": "medium",
+    "rationale": "Requires routing control and solid telemetry.",
+    "teamImpact": "multi-team",
+    "skillDemand": "SRE + release engineering skills.",
+    "operationalDemand": "High—needs strong monitoring and incident response.",
+    "toolingDemand": "Deployment automation + dashboards."
+  },
+  "starterDiagram": {
+    "title": "Small rollout",
+    "description": "Send small traffic, validate, expand.",
+    "nodes": [
+      "Deploy",
+      "Canary cohort",
+      "Validate",
+      "Expand"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Platform change rollout",
+    "approach": "Canary released a new handler version with automated rollback gates.",
+    "outcome": "Lower incident impact and faster safe release cadence."
+  },
+  "relatedPatterns": [
+    "feature-flag-release",
+    "observability-first"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": "https://www.amazon.com/Architecture-Modernization-Socio-technical-alignment-structure/dp/1633438155",
+      "citationRequired": false
+    }
+  ],
+  "tags": [
+    "canary",
+    "deployment",
+    "safety"
+  ],
+  "lastUpdated": "2026-02-17"
+}

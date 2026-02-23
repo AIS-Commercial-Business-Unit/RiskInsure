@@ -1,0 +1,72 @@
+{
+  "id": "operational-ai-agent",
+  "slug": "operational-ai-agent",
+  "title": "Operational AI agent",
+  "category": "devops",
+  "subcategory": "operational-excellence",
+  "summary": "Use AI to summarize system health, detect anomalies, and answer operational questions using telemetry and audit events.",
+  "decisionGuidance": {
+    "problemSolved": "SLA breach alerts are late; ops needs earlier signals and faster diagnosis.",
+    "whenToUse": [
+      "High volume integrations",
+      "Multiple failure modes",
+      "Need faster MTTR"
+    ],
+    "whenNotToUse": [
+      "You lack telemetry or cannot safely index logs/events"
+    ]
+  },
+  "enablingTechnologies": [
+    "Audit events",
+    "RAG index",
+    "Teams/ChatOps integration"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "False positives without good baselines",
+      "Sensitive data leakage"
+    ],
+    "opinionatedGuidance": "Use AI to augment operators: detect, summarize, suggest next steps; keep humans in control."
+  },
+  "complexity": {
+    "level": "high",
+    "rationale": "Requires solid telemetry and disciplined guardrails.",
+    "teamImpact": "multi-team",
+    "skillDemand": "SRE + AI ops design + security awareness.",
+    "operationalDemand": "High—impacts incident workflows.",
+    "toolingDemand": "Telemetry pipeline + indexing + chat integration."
+  },
+  "starterDiagram": {
+    "title": "Ask the platform",
+    "description": "Ops asks and gets answers.",
+    "nodes": [
+      "Telemetry",
+      "Index",
+      "AI agent",
+      "Teams alert"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Integration operations modernization",
+    "approach": "Indexed audit events and enabled Teams queries for failures and message location.",
+    "outcome": "Faster triage and improved visibility."
+  },
+  "relatedPatterns": [
+    "ai-ready-integration",
+    "observability-first"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": "https://www.amazon.com/Architecture-Modernization-Socio-technical-alignment-structure/dp/1633438155",
+      "citationRequired": false
+    }
+  ],
+  "tags": [
+    "ai",
+    "operations",
+    "chatops"
+  ],
+  "lastUpdated": "2026-02-17"
+}

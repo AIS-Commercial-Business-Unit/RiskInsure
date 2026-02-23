@@ -1,0 +1,71 @@
+{
+  "id": "business-context-outcomes",
+  "slug": "business-context-outcomes",
+  "title": "Business context and outcome mapping",
+  "category": "discovery",
+  "subcategory": "business-alignment",
+  "summary": "Translate integration modernization into measurable business outcomes and platform outcomes.",
+  "decisionGuidance": {
+    "problemSolved": "Programs drift when goals are vague (e.g., “get off BizTalk”) and success is not measurable.",
+    "whenToUse": [
+      "Executive sponsors need a shared definition of value",
+      "There are competing priorities across business lines"
+    ],
+    "whenNotToUse": [
+      "The program is purely technical remediation with a fixed scope and timeline"
+    ]
+  },
+  "enablingTechnologies": [
+    "North Star statement",
+    "Outcome/KPI map",
+    "Value stream overview"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Confusing project outputs with business outcomes",
+      "Too many KPIs dilute focus"
+    ],
+    "opinionatedGuidance": "Pick 3–5 outcomes (e.g., decommission by date, change lead time, incident rate, cost per integration)."
+  },
+  "complexity": {
+    "level": "low",
+    "rationale": "Primarily a facilitation and framing exercise.",
+    "teamImpact": "multi-team",
+    "skillDemand": "Product thinking; ability to translate strategy into metrics.",
+    "operationalDemand": "Low—enables better governance and prioritization.",
+    "toolingDemand": "Basic analytics and reporting pipelines for KPIs."
+  },
+  "starterDiagram": {
+    "title": "Outcomes map",
+    "description": "Link modernization work to outcomes.",
+    "nodes": [
+      "Goals",
+      "Outcomes",
+      "KPIs",
+      "Backlog themes"
+    ]
+  },
+  "realWorldExample": {
+    "context": "BizTalk retirement program",
+    "approach": "Created an outcome map tied to decommission waves and operational readiness.",
+    "outcome": "Better sequencing and fewer “busy work” initiatives."
+  },
+  "relatedPatterns": [
+    "listening-tour",
+    "platform-simplification-mandate"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": "https://www.amazon.com/Architecture-Modernization-Socio-technical-alignment-structure/dp/1633438155",
+      "citationRequired": false
+    }
+  ],
+  "tags": [
+    "strategy",
+    "metrics",
+    "executive"
+  ],
+  "lastUpdated": "2026-02-17"
+}

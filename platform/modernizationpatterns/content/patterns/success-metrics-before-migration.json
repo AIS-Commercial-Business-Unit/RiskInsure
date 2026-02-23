@@ -1,0 +1,71 @@
+{
+  "id": "success-metrics-before-migration",
+  "slug": "success-metrics-before-migration",
+  "title": "Success metrics before migration",
+  "category": "discovery",
+  "subcategory": "program-governance",
+  "summary": "Define how you will measure platform success before building the platform.",
+  "decisionGuidance": {
+    "problemSolved": "Without agreed metrics, teams optimize locally (speed, cost, uptime) and conflict later.",
+    "whenToUse": [
+      "Platform decision is being evaluated",
+      "Multiple stakeholders need objective evidence"
+    ],
+    "whenNotToUse": [
+      "You are running a short-lived prototype with no intent to scale"
+    ]
+  },
+  "enablingTechnologies": [
+    "KPI dashboard",
+    "SLO definitions",
+    "Baseline measurements"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Measuring only SLA breaches misses early-warning signals",
+      "Metrics become vanity numbers"
+    ],
+    "opinionatedGuidance": "Measure: change lead time, deployment frequency, error rate, backlog depth/lag, and cost per workload."
+  },
+  "complexity": {
+    "level": "low",
+    "rationale": "Mostly alignment work; implementation follows.",
+    "teamImpact": "multi-team",
+    "skillDemand": "SRE/observability literacy plus program governance skill.",
+    "operationalDemand": "Moderate—requires consistent telemetry and ownership.",
+    "toolingDemand": "Dashboard and telemetry tooling."
+  },
+  "starterDiagram": {
+    "title": "Baseline to target",
+    "description": "Measure now, then improve.",
+    "nodes": [
+      "Baseline",
+      "Targets",
+      "Telemetry",
+      "Review cadence"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Platform evaluation phase",
+    "approach": "Established baseline and agreed thresholds for the POV.",
+    "outcome": "Clear evidence of progress and fewer opinion fights."
+  },
+  "relatedPatterns": [
+    "operational-ai-agent",
+    "observability-first"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": "https://www.amazon.com/Architecture-Modernization-Socio-technical-alignment-structure/dp/1633438155",
+      "citationRequired": false
+    }
+  ],
+  "tags": [
+    "metrics",
+    "governance",
+    "success-criteria"
+  ],
+  "lastUpdated": "2026-02-17"
+}

@@ -1,0 +1,97 @@
+{
+  "id": "dead-letter-governance",
+  "slug": "dead-letter-governance",
+  "title": "Dead-letter governance",
+  "category": "technical",
+  "subcategory": "operability",
+  "summary": "Address what to do with messages that didn't make it to the destination — retried multiple times, broken business rules, potentially poisoned, and we don't know what to do with them.",
+  "decisionGuidance": {
+    "problemSolved": "The DLQ becomes a black hole where teams don't trust what's happening and you're missing things in the system. Without governance, errors are invisible, ownership is unclear, and recovery is unpredictable. Synchronous systems often push error handling to the client, but in messaging systems you need intentional upfront governance.",
+    "whenToUse": [
+      "Always — in any messaging system with retries",
+      "When you need predictable recovery from failures",
+      "Enterprise service bus or any messaging-based architecture",
+      "When you're assuming things will go bad (they will) and addressing error handling upfront",
+      "To bring a holistic view of the system including error handling from the beginning"
+    ],
+    "whenNotToUse": [
+      "Best-effort workloads that can be safely dropped without investigation",
+      "Purely synchronous systems with no async messaging"
+    ]
+  },
+  "enablingTechnologies": [
+    "Azure Service Bus dead-letter queues",
+    "DLQ management applications built on top of service bus",
+    "Logic Apps or Power Platform workflows for DLQ processing",
+    "DLQ dashboards and monitoring (Azure Monitor, Application Insights)",
+    "Message requeue and validation tooling",
+    "Validation-only message patterns",
+    "Idempotency patterns (coupled with DLQ handling)",
+    "Triage workflows and runbooks"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "DLQ growing silently until crisis — no monitoring or alerting in place",
+      "No ownership of poison messages — unclear who is responsible for investigating and resolving",
+      "Pushing the decision of what to do with errors until halfway through the project — should be upfront and intentional",
+      "Treating DLQ as an afterthought instead of a first-class operational concern",
+      "Not partitioning DLQ responsibility by bounded contexts or message ownership"
+    ],
+    "opinionatedGuidance": "When you break up your system into bounded contexts, each context should own its DLQ messages. If a service subscribes to a message and can't process it, it's their responsibility to handle it. If they send a command into their own system that fails, they own the resolution. Partition the DLQ by the people responsible for those messages. For integration/platform messages that cross boundaries, the platform team owns them with support from domain teams who built the data. Ownership of the message and understanding who's supposed to do what is critical. Define triage SLAs and a standard re-drive workflow."
+  },
+  "complexity": {
+    "level": "medium",
+    "rationale": "Mostly processing and tooling, but it's essential to system reliability. The only hard part is getting people on board with this ahead of time and understanding that you need to build this governance because it's a critical part of the overall process.",
+    "teamImpact": "Affects all teams using messaging — each team must understand their DLQ ownership and have processes for investigating and recovering from failures.",
+    "skillDemand": "Operational discipline, messaging internals, understanding message flows, troubleshooting business and technical errors, reprocessing strategies.",
+    "operationalDemand": "High — directly impacts resilience, MTTR, trust in the system, and business continuity. Requires monitoring, alerting, and on-call procedures.",
+    "toolingDemand": "DLQ dashboards, monitoring and alerting, message inspection tools, requeue/replay tooling, integration with incident management, triage workflows."
+  },
+  "starterDiagram": {
+    "title": "Dead-letter queue lifecycle with governance",
+    "description": "Messages flow through retries, land in DLQ with ownership, get triaged, fixed, and replayed with monitoring.",
+    "nodes": [
+      "Message Processing → Attempt to process message",
+      "Transient Retry → Immediate retries for temporary failures",
+      "Secondary Retry → Delayed retries with backoff",
+      "Dead-Letter Queue → Message exhausted retries, can't be processed",
+      "DLQ Partitioning → By bounded context ownership or integration responsibility",
+      "Monitoring & Alerting → Dashboard shows DLQ depth, threshold alerts when spikes occur",
+      "Triage Workflow → Investigate: business error vs technical error vs poisoned message",
+      "Decision Point → Fix code, adjust data, update business rules, or discard",
+      "Requeue/Replay → Send message back for reprocessing after fix",
+      "Validation — Verify message processed successfully, monitor for re-failure"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Ticketing company with high-volume messaging system and strict reliability requirements. Needed to ensure no ticket sales or customer transactions were lost.",
+    "approach": "Built a dead-letter queue management system with retry mechanisms and message reprocessing capabilities. Implemented monitoring dashboards that showed DLQ depth in real-time. Set threshold alerts so the team was notified when DLQ spiked above acceptable levels. When spikes occurred, they reviewed architecture and error logs to identify what changed. Responses included co-changes (fixing related issues together), redeploying endpoints with fixes, and reprocessing messages after resolution. Partitioned DLQ ownership by bounded context and integration responsibility.",
+    "outcome": "Lower MTTR (mean time to recovery), fewer repeated failures, and high trust in the system. Teams knew exactly who owned each message type and had proven workflows for investigation and recovery. DLQ never became a black hole because of proactive monitoring and clear ownership. Business errors were caught early and architectural issues were identified through DLQ pattern analysis."
+  },
+  "relatedPatterns": [
+    "replay-reprocessing",
+    "outbox-idempotency",
+    "operational-ai-agent",
+    "distributed-architecture-constraints",
+    "bounded-context-first"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": "https://www.amazon.com/Architecture-Modernization-Socio-technical-alignment-structure/dp/1633438155",
+      "citationRequired": false
+    }
+  ],
+  "tags": [
+    "dlq",
+    "operations",
+    "reliability",
+    "error-handling",
+    "messaging",
+    "governance",
+    "ownership",
+    "monitoring"
+  ],
+  "lastUpdated": "2026-02-18"
+}

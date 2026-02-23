@@ -1,94 +1,77 @@
 import { Link, useParams } from 'react-router-dom';
+import { getPatternsForCategory, getSubcategoryInfo } from '../data/patternsRepository.js';
+import { categoryMetadata } from '../data/taxonomy.js';
 
-function Diagram({ nodes }) {
-  return (
-    <div className="diagram">
-      {nodes.map((node, index) => (
-        <div key={`${node}-${index}`} className="diagram-node">
-          <span>{node}</span>
-          {index < nodes.length - 1 && <span className="diagram-arrow">→</span>}
-        </div>
-      ))}
-    </div>
-  );
+function getComplexityIcon(level) {
+  const icons = {
+    low: '⚡',
+    medium: '⚙️',
+    high: '🔥'
+  };
+  return icons[level] || '•';
 }
 
-export default function Category({ categories }) {
-  const { slug } = useParams();
-  const category = categories.find((item) => item.slug === slug);
+export default function Category() {
+  const { category } = useParams();
+  const categoryInfo = categoryMetadata[category];
 
-  if (!category) {
+  if (!categoryInfo) {
     return (
       <section className="page">
         <div className="empty-state">
           <h1>Category not found</h1>
-          <p>Pick another pattern family to explore.</p>
+          <p>Pick a valid category from the index page.</p>
           <Link className="primary-button" to="/">
-            Back to home
+            Back to index
           </Link>
         </div>
       </section>
     );
   }
 
-  const related = categories.filter((item) => category.related.includes(item.slug));
+  const patterns = getPatternsForCategory(category);
+  const groupedPatterns = patterns.reduce((accumulator, pattern) => {
+    const key = pattern.subcategory;
+    if (!accumulator[key]) {
+      accumulator[key] = [];
+    }
+    accumulator[key].push(pattern);
+    return accumulator;
+  }, {});
+  const subcategoryEntries = Object.entries(groupedPatterns);
 
   return (
     <section className="page">
-      <div className="category-hero">
-        <div>
-          <p className="eyebrow">{category.label}</p>
-          <h1>{category.title}</h1>
-          <p className="lede">{category.tagline}</p>
-        </div>
-        <div className="category-purpose">
-          <h2>Why this category exists</h2>
-          <p>{category.purpose}</p>
-        </div>
+      <div className="breadcrumb">
+        <Link to="/">Index</Link>
+        <span>/</span>
+        <span className={`crumb-chip category-${categoryInfo.colorKey}`}>{categoryInfo.title}</span>
+        <span className="pattern-count">({patterns.length} patterns)</span>
       </div>
 
-      <div className="diagram-card">
-        <div>
-          <p className="category-label">Signature flow</p>
-          <h2>{category.diagramTitle}</h2>
-        </div>
-        <Diagram nodes={category.diagramNodes} />
-      </div>
-
-      <div className="section-header">
-        <div>
-          <h2>Example patterns</h2>
-          <p>High-level starters to confirm the drill-in experience.</p>
-        </div>
-        <Link to="/" className="secondary-link">
-          Browse other categories
-        </Link>
-      </div>
-
-      <div className="grid">
-        {category.examples.map((example) => (
-          <div key={example.title} className="example-card">
-            <p className="category-label">{example.focus}</p>
-            <h3>{example.title}</h3>
-            <p>{example.summary}</p>
-            <div className="example-meta">Diagram placeholder: {example.diagram}</div>
+      {subcategoryEntries.map(([subcategoryKey, subcategoryPatterns]) => {
+        const subcategoryInfo = getSubcategoryInfo(category, subcategoryKey);
+        return (
+          <div key={subcategoryKey} className="subcategory-block">
+            <div className="subcategory-label">{subcategoryInfo?.title ?? subcategoryKey}</div>
+            <div className="pattern-list">
+              {subcategoryPatterns.map((pattern) => (
+                <Link key={pattern.id} to={`/pattern/${pattern.slug}`} className="pattern-row">
+                  <span className="complexity-icon" title={`Complexity: ${pattern.complexity.level}`}>
+                    {getComplexityIcon(pattern.complexity.level)}
+                  </span>
+                  <div className="pattern-info">
+                    <div className="pattern-title">{pattern.title}</div>
+                    <div className="pattern-hint">{pattern.decisionGuidance.whenToUse[0]}</div>
+                  </div>
+                </Link>
+              ))}
+            </div>
           </div>
-        ))}
-      </div>
+        );
+      })}
 
-      <div className="related-panel">
-        <div>
-          <h2>Related categories</h2>
-          <p>Keep moving across the map without losing momentum.</p>
-        </div>
-        <div className="related-links">
-          {related.map((item) => (
-            <Link key={item.slug} to={`/patterns/${item.slug}`}>
-              {item.title}
-            </Link>
-          ))}
-        </div>
-      </div>
+
     </section>
   );
 }
