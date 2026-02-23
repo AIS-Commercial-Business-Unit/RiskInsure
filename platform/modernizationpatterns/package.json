@@ -4,11 +4,14 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
+    "validate-content": "node content-tools/validate-content.mjs",
+    "suggest-complexity": "node content-tools/suggest-complexity.mjs",
+    "dev": "npm run validate-content && vite",
+    "build": "npm run validate-content && vite build",
     "preview": "vite preview --host"
   },
   "dependencies": {
+    "lucide-react": "^0.574.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.26.1"

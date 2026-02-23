@@ -1,0 +1,94 @@
+{
+  "id": "devsecops-first-class",
+  "slug": "devsecops-first-class",
+  "title": "DevSecOps as a first-class capability",
+  "category": "devops",
+  "subcategory": "security-delivery",
+  "summary": "Bake security, compliance, and quality controls into delivery paths so modernization can move fast safely.",
+  "decisionGuidance": {
+    "problemSolved": "Getting code to production becomes a bottleneck without automated security, compliance, and quality gates. Manual processes don't scale and introduce risk.",
+    "whenToUse": [
+      "Always — you should always have great DevSecOps",
+      "Multiple teams need standardized, consistent delivery paths",
+      "You need DevOps to never be in the way of shipping",
+      "Security and compliance checks must be automated and shift-left",
+      "You want to eliminate late-stage security surprises"
+    ],
+    "whenNotToUse": [
+      "A short-lived spike with no intent to productionize"
+    ]
+  },
+  "enablingTechnologies": [
+    "GitHub Advanced Security",
+    "GitHub Actions",
+    "Azure DevOps",
+    "Well-defined environmental gating system",
+    "Policy as code",
+    "Secrets scanning",
+    "Automated testing frameworks"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Not taking this seriously — problems getting code to production are a business liability",
+      "Not stopping to automate things that should be automated — manual gates don't scale",
+      "Not getting your security officer involved early when building security protocols and governance",
+      "Not being creative — you can stand up databases for integration testing, entire environments for performance testing, with tight developer feedback loops",
+      "Not leveraging AI and GitHub Actions to solve delivery problems in new ways",
+      "Security exceptions become invisible risk over time",
+      "Overly heavy gates slow delivery and frustrate teams"
+    ],
+    "opinionatedGuidance": "Do process engineering first. Step back, understand how you want delivery to work, then build toward that vision. Be creative with ephemeral environments, AI-assisted reviews, and automated testing. Get senior leadership buy-in that secure, fast delivery is a competitive advantage. Automate the basics (scans, policies) and focus humans on true risk decisions."
+  },
+  "complexity": {
+    "level": "medium",
+    "rationale": "Tooling exists and is mature. The complexity comes from organizational alignment, multi-team adoption, and building a centralized platform that serves everyone.",
+    "teamImpact": "Requires a centralized DevOps team to build the platform, an enablement team to teach teams how to plug in, and senior-level buy-in that secure delivery is critical.",
+    "skillDemand": "Security engineering, CI/CD expertise, GitHub Actions/Azure DevOps fluency, policy-as-code, and enablement skills.",
+    "operationalDemand": "High — directly affects production safety, velocity, and confidence. Must be reliable and fast.",
+    "toolingDemand": "GitHub Advanced Security, GitHub Actions, Azure DevOps, automated testing, secrets management, environment gating, rollback mechanisms."
+  },
+  "starterDiagram": {
+    "title": "Automated secure delivery pipeline",
+    "description": "Code flows through automated security, quality, and compliance gates before reaching production.",
+    "nodes": [
+      "Code Commit → Trigger",
+      "Build → Unit Tests → Security Scan (GitHub Advanced Security)",
+      "Integration Tests → Ephemeral Environment → Performance Tests",
+      "Policy Validation → Secrets Check → Compliance Gates",
+      "Environment Approval (Dev → Staging → Prod)",
+      "Deploy with Automated Rollback",
+      "Observability → Feedback to Developers"
+    ]
+  },
+  "realWorldExample": {
+    "context": "A ticketing company undergoing modernization needed to move fast without sacrificing security, compliance, or quality. Multiple teams were delivering features daily.",
+    "approach": "Built a tight DevSecOps system with GitHub Actions, GitHub Advanced Security, automated testing, environment gating, and automatic rollback. All security, governance, and compliance checks were automated and shift-left. Developers could click a button to deploy from the main branch at any time. The enablement team trained all product teams on how to plug into the platform.",
+    "outcome": "Teams deployed code 10+ times a day without issue. Developers could deploy while at dinner without worry. The system automatically handled rollback if production issues occurred. This became a massive enabler for delivering features faster during their modernization journey. Zero manual gates, zero late-stage surprises."
+  },
+  "relatedPatterns": [
+    "platform-team-model",
+    "enablement-team-model",
+    "observability-first",
+    "platform-simplification-mandate"
+  ],
+  "furtherReading": [
+    {
+      "title": "Accelerate: The Science of Lean Software and DevOps",
+      "sourceId": "accelerate-book",
+      "link": "https://itrevolution.com/product/accelerate/",
+      "citationRequired": false
+    },
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": "https://www.amazon.com/Architecture-Modernization-Socio-technical-alignment-structure/dp/1633438155",
+      "citationRequired": false
+    }
+  ],
+  "tags": [
+    "devsecops",
+    "security",
+    "compliance"
+  ],
+  "lastUpdated": "2026-02-18"
+}

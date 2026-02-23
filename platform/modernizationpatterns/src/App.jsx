@@ -1,44 +1,52 @@
-import { BrowserRouter, Link, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Route, Routes, Link, useLocation } from 'react-router-dom';
 import Home from './routes/Home.jsx';
-import Category from './routes/Category.jsx';
-import { categories } from './data/patterns.js';
+import Pattern from './routes/Pattern.jsx';
+import Evaluation from './routes/Evaluation.jsx';
+import { getCategories, getPatterns } from './data/patternsRepository.js';
 
-const navItems = categories.map((category) => ({
-  slug: category.slug,
-  title: category.title
-}));
+function Navigation() {
+  const location = useLocation();
+  
+  return (
+    <nav className="main-nav">
+      <Link 
+        to="/" 
+        className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}
+      >
+        Patterns
+      </Link>
+      <Link 
+        to="/evaluation" 
+        className={`nav-link ${location.pathname === '/evaluation' ? 'active' : ''}`}
+      >
+        Platform Evaluation
+      </Link>
+    </nav>
+  );
+}
 
 export default function App() {
+  const categories = getCategories();
+  const patterns = getPatterns();
+
   return (
     <BrowserRouter>
       <div className="app-shell">
-        <header className="site-header">
-          <div className="brand">
-            <Link to="/" className="brand-mark">
-              Modernization Patterns Atlas
-            </Link>
-            <p className="brand-tagline">
-              Map the patterns. Move with clarity. Keep the factory floor clean.
-            </p>
-          </div>
-          <nav className="top-nav">
-            {navItems.map((item) => (
-              <Link key={item.slug} to={`/patterns/${item.slug}`}>
-                {item.title}
-              </Link>
-            ))}
-          </nav>
+        <header className="simple-header">
+          <h1>Modernization Patterns</h1>
+          <Navigation />
         </header>
 
         <main>
           <Routes>
-            <Route path="/" element={<Home categories={categories} />} />
-            <Route path="/patterns/:slug" element={<Category categories={categories} />} />
+            <Route path="/" element={<Home categories={categories} patterns={patterns} />} />
+            <Route path="/pattern/:slug" element={<Pattern />} />
+            <Route path="/evaluation" element={<Evaluation />} />
           </Routes>
         </main>
 
         <footer className="site-footer">
-          <p>Modernization Patterns Atlas - built for quick orientation and fast recall.</p>
+          <p>Built for clarity, intent, and practical decisions.</p>
         </footer>
       </div>
     </BrowserRouter>

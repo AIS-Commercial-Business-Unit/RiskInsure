@@ -1,0 +1,71 @@
+{
+  "id": "outbox-idempotency",
+  "slug": "outbox-idempotency",
+  "title": "Outbox and idempotency",
+  "category": "technical",
+  "subcategory": "reliability",
+  "summary": "Guarantee safe message publishing and processing so retries do not create duplicates or inconsistent state.",
+  "decisionGuidance": {
+    "problemSolved": "Distributed systems fail in partial ways; without idempotency, recovery creates chaos.",
+    "whenToUse": [
+      "You use messaging and retries",
+      "Exactly-once semantics are desired at the business level"
+    ],
+    "whenNotToUse": [
+      "You are purely synchronous and transactional end-to-end (rare)"
+    ]
+  },
+  "enablingTechnologies": [
+    "Outbox table",
+    "Idempotency keys",
+    "Deduplication"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Outbox added without operational monitoring",
+      "Idempotency logic inconsistent across teams"
+    ],
+    "opinionatedGuidance": "Treat idempotency as a platform standard: templates + tests + telemetry."
+  },
+  "complexity": {
+    "level": "high",
+    "rationale": "Core reliability pattern for event-driven platforms.",
+    "teamImpact": "multi-team",
+    "skillDemand": "Resilience engineering and distributed data consistency knowledge.",
+    "operationalDemand": "High—needs DLQ, replay, and tooling support.",
+    "toolingDemand": "Data store + messaging + tracing + validation tests."
+  },
+  "starterDiagram": {
+    "title": "Safe publish",
+    "description": "Commit then publish from outbox.",
+    "nodes": [
+      "Domain transaction",
+      "Outbox",
+      "Publisher",
+      "Bus"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Event-driven billing",
+    "approach": "Added outbox and idempotent consumers across billing flows.",
+    "outcome": "Reduced duplicate processing and improved recovery confidence."
+  },
+  "relatedPatterns": [
+    "replay-reprocessing",
+    "dead-letter-governance"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": "https://www.amazon.com/Architecture-Modernization-Socio-technical-alignment-structure/dp/1633438155",
+      "citationRequired": false
+    }
+  ],
+  "tags": [
+    "outbox",
+    "idempotency",
+    "reliability"
+  ],
+  "lastUpdated": "2026-02-17"
+}

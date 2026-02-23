@@ -1,0 +1,71 @@
+{
+  "id": "composite-integration-layer",
+  "slug": "composite-integration-layer",
+  "title": "Composite integration layer",
+  "category": "strategic",
+  "subcategory": "integration-architecture",
+  "summary": "A thin layer that composes data from multiple domains to serve external partner/API needs without coupling domains together.",
+  "decisionGuidance": {
+    "problemSolved": "External systems often require joined views; doing joins inside domains forces shared models.",
+    "whenToUse": [
+      "External partners require composite payloads",
+      "Multiple domains must contribute data"
+    ],
+    "whenNotToUse": [
+      "A single domain can own the complete response end-to-end"
+    ]
+  },
+  "enablingTechnologies": [
+    "Composite API",
+    "Orchestration service",
+    "Caching"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Composite layer becomes a new monolith",
+      "Hidden orchestration complexity"
+    ],
+    "opinionatedGuidance": "Keep it thin and contract-driven; prefer event-driven read models when possible."
+  },
+  "complexity": {
+    "level": "high",
+    "rationale": "Composition is powerful but needs careful governance.",
+    "teamImpact": "multi-team",
+    "skillDemand": "API composition + distributed systems design skill.",
+    "operationalDemand": "High—must be resilient and observable.",
+    "toolingDemand": "Tracing + contract tests + caching controls."
+  },
+  "starterDiagram": {
+    "title": "Compose for partner",
+    "description": "Domains feed a composite response.",
+    "nodes": [
+      "Partner",
+      "Composite layer",
+      "Domain A",
+      "Domain B"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Partner integrations modernization",
+    "approach": "Built a composite integration endpoint powered by domain events.",
+    "outcome": "Reduced cross-domain coupling while meeting partner needs."
+  },
+  "relatedPatterns": [
+    "composite-api",
+    "centralized-caching"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": "https://www.amazon.com/Architecture-Modernization-Socio-technical-alignment-structure/dp/1633438155",
+      "citationRequired": false
+    }
+  ],
+  "tags": [
+    "composition",
+    "integration",
+    "partners"
+  ],
+  "lastUpdated": "2026-02-17"
+}
