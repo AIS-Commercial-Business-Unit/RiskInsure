@@ -78,13 +78,13 @@ output "servicebus_namespace_id" {
 }
 
 output "servicebus_connection_string" {
-  description = "Service Bus connection string (sensitive - for dev/test)"
-  value       = var.environment == "dev" ? data.azurerm_servicebus_namespace_authorization_rule.root_manage.primary_connection_string : null
+  description = "Service Bus connection string (sensitive)"
+  value       = azurerm_servicebus_namespace.riskinsure.default_primary_connection_string
   sensitive   = true
 }
 
 output "servicebus_primary_key" {
   description = "Service Bus primary key (sensitive)"
-  value       = var.environment == "dev" ? data.azurerm_servicebus_namespace_authorization_rule.root_manage.primary_key : null
+  value       = azurerm_servicebus_namespace.riskinsure.default_primary_key
   sensitive   = true
 }

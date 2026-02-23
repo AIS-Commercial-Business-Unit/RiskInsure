@@ -126,3 +126,5 @@ crash.*.log
 # Modernization patterns raw content inbox (do not check in uploads)
 platform/modernizationpatterns/content/_inbox/**
 !platform/modernizationpatterns/content/_inbox/README.md
+# Claude Temp files
+tmpclaude*

@@ -56,6 +56,9 @@ builder.Services.AddScoped<IRatingEngine, RatingEngine>();
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
+// ✅ Health Check service registration
+builder.Services.AddHealthChecks();
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -66,5 +69,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.MapControllers();
+
+app.MapHealthChecks("/health");
 
 app.Run();
