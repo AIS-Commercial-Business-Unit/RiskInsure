@@ -14,6 +14,8 @@
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="FluentAssertions" />
     <PackageReference Include="Moq" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Microsoft.Azure.Cosmos" />
   </ItemGroup>
 
   <ItemGroup>
@@ -25,6 +27,7 @@
     <ProjectReference Include="..\..\src\FileRetrieval.Application\FileRetrieval.Application.csproj" />
     <ProjectReference Include="..\..\src\FileRetrieval.Infrastructure\FileRetrieval.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\FileRetrieval.Contracts\FileRetrieval.Contracts.csproj" />
+    <ProjectReference Include="..\..\src\FileRetrieval.API\FileRetrieval.API.csproj" />
   </ItemGroup>
 
 </Project>
