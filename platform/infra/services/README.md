@@ -6,7 +6,7 @@ This layer deploys the **RiskInsure microservices** as Azure Container Apps.
 
 The following layers must be deployed first:
 1. ✅ **foundation**: ACR, VNet, Key Vault, Log Analytics
-2. ✅ **shared-services**: Cosmos DB, Service Bus
+2. ✅ **shared-services**: Cosmos DB, messaging broker resources
 
 ## 🚀 Deployment
 
@@ -60,9 +60,9 @@ Each service consists of **two containers**:
 
 All services use **Managed Identity** to access:
 - ✅ Azure Cosmos DB (via `CosmosDb__Endpoint`)
-- ✅ Azure Service Bus (via `AzureServiceBus__FullyQualifiedNamespace`)
+- ✅ Messaging broker (credentials from configuration/secrets)
 
-No connection strings in configuration! 🎉
+Avoid hard-coded connection strings in configuration files; use secrets/managed configuration. 🎉
 
 ## 📊 Resource Configuration
 
@@ -188,7 +188,7 @@ az containerapp update \
 
 ### Auto-scaling (KEDA)
 
-Endpoints auto-scale based on Service Bus queue length (configured via KEDA).
+Endpoints auto-scale based on queue depth metrics (configured via KEDA).
 
 ## 💰 Cost Estimate
 

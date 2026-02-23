@@ -22,7 +22,7 @@ sequenceDiagram
     participant PolicyAPI as Policy API
     participant BillingAPI as Billing API
     participant FundsAPI as FundsTransferMgt API
-    participant ServiceBus as Azure Service Bus
+    participant ServiceBus as Azure Service Bus or RabbitMQ Transport
     participant PolicyEndpoint as Policy Endpoint.In
     participant BillingEndpoint as Billing Endpoint.In
 
@@ -101,7 +101,7 @@ sequenceDiagram
 **Legend:**
 - **Solid arrows (→)**: Synchronous API calls (HTTP requests)
 - **Dashed arrows (-->>)**: Synchronous responses
-- **Solid arrows to/from ServiceBus**: Asynchronous events/commands
+- **Solid arrows to/from ServiceBus**: Asynchronous events/commands over Azure Service Bus or RabbitMQ transport
 - **Commands**: Imperative actions (CreateCustomer, InitiateFundTransfer)
 - **Events**: Past-tense notifications (CustomerCreated, PolicyIssued)
 
