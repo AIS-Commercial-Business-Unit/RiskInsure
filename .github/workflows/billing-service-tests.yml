@@ -142,11 +142,18 @@ jobs:
         run: npx playwright install --with-deps chromium
         working-directory: ${{ env.INTEGRATION_TESTS_PATH }}
 
+      - name: Debug API Billing Base URL
+        run: |
+          echo "API_BILLING_BASE_URL=${API_BILLING_BASE_URL}"
+        working-directory: ${{ env.INTEGRATION_TESTS_PATH }}
+        env:
+          API_BILLING_BASE_URL: ${{ vars.API_BILLING_BASE_URL }}
+
       - name: Run Integration Tests
         run: npm test
         working-directory: services/billing/test/Integration.Tests
         env:
-            API_BILLING_BASE_URL: ${{ env.API_BILLING_BASE_URL }}
+            API_BILLING_BASE_URL: ${{ vars.API_BILLING_BASE_URL }}
             CI: true
 
       - name: Upload Integration Test Results

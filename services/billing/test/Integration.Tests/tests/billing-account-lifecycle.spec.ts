@@ -19,7 +19,7 @@ test.describe('Billing Account Lifecycle', () => {
   let accountId: string;
   let customerId: string;
   let policyNumber: string;
-  const baseUrl = process.env.API_BILLING_BASE_URL || 'http://localhost:7071/api';
+  const baseUrl = process.env.API_BILLING_BASE_URL || 'http://localhost:7071';
 
   test.beforeEach(() => {
     // Generate unique IDs for each test run
