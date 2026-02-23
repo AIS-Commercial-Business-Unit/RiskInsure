@@ -175,24 +175,39 @@ resource "azurerm_container_app" "fundstransfermgt_endpoint" {
       }
     }
 
-    # KEDA Scale Rules for NServiceBus Endpoint
-    dynamic "scale_rule" {
-      for_each = var.enable_keda_scaling ? [1] : []
-      content {
-        name             = "fundstransfermgt-endpoint-queue-scaler"
-        custom_rule_type = "azure-servicebus"
-        custom_rule_data = {
-          "namespace"      = split("/", data.terraform_remote_state.shared_services.outputs.servicebus_namespace_fqdn)[0]
-          "queueName"      = "fundstransfermgt.paymentmethod-cmd"
-          "messageCount"   = tostring(var.keda_service_bus_queue_length)
-          "sharedAccessKeyName" = "RootManageSharedAccessKey"
-          "sharedAccessKey"     = "@Microsoft.KeyVault(SecretUri=${data.azurerm_key_vault_secret.service_bus_connection_string.id})"
-        }
-      }
-    }
   }
 
   tags = var.tags
 }
 
 # Note: Funds Transfer Mgmt Endpoint uses shared UAMI which already has Cosmos DB and Service Bus roles assigned
+
+# ==========================================================================
+# Funds Transfer Management Endpoint KEDA Scaler
+# ==========================================================================
+
+resource "azurerm_container_app_custom_scaler" "fundstransfermgt_endpoint_scaler" {
+  count = var.enable_keda_scaling ? 1 : 0
+
+  container_app_id = azurerm_container_app.fundstransfermgt_endpoint.id
+  name             = "fundstransfermgt-endpoint-queue-scaler"
+
+  authentication {
+    secret_name       = "servicebus-connection-string"
+    trigger_parameter = "connection"
+  }
+
+  custom {
+    type = "azure-servicebus"
+
+    metadata = {
+      namespace           = split("/", data.terraform_remote_state.shared_services.outputs.servicebus_namespace_fqdn)[0]
+      queueName           = "RiskInsure.FundsTransferMgt.Endpoint.In"
+      messageCount        = tostring(var.keda_service_bus_queue_length)
+      sharedAccessKeyName = "RootManageSharedAccessKey"
+      connection          = "servicebus-connection-string"
+    }
+  }
+
+  depends_on = [azurerm_container_app.fundstransfermgt_endpoint]
+}
