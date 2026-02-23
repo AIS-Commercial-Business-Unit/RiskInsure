@@ -224,6 +224,7 @@ public class FileRetrievalExecutionRepository : IFileRetrievalExecutionRepositor
             execution,
             execution.Id.ToString(),
             new PartitionKey(execution.ClientId),
+            new ItemRequestOptions { IfMatchEtag = execution.ETag },
             cancellationToken: cancellationToken);
 
         return response.Resource;

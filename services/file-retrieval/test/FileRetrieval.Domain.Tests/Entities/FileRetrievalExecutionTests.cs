@@ -65,7 +65,8 @@ public class FileRetrievalExecutionTests
             ResolvedFilePathPattern = "/files/2026/02",
             ResolvedFilenamePattern = "data-2026-02-23",
             DurationMs = 5000,
-            RetryCount = 0
+            RetryCount = 0,
+            ETag = "\"00000000-0000-0000-0000-000000000000\""
         };
     }
 }

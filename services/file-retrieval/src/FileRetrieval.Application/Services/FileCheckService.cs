@@ -90,7 +90,8 @@ public class FileCheckService
             RetryCount = 0,
             ResolvedFilePathPattern = string.Empty,
             ResolvedFilenamePattern = string.Empty,
-            DurationMs = 0
+            DurationMs = 0,
+            ETag = string.Empty
         };
 
         try

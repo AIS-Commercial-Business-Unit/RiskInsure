@@ -35,6 +35,21 @@ public class CreateConfigurationHandler : IHandleMessages<CreateConfiguration>
 
         try
         {
+            // Check if configuration already exists (idempotency)
+            var existing = await _configurationService.GetByIdAsync(
+                message.ClientId,
+                message.ConfigurationId,
+                context.CancellationToken);
+
+            if (existing != null)
+            {
+                _logger.LogInformation(
+                    "Configuration {ConfigurationId} already exists for client {ClientId}, skipping create (idempotent)",
+                    message.ConfigurationId,
+                    message.ClientId);
+                return;
+            }
+
             // Map command to entity
             var configuration = MapCommandToEntity(message);
 

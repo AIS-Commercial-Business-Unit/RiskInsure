@@ -84,6 +84,11 @@ public class FileRetrievalExecution
     public string Type { get; set; } = nameof(FileRetrievalExecution);
 
     /// <summary>
+    /// ETag for optimistic concurrency control in Cosmos DB
+    /// </summary>
+    public required string ETag { get; set; }
+
+    /// <summary>
     /// Validates the execution business rules
     /// </summary>
     public void Validate()
