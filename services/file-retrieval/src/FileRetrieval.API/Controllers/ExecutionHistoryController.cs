@@ -12,7 +12,7 @@ namespace RiskInsure.FileRetrieval.API.Controllers;
 /// Provides read-only access to execution records for monitoring and diagnostics.
 /// </summary>
 [ApiController]
-[Route("api/configuration/{configurationId}/[controller]")]
+[Route("api/v1/configuration/{configurationId}/[controller]")]
 [Authorize(Policy = "ClientAccess")]
 public class ExecutionHistoryController : ControllerBase
 {

@@ -58,29 +58,31 @@ public class FileCheckService
     /// </summary>
     /// <param name="configuration">Configuration to execute</param>
     /// <param name="executionDate">Date to use for token replacement (defaults to UtcNow)</param>
+    /// <param name="executionId">Optional execution ID for tracking (generates new if not provided)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Execution result with discovered files</returns>
     public async Task<FileCheckResult> ExecuteCheckAsync(
         FileRetrievalConfiguration configuration,
         DateTimeOffset? executionDate = null,
+        Guid? executionId = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(configuration);
 
         var effectiveDate = executionDate ?? DateTimeOffset.UtcNow;
-        var executionId = Guid.NewGuid();
+        var effectiveExecutionId = executionId ?? Guid.NewGuid();
         var startTime = DateTimeOffset.UtcNow;
 
         _logger.LogInformation(
             "Starting file check execution {ExecutionId} for configuration {ConfigurationId} (Client: {ClientId})",
-            executionId,
+            effectiveExecutionId,
             configuration.Id,
             configuration.ClientId);
 
         // Create execution record
         var execution = new FileRetrievalExecution
         {
-            Id = executionId,
+            Id = effectiveExecutionId,
             ClientId = configuration.ClientId,
             ConfigurationId = configuration.Id,
             ExecutionStartedAt = startTime,
@@ -136,14 +138,14 @@ public class FileCheckService
 
             _logger.LogInformation(
                 "File check execution {ExecutionId} completed successfully: {FilesFound} files found in {DurationMs}ms",
-                executionId,
+                effectiveExecutionId,
                 execution.FilesFound,
                 execution.DurationMs);
 
             return new FileCheckResult
             {
                 Success = true,
-                ExecutionId = executionId,
+                ExecutionId = effectiveExecutionId,
                 StartTime = startTime,
                 DiscoveredFiles = discoveredFiles.ToList(),
                 DurationMs = execution.DurationMs,
@@ -168,7 +170,7 @@ public class FileCheckService
             _logger.LogError(
                 ex,
                 "File check execution {ExecutionId} failed with {ErrorCategory} after {RetryCount} retries: {ErrorMessage}",
-                executionId,
+                effectiveExecutionId,
                 errorCategory,
                 execution.RetryCount,
                 ex.Message);
@@ -176,7 +178,7 @@ public class FileCheckService
             return new FileCheckResult
             {
                 Success = false,
-                ExecutionId = executionId,
+                ExecutionId = effectiveExecutionId,
                 StartTime = startTime,
                 DiscoveredFiles = new List<DiscoveredFileInfo>(),
                 DurationMs = execution.DurationMs,

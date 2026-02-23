@@ -86,10 +86,37 @@ public class ExecuteFileCheckHandler : IHandleMessages<ExecuteFileCheck>
                 return;
             }
 
+            // Generate execution ID for this file check
+            var executionId = Guid.NewGuid();
+
+            // Publish FileCheckTriggered event (audit trail for both manual and scheduled triggers)
+            await context.Publish(new FileCheckTriggered
+            {
+                MessageId = Guid.NewGuid(),
+                CorrelationId = message.CorrelationId,
+                OccurredUtc = DateTimeOffset.UtcNow,
+                IdempotencyKey = $"{message.ClientId}:{message.ConfigurationId}:triggered:{executionId}",
+                ClientId = message.ClientId,
+                ConfigurationId = message.ConfigurationId,
+                ConfigurationName = configuration.Name,
+                Protocol = configuration.ProtocolSettings.ProtocolType.ToString(),
+                ExecutionId = executionId,
+                ScheduledExecutionTime = message.ScheduledExecutionTime,
+                IsManualTrigger = message.IsManualTrigger,
+                TriggeredBy = message.IsManualTrigger ? "manual-api" : "scheduler"
+            });
+
+            _logger.LogInformation(
+                "FileCheckTriggered event published for configuration {ConfigurationId} (ExecutionId: {ExecutionId}, IsManual: {IsManual})",
+                message.ConfigurationId,
+                executionId,
+                message.IsManualTrigger);
+
             // Execute file check via service
             var result = await _fileCheckService.ExecuteCheckAsync(
                 configuration,
                 message.ScheduledExecutionTime,
+                executionId,
                 CancellationToken.None);
 
             if (result.Success)

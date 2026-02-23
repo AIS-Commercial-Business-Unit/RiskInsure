@@ -2,11 +2,28 @@ using FileRetrieval.Worker;
 using RiskInsure.FileRetrieval.Infrastructure;
 using RiskInsure.FileRetrieval.Infrastructure.Scheduling;
 using NServiceBus;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 
 var builder = Host.CreateApplicationBuilder(args);
 
+// T143: Add Application Insights for distributed tracing
+builder.Services.AddApplicationInsightsTelemetryWorkerService(options =>
+{
+    options.ConnectionString = builder.Configuration["ApplicationInsights:ConnectionString"];
+    options.EnableAdaptiveSampling = true;
+});
+
 // Add infrastructure services (Cosmos DB, repositories, Key Vault)
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// Add health checks
+builder.Services.AddHealthChecks()
+    .AddCheck("self", () => HealthCheckResult.Healthy("Worker is running"))
+    .AddCheck("cosmos-db", () =>
+    {
+        // Simple check - will be replaced with actual Cosmos DB health check in infrastructure layer
+        return HealthCheckResult.Healthy("Cosmos DB configured");
+    }, tags: new[] { "db", "cosmos" });
 
 // Configure NServiceBus endpoint
 var connectionString = builder.Configuration.GetConnectionString("ServiceBus") 

@@ -19,6 +19,10 @@
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
     <PackageReference Include="Microsoft.IdentityModel.Tokens" />
     <PackageReference Include="Microsoft.OpenApi" />
+    <PackageReference Include="AspNetCore.HealthChecks.CosmosDb" />
+    <PackageReference Include="AspNetCore.HealthChecks.UI.Client" />
+    <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" />
+    <PackageReference Include="Microsoft.ApplicationInsights.NLogTarget" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\FileRetrieval.Application\FileRetrieval.Application.csproj" />

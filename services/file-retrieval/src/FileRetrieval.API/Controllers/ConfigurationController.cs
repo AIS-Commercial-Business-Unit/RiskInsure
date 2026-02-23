@@ -16,7 +16,7 @@ namespace RiskInsure.FileRetrieval.API.Controllers;
 /// All endpoints require JWT authentication with clientId claim.
 /// </summary>
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/v1/[controller]")]
 [Authorize(Policy = "ClientAccess")]
 public class ConfigurationController : ControllerBase
 {
@@ -462,6 +462,100 @@ public class ConfigurationController : ControllerBase
         {
             _logger.LogError(ex, "Error updating configuration {ConfigurationId}", id);
             return StatusCode(500, new { error = "An error occurred while updating the configuration" });
+        }
+    }
+
+    /// <summary>
+    /// Manually triggers a file check for an existing configuration.
+    /// Sends ExecuteFileCheck command with IsManualTrigger=true.
+    /// </summary>
+    /// <param name="id">Configuration ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Accepted with execution ID</returns>
+    [HttpPost("{id}/trigger")]
+    [ProducesResponseType(typeof(TriggerFileCheckResponse), StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> TriggerFileCheck(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Extract clientId from JWT claims (enforces client isolation)
+            var clientId = GetClientIdFromClaims();
+            var userId = GetUserIdFromClaims();
+
+            // Verify configuration exists and belongs to this client
+            var existing = await _configurationService.GetByIdAsync(clientId, id, cancellationToken);
+            if (existing == null)
+            {
+                _logger.LogWarning(
+                    "Configuration {ConfigurationId} not found for client {ClientId}",
+                    id,
+                    clientId);
+                return NotFound(new { error = "Configuration not found" });
+            }
+
+            // Validate configuration is active
+            if (!existing.IsActive)
+            {
+                _logger.LogWarning(
+                    "Configuration {ConfigurationId} is inactive and cannot be triggered",
+                    id);
+                return BadRequest(new { error = "Configuration is inactive and cannot be triggered" });
+            }
+
+            var executionId = Guid.NewGuid();
+            var correlationId = $"{clientId}-{id}-trigger-{DateTimeOffset.UtcNow:yyyyMMddHHmmss}";
+            var triggeredAt = DateTimeOffset.UtcNow;
+
+            _logger.LogInformation(
+                "Manually triggering file check for configuration {ConfigurationId} (client: {ClientId}, user: {UserId}, execution: {ExecutionId})",
+                id,
+                clientId,
+                userId,
+                executionId);
+
+            // Send ExecuteFileCheck command via NServiceBus
+            var command = new ExecuteFileCheck
+            {
+                MessageId = Guid.NewGuid(),
+                CorrelationId = correlationId,
+                OccurredUtc = triggeredAt,
+                IdempotencyKey = $"{clientId}:{id}:manual:{executionId}",
+                ClientId = clientId,
+                ConfigurationId = id,
+                ScheduledExecutionTime = triggeredAt,
+                IsManualTrigger = true
+            };
+
+            await _messageSession.Send(command, cancellationToken);
+
+            _logger.LogInformation(
+                "File check command sent for configuration {ConfigurationId} (execution: {ExecutionId})",
+                id,
+                executionId);
+
+            return Accepted(new TriggerFileCheckResponse
+            {
+                ConfigurationId = id,
+                ExecutionId = executionId,
+                TriggeredAt = triggeredAt,
+                Message = "File check triggered successfully"
+            });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogWarning(ex, "Unauthorized access attempt");
+            return Unauthorized(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error triggering file check for configuration {ConfigurationId}", id);
+            return StatusCode(500, new { error = "An error occurred while triggering the file check" });
         }
     }
 

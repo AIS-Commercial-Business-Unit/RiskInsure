@@ -15,6 +15,9 @@
     <PackageReference Include="NServiceBus.Extensions.Hosting" />
     <PackageReference Include="Serilog.Extensions.Hosting" />
     <PackageReference Include="Serilog.Sinks.Console" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
+    <PackageReference Include="AspNetCore.HealthChecks.CosmosDb" />
+    <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\FileRetrieval.Application\FileRetrieval.Application.csproj" />

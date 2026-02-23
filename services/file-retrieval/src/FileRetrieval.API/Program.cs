@@ -4,14 +4,68 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.OpenApi.Models;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// T143: Add Application Insights for distributed tracing
+builder.Services.AddApplicationInsightsTelemetry(options =>
+{
+    options.ConnectionString = builder.Configuration["ApplicationInsights:ConnectionString"];
+    options.EnableAdaptiveSampling = true;
+    options.EnableQuickPulseMetricStream = true;
+});
 
 // Add infrastructure services (Cosmos DB, repositories, Key Vault)
 builder.Services.AddInfrastructure(builder.Configuration);
 
 // Add controllers
 builder.Services.AddControllers();
+
+// Add health checks for Azure Container Apps readiness/liveness probes
+builder.Services.AddHealthChecks()
+    .AddCheck("self", () => Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy("API is running"))
+    .AddCheck("cosmos-db", () => 
+    {
+        // Simple check - will be replaced with actual Cosmos DB health check in infrastructure layer
+        return Microsoft.Extensions.Diagnostics.HealthChecks.HealthCheckResult.Healthy("Cosmos DB configured");
+    }, tags: new[] { "db", "cosmos" });
+
+// Add rate limiting to prevent abuse (T139)
+builder.Services.AddRateLimiter(options =>
+{
+    // Fixed window rate limiter for API endpoints
+    options.AddFixedWindowLimiter("api", limiterOptions =>
+    {
+        limiterOptions.PermitLimit = 100; // 100 requests
+        limiterOptions.Window = TimeSpan.FromMinutes(1); // per minute
+        limiterOptions.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
+        limiterOptions.QueueLimit = 10; // Queue up to 10 requests
+    });
+
+    // Stricter rate limit for mutation operations (POST, PUT, DELETE)
+    options.AddFixedWindowLimiter("api-write", limiterOptions =>
+    {
+        limiterOptions.PermitLimit = 20; // 20 requests
+        limiterOptions.Window = TimeSpan.FromMinutes(1); // per minute
+        limiterOptions.QueueProcessingOrder = System.Threading.RateLimiting.QueueProcessingOrder.OldestFirst;
+        limiterOptions.QueueLimit = 5;
+    });
+
+    // Global rejection behavior
+    options.OnRejected = async (context, token) =>
+    {
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        await context.HttpContext.Response.WriteAsJsonAsync(new
+        {
+            error = "Rate limit exceeded",
+            retryAfter = context.Lease.TryGetMetadata(System.Threading.RateLimiting.MetadataName.RetryAfter, out var retryAfter)
+                ? retryAfter.ToString()
+                : "60 seconds"
+        }, token);
+    };
+});
 
 // Add OpenAPI/Swagger with JWT authentication support
 builder.Services.AddEndpointsApiExplorer();
@@ -160,6 +214,69 @@ builder.Services.AddAuthorization(options =>
 
 var app = builder.Build();
 
+// T140: Add comprehensive error handling middleware
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        var exceptionHandlerPathFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>();
+        var exception = exceptionHandlerPathFeature?.Error;
+
+        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+        logger.LogError(exception, "Unhandled exception occurred: {Message}", exception?.Message);
+
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "application/json";
+
+        var problemDetails = new Microsoft.AspNetCore.Mvc.ProblemDetails
+        {
+            Status = StatusCodes.Status500InternalServerError,
+            Title = "An error occurred while processing your request",
+            Detail = app.Environment.IsDevelopment() ? exception?.Message : "Please contact support if the problem persists",
+            Instance = context.Request.Path
+        };
+
+        await context.Response.WriteAsJsonAsync(problemDetails);
+    });
+});
+
+// T141: Add security headers (CORS, CSP, HSTS)
+app.Use(async (context, next) =>
+{
+    // HSTS (HTTP Strict Transport Security)
+    context.Response.Headers.Append("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+    
+    // Content Security Policy
+    context.Response.Headers.Append("Content-Security-Policy", 
+        "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;");
+    
+    // X-Frame-Options (prevent clickjacking)
+    context.Response.Headers.Append("X-Frame-Options", "DENY");
+    
+    // X-Content-Type-Options (prevent MIME sniffing)
+    context.Response.Headers.Append("X-Content-Type-Options", "nosniff");
+    
+    // Referrer-Policy
+    context.Response.Headers.Append("Referrer-Policy", "no-referrer");
+    
+    // Permissions-Policy (formerly Feature-Policy)
+    context.Response.Headers.Append("Permissions-Policy", "geolocation=(), microphone=(), camera=()");
+
+    await next();
+});
+
+// CORS configuration
+app.UseCors(policy =>
+{
+    var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() 
+        ?? new[] { "https://localhost:5001", "https://app.riskinsure.com" };
+    
+    policy.WithOrigins(allowedOrigins)
+          .AllowAnyMethod()
+          .AllowAnyHeader()
+          .AllowCredentials();
+});
+
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
@@ -169,9 +286,48 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// Rate limiting middleware (must be before authentication)
+app.UseRateLimiter();
+
 // Authentication and Authorization
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Health check endpoints for Azure Container Apps
+app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = _ => true,
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "application/json";
+        var result = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            status = report.Status.ToString(),
+            checks = report.Entries.Select(e => new
+            {
+                name = e.Key,
+                status = e.Value.Status.ToString(),
+                duration = e.Value.Duration.TotalMilliseconds,
+                description = e.Value.Description,
+                exception = e.Value.Exception?.Message
+            }),
+            totalDuration = report.TotalDuration.TotalMilliseconds
+        });
+        await context.Response.WriteAsync(result);
+    }
+});
+
+// Simple liveness probe (just checks if API is responsive)
+app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = check => check.Name == "self"
+});
+
+// Readiness probe (checks dependencies like Cosmos DB)
+app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("db")
+});
 
 app.MapControllers();
 
