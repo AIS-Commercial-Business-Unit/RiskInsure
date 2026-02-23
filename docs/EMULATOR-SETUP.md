@@ -244,4 +244,4 @@ docker-compose up -d rabbitmq cosmos-emulator
 - See [docs/getting-started.md](docs/getting-started.md) for architecture overview
 - See [docs/docker-development.md](docs/docker-development.md) for Docker workflows
 - See [test/e2e/README.md](test/e2e/README.md) for testing guide
-- See [copilot-instructions/constitution.md](copilot-instructions/constitution.md) for coding standards
+- See [.specify/memory/constitution.md](../.specify/memory/constitution.md) for coding standards

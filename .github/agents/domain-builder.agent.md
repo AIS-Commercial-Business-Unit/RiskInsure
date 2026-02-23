@@ -591,7 +591,7 @@ Index the solution since there are additions into other projects for cross domai
 
 The agent uses these sources:
 1. **[copilot-instructions/project-structure.md](../copilot-instructions/project-structure.md)** - Layer responsibilities
-2. **[copilot-instructions/constitution.md](../copilot-instructions/constitution.md)** - Core principles
+2. **[.specify/memory/constitution.md](../.specify/memory/constitution.md)** - Core principles
 3. **[copilot-instructions/init.api.md](../copilot-instructions/init.api.md)** - API project setup
 4. **Technical specification** - Domain-specific requirements
 5. **Existing implementations** - Billing and FundsTransferMgt as patterns
