@@ -2,6 +2,16 @@ name: Billing Service - Build and Test
 
 on:
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'GitHub Environment name (controls secrets/approvals)'
+        type: choice
+        required: true
+        default: dev
+        options:
+          - dev
+          - staging
+          - prod
   push:
     branches:
       - main
@@ -32,6 +42,7 @@ jobs:
   unit-tests:
     name: Unit Tests
     runs-on: ubuntu-latest
+    environment: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || 'dev' }}
 
     steps:
       - name: Checkout code
@@ -106,7 +117,7 @@ jobs:
   integration-tests:
     name: Integration Tests
     runs-on: ubuntu-latest
-
+    environment: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || 'dev' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -156,6 +167,7 @@ jobs:
   test-summary:
     name: Test Summary
     runs-on: ubuntu-latest
+    environment: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || 'dev' }}
     needs: [unit-tests, integration-tests]
     if: always()
 
