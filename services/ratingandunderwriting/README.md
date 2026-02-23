@@ -343,7 +343,7 @@ public record QuoteAccepted(
 
 1. .NET 10 SDK
 2. Cosmos DB Emulator running on localhost:8081
-3. Azure Service Bus namespace with connection string
+3. RabbitMQ broker connection string
 
 ### Starting the API
 
@@ -492,7 +492,7 @@ dotnet build services/ratingandunderwriting/test/Unit.Tests/Unit.Tests.csproj
 ✅ **Principle III - Atomic State Transitions**: ETag optimistic concurrency for updates  
 ✅ **Principle IV - Idempotent Message Handlers**: Future handlers will check existing state  
 ✅ **Principle V - Structured Observability**: Logs include quoteId, customerId, correlation IDs  
-✅ **Principle VI - Message-Based Integration**: QuoteAccepted triggers policy creation via Service Bus  
+✅ **Principle VI - Message-Based Integration**: QuoteAccepted triggers policy creation via RabbitMQ transport  
 ✅ **Principle VII - Thin Message Handlers**: Future handlers delegate to QuoteManager  
 ✅ **Principle VIII - Test Coverage Requirements**: 90%+ domain coverage with unit tests  
 ✅ **Principle IX - Technology Constraints**: .NET 10, NServiceBus 9.x, Cosmos DB, xUnit  

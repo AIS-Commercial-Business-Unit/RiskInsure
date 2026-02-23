@@ -110,3 +110,9 @@ variable "tags" {
     Layer       = "SharedServices"
   }
 }
+
+variable "enable_private_endpoints" {
+  description = "Enable private endpoints for Cosmos DB and Service Bus"
+  type        = bool
+  default     = false
+}

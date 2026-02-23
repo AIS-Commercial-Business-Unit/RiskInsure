@@ -1,0 +1,88 @@
+{
+  "id": "modernization-waves",
+  "slug": "modernization-waves",
+  "title": "Modernization waves",
+  "category": "strategic",
+  "subcategory": "transition-strategy",
+  "summary": "Establish a successful lead implementation, then organize remaining modernization efforts into parallel waves based on common characteristics, building a flywheel of capability.",
+  "decisionGuidance": {
+    "problemSolved": "Scaling modernization beyond the first success without overwhelming teams or infrastructure.",
+    "whenToUse": [
+      "Modernizing hundreds of integrations (e.g., 400 BizTalk flows)",
+      "Large mainframe migrations organized by business capability",
+      "Any scenario with many similar modernization efforts ahead"
+    ],
+    "whenNotToUse": [
+      "Single application or small-scope migration",
+      "One-off modernization with no replication opportunity",
+      "When infrastructure and operations aren't proven yet"
+    ]
+  },
+  "enablingTechnologies": [
+    "Application portfolio inventory",
+    "Wave tracking dashboards",
+    "Dependency mapping tools",
+    "Migration backlog management",
+    "Heuristic-based wave assignment criteria"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Starting with the hardest or most complex application — begin with something consumable and build confidence",
+      "Over-scheduling early waves before platform maturity — your infrastructure and operational patterns aren't fully proven",
+      "Skipping the lead horse phase — trying to run multiple waves before establishing operational muscle",
+      "Using inconsistent wave criteria — changing the grouping logic mid-flight creates confusion",
+      "Assuming linear velocity — expect slowdowns, then acceleration as the flywheel builds"
+    ],
+    "opinionatedGuidance": "Use a **crawl-walk-run** approach. **Crawl**: Everything is new (infrastructure, firewall rules, services, operations, team onboarding). Focus on learning, not speed. **Walk**: Platform deployed, teams gaining confidence, bringing on more capabilities but still protective and deliberate. **Run**: Highly automated, rich operational feedback, logging and transparency established, waves move fast and parallel."
+  },
+  "complexity": {
+    "level": "medium",
+    "rationale": "Not technically complex, but requires organizational discipline, portfolio clarity, and coordination across many teams and workstreams.",
+    "teamImpact": "Requires program management, cross-team coordination, and clear communication of wave status and learning.",
+    "skillDemand": "Program management, dependency analysis, portfolio prioritization, and learning dissemination across teams.",
+    "operationalDemand": "Wave tracking, feedback loops between waves, operational readiness validation before scaling.",
+    "toolingDemand": "Portfolio management tools, wave tracking dashboards, dependency visualization, and progress reporting."
+  },
+  "starterDiagram": {
+    "title": "Wave progression from lead horse to parallel execution",
+    "description": "The lead horse establishes operational patterns, then similar modernization efforts are grouped into waves that can run in parallel.",
+    "nodes": [
+      "Discovery & Inventory → Application portfolio with heuristics (technology, size, complexity, dependencies)",
+      "Lead Horse → First modernization through full lifecycle (discovery → plan → implement → handover)",
+      "Learn & Establish → Capture lessons, mature platform, validate operations, build team confidence",
+      "Wave Definition → Group remaining efforts using heuristics (Wave 1: Same tech stack, Wave 2: Similar size, Wave 3: Common dependencies)",
+      "Parallel Waves → Multiple waves in flight simultaneously, each moving through discovery → plan → implement → handover",
+      "Feedback Loop → Learnings from each wave inform infrastructure, tooling, and operational improvements",
+      "Flywheel Effect → Velocity increases as platform matures, teams gain experience, and automation improves"
+    ]
+  },
+  "realWorldExample": {
+    "context": "A financial services company had 400 BizTalk integrations to modernize to Azure Integration Services, plus a mainframe with 12 business capabilities to migrate to cloud-native services.",
+    "approach": "Selected a mid-complexity BizTalk integration as the lead horse—complex enough to stress the platform but not business-critical. After establishing Azure Service Bus patterns, observability, and deployment pipelines, they organized the remaining 399 integrations into waves by message protocol (HTTP, MSMQ, File). For the mainframe, they created waves by business capability (Policy Admin, Billing, Claims). Ran 3 BizTalk waves and 2 mainframe capability waves in parallel after the lead horse was stable.",
+    "outcome": "First wave took 12 weeks (crawl). Second wave took 8 weeks (walk). By the fifth wave, they completed in 4 weeks with minimal surprises (run). The flywheel effect reduced per-integration effort by 70% from lead horse to final wave. Platform maturity allowed parallel execution without operational overload."
+  },
+  "relatedPatterns": [
+    "strangler-fig-migration",
+    "parallel-run-reconciliation",
+    "bounded-context-first"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": "https://www.amazon.com/Architecture-Modernization-Socio-technical-alignment-structure/dp/1633438155",
+      "citationRequired": false
+    }
+  ],
+  "tags": [
+    "waves",
+    "phased-approach",
+    "lead-horse",
+    "scaling",
+    "portfolio-management",
+    "crawl-walk-run",
+    "flywheel",
+    "program-management"
+  ],
+  "lastUpdated": "2026-02-18"
+}

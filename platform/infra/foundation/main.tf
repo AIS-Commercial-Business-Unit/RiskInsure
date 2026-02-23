@@ -5,7 +5,7 @@
 
 terraform {
   required_version = ">= 1.11.0"
-  
+
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
@@ -35,6 +35,10 @@ provider "azurerm" {
       purge_soft_delete_on_destroy = false
     }
   }
+
+  # Use Azure AD authentication for storage account operations
+  # This allows shared_access_key_enabled = false while still managing storage
+  storage_use_azuread = true
 }
 
 # ============================================================================
@@ -56,7 +60,7 @@ resource "azurerm_virtual_network" "riskinsure" {
   location            = data.azurerm_resource_group.riskinsure.location
   resource_group_name = data.azurerm_resource_group.riskinsure.name
   address_space       = [var.vnet_address_space]
-  
+
   tags = var.tags
 }
 
@@ -148,11 +152,11 @@ resource "azurerm_key_vault" "riskinsure" {
   resource_group_name        = data.azurerm_resource_group.riskinsure.name
   tenant_id                  = data.azurerm_client_config.current.tenant_id
   sku_name                   = "standard"
-  soft_delete_retention_days = 90
+  soft_delete_retention_days = 15
   purge_protection_enabled   = var.environment == "prod" ? true : false
 
   # Enable RBAC authorization (recommended over access policies)
-  enable_rbac_authorization = true
+  rbac_authorization_enabled = true
 
   # Network ACLs for production
   dynamic "network_acls" {
@@ -167,12 +171,12 @@ resource "azurerm_key_vault" "riskinsure" {
   tags = var.tags
 }
 
-# Grant current user Key Vault Administrator role (for initial setup)
-resource "azurerm_role_assignment" "kv_admin" {
-  scope                = azurerm_key_vault.riskinsure.id
-  role_definition_name = "Key Vault Administrator"
-  principal_id         = data.azurerm_client_config.current.object_id
-}
+# Grant Key Vault Secrets Officer role to Service Principal (for CI/CD secret writing)
+# resource "azurerm_role_assignment" "sp_kv_secrets_officer" {
+#   scope                = azurerm_key_vault.riskinsure.id
+#   role_definition_name = "Key Vault Secrets Officer"
+#   principal_id         = data.azurerm_client_config.current.object_id  # Service Principal
+# }
 
 # ============================================================================
 # Network Security Group (for production security)
@@ -232,7 +236,8 @@ resource "azurerm_storage_account" "riskinsure" {
 
   # Security features
   https_traffic_only_enabled      = true
-  shared_access_key_enabled       = false
+  # Enable for initial deployment; disable after deployment completes
+  shared_access_key_enabled       = true
 
   tags = var.tags
 }

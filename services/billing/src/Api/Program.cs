@@ -6,7 +6,6 @@ using RiskInsure.Billing.Domain.Services.BillingDb;
 using RiskInsure.Billing.Infrastructure;
 using Scalar.AspNetCore;
 using Serilog;
-using Infrastructure;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -39,35 +38,35 @@ try
                 Description = """
                     ## Overview
                     The Billing API provides RESTful endpoints for managing insurance policy billing accounts and payment operations.
-                    
+
                     ## Capabilities
-                    
+
                     ### Billing Accounts (`/api/billing/accounts`)
                     - **Create** new billing accounts for insurance policies
                     - **Activate** pending accounts to begin billing
                     - **Update** premium amounts and billing cycles
                     - **Suspend** accounts temporarily (non-payment, policy issues)
                     - **Close** accounts permanently
-                    
+
                     ### Billing Payments (`/api/billing/payments`)
                     - **Record payments** synchronously with immediate validation
                     - **Submit payments** asynchronously for background processing
                     - Track payment history and outstanding balances
-                    
+
                     ## Processing Patterns
-                    
+
                     - **Synchronous Endpoints**: Return immediate results (200 OK, 400 Bad Request, 404 Not Found)
                     - **Asynchronous Endpoints**: Accept commands for background processing (202 Accepted)
                     - **Event-Driven**: All operations publish domain events for downstream subscribers
-                    
+
                     ## Business Rules
-                    
+
                     - Accounts start in **Pending** status and must be activated
                     - Payments can only be recorded for **Active** accounts
                     - Premium amounts must be non-negative
                     - Policy numbers must be unique per customer
                     - All operations are idempotent (safe to retry)
-                    
+
                     ## Authentication
                     Currently operating in development mode without authentication. Production will require JWT bearer tokens.
                     """,
@@ -80,6 +79,7 @@ try
             return Task.CompletedTask;
         });
     });
+
 
     // Configure Cosmos DB - Billing data container
     var cosmosConnectionString = builder.Configuration.GetConnectionString("CosmosDb")
@@ -102,7 +102,7 @@ try
         MaxRetryAttemptsOnRateLimitedRequests = 3,
         MaxRetryWaitTimeOnRateLimitedRequests = TimeSpan.FromSeconds(5)
     };
-    
+
     var cosmosClient = new CosmosClient(cosmosConnectionString, cosmosClientOptions);
 
     // Initialize database and container on startup
@@ -110,9 +110,9 @@ try
     // For provisioned accounts, specify RU/s (e.g., throughput: 400)
     Log.Information("Initializing Cosmos DB database {DatabaseName} and container {ContainerName}", databaseName, billingContainerName);
     await CosmosDbInitializer.EnsureDbAndContainerAsync(
-        cosmosClient, 
-        databaseName, 
-        billingContainerName, 
+        cosmosClient,
+        databaseName,
+        billingContainerName,
         "/accountId",
         databaseThroughput: 1000); // Database-level: 1000 RU/s shared across ALL containers (FREE TIER)
     Log.Information("Cosmos DB database initialization complete");
@@ -133,7 +133,7 @@ try
         (config, endpoint, routing) =>
         {
             endpoint.SendOnly(); // CRITICAL: API only sends/publishes, doesn't receive messages
-            
+
             // Route commands to Billing Endpoint
             routing.RouteToEndpoint(typeof(RecordPayment), "RiskInsure.Billing.Endpoint");
         });

@@ -1,42 +1,16 @@
 #!/bin/bash
-# Azure Service Bus Queue Setup for Billing Service
-# Run this script after creating a Service Bus namespace to set up queues and subscriptions
+# RabbitMQ Topology Guidance for Billing Service
 
-set -e  # Exit on error
-
-# Check if connection string is set
-if [ -z "$AzureServiceBus_ConnectionString" ]; then
-    echo "❌ Error: AzureServiceBus_ConnectionString environment variable is not set"
-    echo ""
-    echo "Set it with:"
-    echo "  export AzureServiceBus_ConnectionString='Endpoint=sb://YOUR-NAMESPACE.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=YOUR-KEY'"
-    echo ""
-    exit 1
-fi
+set -e
 
 echo "========================================="
-echo " Setting up Billing Service Queues"
+echo " Billing Messaging Setup (RabbitMQ)"
 echo "========================================="
 echo ""
-
-# Shared error and audit queues (run once per namespace)
-echo "Creating shared infrastructure queues..."
-asb-transport queue create error || echo "  ℹ️  Queue 'error' may already exist"
-asb-transport queue create audit || echo "  ℹ️  Queue 'audit' may already exist"
-asb-transport queue create particular.monitoring || echo "  ℹ️  Queue 'particular.monitoring' may already exist"
+echo "RabbitMQ transport is enabled for Billing."
+echo "No manual queue bootstrap is required when NServiceBus installers are enabled."
 echo ""
-
-# Billing service endpoint
-echo "Creating Billing endpoint..."
-asb-transport endpoint create RiskInsure.Billing.Endpoint
-echo ""
-
-# Billing service subscriptions
-echo "Creating Billing subscriptions..."
-asb-transport endpoint subscribe RiskInsure.Billing.Endpoint RiskInsure.PublicContracts.Events.PolicyBound
-
-echo ""
-echo "✅ Billing service queues created successfully!"
-echo ""
-echo "Note: Internal domain events (BillingAccountCreated, AccountActivated, etc.)"
-echo "      are handled within the Billing service and don't require subscriptions."
+echo "If you need infrastructure manually:"
+echo "  1. Ensure RabbitMQ is running: docker compose up -d rabbitmq"
+echo "  2. Start Billing Endpoint.In with installers enabled"
+echo "  3. Verify queues at http://localhost:15672"

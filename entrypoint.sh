@@ -37,17 +37,19 @@ update-ca-certificates
 echo "Verifying we can connect securely to CosmosDB..."
 # We should be able to connect securely now that we have the cert in our trusted certs
 testConnectUrl="https://$cosmosHost:${cosmosPort}/_explorer/index.html"
-testConnectResponse=$(curl --silent --connect-timeout 10 --write-out "%{http_code}" $testConnectUrl)
-testConnectHttpCode=$(tail -n1 <<< "$testConnectResponse")  # get the last line
-testConnectContent=$(sed '$ d' <<< "$testConnectResponse")   # get all but the last line which contains the status code
+testConnectContent=$(mktemp)
+testConnectHttpCode=$(curl --silent --connect-timeout 10 --output "$testConnectContent" --write-out "%{http_code}" "$testConnectUrl")
 
-if [[ $testConnectHttpCode != 200 ]]; then
+if [[ $testConnectHttpCode == 200 ]]; then
     echo "Successfully connected securely to CosmosDB at $cosmosHost:$cosmosPort with imported SSL certificate."
 else
     echo "Unable to connect securely to CosmosDB at $cosmosHost:$cosmosPort. HTTP status code: $testConnectHttpCode"
-    echo "Response content: $testConnectContent"
+    echo "Response content:"
+    cat "$testConnectContent"
+    rm -f "$testConnectContent"
     exit $testConnectHttpCode
 fi
+rm -f "$testConnectContent"
 
 #echo "-------------------"
 # echo "Openssl diagnostics"

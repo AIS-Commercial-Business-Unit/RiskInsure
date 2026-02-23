@@ -1,0 +1,71 @@
+{
+  "id": "composite-api",
+  "slug": "composite-api",
+  "title": "Composite API",
+  "category": "technical",
+  "subcategory": "api-patterns",
+  "summary": "Compose multiple domain responses into a single API tailored for a channel or partner.",
+  "decisionGuidance": {
+    "problemSolved": "Partners and UIs often need a unified view; naive solutions create chatty clients or tight coupling.",
+    "whenToUse": [
+      "You have multiple upstream domains",
+      "You need a stable external contract"
+    ],
+    "whenNotToUse": [
+      "One domain owns all necessary data and behavior"
+    ]
+  },
+  "enablingTechnologies": [
+    "API gateway",
+    "Composition service",
+    "Caching"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Becomes a bottleneck without scaling",
+      "Accidental business logic creep"
+    ],
+    "opinionatedGuidance": "Keep business rules in domains; composite API focuses on shaping and composing data."
+  },
+  "complexity": {
+    "level": "medium",
+    "rationale": "Moderate complexity; operational demands can be high at scale.",
+    "teamImpact": "multi-team",
+    "skillDemand": "API design and resilience skill.",
+    "operationalDemand": "Moderate—needs tracing, caching, and rate limiting.",
+    "toolingDemand": "Gateway policies + tracing + performance tests."
+  },
+  "starterDiagram": {
+    "title": "One call view",
+    "description": "Compose view from domains.",
+    "nodes": [
+      "Client",
+      "Composite API",
+      "Domain A",
+      "Domain B"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Agent portal experience",
+    "approach": "Built a composite endpoint for quote and policy summary.",
+    "outcome": "Simpler clients and clearer contracts."
+  },
+  "relatedPatterns": [
+    "composite-integration-layer",
+    "centralized-caching"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": "https://www.amazon.com/Architecture-Modernization-Socio-technical-alignment-structure/dp/1633438155",
+      "citationRequired": false
+    }
+  ],
+  "tags": [
+    "api",
+    "composition",
+    "partners"
+  ],
+  "lastUpdated": "2026-02-17"
+}

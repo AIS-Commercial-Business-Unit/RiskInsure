@@ -21,7 +21,7 @@ Following the corrected [project-structure.md](../../../copilot-instructions/pro
 
 ### Endpoint.In Layer (`src/Endpoint.In/`)
 - **Handlers**: `RecordPaymentHandler` - Processes RecordPayment commands
-- **Program.cs**: NServiceBus configuration with Azure Service Bus transport
+- **Program.cs**: NServiceBus configuration with RabbitMQ transport
 - **Dependencies**: Domain, NServiceBus packages
 
 ### API Layer (`src/Api/`)
@@ -88,7 +88,7 @@ Following the corrected [project-structure.md](../../../copilot-instructions/pro
 {
   "ConnectionStrings": {
     "CosmosDb": "AccountEndpoint=https://localhost:8081/;AccountKey=...",
-    "ServiceBus": "Endpoint=sb://your-namespace.servicebus.windows.net/;..."
+    "RabbitMQ": "host=localhost;username=guest;password=guest"
   }
 }
 ```
@@ -98,7 +98,7 @@ Following the corrected [project-structure.md](../../../copilot-instructions/pro
 {
   "ConnectionStrings": {
     "CosmosDb": "AccountEndpoint=https://localhost:8081/;AccountKey=...",
-    "ServiceBus": "Endpoint=sb://your-namespace.servicebus.windows.net/;..."
+    "RabbitMQ": "host=localhost;username=guest;password=guest"
   }
 }
 ```
@@ -110,7 +110,7 @@ Following the corrected [project-structure.md](../../../copilot-instructions/pro
 ### Prerequisites
 1. .NET 10 SDK
 2. Cosmos DB Emulator or Azure Cosmos DB account
-3. Azure Service Bus namespace
+3. RabbitMQ broker
 
 ### Setup
 1. Copy configuration templates:
@@ -154,7 +154,7 @@ curl -X POST http://localhost:5000/api/billing/payments `
 
 # Returns: 202 Accepted with confirmation JSON
 # Endpoint.In processes command asynchronously
-# PaymentReceived event published to Service Bus
+# PaymentReceived event published via RabbitMQ transport
 ```
 
 ## Testing

@@ -1,0 +1,71 @@
+{
+  "id": "replay-reprocessing",
+  "slug": "replay-reprocessing",
+  "title": "Replay and reprocessing capability",
+  "category": "technical",
+  "subcategory": "operability",
+  "summary": "A controlled way to re-drive messages/events/files after fixes or downstream outages.",
+  "decisionGuidance": {
+    "problemSolved": "Middleware modernization fails operationally when incidents require manual, ad hoc replays.",
+    "whenToUse": [
+      "Regulatory/audit requires traceability",
+      "Downstream systems can be unavailable"
+    ],
+    "whenNotToUse": [
+      "You can safely ignore and drop failed work (rare)"
+    ]
+  },
+  "enablingTechnologies": [
+    "Audit log",
+    "Re-drive tooling",
+    "DLQ workflows"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Replays can break ordering or duplicates",
+      "Unsafe replays without idempotency"
+    ],
+    "opinionatedGuidance": "Replay requires: idempotency, correlation, and a clear operator workflow."
+  },
+  "complexity": {
+    "level": "high",
+    "rationale": "Powerful but risky without guardrails.",
+    "teamImpact": "multi-team",
+    "skillDemand": "SRE/operator mindset plus messaging internals.",
+    "operationalDemand": "High—must be safe, audited, and well-governed.",
+    "toolingDemand": "Audit store + tooling + dashboards."
+  },
+  "starterDiagram": {
+    "title": "Re-drive loop",
+    "description": "Failed event reprocessed safely.",
+    "nodes": [
+      "Process",
+      "Failure",
+      "Fix",
+      "Replay"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Claims integration recovery",
+    "approach": "Implemented operator-driven replay with audit trails and safeguards.",
+    "outcome": "Faster recovery and fewer manual scripts."
+  },
+  "relatedPatterns": [
+    "outbox-idempotency",
+    "operational-ai-agent"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": "https://www.amazon.com/Architecture-Modernization-Socio-technical-alignment-structure/dp/1633438155",
+      "citationRequired": false
+    }
+  ],
+  "tags": [
+    "replay",
+    "operations",
+    "recovery"
+  ],
+  "lastUpdated": "2026-02-17"
+}

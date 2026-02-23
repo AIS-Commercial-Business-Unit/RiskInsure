@@ -6,7 +6,7 @@ This directory contains the configuration for developing RiskInsure in GitHub Co
 
 - ✅ .NET 10 SDK
 - ✅ Docker-in-Docker (for running all 10 service containers)
-- ✅ Azure Service Bus Emulator (local message queuing)
+- ✅ RabbitMQ broker (local message queuing)
 - ✅ Cosmos DB Emulator (local database)
 - ✅ Node.js 20 (for Playwright E2E tests)
 - ✅ GitHub Copilot & Copilot Chat
@@ -35,7 +35,7 @@ docker-compose up -d
 This starts:
 - 5 API containers (Customer, Rating, Policy, Billing, FundsTransferMgt)
 - 5 NServiceBus Endpoint containers
-- Service Bus Emulator (already running)
+- RabbitMQ broker (already running)
 - Cosmos DB Emulator (already running)
 
 ### 3. View Logs
@@ -76,16 +76,15 @@ All ports are automatically forwarded and accessible:
 | Billing API | 7071 | http://localhost:7071/swagger |
 | FundsTransferMgt API | 7075 | http://localhost:7075/swagger |
 | Cosmos DB Explorer | 8081 | https://localhost:8081/_explorer |
-| Service Bus Emulator | 5672 | (AMQP protocol) |
+| RabbitMQ | 5672 | (AMQP protocol) |
 
 ## Emulator Details
 
-### Azure Service Bus Emulator
+### RabbitMQ
 
-- **Image**: `mcr.microsoft.com/azure-messaging/servicebus-emulator:latest`
-- **Port**: 5672 (AMQP)
-- **Connection String**: Auto-configured in `remoteEnv`
-- **Limitations**: Preview feature - no sessions, duplicate detection, or dead-letter in emulator
+- **Image**: `rabbitmq:3-management`
+- **Ports**: 5672 (AMQP), 15672 (management UI)
+- **Connection String**: `host=rabbitmq;username=guest;password=guest`
 
 ### Cosmos DB Emulator
 
@@ -119,8 +118,9 @@ All ports are automatically forwarded and accessible:
 If services fail to connect:
 
 ```bash
-# Check Service Bus emulator
-docker logs servicebus-emulator
+# Check RabbitMQ container
+# Check RabbitMQ broker
+docker logs rabbitmq
 
 # Check Cosmos DB emulator
 curl -k https://localhost:8081/_explorer/index.html
@@ -172,7 +172,7 @@ For team usage, consider upgrading to GitHub Team or Enterprise.
 ## Cost: $0 💰
 
 With the emulators, you need **zero Azure resources** for development:
-- ❌ No Azure Service Bus subscription (~$10/month saved)
+- ❌ No managed RabbitMQ broker required for local development
 - ❌ No Cosmos DB setup (using free tier saves hassle)
 - ✅ Everything runs locally in Codespace
 - ✅ Stays within GitHub free tier limits for individual use
@@ -194,7 +194,7 @@ With the emulators, you need **zero Azure resources** for development:
 
 | Resource | Development | Production |
 |----------|-------------|------------|
-| Service Bus | Emulator (local) | Azure Service Bus Standard |
+| Message Transport | RabbitMQ (local) | RabbitMQ/managed broker |
 | Cosmos DB | Emulator (local) | Azure Cosmos DB |
 | APIs | Docker containers | Azure Container Apps |
 | Endpoints | Docker containers | Azure Container Apps with KEDA scaling |

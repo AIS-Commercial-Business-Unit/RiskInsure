@@ -12,8 +12,15 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="NServiceBus" />
+    <PackageReference Include="NServiceBus.Transport.AzureServiceBus" />
     <PackageReference Include="NServiceBus.Extensions.Hosting" />
-    <PackageReference Include="Serilog.Extensions.Hosting" />
+    <PackageReference Include="NServiceBus.RabbitMQ" />
+    <PackageReference Include="NServiceBus.Persistence.CosmosDB" />
+    <PackageReference Include="NServiceBus.SagaAudit" />
+
+    <!-- Logging -->
+    <PackageReference Include="Serilog.AspNetCore" />
     <PackageReference Include="Serilog.Sinks.Console" />
   </ItemGroup>
 

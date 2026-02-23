@@ -1,7 +1,7 @@
 using System.Text.Json;
 using Microsoft.Azure.Cosmos;
 
-namespace Infrastructure;
+namespace RiskInsure.Policy.Infrastructure;
 
 public class CosmosSystemTextJsonSerializer : CosmosSerializer
 {

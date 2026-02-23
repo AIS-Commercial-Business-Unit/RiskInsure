@@ -1,0 +1,71 @@
+{
+  "id": "event-driven-architecture",
+  "slug": "event-driven-architecture",
+  "title": "Event-driven architecture",
+  "category": "strategic",
+  "subcategory": "top-level-architecture",
+  "summary": "Use events to decouple domains and integration capabilities, enabling independent change and scalable processing.",
+  "decisionGuidance": {
+    "problemSolved": "Broker-style integration centralizes change and hides complexity, slowing modernization and increasing outages.",
+    "whenToUse": [
+      "Many producers/consumers exist",
+      "Teams must ship independently",
+      "Workloads include batch, files, and async processing"
+    ],
+    "whenNotToUse": [
+      "You only have simple, single-consumer flows and do not intend to scale"
+    ]
+  },
+  "enablingTechnologies": [
+    "Message bus",
+    "Event catalog",
+    "Idempotent consumers"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Poor event semantics creates chaos",
+      "Lack of tracing makes troubleshooting painful"
+    ],
+    "opinionatedGuidance": "EDA is a discipline: business events, versioning, observability, idempotency, and DLQ governance."
+  },
+  "complexity": {
+    "level": "high",
+    "rationale": "EDA introduces distributed behavior but enables long-term scalability.",
+    "teamImpact": "multi-team",
+    "skillDemand": "Distributed systems and event modeling skill.",
+    "operationalDemand": "High—requires observability and recovery playbooks.",
+    "toolingDemand": "Broker/Bus tooling + tracing + schema governance."
+  },
+  "starterDiagram": {
+    "title": "From coupling to events",
+    "description": "Publish events; consumers react independently.",
+    "nodes": [
+      "Domain A",
+      "Event bus",
+      "Domain B",
+      "Domain C"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Middleware exit strategy",
+    "approach": "Moved core signals to events and migrated flows incrementally.",
+    "outcome": "Faster change and reduced integration breakage."
+  },
+  "relatedPatterns": [
+    "bounded-context-first"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": "https://www.amazon.com/Architecture-Modernization-Socio-technical-alignment-structure/dp/1633438155",
+      "citationRequired": false
+    }
+  ],
+  "tags": [
+    "eda",
+    "events",
+    "decoupling"
+  ],
+  "lastUpdated": "2026-02-17"
+}

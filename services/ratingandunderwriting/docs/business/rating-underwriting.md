@@ -149,7 +149,7 @@ Premium = $500 × 3.0 × 1.0 × 1.0 × 0.90 = $1,350
 1. Customer reviews quote details (coverages, limits, deductibles, premium)
 2. Customer accepts quote via API call
 3. Quote status changes to "Accepted"
-4. `QuoteAccepted` event published to Service Bus
+4. `QuoteAccepted` event published via RabbitMQ transport
 5. Policy domain receives event and creates policy
 
 **Business Rules**:

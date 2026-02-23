@@ -167,7 +167,7 @@ public class Payment
 **Handler Location**: `services/billing/src/Endpoint.In/Handlers/PolicyIssuedHandler.cs`
 
 **Process**:
-1. Receive `PolicyIssued` event from Service Bus
+1. Receive `PolicyIssued` event via RabbitMQ transport
 2. Check if billing account exists for customerId
 3. **If no account exists**: Create new billing account with first policy
 4. **If account exists**: Add policy to existing account

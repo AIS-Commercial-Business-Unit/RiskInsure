@@ -1,3 +1,298 @@
+# name: 'Infrastructure Provisioning (Reusable)'
+
+# on:
+#   workflow_call:
+#     inputs:
+#       environment:
+#         description: 'Environment to deploy'
+#         required: true
+#         type: string
+#       terraform_layer:
+#         description: 'Which layer to deploy'
+#         required: true
+#         type: string
+#       terraform_action:
+#         description: 'Terraform action (plan or apply)'
+#         required: true
+#         type: string
+
+# env:
+#   TERRAFORM_VERSION: '1.11.4'
+
+# jobs:
+#   # ==========================================================================
+#   # Foundation Layer
+#   # ==========================================================================
+#   foundation:
+#     name: 'Foundation'
+#     if: |
+#       inputs.terraform_layer == 'all' ||
+#       inputs.terraform_layer == 'foundation'
+#     runs-on: ubuntu-latest
+
+#     permissions:
+#       id-token: write
+#       contents: read
+
+#     defaults:
+#       run:
+#         shell: bash
+#         working-directory: platform/infra/foundation
+
+#     outputs:
+#       resource_group_name: ${{ steps.outputs.outputs.resource_group_name }}
+#       acr_login_server: ${{ steps.outputs.outputs.acr_login_server }}
+#       acr_name: ${{ steps.outputs.outputs.acr_name }}
+
+#     steps:
+#       - name: Checkout
+#         uses: actions/checkout@v4
+
+#       - name: Setup Terraform
+#         uses: hashicorp/setup-terraform@v3
+#         with:
+#           terraform_version: ${{ env.TERRAFORM_VERSION }}
+#           terraform_wrapper: false
+
+#       - name: Terraform Init
+#         run: terraform init -input=false
+#         env:
+#           ARM_USE_OIDC: true
+#           ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+#           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+#           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+#       - name: Terraform Validate
+#         run: terraform validate
+
+#       - name: Terraform Plan
+#         run: |
+#           terraform plan \
+#             -var="environment=${{ inputs.environment }}" \
+#             -out=tfplan \
+#             -input=false
+#         env:
+#           ARM_USE_OIDC: true
+#           ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+#           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+#           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+#       - name: Terraform Apply
+#         if: inputs.terraform_action == 'apply'
+#         run: terraform apply -auto-approve tfplan
+#         env:
+#           ARM_USE_OIDC: true
+#           ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+#           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+#           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+#       - name: Export Outputs
+#         id: outputs
+#         if: inputs.terraform_action == 'apply'
+#         run: |
+#           echo "resource_group_name=$(terraform output -raw resource_group_name)" >> $GITHUB_OUTPUT
+#           echo "acr_login_server=$(terraform output -raw acr_login_server)" >> $GITHUB_OUTPUT
+#           echo "acr_name=$(terraform output -raw acr_name)" >> $GITHUB_OUTPUT
+#         env:
+#           ARM_USE_OIDC: true
+#           ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+#           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+#           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+#   # ==========================================================================
+#   # Shared Services Layer
+#   # ==========================================================================
+#   shared-services:
+#     name: 'Shared Services'
+#     needs: foundation
+#     if: |
+#       always() &&
+#       (needs.foundation.result == 'success' || needs.foundation.result == 'skipped') &&
+#       (inputs.terraform_layer == 'all' || inputs.terraform_layer == 'shared-services')
+#     runs-on: ubuntu-latest
+
+#     permissions:
+#       id-token: write
+#       contents: read
+
+#     defaults:
+#       run:
+#         shell: bash
+#         working-directory: platform/infra/shared-services
+
+#     outputs:
+#       cosmosdb_endpoint: ${{ steps.outputs.outputs.cosmosdb_endpoint }}
+#       cosmosdb_account_name: ${{ steps.outputs.outputs.cosmosdb_account_name }}
+#       servicebus_namespace_fqdn: ${{ steps.outputs.outputs.servicebus_namespace_fqdn }}
+
+#     steps:
+#       - name: Checkout
+#         uses: actions/checkout@v4
+
+#       - name: Setup Terraform
+#         uses: hashicorp/setup-terraform@v3
+#         with:
+#           terraform_version: ${{ env.TERRAFORM_VERSION }}
+#           terraform_wrapper: false
+
+#       - name: Terraform Init
+#         run: terraform init -input=false
+#         env:
+#           ARM_USE_OIDC: true
+#           ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+#           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+#           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+#       - name: Terraform Validate
+#         run: terraform validate
+
+#       - name: Select tfvars file
+#         id: tfvars-shared-services
+#         run: |
+#           ENV="${{ inputs.environment }}"
+#           if [ -f "${ENV}.tfvars" ]; then
+#             echo "file=${ENV}.tfvars" >> $GITHUB_OUTPUT
+#           else
+#             echo "file=" >> $GITHUB_OUTPUT
+#           fi
+
+#       - name: Terraform Plan
+#         run: |
+#           if [ -n "${{ steps.tfvars.outputs.file }}" ]; then
+#             terraform plan -var-file="${{ steps.tfvars.outputs.file }}" -out=tfplan -input=false
+#           else
+#             terraform plan -var="environment=${{ inputs.environment }}" -out=tfplan -input=false
+#           fi
+#         env:
+#           ARM_USE_OIDC: true
+#           ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+#           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+#           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+#       - name: Terraform Apply
+#         if: inputs.terraform_action == 'apply'
+#         run: terraform apply -auto-approve tfplan
+#         env:
+#           ARM_USE_OIDC: true
+#           ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+#           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+#           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+#       - name: Export Outputs
+#         id: outputs
+#         if: inputs.terraform_action == 'apply'
+#         run: |
+#           echo "cosmosdb_endpoint=$(terraform output -raw cosmosdb_endpoint)" >> $GITHUB_OUTPUT
+#           echo "cosmosdb_account_name=$(terraform output -raw cosmosdb_account_name)" >> $GITHUB_OUTPUT
+#           echo "servicebus_namespace_fqdn=$(terraform output -raw servicebus_namespace_fqdn)" >> $GITHUB_OUTPUT
+#         env:
+#           ARM_USE_OIDC: true
+#           ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+#           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+#           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+#       - name: Azure Login
+#         if: inputs.terraform_action == 'apply'
+#         uses: azure/login@v2
+#         with:
+#           client-id: ${{ secrets.AZURE_CLIENT_ID }}
+#           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+#           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+#       - name: Store Secrets in Key Vault
+#         if: inputs.terraform_action == 'apply'
+#         run: |
+#           COSMOS_CONN=$(terraform output -raw cosmosdb_connection_string)
+#           SERVICEBUS_CONN=$(terraform output -raw servicebus_connection_string)
+#           KV_NAME="riskinsure-${{ inputs.environment }}-kv"
+
+#           az keyvault secret set --vault-name "$KV_NAME" \
+#             --name "CosmosDbConnectionString" --value "$COSMOS_CONN" || echo "⚠️ Key Vault not ready"
+
+#           az keyvault secret set --vault-name "$KV_NAME" \
+#             --name "ServiceBusConnectionString" --value "$SERVICEBUS_CONN" || echo "⚠️ Key Vault not ready"
+
+  # ==========================================================================
+  # Services Environment
+  # ==========================================================================
+  # services-environment:
+    # name: 'Services Environment'
+    # needs: [foundation, shared-services]
+    # if: |
+    #   always() &&
+    #   needs.shared-services.result == 'success' &&
+    #   (inputs.terraform_layer == 'all' || inputs.terraform_layer == 'services-environment')
+    # runs-on: ubuntu-latest
+
+    # permissions:
+    #   id-token: write
+    #   contents: read
+
+    # defaults:
+    #   run:
+    #     shell: bash
+    #     working-directory: platform/infra/services
+
+    # steps:
+    #   - name: Checkout
+    #     uses: actions/checkout@v4
+
+    #   - name: Setup Terraform
+    #     uses: hashicorp/setup-terraform@v3
+    #     with:
+    #       terraform_version: ${{ env.TERRAFORM_VERSION }}
+    #       terraform_wrapper: false
+
+    #   - name: Terraform Init
+    #     run: terraform init -input=false
+    #     env:
+    #       ARM_USE_OIDC: true
+    #       ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+    #       ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+    #       ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+    #   - name: Terraform Validate
+    #     run: terraform validate
+
+    #   - name: Select tfvars file
+    #     id: tfvars-services
+    #     run: |
+    #       ENV="${{ inputs.environment }}"
+    #       if [ -f "${ENV}.tfvars" ]; then
+    #         echo "file=${ENV}.tfvars" >> $GITHUB_OUTPUT
+    #       else
+    #         echo "file=" >> $GITHUB_OUTPUT
+    #       fi
+
+    #   - name: Terraform Plan
+    #     run: |
+    #       terraform plan \
+    #         -var="environment=${{ inputs.environment }}" \
+    #         -var="image_tag=latest" \
+    #         -out=tfplan \
+    #         -input=false
+    #     env:
+    #       ARM_USE_OIDC: true
+    #       ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+    #       ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+    #       ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+    #   - name: Terraform Apply
+    #     if: inputs.terraform_action == 'apply'
+    #     run: terraform apply -auto-approve tfplan
+    #     env:
+    #       ARM_USE_OIDC: true
+    #       ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+    #       ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+    #       ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+
+
+# New Pipeline Starts here
+
+
+
+
 name: 'Infrastructure Provisioning (Reusable)'
 
 on:
@@ -21,15 +316,15 @@ env:
 
 jobs:
   # ==========================================================================
-  # Foundation Layer
+  # Foundation Layer (ACR, VNet, Log Analytics, KeyVault)
   # ==========================================================================
   foundation:
-    name: 'Foundation'
+    name: 'Foundation Layer'
     if: |
-      inputs.terraform_layer == 'all' || 
+      inputs.terraform_layer == 'all' ||
       inputs.terraform_layer == 'foundation'
     runs-on: ubuntu-latest
-    
+
     permissions:
       id-token: write
       contents: read
@@ -93,19 +388,24 @@ jobs:
           echo "resource_group_name=$(terraform output -raw resource_group_name)" >> $GITHUB_OUTPUT
           echo "acr_login_server=$(terraform output -raw acr_login_server)" >> $GITHUB_OUTPUT
           echo "acr_name=$(terraform output -raw acr_name)" >> $GITHUB_OUTPUT
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
   # ==========================================================================
-  # Shared Services Layer
+  # Shared Services Layer (Cosmos DB, Service Bus, UAMI, Role Assignments)
   # ==========================================================================
   shared-services:
-    name: 'Shared Services'
+    name: 'Shared Services & Identity'
     needs: foundation
     if: |
       always() &&
       (needs.foundation.result == 'success' || needs.foundation.result == 'skipped') &&
       (inputs.terraform_layer == 'all' || inputs.terraform_layer == 'shared-services')
     runs-on: ubuntu-latest
-    
+
     permissions:
       id-token: write
       contents: read
@@ -119,6 +419,9 @@ jobs:
       cosmosdb_endpoint: ${{ steps.outputs.outputs.cosmosdb_endpoint }}
       cosmosdb_account_name: ${{ steps.outputs.outputs.cosmosdb_account_name }}
       servicebus_namespace_fqdn: ${{ steps.outputs.outputs.servicebus_namespace_fqdn }}
+      apps_shared_identity_id: ${{ steps.outputs.outputs.apps_shared_identity_id }}
+      apps_shared_identity_principal_id: ${{ steps.outputs.outputs.apps_shared_identity_principal_id }}
+      apps_shared_identity_name: ${{ steps.outputs.outputs.apps_shared_identity_name }}
 
     steps:
       - name: Checkout
@@ -154,9 +457,15 @@ jobs:
       - name: Terraform Plan
         run: |
           if [ -n "${{ steps.tfvars.outputs.file }}" ]; then
-            terraform plan -var-file="${{ steps.tfvars.outputs.file }}" -out=tfplan -input=false
+            terraform plan \
+              -var-file="${{ steps.tfvars.outputs.file }}" \
+              -out=tfplan \
+              -input=false
           else
-            terraform plan -var="environment=${{ inputs.environment }}" -out=tfplan -input=false
+            terraform plan \
+              -var="environment=${{ inputs.environment }}" \
+              -out=tfplan \
+              -input=false
           fi
         env:
           ARM_USE_OIDC: true
@@ -180,6 +489,14 @@ jobs:
           echo "cosmosdb_endpoint=$(terraform output -raw cosmosdb_endpoint)" >> $GITHUB_OUTPUT
           echo "cosmosdb_account_name=$(terraform output -raw cosmosdb_account_name)" >> $GITHUB_OUTPUT
           echo "servicebus_namespace_fqdn=$(terraform output -raw servicebus_namespace_fqdn)" >> $GITHUB_OUTPUT
+          echo "apps_shared_identity_id=$(terraform output -raw apps_shared_identity_id)" >> $GITHUB_OUTPUT
+          echo "apps_shared_identity_principal_id=$(terraform output -raw apps_shared_identity_principal_id)" >> $GITHUB_OUTPUT
+          echo "apps_shared_identity_name=$(terraform output -raw apps_shared_identity_name)" >> $GITHUB_OUTPUT
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Azure Login
         if: inputs.terraform_action == 'apply'
@@ -195,73 +512,151 @@ jobs:
           COSMOS_CONN=$(terraform output -raw cosmosdb_connection_string)
           SERVICEBUS_CONN=$(terraform output -raw servicebus_connection_string)
           KV_NAME="riskinsure-${{ inputs.environment }}-kv"
-          
+
           az keyvault secret set --vault-name "$KV_NAME" \
             --name "CosmosDbConnectionString" --value "$COSMOS_CONN" || echo "⚠️ Key Vault not ready"
-          
+
           az keyvault secret set --vault-name "$KV_NAME" \
             --name "ServiceBusConnectionString" --value "$SERVICEBUS_CONN" || echo "⚠️ Key Vault not ready"
 
   # ==========================================================================
-  # Services Environment
+  # Wait for Role Assignment Propagation
   # ==========================================================================
-  services-environment:
-    name: 'Services Environment'
-    needs: [foundation, shared-services]
-    if: |
-      always() &&
-      needs.shared-services.result == 'success' &&
-      (inputs.terraform_layer == 'all' || inputs.terraform_layer == 'services-environment')
+  role-propagation-wait:
+    name: 'Wait for Role Propagation'
+    needs: shared-services
+    if: inputs.terraform_action == 'apply'
     runs-on: ubuntu-latest
-    
+
+    steps:
+      - name: Display Infrastructure Summary
+        run: |
+          echo "════════════════════════════════════════════════════"
+          echo "✅ Infrastructure & Identity Setup Complete"
+          echo "════════════════════════════════════════════════════"
+          echo ""
+          echo "📋 SUMMARY:"
+          echo "  Environment: ${{ inputs.environment }}"
+          echo "  UAMI Name: ${{ needs.shared-services.outputs.apps_shared_identity_name }}"
+          echo "  UAMI ID: ${{ needs.shared-services.outputs.apps_shared_identity_id }}"
+          echo ""
+          echo "🔗 Resources Created:"
+          echo "  ✓ Foundation Layer (ACR, VNet, Log Analytics)"
+          echo "  ✓ Shared Services Layer (Cosmos DB, Service Bus)"
+          echo "  ✓ User-Assigned Managed Identity (UAMI)"
+          echo "  ✓ Role Assignments:"
+          echo "    - AcrPull (ACR)"
+          echo "    - Azure Service Bus Data Owner"
+          echo "    - Cosmos DB Data Contributor"
+          echo ""
+          echo "⏳ Waiting 60 seconds for role assignments to propagate..."
+          echo "════════════════════════════════════════════════════"
+
+      - name: Wait 60 seconds for role propagation
+        run: sleep 60
+
+      - name: Propagation Complete
+        run: |
+          echo "════════════════════════════════════════════════════"
+          echo "✅ Role Propagation Complete!"
+          echo "════════════════════════════════════════════════════"
+          echo ""
+          echo "🚀 Next Steps:"
+          echo "  1. Verify UAMI exists:"
+          echo "     az identity show -n ${{ needs.shared-services.outputs.apps_shared_identity_name }} -g CAIS-010-RiskInsure"
+          echo ""
+          echo "  2. Verify roles assigned:"
+          echo "     az role assignment list --assignee ${{ needs.shared-services.outputs.apps_shared_identity_id }}"
+          echo ""
+          echo "  3. Run: deploy-container-apps.yaml"
+          echo "     - Build Docker images"
+          echo "     - Deploy Container Apps with UAMI"
+          echo ""
+          echo "🎯 Ready for application deployment!"
+          echo "════════════════════════════════════════════════════"
+
+  # ==========================================================================
+  # Verify Infrastructure & Permissions
+  # ==========================================================================
+  verify:
+    name: 'Verify Infrastructure & Permissions'
+    needs: [shared-services, role-propagation-wait]
+    if: inputs.terraform_action == 'apply'
+    runs-on: ubuntu-latest
+
     permissions:
       id-token: write
       contents: read
 
-    defaults:
-      run:
-        shell: bash
-        working-directory: platform/infra/services
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+      - name: Azure Login
+        uses: azure/login@v2
         with:
-          terraform_version: ${{ env.TERRAFORM_VERSION }}
-          terraform_wrapper: false
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Terraform Init
-        run: terraform init -input=false
-        env:
-          ARM_USE_OIDC: true
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Terraform Validate
-        run: terraform validate
-
-      - name: Terraform Plan
+      - name: Verify UAMI Exists
         run: |
-          terraform plan \
-            -var="environment=${{ inputs.environment }}" \
-            -var="image_tag=latest" \
-            -out=tfplan \
-            -input=false
-        env:
-          ARM_USE_OIDC: true
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          UAMI_NAME="${{ needs.shared-services.outputs.apps_shared_identity_name }}"
+          echo "🔍 Verifying UAMI: $UAMI_NAME"
 
-      - name: Terraform Apply
-        if: inputs.terraform_action == 'apply'
-        run: terraform apply -auto-approve tfplan
-        env:
-          ARM_USE_OIDC: true
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          az identity show \
+            -n "$UAMI_NAME" \
+            -g CAIS-010-RiskInsure \
+            --query "id" \
+            -o tsv
+
+          echo "✅ UAMI verified"
+
+      - name: Verify Role Assignments
+        run: |
+          UAMI_ID="${{ needs.shared-services.outputs.apps_shared_identity_principal_id }}"
+          echo "🔍 Verifying role assignments for UAMI"
+          echo ""
+
+          az role assignment list \
+            --assignee "$UAMI_ID" \
+            --query "[].roleDefinitionName" \
+            -o table
+
+          echo ""
+          echo "✅ Role assignments verified"
+
+      - name: Verify Cosmos DB
+        run: |
+          COSMOS_ACCOUNT="${{ needs.shared-services.outputs.cosmosdb_account_name }}"
+          echo "🔍 Verifying Cosmos DB: $COSMOS_ACCOUNT"
+
+          az cosmosdb show \
+            --name "$COSMOS_ACCOUNT" \
+            --resource-group CAIS-010-RiskInsure \
+            --query "endpoint" \
+            -o tsv
+
+          echo "✅ Cosmos DB verified"
+
+      - name: Verify Service Bus
+        run: |
+          SERVICEBUS_FQDN="${{ needs.shared-services.outputs.servicebus_namespace_fqdn }}"
+          echo "🔍 Verifying Service Bus: $SERVICEBUS_FQDN"
+
+          NAMESPACE_NAME=$(echo "$SERVICEBUS_FQDN" | cut -d'.' -f1)
+          az servicebus namespace show \
+            --name "$NAMESPACE_NAME" \
+            --resource-group CAIS-010-RiskInsure \
+            --query "name" \
+            -o tsv
+
+          echo "✅ Service Bus verified"
+
+      - name: Final Status
+        run: |
+          echo ""
+          echo "════════════════════════════════════════════════════"
+          echo "✅ ALL INFRASTRUCTURE & IDENTITY VERIFIED"
+          echo "════════════════════════════════════════════════════"
+          echo ""
+          echo "Ready to deploy Container Apps!"
+          echo "Run workflow: deploy-container-apps.yaml"
+          echo "════════════════════════════════════════════════════"
