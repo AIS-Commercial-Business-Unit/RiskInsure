@@ -135,7 +135,7 @@ jobs:
         run: npm test
         working-directory: services/billing/test/Integration.Tests
         env:
-            API_BASE_URL: ${{ vars.API_BILLING_BASE_URL }}
+            API_BILLING_BASE_URL: ${{ env.API_BILLING_BASE_URL }}
             CI: true
 
       - name: Upload Integration Test Results
