@@ -1,4 +1,4 @@
-name: Billing Service - Build and Test
+name: Services - Build and Test
 
 on:
   workflow_dispatch:
@@ -18,6 +18,10 @@ on:
       - Dev
     paths:
       - "services/billing/**"
+      - "services/customer/**"
+      - "services/fundstransfermgt/**"
+      - "services/policy/**"
+      - "services/ratingandunderwriting/**"
       - "platform/RiskInsure.PublicContracts/**"
       - ".github/workflows/billing-service-tests.yml"
       - "Directory.Build.props"
@@ -28,6 +32,10 @@ on:
       - Dev
     paths:
       - "services/billing/**"
+      - "services/customer/**"
+      - "services/fundstransfermgt/**"
+      - "services/policy/**"
+      - "services/ratingandunderwriting/**"
       - "platform/RiskInsure.PublicContracts/**"
       - ".github/workflows/billing-service-tests.yml"
       - "Directory.Build.props"
@@ -36,13 +44,27 @@ on:
 env:
   DOTNET_VERSION: '10.0.x'
   NODE_VERSION: '20'
-  BILLING_SERVICE_PATH: 'services/billing/test/Unit.Tests'
-  INTEGRATION_TESTS_PATH: 'services/billing/test/Integration.Tests'
+
 jobs:
   unit-tests:
-    name: Unit Tests
+    name: Unit Tests (${{ matrix.service }})
     runs-on: ubuntu-latest
     environment: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || 'dev' }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: billing
+            unit_tests_path: services/billing/test/Unit.Tests
+          - service: customer
+            unit_tests_path: services/customer/test/Unit.Tests
+          - service: fundstransfermgt
+            unit_tests_path: services/fundstransfermgt/test/Unit.Tests
+          - service: policy
+            unit_tests_path: services/policy/test/Unit.Tests
+          - service: ratingandunderwriting
+            unit_tests_path: services/ratingandunderwriting/test/Unit.Tests
 
     steps:
       - name: Checkout code
@@ -55,11 +77,11 @@ jobs:
 
       - name: Restore dependencies
         run: dotnet restore
-        working-directory: ${{ env.BILLING_SERVICE_PATH }}
+        working-directory: ${{ matrix.unit_tests_path }}
 
       - name: Build
         run: dotnet build --no-restore --configuration Release
-        working-directory: ${{ env.BILLING_SERVICE_PATH }}
+        working-directory: ${{ matrix.unit_tests_path }}
 
       - name: Run Unit Tests
         run: |
@@ -69,35 +91,35 @@ jobs:
             --logger "trx;LogFileName=unit-test-results.trx" \
             --collect:"XPlat Code Coverage" \
             --results-directory ./TestResults
-        working-directory: ${{ env.BILLING_SERVICE_PATH }}
+        working-directory: ${{ matrix.unit_tests_path }}
 
       - name: Upload Unit Test Results
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: unit-test-results
-          path: ${{ env.BILLING_SERVICE_PATH }}/TestResults/**/*.trx
+          name: unit-test-results-${{ matrix.service }}
+          path: ${{ matrix.unit_tests_path }}/TestResults/**/*.trx
 
       - name: Upload Code Coverage
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: code-coverage
-          path: ${{ env.BILLING_SERVICE_PATH }}/TestResults/**/coverage.cobertura.xml
+          name: code-coverage-${{ matrix.service }}
+          path: ${{ matrix.unit_tests_path }}/TestResults/**/coverage.cobertura.xml
 
       - name: Debug Coverage Files
         if: always()
         run: |
-          echo "Coverage files found under ${{ env.BILLING_SERVICE_PATH }}/TestResults"
-          find "${{ env.BILLING_SERVICE_PATH }}/TestResults" -type f -name "coverage*.xml" -print -exec ls -lah {} \;
+          echo "Coverage files found under ${{ matrix.unit_tests_path }}/TestResults"
+          find "${{ matrix.unit_tests_path }}/TestResults" -type f -name "coverage*.xml" -print -exec ls -lah {} \;
           echo "\nFirst lines of Cobertura files (if any):"
-          find "${{ env.BILLING_SERVICE_PATH }}/TestResults" -type f -name "coverage.cobertura.xml" -print -exec head -n 5 {} \; || true
+          find "${{ matrix.unit_tests_path }}/TestResults" -type f -name "coverage.cobertura.xml" -print -exec head -n 5 {} \; || true
 
       - name: Code Coverage Summary
         uses: irongut/CodeCoverageSummary@v1.3.0
         if: always()
         with:
-          filename: ${{ env.BILLING_SERVICE_PATH }}/TestResults/**/coverage.cobertura.xml
+          filename: ${{ matrix.unit_tests_path }}/TestResults/**/coverage.cobertura.xml
           badge: true
           fail_below_min: false
           format: markdown
@@ -112,12 +134,40 @@ jobs:
         if: github.event_name == 'pull_request'
         with:
           recreate: true
+          header: Code Coverage (${{ matrix.service }})
           path: code-coverage-results.md
 
   integration-tests:
-    name: Integration Tests
+    name: Integration Tests (${{ matrix.service }})
     runs-on: ubuntu-latest
     environment: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || 'dev' }}
+
+    env:
+      API_BILLING_BASE_URL: ${{ vars.API_BILLING_BASE_URL }}
+      API_CUSTOMER_BASE_URL: ${{ vars.API_CUSTOMER_BASE_URL }}
+      API_FUNDSTRANSFERMGT_BASE_URL: ${{ vars.API_FUNDSTRANSFERMGT_BASE_URL }}
+      API_POLICY_BASE_URL: ${{ vars.API_POLICY_BASE_URL }}
+      API_RATINGANDUNDERWRITING_BASE_URL: ${{ vars.API_RATINGANDUNDERWRITING_BASE_URL }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: billing
+            integration_tests_path: services/billing/test/Integration.Tests
+            api_var: API_BILLING_BASE_URL
+          - service: customer
+            integration_tests_path: services/customer/test/Integration.Tests
+            api_var: API_CUSTOMER_BASE_URL
+          - service: fundstransfermgt
+            integration_tests_path: services/fundstransfermgt/test/Integration.Tests
+            api_var: API_FUNDSTRANSFERMGT_BASE_URL
+          - service: policy
+            integration_tests_path: services/policy/test/Integration.Tests
+            api_var: API_POLICY_BASE_URL
+          - service: ratingandunderwriting
+            integration_tests_path: services/ratingandunderwriting/test/Integration.Tests
+            api_var: API_RATINGANDUNDERWRITING_BASE_URL
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -132,44 +182,51 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: ${{ env.INTEGRATION_TESTS_PATH }}/package.json
+          cache-dependency-path: ${{ matrix.integration_tests_path }}/package.json
 
       - name: Install Playwright Dependencies
         run: npm install --no-audit --no-fund
-        working-directory: ${{ env.INTEGRATION_TESTS_PATH }}
+        working-directory: ${{ matrix.integration_tests_path }}
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium
-        working-directory: ${{ env.INTEGRATION_TESTS_PATH }}
+        working-directory: ${{ matrix.integration_tests_path }}
 
-      - name: Debug API Billing Base URL
+      - name: Set API Base URL
         run: |
-          echo "API_BILLING_BASE_URL=${API_BILLING_BASE_URL}"
-        working-directory: ${{ env.INTEGRATION_TESTS_PATH }}
-        env:
-          API_BILLING_BASE_URL: ${{ vars.API_BILLING_BASE_URL }}
+          api_var="${{ matrix.api_var }}"
+          echo "API_BASE_URL=${!api_var}" >> "$GITHUB_ENV"
+        working-directory: ${{ matrix.integration_tests_path }}
+
+      - name: Debug API Base URL
+        run: |
+          echo "service=${{ matrix.service }}"
+          echo "api_var=${{ matrix.api_var }}"
+          echo "API_BASE_URL=${API_BASE_URL}"
+        working-directory: ${{ matrix.integration_tests_path }}
 
       - name: Run Integration Tests
         run: npm test
-        working-directory: services/billing/test/Integration.Tests
+        working-directory: ${{ matrix.integration_tests_path }}
         env:
-            API_BILLING_BASE_URL: ${{ vars.API_BILLING_BASE_URL }}
-            CI: true
+          CI: true
 
       - name: Upload Integration Test Results
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: integration-test-results
-          path: services/billing/test/Integration.Tests/test-results/
+          name: integration-test-results-${{ matrix.service }}
+          path: ${{ matrix.integration_tests_path }}/test-results/
+          if-no-files-found: warn
 
       - name: Upload Playwright Report
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: playwright-report
-          path: services/billing/test/Integration.Tests/playwright-report/
+          name: playwright-report-${{ matrix.service }}
+          path: ${{ matrix.integration_tests_path }}/playwright-report/
           retention-days: 15
+          if-no-files-found: warn
 
   test-summary:
     name: Test Summary
@@ -179,24 +236,17 @@ jobs:
     if: always()
 
     steps:
-      - name: Download Unit Test Results
+      - name: Download All Test Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: unit-test-results
-          path: ./unit-results
-
-      - name: Download Integration Test Results
-        uses: actions/download-artifact@v4
-        with:
-          name: integration-test-results
-          path: ./integration-results
+          path: ./artifacts
 
       - name: Publish Test Summary
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
         with:
           files: |
-            ./unit-results/**/*.trx
-            ./integration-results/**/*.xml
-          check_name: Billing Service Test Results
+            ./artifacts/**/*.trx
+            ./artifacts/**/*.xml
+          check_name: Services Test Results
           comment_mode: always
