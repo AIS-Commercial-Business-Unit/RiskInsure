@@ -2,9 +2,11 @@ using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using RiskInsure.FileRetrieval.Domain.Repositories;
+using RiskInsure.FileRetrieval.Infrastructure.Configuration;
 using RiskInsure.FileRetrieval.Infrastructure.Cosmos;
 using RiskInsure.FileRetrieval.Infrastructure.KeyVault;
 using RiskInsure.FileRetrieval.Infrastructure.Repositories;
+using RiskInsure.FileRetrieval.Infrastructure.Scheduling;
 
 namespace RiskInsure.FileRetrieval.Infrastructure;
 
@@ -48,6 +50,12 @@ public static class DependencyInjection
 
         // Key Vault (singleton)
         services.AddSingleton<KeyVaultSecretClient>();
+
+        // Configuration Options
+        services.Configure<SchedulerOptions>(configuration.GetSection(SchedulerOptions.SectionName));
+        
+        // Scheduling Services
+        services.AddSingleton<ScheduleEvaluator>();
 
         return services;
     }

@@ -1,7 +1,9 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using NServiceBus;
 using RiskInsure.FileRetrieval.Domain.Repositories;
+using RiskInsure.FileRetrieval.Infrastructure.Configuration;
 using FileRetrieval.Contracts.Commands;
 using System.Collections.Concurrent;
 using System.Threading;
@@ -11,7 +13,7 @@ namespace RiskInsure.FileRetrieval.Infrastructure.Scheduling;
 /// <summary>
 /// Background service that periodically checks for scheduled file retrieval configurations
 /// and triggers ExecuteFileCheck commands when schedules are due.
-/// Runs every minute to check for scheduled executions.
+/// Polling interval is configurable via SchedulerOptions.
 /// </summary>
 public class SchedulerHostedService : BackgroundService
 {
@@ -19,21 +21,23 @@ public class SchedulerHostedService : BackgroundService
     private readonly ScheduleEvaluator _scheduleEvaluator;
     private readonly IMessageSession _messageSession;
     private readonly ILogger<SchedulerHostedService> _logger;
+    private readonly SchedulerOptions _options;
     
-    private static readonly TimeSpan CheckInterval = TimeSpan.FromMinutes(1);
-    private static readonly TimeSpan ExecutionWindow = TimeSpan.FromMinutes(2); // Allow 2-minute window for "due" checks
-    private static readonly int MaxConcurrentChecks = 100; // T100: SC-004 requirement
+    private readonly TimeSpan _checkInterval;
+    private readonly TimeSpan _executionWindow;
+    private readonly int _maxConcurrentChecks;
     
-    // T100: Semaphore to limit concurrent file checks (max 100 per SC-004)
+    // Semaphore to limit concurrent file checks
     private readonly SemaphoreSlim _concurrencyLimiter;
     
-    // T101: Track in-progress configurations to prevent duplicates within this instance
+    // Track in-progress configurations to prevent duplicates within this instance
     private readonly ConcurrentDictionary<Guid, DateTimeOffset> _inProgressChecks;
 
     public SchedulerHostedService(
         IFileRetrievalConfigurationRepository configurationRepository,
         ScheduleEvaluator scheduleEvaluator,
         IMessageSession messageSession,
+        IOptions<SchedulerOptions> options,
         ILogger<SchedulerHostedService> logger)
     {
         _configurationRepository = configurationRepository ?? throw new ArgumentNullException(nameof(configurationRepository));
@@ -41,14 +45,26 @@ public class SchedulerHostedService : BackgroundService
         _messageSession = messageSession ?? throw new ArgumentNullException(nameof(messageSession));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         
-        // Initialize concurrency control (T100)
-        _concurrencyLimiter = new SemaphoreSlim(MaxConcurrentChecks, MaxConcurrentChecks);
+        _options = options?.Value ?? throw new ArgumentNullException(nameof(options));
+        _options.Validate();
+        
+        // Get configuration values
+        _checkInterval = _options.GetPollingInterval();
+        _executionWindow = _options.GetExecutionWindow();
+        _maxConcurrentChecks = _options.MaxConcurrentChecks;
+        
+        // Initialize concurrency control
+        _concurrencyLimiter = new SemaphoreSlim(_maxConcurrentChecks, _maxConcurrentChecks);
         _inProgressChecks = new ConcurrentDictionary<Guid, DateTimeOffset>();
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("SchedulerHostedService starting - will check for scheduled executions every {Interval}", CheckInterval);
+        _logger.LogInformation(
+            "SchedulerHostedService starting - polling interval: {PollingInterval}, max concurrent: {MaxConcurrent}, execution window: {ExecutionWindow}",
+            _checkInterval,
+            _maxConcurrentChecks,
+            _executionWindow);
 
         // Wait a few seconds before starting to allow infrastructure to initialize
         await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
@@ -64,10 +80,10 @@ public class SchedulerHostedService : BackgroundService
                 _logger.LogError(ex, "Error checking scheduled configurations: {ErrorMessage}", ex.Message);
             }
 
-            // Wait for next check interval
+            // Wait for next check interval (configurable)
             try
             {
-                await Task.Delay(CheckInterval, stoppingToken);
+                await Task.Delay(_checkInterval, stoppingToken);
             }
             catch (OperationCanceledException)
             {
@@ -137,15 +153,15 @@ public class SchedulerHostedService : BackgroundService
                     // Check if execution is due (within execution window)
                     var timeDifference = nextExecution.Value - checkTime;
                     
-                    if (timeDifference.TotalMinutes <= ExecutionWindow.TotalMinutes && timeDifference.TotalSeconds >= 0)
+                    if (timeDifference.TotalMinutes <= _executionWindow.TotalMinutes && timeDifference.TotalSeconds >= 0)
                     {
-                        // T100: Wait for available slot (non-blocking)
+                        // Wait for available slot (non-blocking)
                         if (_concurrencyLimiter.CurrentCount == 0)
                         {
                             waitingCount++;
                             _logger.LogWarning(
                                 "Concurrent execution limit reached ({MaxConcurrent}). Configuration {ConfigurationId} will be deferred.",
-                                MaxConcurrentChecks,
+                                _maxConcurrentChecks,
                                 configuration.Id);
                             continue;
                         }
