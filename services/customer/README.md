@@ -59,7 +59,7 @@ The Customer domain manages customer identity and contact information, providing
 
 - .NET 10 SDK
 - Cosmos DB (connection string in appsettings.Development.json)
-- Azure Service Bus (connection string in appsettings.Development.json)
+- RabbitMQ (connection string in appsettings.Development.json)
 
 ### Start API
 

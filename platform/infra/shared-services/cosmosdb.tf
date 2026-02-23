@@ -31,10 +31,21 @@ resource "azurerm_cosmosdb_account" "riskinsure" {
   }
 
   # Backup
-  backup {
-    type                = "Periodic"
-    interval_in_minutes = 240
-    retention_in_hours  = 8
+  dynamic "backup" {
+    for_each = var.environment == "prod" ? [1] : []
+    content {
+      type = "Continuous"
+      # Retention configured via Azure policy: 30 days minimum
+    }
+  }
+
+  dynamic "backup" {
+    for_each = var.environment == "prod" ? [] : [1]
+    content {
+      type                = "Periodic"
+      interval_in_minutes = 240
+      retention_in_hours  = 8
+    }
   }
 
   tags = local.common_tags
@@ -59,7 +70,7 @@ resource "azurerm_cosmosdb_sql_container" "billing" {
   resource_group_name   = local.resource_group_name
   account_name          = azurerm_cosmosdb_account.riskinsure.name
   database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
-  partition_key_paths   = ["/id"]
+  partition_key_paths   = ["/accountId"]    # ← NOT orderId! Use accountId
   partition_key_version = 1
   throughput            = var.cosmosdb_throughput
 
@@ -77,7 +88,7 @@ resource "azurerm_cosmosdb_sql_container" "customer" {
   resource_group_name   = local.resource_group_name
   account_name          = azurerm_cosmosdb_account.riskinsure.name
   database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
-  partition_key_paths   = ["/id"]
+  partition_key_paths   = ["/customerId"]   # ← Correct ✅
   partition_key_version = 1
   throughput            = var.cosmosdb_throughput
 
@@ -95,7 +106,7 @@ resource "azurerm_cosmosdb_sql_container" "policy" {
   resource_group_name   = local.resource_group_name
   account_name          = azurerm_cosmosdb_account.riskinsure.name
   database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
-  partition_key_paths   = ["/id"]
+  partition_key_paths   = ["/policyId"]     # ← Correct ✅
   partition_key_version = 1
   throughput            = var.cosmosdb_throughput
 
@@ -113,7 +124,7 @@ resource "azurerm_cosmosdb_sql_container" "ratingunderwriting" {
   resource_group_name   = local.resource_group_name
   account_name          = azurerm_cosmosdb_account.riskinsure.name
   database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
-  partition_key_paths   = ["/id"]
+  partition_key_paths   = ["/quoteId"]      # ← NOT id! Use quoteId
   partition_key_version = 1
   throughput            = var.cosmosdb_throughput
 
@@ -131,7 +142,7 @@ resource "azurerm_cosmosdb_sql_container" "fundstransfermgt" {
   resource_group_name   = local.resource_group_name
   account_name          = azurerm_cosmosdb_account.riskinsure.name
   database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
-  partition_key_paths   = ["/id"]
+  partition_key_paths   = ["/transactionId"]
   partition_key_version = 1
   throughput            = var.cosmosdb_throughput
 
@@ -149,11 +160,11 @@ resource "azurerm_cosmosdb_sql_container" "fundstransfermgt" {
 # ==========================================================================
 
 resource "azurerm_cosmosdb_sql_container" "billing_sagas" {
-  name                  = "Billing-Sagas"
+  name                  = "billing-sagas"
   resource_group_name   = local.resource_group_name
   account_name          = azurerm_cosmosdb_account.riskinsure.name
   database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
-  partition_key_paths   = ["/id"]
+  partition_key_paths   = ["/accountId"]
   partition_key_version = 1
   throughput            = var.cosmosdb_throughput
 
@@ -167,11 +178,11 @@ resource "azurerm_cosmosdb_sql_container" "billing_sagas" {
 }
 
 resource "azurerm_cosmosdb_sql_container" "customer_sagas" {
-  name                  = "Customer-Sagas"
+  name                  = "customer-sagas"
   resource_group_name   = local.resource_group_name
   account_name          = azurerm_cosmosdb_account.riskinsure.name
   database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
-  partition_key_paths   = ["/id"]
+  partition_key_paths   = ["/customerId"]
   partition_key_version = 1
   throughput            = var.cosmosdb_throughput
 
@@ -185,11 +196,11 @@ resource "azurerm_cosmosdb_sql_container" "customer_sagas" {
 }
 
 resource "azurerm_cosmosdb_sql_container" "policy_sagas" {
-  name                  = "Policy-Sagas"
+  name                  = "policy-sagas"
   resource_group_name   = local.resource_group_name
   account_name          = azurerm_cosmosdb_account.riskinsure.name
   database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
-  partition_key_paths   = ["/id"]
+  partition_key_paths   = ["/policyId"]
   partition_key_version = 1
   throughput            = var.cosmosdb_throughput
 
@@ -203,11 +214,11 @@ resource "azurerm_cosmosdb_sql_container" "policy_sagas" {
 }
 
 resource "azurerm_cosmosdb_sql_container" "fundstransfermgt_sagas" {
-  name                  = "FundTransferMgt-Sagas"
+  name                  = "fundstransfermgt-sagas"
   resource_group_name   = local.resource_group_name
   account_name          = azurerm_cosmosdb_account.riskinsure.name
   database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
-  partition_key_paths   = ["/id"]
+  partition_key_paths   = ["/transactionId"]
   partition_key_version = 1
   throughput            = var.cosmosdb_throughput
 
@@ -221,11 +232,11 @@ resource "azurerm_cosmosdb_sql_container" "fundstransfermgt_sagas" {
 }
 
 resource "azurerm_cosmosdb_sql_container" "ratingunderwriting_sagas" {
-  name                  = "RatingUnderwriting-Sagas"
+  name                  = "ratingunderwriting-sagas"
   resource_group_name   = local.resource_group_name
   account_name          = azurerm_cosmosdb_account.riskinsure.name
   database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
-  partition_key_paths   = ["/id"]
+  partition_key_paths   = ["/quoteId"] # ← NOT id! Use quoteId
   partition_key_version = 1
   throughput            = var.cosmosdb_throughput
 

@@ -480,12 +480,12 @@ API Controller → Publish Command → Return 202 Accepted
 * Connection strings from `appsettings.Development.json`
 * Retries disabled for faster iteration
 * Installers enabled (auto-creates queues)
-* Uses Cosmos DB emulator and Azure Service Bus connection string
+* Uses Cosmos DB emulator and RabbitMQ connection string
 
 ### Production Mode
 * Managed Identity (`DefaultAzureCredential`)
 * Retry policies configured
-* Requires `AzureServiceBus:FullyQualifiedNamespace` and `CosmosDb:Endpoint`
+* Requires `ConnectionStrings:RabbitMQ` (or `RabbitMQ:ConnectionString`) and `CosmosDb:Endpoint`
 * Saga persistence in Cosmos DB (`Billing-Sagas` container)
 
 ### Message Conventions

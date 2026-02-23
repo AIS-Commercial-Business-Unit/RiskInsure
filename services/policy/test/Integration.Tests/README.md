@@ -7,7 +7,7 @@ End-to-end API integration tests using Playwright.
 - Node.js 18+ installed
 - Policy API running on http://localhost:7077
 - Cosmos DB Emulator running
-- Azure Service Bus connection configured
+- RabbitMQ connection configured
 
 ## Setup
 

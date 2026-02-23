@@ -375,7 +375,7 @@ SELECT * FROM c WHERE CONTAINS(c.email, 'E2E-TEST-CUST-')
 
 **Solutions**:
 1. Check Policy Endpoint.In is running and processing messages
-2. Check Service Bus for `QuoteAccepted` events
+2. Check RabbitMQ/NServiceBus flow for `QuoteAccepted` events
 3. Increase timeout: `EVENTUAL_CONSISTENCY_TIMEOUT=20000`
 4. Check Cosmos DB manually for policy documents
 
@@ -407,7 +407,7 @@ SELECT * FROM c WHERE CONTAINS(c.email, 'E2E-TEST-CUST-')
 1. Increase timeouts in pipeline: `EVENTUAL_CONSISTENCY_TIMEOUT=20000`
 2. Add retry logic: `retries: 2` in playwright.config.ts
 3. Check pipeline logs for specific error messages
-4. Verify Service Bus and Cosmos DB are accessible from pipeline
+4. Verify RabbitMQ and Cosmos DB are accessible from pipeline
 
 ---
 
@@ -538,7 +538,7 @@ export default defineConfig({
 
 **Challenges**:
 - Multiple services slow startup
-- Cosmos DB/Service Bus dependencies
+- Cosmos DB/RabbitMQ dependencies
 - Better handled by Docker Compose
 
 ---

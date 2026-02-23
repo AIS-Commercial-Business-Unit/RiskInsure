@@ -129,7 +129,7 @@ public class Policy
 **Handler Location**: `services/policy/src/Endpoint.In/Handlers/QuoteAcceptedHandler.cs`
 
 **Process**:
-1. Receive `QuoteAccepted` event from Service Bus
+1. Receive `QuoteAccepted` event via RabbitMQ transport
 2. Check if policy already exists for quoteId (idempotency)
 3. Generate unique policyId and policy number
 4. Create policy document with coverage terms from event

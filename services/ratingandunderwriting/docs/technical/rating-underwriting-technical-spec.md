@@ -311,7 +311,7 @@ private decimal GetTerritoryFactor(string zipCode)
 1. Update quote status to "Accepted"
 2. Set acceptedUtc timestamp
 3. Save quote document
-4. Publish `QuoteAccepted` event to Service Bus
+4. Publish `QuoteAccepted` event via RabbitMQ transport
 5. Policy domain receives event and creates policy
 
 **Response**: `200 OK`
