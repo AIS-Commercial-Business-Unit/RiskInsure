@@ -1,0 +1,70 @@
+{
+  "id": "platform-team-model",
+  "slug": "platform-team-model",
+  "title": "Platform team model",
+  "category": "enablement",
+  "subcategory": "team-topologies",
+  "summary": "A dedicated team that owns the integration platform as a product and provides paved roads for others.",
+  "decisionGuidance": {
+    "problemSolved": "Without a platform team, standards drift and every team re-solves reliability and security.",
+    "whenToUse": [
+      "Many teams build integrations",
+      "You want repeatable patterns and guardrails"
+    ],
+    "whenNotToUse": [
+      "A single team owns all delivery and will remain so"
+    ]
+  },
+  "enablingTechnologies": [
+    "Reference architecture",
+    "Golden paths",
+    "Template repos"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Platform team becomes a bottleneck if it builds everything",
+      "No product ownership"
+    ],
+    "opinionatedGuidance": "Platform team builds the platform, not all integrations. Enable product teams to deliver."
+  },
+  "complexity": {
+    "level": "medium",
+    "rationale": "Org design and product ownership are the hard parts.",
+    "teamImpact": "multi-team",
+    "skillDemand": "Platform product management + engineering leadership.",
+    "operationalDemand": "High—platform team impacts ops reliability across the org.",
+    "toolingDemand": "Templates, CI/CD standards, and policy tooling."
+  },
+  "starterDiagram": {
+    "title": "Platform as product",
+    "description": "Consumers use paved roads.",
+    "nodes": [
+      "Platform team",
+      "Golden path",
+      "Product teams"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Enterprise integration modernization",
+    "approach": "Created a platform backlog and a consumer feedback loop.",
+    "outcome": "Higher consistency and faster onboarding."
+  },
+  "relatedPatterns": [
+    "enablement-team-model",
+    "devsecops-first-class"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": "https://www.amazon.com/Architecture-Modernization-Socio-technical-alignment-structure/dp/1633438155",
+      "citationRequired": false
+    }
+  ],
+  "tags": [
+    "platform-team",
+    "enablement",
+    "scale"
+  ],
+  "lastUpdated": "2026-02-17"
+}

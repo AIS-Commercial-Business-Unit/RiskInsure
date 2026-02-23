@@ -33,7 +33,7 @@ function Get-CurrentBranch {
     
     # For non-git repos, try to find the latest feature directory
     $repoRoot = Get-RepoRoot
-    $specsDir = Join-Path $repoRoot "specs"
+    $specsDir = Get-SpecsRoot -RepoRoot $repoRoot
     
     if (Test-Path $specsDir) {
         $latestFeature = ""
@@ -87,29 +87,80 @@ function Test-FeatureBranch {
     return $true
 }
 
+function Get-SpecsRoot {
+    param([string]$RepoRoot)
+
+    if ($env:SPECIFY_SPECS_ROOT) {
+        if ([System.IO.Path]::IsPathRooted($env:SPECIFY_SPECS_ROOT)) {
+            return (Resolve-Path $env:SPECIFY_SPECS_ROOT).Path
+        }
+        return (Resolve-Path (Join-Path $RepoRoot $env:SPECIFY_SPECS_ROOT)).Path
+    }
+
+    if ($env:SPECIFY_SERVICE) {
+        if (Test-Path $env:SPECIFY_SERVICE) {
+            return (Resolve-Path (Join-Path $env:SPECIFY_SERVICE 'specs')).Path
+        }
+        return (Resolve-Path (Join-Path $RepoRoot (Join-Path 'services' (Join-Path $env:SPECIFY_SERVICE 'specs')))).Path
+    }
+
+    return (Join-Path $RepoRoot 'specs')
+}
+
 function Get-FeatureDir {
     param([string]$RepoRoot, [string]$Branch)
-    Join-Path $RepoRoot "specs/$Branch"
+    $specsRoot = Get-SpecsRoot -RepoRoot $RepoRoot
+    Join-Path $specsRoot $Branch
+}
+
+function Resolve-SpecPath {
+    param(
+        [string]$RepoRoot,
+        [string]$SpecPath
+    )
+
+    if ([string]::IsNullOrWhiteSpace($SpecPath)) {
+        return $null
+    }
+
+    if ([System.IO.Path]::IsPathRooted($SpecPath)) {
+        return (Resolve-Path $SpecPath).Path
+    }
+
+    return (Resolve-Path (Join-Path $RepoRoot $SpecPath)).Path
 }
 
 function Get-FeaturePathsEnv {
+    param(
+        [string]$SpecPath
+    )
+
     $repoRoot = Get-RepoRoot
     $currentBranch = Get-CurrentBranch
     $hasGit = Test-HasGit
-    $featureDir = Get-FeatureDir -RepoRoot $repoRoot -Branch $currentBranch
-    
+
+    $resolvedSpecPath = Resolve-SpecPath -RepoRoot $repoRoot -SpecPath $SpecPath
+
+    if ($resolvedSpecPath) {
+        $featureDir = Split-Path -Parent $resolvedSpecPath
+        $featureSpec = $resolvedSpecPath
+    } else {
+        $featureDir = Get-FeatureDir -RepoRoot $repoRoot -Branch $currentBranch
+        $featureSpec = Join-Path $featureDir 'spec.md'
+    }
+
     [PSCustomObject]@{
-        REPO_ROOT     = $repoRoot
+        REPO_ROOT      = $repoRoot
         CURRENT_BRANCH = $currentBranch
-        HAS_GIT       = $hasGit
-        FEATURE_DIR   = $featureDir
-        FEATURE_SPEC  = Join-Path $featureDir 'spec.md'
-        IMPL_PLAN     = Join-Path $featureDir 'plan.md'
-        TASKS         = Join-Path $featureDir 'tasks.md'
-        RESEARCH      = Join-Path $featureDir 'research.md'
-        DATA_MODEL    = Join-Path $featureDir 'data-model.md'
-        QUICKSTART    = Join-Path $featureDir 'quickstart.md'
-        CONTRACTS_DIR = Join-Path $featureDir 'contracts'
+        HAS_GIT        = $hasGit
+        FEATURE_DIR    = $featureDir
+        FEATURE_SPEC   = $featureSpec
+        IMPL_PLAN      = Join-Path $featureDir 'plan.md'
+        TASKS          = Join-Path $featureDir 'tasks.md'
+        RESEARCH       = Join-Path $featureDir 'research.md'
+        DATA_MODEL     = Join-Path $featureDir 'data-model.md'
+        QUICKSTART     = Join-Path $featureDir 'quickstart.md'
+        CONTRACTS_DIR  = Join-Path $featureDir 'contracts'
     }
 }
 

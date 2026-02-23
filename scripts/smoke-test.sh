@@ -171,9 +171,16 @@ if [[ -f ".env" ]]; then
 
     if grep -q "SERVICEBUS_CONNECTION_STRING=Endpoint=sb://" .env; then
         echo -e "  ${GREEN}Service Bus connection: Valid format${NC}"
+    fi
+
+    if grep -q "RABBITMQ_CONNECTION_STRING=host=" .env; then
+        echo -e "  ${GREEN}RabbitMQ connection: Valid format${NC}"
+    fi
+
+    if [[ grep -q "SERVICEBUS_CONNECTION_STRING=Endpoint=sb://" .env || grep -q "RABBITMQ_CONNECTION_STRING=host=" .env ]]; then
         ((PASS_COUNT++))
     else
-        echo -e "  ${RED}Service Bus connection: Invalid or missing${NC}"
+        echo -e "  ${RED}RabbitMQ connection and Service Bus connection: Invalid or missing${NC}"
         ((FAIL_COUNT++))
     fi
 else
@@ -202,18 +209,18 @@ else
     ((FAIL_COUNT++))
 fi
 
-SERVICEBUS_STATUS=$(docker ps --filter "name=servicebus-emulator" --format "{{.Status}}" 2>/dev/null)
-if [[ -n "$SERVICEBUS_STATUS" ]]; then
-    if [[ "$SERVICEBUS_STATUS" == *"healthy"* || "$SERVICEBUS_STATUS" == Up* ]]; then
-        echo -e "  ${GREEN}Service Bus Emulator: ${SERVICEBUS_STATUS}${NC}"
+RABBITMQ_STATUS=$(docker ps --filter "name=rabbitmq" --format "{{.Status}}" 2>/dev/null)
+if [[ -n "$RABBITMQ_STATUS" ]]; then
+    if [[ "$RABBITMQ_STATUS" == *"healthy"* || "$RABBITMQ_STATUS" == Up* ]]; then
+        echo -e "  ${GREEN}RabbitMQ: ${RABBITMQ_STATUS}${NC}"
         ((PASS_COUNT++))
     else
-        echo -e "  ${YELLOW}Service Bus Emulator: ${SERVICEBUS_STATUS}${NC}"
+        echo -e "  ${YELLOW}RabbitMQ: ${RABBITMQ_STATUS}${NC}"
         ((WARN_COUNT++))
     fi
 else
-    echo -e "  ${RED}Service Bus Emulator: Not running${NC}"
-    echo -e "    ${GRAY}Start with: docker compose --profile infra up -d servicebus-emulator${NC}"
+    echo -e "  ${RED}RabbitMQ: Not running${NC}"
+    echo -e "    ${GRAY}Start with: docker compose --profile infra up -d rabbitmq${NC}"
     ((FAIL_COUNT++))
 fi
 

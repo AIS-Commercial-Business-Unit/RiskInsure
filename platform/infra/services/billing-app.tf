@@ -19,13 +19,15 @@ resource "azurerm_container_app" "billing_api" {
   }
 
   secret {
-    name  = "cosmos-connection-string"
-    value = data.terraform_remote_state.shared_services.outputs.cosmosdb_connection_string
+    name                = "cosmos-connection-string"
+    key_vault_secret_id = data.azurerm_key_vault_secret.cosmos_db_connection_string.id
+    identity            = data.terraform_remote_state.shared_services.outputs.apps_shared_identity_id
   }
 
   secret {
-    name  = "servicebus-connection-string"
-    value = data.terraform_remote_state.shared_services.outputs.servicebus_connection_string
+    name                = "servicebus-connection-string"
+    key_vault_secret_id = data.azurerm_key_vault_secret.service_bus_connection_string.id
+    identity            = data.terraform_remote_state.shared_services.outputs.apps_shared_identity_id
   }
 
   template {
@@ -115,13 +117,15 @@ resource "azurerm_container_app" "billing_endpoint" {
   }
 
   secret {
-    name  = "cosmos-connection-string"
-    value = data.terraform_remote_state.shared_services.outputs.cosmosdb_connection_string
+    name                = "cosmos-connection-string"
+    key_vault_secret_id = data.azurerm_key_vault_secret.cosmos_db_connection_string.id
+    identity            = data.terraform_remote_state.shared_services.outputs.apps_shared_identity_id
   }
 
   secret {
-    name  = "servicebus-connection-string"
-    value = data.terraform_remote_state.shared_services.outputs.servicebus_connection_string
+    name                = "servicebus-connection-string"
+    key_vault_secret_id = data.azurerm_key_vault_secret.service_bus_connection_string.id
+    identity            = data.terraform_remote_state.shared_services.outputs.apps_shared_identity_id
   }
 
   template {
@@ -169,6 +173,8 @@ resource "azurerm_container_app" "billing_endpoint" {
         value = "Billing"
       }
     }
+
+
   }
 
   tags = var.tags

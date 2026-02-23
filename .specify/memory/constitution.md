@@ -68,20 +68,25 @@ This constitution defines **non-negotiable architectural rules** for all project
 
 ---
 
-### II. Single-Partition Data Model
+### II. Data Model Strategy
 
-**The Rule**: For file processing systems, use a single Cosmos DB container partitioned by the processing run identifier.
+**The Rule**: Data model strategy MUST align with the selected persistence technology for the feature (Cosmos DB or PostgreSQL).
 
 **Requirements**:
-- One container for all document types within a processing domain
-- Partition key identifies the processing unit (e.g., `/fileRunId`, `/batchId`)
-- Document type discriminator field distinguishes entity types
-- All related documents co-located in same partition
-- Queries within partition are free; cross-partition queries for reporting only
+- **If Cosmos DB is selected**:
+   - Use one container for all document types within a processing domain
+   - Partition key identifies the processing unit (e.g., `/fileRunId`, `/batchId`, `/orderId`)
+   - Document type discriminator field distinguishes entity types
+   - Co-locate related documents within the same partition where possible
+- **If PostgreSQL is selected**:
+   - Use normalized relational schema with explicit keys and constraints
+   - Define transactional boundaries clearly for aggregate/state transitions
+   - Avoid cross-context coupling via shared tables
+- Persistence selection MUST be documented in `spec.md` and `plan.md` with rationale
 
-**Rationale**: Single-partition model enables free queries within a processing run, simplifies consistency, optimizes cost, and provides transactional guarantees.
+**Rationale**: Different domains/features have different query and consistency needs. Enforcing a documented, explicit persistence decision preserves architectural intent while enabling fit-for-purpose design.
 
-**Verification**: All documents include partition key field; queries include partition key in WHERE clause.
+**Verification**: Feature artifacts contain an explicit persistence decision and corresponding model strategy; implementation matches that strategy.
 
 ---
 
@@ -144,7 +149,7 @@ This constitution defines **non-negotiable architectural rules** for all project
 
 ### VI. Message-Based Integration
 
-**The Rule**: Components integrate through Azure Service Bus messages (commands and events).
+**The Rule**: Components integrate through brokered messages (commands and events) using NServiceBus with RabbitMQ or Azure Service Bus transport.
 
 **Message Types**:
 - **Commands**: Imperative, unicast, directed actions (e.g., `ProcessEntity`)
@@ -158,7 +163,7 @@ This constitution defines **non-negotiable architectural rules** for all project
 
 **Rationale**: Message-based integration maintains loose coupling, enables independent scaling, provides natural retry/error handling.
 
-**Verification**: No direct service-to-service HTTP calls; all integration through Service Bus.
+**Verification**: No direct service-to-service HTTP calls; all integration through message transport.
 
 ---
 
@@ -216,8 +221,9 @@ This constitution defines **non-negotiable architectural rules** for all project
 - ✅ .NET 10.0
 - ✅ C# 13 with nullable reference types enabled
 - ✅ Azure Cosmos DB
-- ✅ Azure Service Bus for messaging
-- ✅ NServiceBus 9.x+ with Azure Service Bus transport
+- ✅ PostgreSQL
+- ✅ RabbitMQ or Azure Service Bus for messaging transport
+- ✅ NServiceBus 9.x+ with Azure Service Bus and RabbitMQ transport
 - ✅ Azure Logic Apps Standard for orchestration workflows
 - ✅ Azure Container Apps for hosting NServiceBus endpoints
 - ✅ xUnit for testing
@@ -226,11 +232,15 @@ This constitution defines **non-negotiable architectural rules** for all project
 - ❌ Entity Framework Core (use repository pattern with Cosmos SDK)
 - ❌ Distributed transactions (`TransactionScope`)
 - ❌ Azure Functions (use Azure Container Apps)
-- ❌ RabbitMQ, Kafka (use Azure Service Bus)
+- ❌ Kafka (not part of approved messaging stack)
 
 **Rationale**: Standardized stack ensures consistency, leverages team expertise, and prevents anti-patterns.
 
 **Verification**: Project references reviewed in code reviews; prohibited packages blocked.
+
+**Persistence Decision Policy**:
+- The Cosmos DB vs PostgreSQL decision MAY be deferred until feature planning.
+- The decision MUST be explicitly documented in `spec.md` and `plan.md` before implementation begins.
 
 ---
 
@@ -335,7 +345,7 @@ This constitution defines **non-negotiable architectural rules** for all project
 - ❌ Distributed transactions (`TransactionScope` across services)
 - ❌ Synchronous HTTP calls between bounded contexts
 - ❌ Shared databases between bounded contexts
-- ❌ RabbitMQ, Kafka, or other messaging systems (use Azure Service Bus)
+- ❌ Kafka (not part of the approved messaging transport stack)
 
 **Rationale**: These constraints prevent anti-patterns that conflict with core principles.
 

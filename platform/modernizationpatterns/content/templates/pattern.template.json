@@ -1,0 +1,64 @@
+{
+  "id": "pattern-id",
+  "slug": "pattern-slug",
+  "title": "Pattern title",
+  "category": "strategic",
+  "subcategory": "modernization-strategy",
+  "summary": "Short summary of the pattern intent.",
+  "decisionGuidance": {
+    "problemSolved": "What this pattern solves.",
+    "whenToUse": [
+      "Condition where this pattern is a good fit"
+    ],
+    "whenNotToUse": [
+      "Condition where this pattern is not a fit"
+    ]
+  },
+  "enablingTechnologies": [
+    "Technology or capability"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Common implementation risk"
+    ],
+    "opinionatedGuidance": "Your team opinion for practical execution."
+  },
+  "complexity": {
+    "level": "medium",
+    "rationale": "Why this complexity level applies.",
+    "teamImpact": "single-team | multi-team",
+    "skillDemand": "What depth of developer/platform skill is required.",
+    "operationalDemand": "What level of run-time/operational complexity is introduced.",
+    "toolingDemand": "What level of specialized tooling is required."
+  },
+  "starterDiagram": {
+    "title": "Starter diagram",
+    "description": "Simple flow to begin discussion.",
+    "nodes": [
+      "Node A",
+      "Node B",
+      "Node C"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Where this appeared in a real scenario.",
+    "approach": "How it was implemented.",
+    "outcome": "What changed after implementation."
+  },
+  "relatedPatterns": [
+    "related-pattern-id"
+  ],
+  "furtherReading": [
+    {
+      "title": "Reference title",
+      "sourceId": "modernization-architecture",
+      "link": null,
+      "citationRequired": true
+    }
+  ],
+  "tags": [
+    "tag-one",
+    "tag-two"
+  ],
+  "lastUpdated": "2026-02-17"
+}

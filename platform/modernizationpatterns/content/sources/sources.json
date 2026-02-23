@@ -1,0 +1,29 @@
+[
+  {
+    "id": "modernization-architecture",
+    "title": "Modernization Architecture",
+    "type": "book",
+    "author": "External",
+    "url": null,
+    "citationRequired": true,
+    "notes": "Use citation when referenced in a published pattern."
+  },
+  {
+    "id": "enterprise-integration-patterns",
+    "title": "Enterprise Integration Patterns",
+    "type": "book",
+    "author": "External",
+    "url": "https://www.enterpriseintegrationpatterns.com/",
+    "citationRequired": true,
+    "notes": "Use citation when referenced in a published pattern."
+  },
+  {
+    "id": "internal-pattern-workshop-deck",
+    "title": "Internal Pattern Workshop Deck",
+    "type": "internal-pptx",
+    "author": "Internal",
+    "url": null,
+    "citationRequired": false,
+    "notes": "Internal deck. Citation optional."
+  }
+]

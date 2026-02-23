@@ -13,27 +13,7 @@ enable_keda_scaling                  = true
 keda_service_bus_queue_length        = 5
 
 # Production scaling configuration
-services = {
-  "billing" = {
-    api = {
-      enabled        = true
-      cpu            = 1.0
-      memory         = "2Gi"
-      min_replicas   = 2
-      max_replicas   = 20
-      container_name = "Billing"
-    }
-    endpoint = {
-      enabled        = true
-      cpu            = 1.0
-      memory         = "2Gi"
-      min_replicas   = 2
-      max_replicas   = 10
-      container_name = "Billing"
-    }
-  }
-  # ... other services with production scaling
-}
+
 
 tags = {
   Project     = "RiskInsure"

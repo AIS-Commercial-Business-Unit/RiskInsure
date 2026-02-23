@@ -206,9 +206,17 @@ If you encounter broker connection issues, verify `RABBITMQ_CONNECTION_STRING` i
 
 ## 📖 Documentation
 
-- **[Constitution](copilot-instructions/constitution.md)** - Non-negotiable architectural rules
+### Architecture & Governance
+- **[Constitution](.specify/memory/constitution.md)** - Non-negotiable architectural rules (read first!)
 - **[Project Structure](copilot-instructions/project-structure.md)** - Bounded context template
 - **[Copilot Instructions](.github/copilot-instructions.md)** - Coding assistant rules
+
+### Feature Development
+- **[Documentation Philosophy](docs/DOCUMENTATION-PHILOSOPHY.md)** - How domain docs and feature specs work together
+- **[Spec Kit Quickstart](docs/SPEC-KIT-QUICKSTART.md)** - 5-step workflow for adding features
+- **[Feature Specifications](specs/README.md)** - Historical record of all features (organized by domain)
+
+### Setup & Operations
 - **[Template Initialization](docs/TEMPLATE-INITIALIZATION.md)** - How this template was initialized
 
 ## 🧪 Testing Strategy
@@ -224,7 +232,7 @@ See [SECURITY.md](SECURITY.md) for vulnerability reporting.
 
 ## 📋 Contributing
 
-1. Review [constitution.md](copilot-instructions/constitution.md) principles
+1. Review [constitution.md](.specify/memory/constitution.md) principles
 2. Follow [project-structure.md](copilot-instructions/project-structure.md) template
 3. Ensure test coverage meets thresholds
 4. All PRs require review from @your-org/contributors

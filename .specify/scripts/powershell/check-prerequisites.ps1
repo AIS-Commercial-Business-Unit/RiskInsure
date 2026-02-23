@@ -12,6 +12,7 @@
 #   -RequireTasks       Require tasks.md to exist (for implementation phase)
 #   -IncludeTasks       Include tasks.md in AVAILABLE_DOCS list
 #   -PathsOnly          Only output path variables (no validation)
+#   -SpecPath           Explicit spec path (e.g., services/nsb.sales/specs/001-sales-ordering/spec.md)
 #   -Help, -h           Show help message
 
 [CmdletBinding()]
@@ -20,6 +21,7 @@ param(
     [switch]$RequireTasks,
     [switch]$IncludeTasks,
     [switch]$PathsOnly,
+    [string]$SpecPath,
     [switch]$Help
 )
 
@@ -37,6 +39,7 @@ OPTIONS:
   -RequireTasks       Require tasks.md to exist (for implementation phase)
   -IncludeTasks       Include tasks.md in AVAILABLE_DOCS list
   -PathsOnly          Only output path variables (no prerequisite validation)
+    -SpecPath           Explicit spec path (e.g., services/nsb.sales/specs/001-sales-ordering/spec.md)
   -Help, -h           Show this help message
 
 EXAMPLES:
@@ -57,10 +60,12 @@ EXAMPLES:
 . "$PSScriptRoot/common.ps1"
 
 # Get feature paths and validate branch
-$paths = Get-FeaturePathsEnv
+$paths = Get-FeaturePathsEnv -SpecPath $SpecPath
 
-if (-not (Test-FeatureBranch -Branch $paths.CURRENT_BRANCH -HasGit:$paths.HAS_GIT)) { 
-    exit 1 
+if (-not $SpecPath) {
+    if (-not (Test-FeatureBranch -Branch $paths.CURRENT_BRANCH -HasGit:$paths.HAS_GIT)) {
+        exit 1
+    }
 }
 
 # If paths-only mode, output paths and exit (support combined -Json -PathsOnly)

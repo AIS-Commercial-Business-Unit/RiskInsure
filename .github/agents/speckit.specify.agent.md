@@ -24,6 +24,25 @@ The text the user typed after `/speckit.specify` in the triggering message **is*
 
 Given that feature description, do this:
 
+0. **Check for EventStorming Model** (RiskInsure DDD Workflow):
+   
+   a. **Detect EventStorming context**:
+      - Search for files matching `*_Systems_single_context_final.md` in the workspace
+      - Check if user's feature description references DDD, EventStorming, or domain modeling
+      - If user mentions they have an EventStorming model, ask for the file path
+   
+   b. **If EventStorming model exists**:
+      - Inform user: "I found an EventStorming model. For RiskInsure's DDD workflow, domain experts define requirements through EventStorming, not developer specs."
+      - Ask: "Would you like to use `/speckit.from-eventstorming` to convert your EventStorming model into a spec instead?"
+      - Options:
+        - YES → Hand off to `speckit.from-eventstorming` agent with model file path
+        - NO → Continue with standard specify workflow (steps 1-7)
+   
+   c. **If no EventStorming model exists**:
+      - Continue with standard specify workflow (steps 1-7)
+   
+   **Rationale**: RiskInsure uses DDD and EventStorming for requirements gathering. EventStorming models produced by domain experts are the canonical source of truth, not developer-written specs. The specify workflow should only be used when no EventStorming model exists (prototyping, technical spikes, infrastructure features).
+
 1. **Generate a concise short name** (2-4 words) for the branch:
    - Analyze the feature description and extract the most meaningful keywords
    - Create a 2-4 word short name that captures the essence of the feature
@@ -36,7 +55,20 @@ Given that feature description, do this:
      - "Create a dashboard for analytics" → "analytics-dashboard"
      - "Fix payment processing timeout bug" → "fix-payment-timeout"
 
-2. **Check for existing branches before creating new one**:
+2. **Ask whether a branch is needed**:
+
+   a. Ask the user: "Do you want Spec Kit to create a new feature branch?"
+
+   b. If user answers **No**:
+      - Do not run any git commands
+      - Do not run `.specify/scripts/powershell/create-new-feature.ps1`
+      - Ask for the target spec path, or use the existing spec in the current folder if one exists
+      - Continue with spec generation using that SPEC_FILE path
+
+   c. If user answers **Yes**:
+      - Continue with step 2a below (branch creation workflow)
+
+2a. **Check for existing branches before creating new one**:
 
    a. First, fetch all remote branches to ensure we have the latest information:
 
@@ -44,20 +76,22 @@ Given that feature description, do this:
       git fetch --all --prune
       ```
 
-   b. Find the highest feature number across all sources for the short-name:
+   b. Ask for the target service root (e.g., `services/billing`, `services/nsb.sales`) so specs live under that domain.
+
+   c. Find the highest feature number across all sources for the short-name:
       - Remote branches: `git ls-remote --heads origin | grep -E 'refs/heads/[0-9]+-<short-name>$'`
       - Local branches: `git branch | grep -E '^[* ]*[0-9]+-<short-name>$'`
-      - Specs directories: Check for directories matching `specs/[0-9]+-<short-name>`
+      - Specs directories: Check for directories matching `services/<domain>/specs/[0-9]+-<short-name>` within the chosen service root
 
-   c. Determine the next available number:
+   d. Determine the next available number:
       - Extract all numbers from all three sources
       - Find the highest number N
       - Use N+1 for the new branch number
 
-   d. Run the script `.specify/scripts/powershell/create-new-feature.ps1 -Json "$ARGUMENTS"` with the calculated number and short-name:
-      - Pass `--number N+1` and `--short-name "your-short-name"` along with the feature description
-      - Bash example: `.specify/scripts/powershell/create-new-feature.ps1 -Json "$ARGUMENTS" --json --number 5 --short-name "user-auth" "Add user authentication"`
-      - PowerShell example: `.specify/scripts/powershell/create-new-feature.ps1 -Json "$ARGUMENTS" -Json -Number 5 -ShortName "user-auth" "Add user authentication"`
+   e. Run the script `.specify/scripts/powershell/create-new-feature.ps1 -Json "$ARGUMENTS"` with the calculated number, short-name, and service root:
+      - Pass `-Number N+1`, `-ShortName "your-short-name"`, and `-ServicePath "services/<domain>"` along with the feature description
+      - Bash example: `.specify/scripts/powershell/create-new-feature.ps1 -Json "$ARGUMENTS" --number 5 --short-name "user-auth" --servicepath "services/nsb.sales" "Add user authentication"`
+      - PowerShell example: `.specify/scripts/powershell/create-new-feature.ps1 -Json "$ARGUMENTS" -Number 5 -ShortName "user-auth" -ServicePath "services/nsb.sales" "Add user authentication"`
 
    **IMPORTANT**:
    - Check all three sources (remote branches, local branches, specs directories) to find the highest number
@@ -68,9 +102,24 @@ Given that feature description, do this:
    - The JSON output will contain BRANCH_NAME and SPEC_FILE paths
    - For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot")
 
-3. Load `.specify/templates/spec-template.md` to understand required sections.
+3. **Choose the appropriate template**:
+   
+   **Quick Template** (`.specify/templates/spec-template-quick.md`) - Use when:
+   - Feature is being added to an existing bounded context with domain docs
+   - User description is focused and specific (not exploratory)
+   - Primary need is to capture scenarios + messages + acceptance criteria
+   
+   **Full Template** (`.specify/templates/spec-template.md`) - Use when:
+   - New domain area without existing documentation
+   - Complex multi-service feature
+   - Extensive functional requirements need capture
+   - User description is vague or exploratory
+   
+   **Default**: Use quick template unless feature clearly needs full specification.
+   
+4. Load the chosen template to understand required sections.
 
-4. Follow this execution flow:
+5. Follow this execution flow:
 
     1. Parse user description from Input
        If empty: ERROR "No feature description provided"
@@ -96,9 +145,18 @@ Given that feature description, do this:
     7. Identify Key Entities (if data involved)
     8. Return: SUCCESS (spec ready for planning)
 
-5. Write the specification to SPEC_FILE using the template structure, replacing placeholders with concrete details derived from the feature description (arguments) while preserving section order and headings.
+6. Write the specification to SPEC_FILE using the **chosen template structure** (quick or full), replacing placeholders with concrete details derived from the feature description (arguments) while preserving section order and headings.
+   
+   **For Quick Template**: Focus on filling:
+   - Context (References) - links to existing domain docs
+   - What's New (The Delta) - only new scenarios and acceptance criteria
+   - Message Contracts - new commands/events with C# record structure
+   - Data Changes - partition key (if Cosmos) or schema changes (if PostgreSQL)
+   - Success Criteria - testable outcomes
+   
+   **For Full Template**: Fill all sections per original workflow.
 
-6. **Specification Quality Validation**: After writing the initial spec, validate it against quality criteria:
+7. **Specification Quality Validation**: After writing the initial spec, validate it against quality criteria:
 
    a. **Create Spec Quality Checklist**: Generate a checklist file at `FEATURE_DIR/checklists/requirements.md` using the checklist template structure with these validation items:
 

@@ -1,50 +1,60 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# RiskInsure Constitution (Reference)
 
-## Core Principles
+**Note**: RiskInsure already has an established constitution. This template file points to it.
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+**Primary Constitution**: [.specify/memory/constitution.md](../../.specify/memory/constitution.md)
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+## Core Principles Summary
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+RiskInsure follows these **non-negotiable** architectural principles:
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### I. Domain Language Consistency
+Each bounded context uses ubiquitous language from domain-specific standards. Prohibited terms are explicitly documented per domain.
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+### II. Single-Partition Data Model (Cosmos) OR Normalized Schema (PostgreSQL)
+- **Cosmos**: One container per domain, partitioned by processing unit (e.g., `/fileRunId`, `/orderId`)
+- **PostgreSQL**: Normalized schema with proper foreign keys and indexes
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+### III. Atomic State Transitions
+Aggregate state and derived counts updated atomically using ETags (Cosmos) or transactions (PostgreSQL).
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### IV. Idempotent Message Handlers
+All handlers check existing state before creating, safe to retry/replay (at-least-once delivery).
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+### V. Structured Observability
+All logs include correlation IDs: processing unit identifier + message identifier + operation name.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### VI. Message-Based Integration
+Services integrate via Azure Service Bus (NServiceBus). No cross-service HTTP calls for business operations.
+
+### VII. Thin Message Handlers
+Handlers validate → delegate to domain services → publish events. No business logic in handlers.
+
+### VIII. Test Coverage Requirements
+- Domain layer: 90%+ coverage
+- Application services/handlers: 80%+ coverage
+- Integration tests for API endpoints (Playwright)
+
+### IX. Technology Constraints
+- .NET 10.0, C# 13 with nullable reference types
+- NServiceBus 9.x with Azure Service Bus transport
+- Azure Cosmos DB **OR** PostgreSQL (decision required per feature)
+- xUnit for unit tests, Playwright for integration tests
+
+## Additional Standards
+
+**Project Structure**: [copilot-instructions/project-structure.md](../../copilot-instructions/project-structure.md)  
+**Messaging Patterns**: [copilot-instructions/messaging-patterns.md](../../copilot-instructions/messaging-patterns.md)  
+**Data Patterns**: [copilot-instructions/data-patterns.md](../../copilot-instructions/data-patterns.md)  
+**API Conventions**: [copilot-instructions/api-conventions.md](../../copilot-instructions/api-conventions.md)  
+**Testing Standards**: [copilot-instructions/testing-standards.md](../../copilot-instructions/testing-standards.md)
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+All code, designs, and decisions MUST align with the constitution. Domain-specific standards (in `services/<domain>/docs/domain-specific-standards.md`) extend but cannot contradict core principles.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 2.0.0 | **Ratified**: 2026-02-02 | **Last Amended**: 2026-02-02
+
+---
+
+**Usage in Spec Kit**: When running `/speckit.plan`, the agent will verify compliance with these principles via the "Constitution Check" section.

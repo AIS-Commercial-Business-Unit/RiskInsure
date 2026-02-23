@@ -5,6 +5,18 @@
 **Status**: Draft  
 **Input**: User description: "$ARGUMENTS"
 
+> **Template Note**: This is the **full specification template**. For faster authoring when domain docs already exist, consider using `spec-template-quick.md` instead (10–20 min vs 30–60 min). See [templates/README.md](./) for guidance.
+
+## RiskInsure Context *(mandatory)*
+
+**Bounded Context(s)**: [Which service(s) - e.g., Billing, Policy, Customer, FileIntegration]  
+**Domain Documentation**: [Link to services/<domain>/docs/domain-specific-standards.md if exists]  
+**Constitution Reference**: [.specify/memory/constitution.md](../../.specify/memory/constitution.md)
+
+**Applies Domain Rules**:
+- [List specific rules/invariants from domain docs that apply, e.g., "FileRun state machine rules", "Invoice cancellation rules"]
+- [If none, state "General platform patterns only"]
+
 ## User Scenarios & Testing *(mandatory)*
 
 <!--
@@ -99,6 +111,25 @@
 
 - **[Entity 1]**: [What it represents, key attributes without implementation]
 - **[Entity 2]**: [What it represents, relationships to other entities]
+
+## Message Contracts *(if event-driven integration)*
+
+**Commands** (imperative, directed):
+- `[CommandName]` - [Purpose, required fields: MessageId, OccurredUtc, IdempotencyKey, + domain fields]
+
+**Events** (past-tense, broadcast):
+- `[EventName]` - [What occurred, required fields: MessageId, OccurredUtc, IdempotencyKey, + domain fields]
+
+**Contract Location**: 
+- Internal (this service only): `services/<domain>/src/Domain/Contracts/`
+- Public (cross-service): `platform/RiskInsure.PublicContracts/Events/` or `platform/RiskInsure.PublicContracts/Commands/`
+
+## Data Strategy *(if applicable)*
+
+**Partition Key**: [e.g., `/fileRunId`, `/orderId`, `/customerId` - identifies processing unit for single-partition queries]  
+**Document Types**: [e.g., FileRun, PaymentInstruction, ValidationError - types stored in same container]  
+**State Transitions**: [If aggregate state changes, describe: e.g., "FileRun: Pending → Processing → Completed/Failed"]  
+**Idempotency Strategy**: [How duplicate messages are handled - e.g., "Check existing document by ID before creating"]
 
 ## Success Criteria *(mandatory)*
 

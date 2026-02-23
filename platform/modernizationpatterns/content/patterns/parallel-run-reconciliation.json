@@ -1,0 +1,71 @@
+{
+  "id": "parallel-run-reconciliation",
+  "slug": "parallel-run-reconciliation",
+  "title": "Parallel run with reconciliation",
+  "category": "migration",
+  "subcategory": "migration-validation",
+  "summary": "Run legacy and new flows in parallel and reconcile outputs before cutover.",
+  "decisionGuidance": {
+    "problemSolved": "Complex integrations fail at cutover due to subtle differences in ordering, timing, and transformation.",
+    "whenToUse": [
+      "Transactional consistency and auditability are required",
+      "Batch jobs are large/high impact"
+    ],
+    "whenNotToUse": [
+      "The flow is low-risk and easily reversible"
+    ]
+  },
+  "enablingTechnologies": [
+    "Dual-write/dual-process",
+    "Reconciliation reports",
+    "Golden datasets"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Parallel runs double costs temporarily",
+      "Reconciliation rules can hide real mismatches"
+    ],
+    "opinionatedGuidance": "Define reconciliation rules explicitly and treat mismatches as learning, not noise."
+  },
+  "complexity": {
+    "level": "high",
+    "rationale": "Validation-heavy but reduces catastrophic cutover risk.",
+    "teamImpact": "multi-team",
+    "skillDemand": "Data reconciliation and distributed tracing skills.",
+    "operationalDemand": "High—requires careful operational coordination.",
+    "toolingDemand": "Reconciliation tooling + audit stores."
+  },
+  "starterDiagram": {
+    "title": "Compare outputs",
+    "description": "Legacy and new produce results; compare.",
+    "nodes": [
+      "Input",
+      "Legacy output",
+      "New output",
+      "Reconcile"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Weekend batch modernization",
+    "approach": "Processed the same files through both paths and compared outcomes.",
+    "outcome": "Cutover confidence increased; fewer post-cutover incidents."
+  },
+  "relatedPatterns": [
+    "durable-file-processing",
+    "success-metrics-before-migration"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": "https://www.amazon.com/Architecture-Modernization-Socio-technical-alignment-structure/dp/1633438155",
+      "citationRequired": false
+    }
+  ],
+  "tags": [
+    "parallel-run",
+    "reconciliation",
+    "validation"
+  ],
+  "lastUpdated": "2026-02-17"
+}

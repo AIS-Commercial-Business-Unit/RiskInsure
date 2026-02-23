@@ -5,6 +5,7 @@ param(
     [switch]$Json,
     [string]$ShortName,
     [int]$Number = 0,
+    [string]$ServicePath,
     [switch]$Help,
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$FeatureDescription
@@ -13,12 +14,13 @@ $ErrorActionPreference = 'Stop'
 
 # Show help if requested
 if ($Help) {
-    Write-Host "Usage: ./create-new-feature.ps1 [-Json] [-ShortName <name>] [-Number N] <feature description>"
+    Write-Host "Usage: ./create-new-feature.ps1 [-Json] [-ShortName <name>] [-Number N] [-ServicePath <service-path>] <feature description>"
     Write-Host ""
     Write-Host "Options:"
     Write-Host "  -Json               Output in JSON format"
     Write-Host "  -ShortName <name>   Provide a custom short name (2-4 words) for the branch"
     Write-Host "  -Number N           Specify branch number manually (overrides auto-detection)"
+    Write-Host "  -ServicePath <path> Target service root or specs folder (e.g., services/nsb.sales or services/nsb.sales/specs)"
     Write-Host "  -Help               Show this help message"
     Write-Host ""
     Write-Host "Examples:"
@@ -149,7 +151,48 @@ try {
 
 Set-Location $repoRoot
 
-$specsDir = Join-Path $repoRoot 'specs'
+function Resolve-SpecsRoot {
+    param(
+        [string]$RepoRoot,
+        [string]$ServicePath
+    )
+
+    if ($ServicePath) {
+        $resolvedServicePath = if ([System.IO.Path]::IsPathRooted($ServicePath)) {
+            (Resolve-Path $ServicePath).Path
+        } else {
+            (Resolve-Path (Join-Path $RepoRoot $ServicePath)).Path
+        }
+
+        if ($resolvedServicePath -match '[\\/]specs$') {
+            return $resolvedServicePath
+        }
+        return (Join-Path $resolvedServicePath 'specs')
+    }
+
+    if ($env:SPECIFY_SPECS_ROOT) {
+        if ([System.IO.Path]::IsPathRooted($env:SPECIFY_SPECS_ROOT)) {
+            return (Resolve-Path $env:SPECIFY_SPECS_ROOT).Path
+        }
+        return (Resolve-Path (Join-Path $RepoRoot $env:SPECIFY_SPECS_ROOT)).Path
+    }
+
+    if ($env:SPECIFY_SERVICE) {
+        if (Test-Path $env:SPECIFY_SERVICE) {
+            return (Resolve-Path (Join-Path $env:SPECIFY_SERVICE 'specs')).Path
+        }
+        return (Resolve-Path (Join-Path $RepoRoot (Join-Path 'services' (Join-Path $env:SPECIFY_SERVICE 'specs')))).Path
+    }
+
+    return $null
+}
+
+$specsDir = Resolve-SpecsRoot -RepoRoot $repoRoot -ServicePath $ServicePath
+if (-not $specsDir) {
+    Write-Error "No service specs root provided. Use -ServicePath or set SPECIFY_SERVICE or SPECIFY_SPECS_ROOT."
+    exit 1
+}
+
 New-Item -ItemType Directory -Path $specsDir -Force | Out-Null
 
 # Function to generate branch name with stop word filtering and length filtering
@@ -262,8 +305,9 @@ if (Test-Path $template) {
     New-Item -ItemType File -Path $specFile | Out-Null 
 }
 
-# Set the SPECIFY_FEATURE environment variable for the current session
+# Set environment variables for the current session
 $env:SPECIFY_FEATURE = $branchName
+$env:SPECIFY_SPECS_ROOT = $specsDir
 
 if ($Json) {
     $obj = [PSCustomObject]@{ 

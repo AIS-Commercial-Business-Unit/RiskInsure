@@ -5,8 +5,9 @@ description: "Task list template for feature implementation"
 
 # Tasks: [FEATURE NAME]
 
-**Input**: Design documents from `/specs/[###-feature-name]/`
+**Input**: Design documents from `/services/<domain>/specs/[###-feature-name]/`
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
+**Constitution**: [.specify/memory/constitution.md](../../.specify/memory/constitution.md)
 
 **Tests**: The examples below include test tasks. Tests are OPTIONAL - only include them if explicitly requested in the feature specification.
 
@@ -18,12 +19,25 @@ description: "Task list template for feature implementation"
 - **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3)
 - Include exact file paths in descriptions
 
-## Path Conventions
+## Path Conventions (RiskInsure)
 
-- **Single project**: `src/`, `tests/` at repository root
-- **Web app**: `backend/src/`, `frontend/src/`
-- **Mobile**: `api/src/`, `ios/src/` or `android/src/`
-- Paths shown below assume single project - adjust based on plan.md structure
+- **Service root**: `services/<domain>/` (e.g., `services/billing/`)
+- **Domain layer**: `services/<domain>/src/Domain/` (contracts, models, managers)
+- **Infrastructure**: `services/<domain>/src/Infrastructure/` (handlers, repositories)
+- **API**: `services/<domain>/src/Api/` (HTTP endpoints)
+- **Endpoint**: `services/<domain>/src/Endpoint.In/` (NServiceBus host)
+- **Tests**: `services/<domain>/test/{Unit.Tests,Integration.Tests}/`
+- **Public contracts**: `platform/RiskInsure.PublicContracts/{Events,Commands,POCOs}/`
+
+## Implementation Order (RiskInsure Layering)
+
+**DEPENDENCY RULE**: Inward dependencies only (Api → Domain, Infrastructure → Domain, Endpoint → Infrastructure → Domain)
+
+1. **Domain layer first** - Contracts, DTOs, managers, models, services
+2. **Infrastructure layer** - Shared configuration (Cosmos init, NServiceBus extensions)
+3. **Endpoint.In layer** - Message handlers delegating to domain managers
+4. **API layer** - Controllers/endpoints and request models
+5. **Tests** - Unit tests (`Unit.Tests`) and integration tests (`Integration.Tests`)
 
 <!-- 
   ============================================================================
@@ -48,9 +62,9 @@ description: "Task list template for feature implementation"
 
 **Purpose**: Project initialization and basic structure
 
-- [ ] T001 Create project structure per implementation plan
-- [ ] T002 Initialize [language] project with [framework] dependencies
-- [ ] T003 [P] Configure linting and formatting tools
+- [ ] T001 Create service folders in `services/<domain>/src/{Api,Domain,Infrastructure,Endpoint.In}` and `services/<domain>/test/{Unit.Tests,Integration.Tests}`
+- [ ] T002 Create/verify project files in `services/<domain>/src/{Api,Domain,Infrastructure,Endpoint.In}/*.csproj`
+- [ ] T003 [P] Add service projects to `RiskInsure.slnx`
 
 ---
 
@@ -60,14 +74,17 @@ description: "Task list template for feature implementation"
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-Examples of foundational tasks (adjust based on your project):
+RiskInsure foundational tasks (adjust based on your feature):
 
-- [ ] T004 Setup database schema and migrations framework
-- [ ] T005 [P] Implement authentication/authorization framework
-- [ ] T006 [P] Setup API routing and middleware structure
-- [ ] T007 Create base models/entities that all stories depend on
-- [ ] T008 Configure error handling and logging infrastructure
-- [ ] T009 Setup environment configuration management
+- [ ] T004 Define command contracts in `services/<domain>/src/Domain/Contracts/Commands/` (C# records with MessageId, OccurredUtc, IdempotencyKey)
+- [ ] T005 Define event contracts in `services/<domain>/src/Domain/Contracts/Events/` (past-tense names + required metadata)
+- [ ] T006 [P] Create domain DTOs and models in `services/<domain>/src/Domain/{DTOs,Models}/`
+- [ ] T007 [P] Create domain manager interfaces and implementations in `services/<domain>/src/Domain/Managers/`
+- [ ] T008 [P] Create domain services/repository interfaces in `services/<domain>/src/Domain/Services/`
+- [ ] T009 Configure Cosmos initialization in `services/<domain>/src/Infrastructure/CosmosDbInitializer.cs` (container + partition key)
+- [ ] T010 Configure NServiceBus in `services/<domain>/src/Infrastructure/NServiceBusConfigurationExtensions.cs`
+- [ ] T011 Configure appsettings templates in `services/<domain>/src/{Api,Endpoint.In}/appsettings.Development.json.template`
+- [ ] T012 Configure structured logging and correlation fields in `services/<domain>/src/{Api,Endpoint.In}/Program.cs`
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
@@ -83,17 +100,16 @@ Examples of foundational tasks (adjust based on your project):
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T010 [P] [US1] Contract test for [endpoint] in tests/contract/test_[name].py
-- [ ] T011 [P] [US1] Integration test for [user journey] in tests/integration/test_[name].py
+- [ ] T013 [P] [US1] Add unit tests for manager behavior in `services/<domain>/test/Unit.Tests/Managers/[ManagerName]Tests.cs`
+- [ ] T014 [P] [US1] Add integration tests for endpoint flow in `services/<domain>/test/Integration.Tests/tests/[feature].spec.ts`
 
 ### Implementation for User Story 1
 
-- [ ] T012 [P] [US1] Create [Entity1] model in src/models/[entity1].py
-- [ ] T013 [P] [US1] Create [Entity2] model in src/models/[entity2].py
-- [ ] T014 [US1] Implement [Service] in src/services/[service].py (depends on T012, T013)
-- [ ] T015 [US1] Implement [endpoint/feature] in src/[location]/[file].py
-- [ ] T016 [US1] Add validation and error handling
-- [ ] T017 [US1] Add logging for user story 1 operations
+- [ ] T015 [P] [US1] Implement domain manager orchestration in `services/<domain>/src/Domain/Managers/[ManagerName].cs`
+- [ ] T016 [US1] Implement message handler in `services/<domain>/src/Endpoint.In/Handlers/[MessageName]Handler.cs` (thin handler, delegates to manager)
+- [ ] T017 [US1] Implement API endpoint/controller in `services/<domain>/src/Api/Controllers/[Feature]Controller.cs`
+- [ ] T018 [US1] Add request/response models in `services/<domain>/src/Api/Models/`
+- [ ] T019 [US1] Wire DI registrations in `services/<domain>/src/{Api,Endpoint.In}/Program.cs`
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently
 
@@ -107,15 +123,15 @@ Examples of foundational tasks (adjust based on your project):
 
 ### Tests for User Story 2 (OPTIONAL - only if tests requested) ⚠️
 
-- [ ] T018 [P] [US2] Contract test for [endpoint] in tests/contract/test_[name].py
-- [ ] T019 [P] [US2] Integration test for [user journey] in tests/integration/test_[name].py
+- [ ] T020 [P] [US2] Add unit tests in `services/<domain>/test/Unit.Tests/`
+- [ ] T021 [P] [US2] Add integration tests in `services/<domain>/test/Integration.Tests/tests/`
 
 ### Implementation for User Story 2
 
-- [ ] T020 [P] [US2] Create [Entity] model in src/models/[entity].py
-- [ ] T021 [US2] Implement [Service] in src/services/[service].py
-- [ ] T022 [US2] Implement [endpoint/feature] in src/[location]/[file].py
-- [ ] T023 [US2] Integrate with User Story 1 components (if needed)
+- [ ] T022 [P] [US2] Extend domain models/contracts in `services/<domain>/src/Domain/`
+- [ ] T023 [US2] Implement handler changes in `services/<domain>/src/Endpoint.In/Handlers/`
+- [ ] T024 [US2] Implement API changes in `services/<domain>/src/Api/Controllers/`
+- [ ] T025 [US2] Integrate with User Story 1 components (if needed)
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
@@ -129,14 +145,14 @@ Examples of foundational tasks (adjust based on your project):
 
 ### Tests for User Story 3 (OPTIONAL - only if tests requested) ⚠️
 
-- [ ] T024 [P] [US3] Contract test for [endpoint] in tests/contract/test_[name].py
-- [ ] T025 [P] [US3] Integration test for [user journey] in tests/integration/test_[name].py
+- [ ] T026 [P] [US3] Add unit tests in `services/<domain>/test/Unit.Tests/`
+- [ ] T027 [P] [US3] Add integration tests in `services/<domain>/test/Integration.Tests/tests/`
 
 ### Implementation for User Story 3
 
-- [ ] T026 [P] [US3] Create [Entity] model in src/models/[entity].py
-- [ ] T027 [US3] Implement [Service] in src/services/[service].py
-- [ ] T028 [US3] Implement [endpoint/feature] in src/[location]/[file].py
+- [ ] T028 [P] [US3] Extend domain contracts/models in `services/<domain>/src/Domain/`
+- [ ] T029 [US3] Implement handler updates in `services/<domain>/src/Endpoint.In/Handlers/`
+- [ ] T030 [US3] Implement API updates in `services/<domain>/src/Api/Controllers/`
 
 **Checkpoint**: All user stories should now be independently functional
 
@@ -153,7 +169,7 @@ Examples of foundational tasks (adjust based on your project):
 - [ ] TXXX [P] Documentation updates in docs/
 - [ ] TXXX Code cleanup and refactoring
 - [ ] TXXX Performance optimization across all stories
-- [ ] TXXX [P] Additional unit tests (if requested) in tests/unit/
+- [ ] TXXX [P] Additional unit tests (if requested) in `services/<domain>/test/Unit.Tests/`
 - [ ] TXXX Security hardening
 - [ ] TXXX Run quickstart.md validation
 
@@ -199,12 +215,12 @@ Examples of foundational tasks (adjust based on your project):
 
 ```bash
 # Launch all tests for User Story 1 together (if tests requested):
-Task: "Contract test for [endpoint] in tests/contract/test_[name].py"
-Task: "Integration test for [user journey] in tests/integration/test_[name].py"
+Task: "Unit tests for [manager] in services/<domain>/test/Unit.Tests/Managers/[ManagerName]Tests.cs"
+Task: "Integration tests for [journey] in services/<domain>/test/Integration.Tests/tests/[feature].spec.ts"
 
 # Launch all models for User Story 1 together:
-Task: "Create [Entity1] model in src/models/[entity1].py"
-Task: "Create [Entity2] model in src/models/[entity2].py"
+Task: "Create command contract in services/<domain>/src/Domain/Contracts/Commands/[CommandName].cs"
+Task: "Create event contract in services/<domain>/src/Domain/Contracts/Events/[EventName].cs"
 ```
 
 ---

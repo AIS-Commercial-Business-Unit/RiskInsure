@@ -56,6 +56,16 @@ The Policy domain manages the **complete lifecycle of insurance policies** from 
 
 ---
 
+## Documentation Philosophy
+
+**This document and all files in `docs/` represent CURRENT STATE** - the living truth of how the Policy domain works today.
+
+**Feature specifications** (in `/specs/###-feature-name/`) capture **CHANGE SLICES** - specific additions or modifications being made. Once a feature ships, this domain documentation is updated to reflect the new current state.
+
+**See**: [../../docs/SPEC-KIT-QUICKSTART.md](../../../docs/SPEC-KIT-QUICKSTART.md) for how specs and domain docs work together.
+
+---
+
 ## Documentation Structure
 
 * **Business**: Policy lifecycle rules, endorsement types, cancellation policies, and renewal processes

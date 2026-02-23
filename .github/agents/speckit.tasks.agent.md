@@ -21,12 +21,16 @@ You **MUST** consider the user input before proceeding (if not empty).
 
 ## Outline
 
-1. **Setup**: Run `.specify/scripts/powershell/check-prerequisites.ps1 -Json` from repo root and parse FEATURE_DIR and AVAILABLE_DOCS list. All paths must be absolute. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
+1. **Setup**: Run `.specify/scripts/powershell/check-prerequisites.ps1 -Json` from repo root and parse FEATURE_DIR and AVAILABLE_DOCS list. If a spec path is already known from editor/handoff context, you MUST pass `-SpecPath <path>` to avoid branch/path ambiguity. All paths must be absolute. For single quotes in args like "I'm Groot", use escape syntax: e.g 'I'\''m Groot' (or double-quote if possible: "I'm Groot").
 
 2. **Load design documents**: Read from FEATURE_DIR:
    - **Required**: plan.md (tech stack, libraries, structure), spec.md (user stories with priorities)
    - **Optional**: data-model.md (entities), contracts/ (API endpoints), research.md (decisions), quickstart.md (test scenarios)
    - Note: Not all projects have all documents. Generate tasks based on what's available.
+   - Also load `copilot-instructions/project-structure.md` and mirror concrete service conventions used in existing domains (e.g., `services/billing/`):
+     - `src/{Api,Domain,Infrastructure,Endpoint.In}`
+     - `test/{Unit.Tests,Integration.Tests}`
+     - Domain subfolders (`Contracts/{Commands,Events}`, `DTOs`, `Managers`, `Models`, `Services`)
 
 3. **Execute task generation workflow**:
    - Load plan.md and extract tech stack, libraries, project structure
@@ -94,13 +98,19 @@ Every task MUST strictly follow this format:
 **Examples**:
 
 - ✅ CORRECT: `- [ ] T001 Create project structure per implementation plan`
-- ✅ CORRECT: `- [ ] T005 [P] Implement authentication middleware in src/middleware/auth.py`
-- ✅ CORRECT: `- [ ] T012 [P] [US1] Create User model in src/models/user.py`
-- ✅ CORRECT: `- [ ] T014 [US1] Implement UserService in src/services/user_service.py`
+- ✅ CORRECT: `- [ ] T005 [P] Configure NServiceBus in services/<domain>/src/Infrastructure/NServiceBusConfigurationExtensions.cs`
+- ✅ CORRECT: `- [ ] T012 [P] [US1] Create command contract in services/<domain>/src/Domain/Contracts/Commands/[CommandName].cs`
+- ✅ CORRECT: `- [ ] T014 [US1] Implement handler in services/<domain>/src/Endpoint.In/Handlers/[MessageName]Handler.cs`
 - ❌ WRONG: `- [ ] Create User model` (missing ID and Story label)
 - ❌ WRONG: `T001 [US1] Create model` (missing checkbox)
 - ❌ WRONG: `- [ ] [US1] Create User model` (missing Task ID)
 - ❌ WRONG: `- [ ] T001 [US1] Create model` (missing file path)
+
+**Path and Naming Guardrails (REQUIRED)**:
+
+- Example paths containing `services/<domain>/...` are illustrative only. Generated tasks MUST use concrete, fully resolved paths for the selected bounded context.
+- Do NOT reuse cross-context namespace/path terms (for example, `BillingDb` in Sales) unless the bounded context is that domain.
+- Reject and rewrite any task path that does not align with the current service root and ubiquitous language.
 
 ### Task Organization
 

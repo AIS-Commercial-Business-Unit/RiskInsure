@@ -25,6 +25,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Domain\Domain.csproj" />
+    <ProjectReference Include="..\..\src\Endpoint.In\Endpoint.In.csproj" />
   </ItemGroup>
 
 </Project>

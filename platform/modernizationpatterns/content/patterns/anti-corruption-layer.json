@@ -1,0 +1,95 @@
+{
+  "id": "anti-corruption-layer",
+  "slug": "anti-corruption-layer",
+  "title": "Anti-corruption layer",
+  "category": "strategic",
+  "subcategory": "modernization-guardrails",
+  "summary": "Build a 'rule breaker service' between your legacy system (spaghetti, big ball of mud) and your new clean system to translate data and events safely during modernization — designed to be temporary and deleted when migration is complete.",
+  "decisionGuidance": {
+    "problemSolved": "Legacy systems are often a mess — spaghetti code, big ball of mud architectures, awkward schemas, and behaviors that shouldn't be copied forward. You need something in between your new system and your old system to translate from the chaos to clean, well-designed domains. Without this layer, legacy complexity leaks into new services and locks in technical debt permanently. Additionally, businesses and leadership may not understand why modernization takes years — you need to get buy-in that methodical daily improvements are better than stagnation or rushing and recreating the same problems.",
+    "whenToUse": [
+      "When legacy systems have messy schemas, spaghetti code, or big ball of mud architecture",
+      "You're modernizing methodically over time — daily incremental improvements rather than big bang replacement",
+      "When you need to keep legacy and new systems running together during transition",
+      "When moving data from point A to point B requires breaking architectural rules temporarily"
+    ],
+    "whenNotToUse": [
+      "You can replace the legacy system in a short time with low risk",
+      "Legacy system is already clean and well-designed (rare)"
+    ]
+  },
+  "enablingTechnologies": [
+    "Messaging systems (Azure Service Bus, RabbitMQ) for decoupled integration",
+    "Direct database connectivity to poll legacy databases for changes",
+    "Change Data Capture (CDC) tools to detect changes in legacy data",
+    "Event publishing infrastructure to broadcast clean domain events",
+    "Azure Data Factory"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "ACL/rule breaker becomes a permanent dumping ground instead of temporary translation layer",
+      "Letting the garbage from the rule breaker service leak into your new services — be disciplined about keeping new services clean",
+      "Building bidirectional data updates — only do one-directional data flow to avoid synchronization nightmares",
+      "Not being clear about the destination architecture — vague goals lead to messy rule breaker services",
+      "Failing to explain to business that modernization takes years — get buy-in or face pressure to rush and recreate problems"
+    ],
+    "opinionatedGuidance": "The rule breaker service is allowed to do whatever it needs to do to make the translation happen — poll databases, break architectural rules, move data around — but it must be temporary by design. Everything you put into the rule breaker is there temporarily until modernization is complete, then you delete the whole thing safely knowing business capabilities migrated to the new system. Keep it thin and driven by a specific purpose: make the two systems disconnected but yet jointed so you can transition safely over a period of time. Be disciplined — don't let legacy garbage leak into new services. Only do one-directional data updates (legacy to new OR new to legacy, not both). You'll have to do grunt work in the rule breaker, and that's okay, but be clear about the destination. Explain to leadership: methodical daily improvements are better than stagnation or rushing. Get buy-in that doing things the right way is important, or they'll end up where they are today or worse."
+  },
+  "complexity": {
+    "level": "high",
+    "rationale": "Introduces an extra layer with intentional rule-breaking and technical debt that must be managed carefully. Requires discipline to keep clean/dirty boundaries clear, one-directional data flow enforcement, and continuous communication with business stakeholders about multi-year modernization timelines. The technical implementation is challenging, but organizational buy-in and maintaining architectural discipline while allowing controlled chaos in the translation layer is even harder.",
+    "teamImpact": "Multi-team and cross-organizational — affects legacy system teams, modern service teams, data engineers, platform teams, and requires ongoing business and leadership alignment on modernization strategy and timelines.",
+    "skillDemand": "Architecture and integration mapping skills, legacy system expertise to understand the mess being translated, modern domain-driven design to keep new services clean, data synchronization patterns, change data capture techniques, and communication skills to explain multi-year modernization to business stakeholders.",
+    "operationalDemand": "High — must be observable and testable, requires monitoring of data flows between systems, alerting on synchronization failures, careful deployment coordination between legacy and modern systems, and ongoing validation that business capabilities work correctly across both systems during transition.",
+    "toolingDemand": "Contract tests, mapping test harnesses, data polling and change detection infrastructure, one-way synchronization tooling, messaging platforms, database connectivity tools, observability for data flows, and deployment automation that can safely roll out changes across legacy and modern systems."
+  },
+  "starterDiagram": {
+    "title": "Rule breaker service between legacy mess and clean modern system",
+    "description": "Anti-corruption layer polls legacy systems, translates data and events, publishes clean domain events, moves data one-directionally — temporary by design.",
+    "nodes": [
+      "Legacy System (Big Ball of Mud, Spaghetti Code, Messy Schema)",
+      "Rule Breaker Service (Anti-Corruption Layer) → Allowed to break rules temporarily",
+      "Poll Legacy Databases → Detect changes and extract data",
+      "Translate Data → Transform legacy formats to clean domain models",
+      "Publish Clean Domain Events → Broadcast to modern services",
+      "One-Directional Data Flow → Legacy to new OR new to legacy (not both)",
+      "Modern Services (Clean Domain Models, Well-Designed Boundaries)",
+      "Keep Building New System → While legacy still runs",
+      "Eventually Delete Rule Breaker → When modernization complete",
+      "Delete Old System → Business capabilities now in new system"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Ticketing company modernizing from a monolithic database architecture to individual microservices. Legacy system was a big ball of mud with no clean way to extract data or publish events from tightly coupled database schema.",
+    "approach": "Built a rule breaker service that did queries directly into the existing monolithic database, detected changes in legacy data, translated the data from messy legacy schemas into clean domain models, and moved it into the new microservices. The data flow was strictly one-directional (legacy database → rule breaker → new services) to avoid bidirectional synchronization nightmares. The rule breaker was allowed to break architectural rules — directly querying someone else's database, polling for changes, doing data transformations that wouldn't belong in a clean service — because it was understood to be temporary. Team explained to business leadership that modernization would take years of methodical daily improvements, got buy-in that doing it right was better than recreating the same mess or stagnating. Kept the rule breaker thin and purpose-driven: translate and move data, nothing more.",
+    "outcome": "Successfully built out the new microservices system while keeping the legacy system running. When the new system had all the business capabilities, they deleted the old monolithic database and the rule breaker service entirely. Clean separation achieved through disciplined translation layer that was always designed to be temporary. Business understood the multi-year timeline and supported methodical improvements rather than rushing."
+  },
+  "relatedPatterns": [
+    "domain-event-contracts",
+    "branch-by-abstraction",
+    "strangler-fig-migration",
+    "bounded-context-first",
+    "bus-over-broker-strategy",
+    "modernization-waves"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": "https://www.amazon.com/Architecture-Modernization-Socio-technical-alignment-structure/dp/1633438155",
+      "citationRequired": false
+    }
+  ],
+  "tags": [
+    "acl",
+    "anti-corruption-layer",
+    "rule-breaker",
+    "modernization",
+    "decoupling",
+    "legacy-migration",
+    "data-translation",
+    "temporary-by-design",
+    "one-directional"
+  ],
+  "lastUpdated": "2026-02-18"
+}

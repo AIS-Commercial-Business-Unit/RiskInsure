@@ -3,7 +3,7 @@
 This layer provisions **shared infrastructure** that all microservices depend on:
 
 - ✅ **Azure Cosmos DB**: NoSQL database for all services
-- ✅ **Azure Service Bus**: Message broker for event-driven architecture
+- ✅ **Azure Service Bus** or **RabbitMQ**: Message broker for event-driven architecture
 
 ## 📋 Prerequisites
 
@@ -45,8 +45,9 @@ terraform apply tfplan
 | Cosmos DB Containers (10x) | One per service + sagas | Included |
 | Service Bus Namespace | Message broker | $10-20/month (Standard) |
 | Service Bus Topics | Event publishing | Included |
+| RabbitMQ Broker | Message broker | Varies by hosting option |
 
-**Total: ~$35-70/month for dev environment**
+**Total:  ~$35-70/month for dev environment**
 
 ## 🔑 Connection Strings
 
@@ -63,6 +64,11 @@ az keyvault secret show \
   --vault-name riskinsure-dev-kv \
   --name ServiceBusConnectionString \
   --query value -o tsv
+
+az keyvault secret show \
+  --vault-name riskinsure-dev-kv \
+  --name RabbitMQConnectionString \
+  --query value -o tsv
 ```
 
 ## 📤 Outputs
@@ -73,6 +79,7 @@ This layer exports values consumed by the Container Apps layer:
 - `cosmosdb_account_name` → Used for RBAC assignments
 - `servicebus_namespace_fqdn` → Used for Managed Identity authentication
 - `servicebus_namespace_id` → Used for RBAC assignments
+- `rabbitmq_connection_secret` → Broker connection for services
 
 ## 🔧 Configuration
 
@@ -86,6 +93,7 @@ Settings:
 - Cosmos DB: Free tier enabled (if available)
 - Cosmos DB: 400 RU/s per container
 - Service Bus: Standard SKU
+- RabbitMQ: Single broker instance for dev
 - No geo-replication
 - No private endpoints
 
@@ -100,6 +108,7 @@ Settings:
 - Cosmos DB: Automatic failover enabled
 - Cosmos DB: Geo-replication (East US 2 + West US 2)
 - Service Bus: Premium SKU
+- RabbitMQ: Highly available broker cluster
 - Private endpoints enabled
 
 ## 🔄 Updating Resources
@@ -145,5 +154,5 @@ Or use the GitHub Actions workflow: `3-destroy-infrastructure.yaml`
 After deploying this layer:
 
 1. ✅ Verify Cosmos DB is accessible: `https://<account-name>.documents.azure.com/`
-2. ✅ Verify Service Bus namespace exists
+2. ✅ Verify Service Bus namespace exists or RabbitMQ broker is reachable
 3. ✅ Deploy Container Apps: Run `2-build-and-deploy.yaml`

@@ -1,0 +1,74 @@
+{
+  "id": "durable-file-processing",
+  "slug": "durable-file-processing",
+  "title": "Durable file processing pipeline",
+  "category": "technical",
+  "subcategory": "file-processing",
+  "summary": "A repeatable pattern for ingest, validate, transform, process, and reconcile large files with full auditability.",
+  "decisionGuidance": {
+    "problemSolved": "File-based integrations are common in insurance and are often the last and riskiest to modernize.",
+    "whenToUse": [
+      "SFTP/flat files exist",
+      "Large batches must be reliable",
+      "Reprocessing is required"
+    ],
+    "whenNotToUse": [
+      "Only small real-time APIs exist"
+    ]
+  },
+  "enablingTechnologies": [
+    "Blob storage",
+    "Event triggers",
+    "Chunking",
+    "Poison file handling"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Retry storms on poison records",
+      "Lack of idempotency creates duplicates"
+    ],
+    "opinionatedGuidance": "Treat file processing like streaming: chunk, checkpoint, and make replays safe."
+  },
+  "complexity": {
+    "level": "high",
+    "rationale": "High operational and correctness demands.",
+    "teamImpact": "multi-team",
+    "skillDemand": "Data pipeline + resilience engineering skill.",
+    "operationalDemand": "High—requires audit, replay, and backpressure handling.",
+    "toolingDemand": "Storage, queues, monitoring, and reconciliation tooling."
+  },
+  "starterDiagram": {
+    "title": "File to events",
+    "description": "File ingested then processed in chunks.",
+    "nodes": [
+      "File",
+      "Ingest",
+      "Chunk",
+      "Process",
+      "Post results"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Weekend payment reconciliation",
+    "approach": "Processed large ACH/remittance files with chunking, audit, and replay.",
+    "outcome": "Reduced batch failures and improved recovery speed."
+  },
+  "relatedPatterns": [
+    "parallel-run-reconciliation",
+    "outbox-idempotency"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": "https://www.amazon.com/Architecture-Modernization-Socio-technical-alignment-structure/dp/1633438155",
+      "citationRequired": false
+    }
+  ],
+  "tags": [
+    "files",
+    "batch",
+    "durability"
+  ],
+  "lastUpdated": "2026-02-17"
+}
