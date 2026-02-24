@@ -177,7 +177,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: ${{ matrix.integration_tests_path }}/package-lock.json
+          cache-dependency-path: ${{ matrix.integration_tests_path }}/package.json
 
       - name: Install Playwright Dependencies
         run: npm install --no-audit --no-fund
