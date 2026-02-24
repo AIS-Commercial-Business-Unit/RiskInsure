@@ -1,0 +1,293 @@
+name: 'Terraform - Main Pipeline'
+
+on:
+  # push:
+  #   branches:
+  #     - main
+  #     - Dev
+  #   paths:
+  #     - 'platform/infra/**'
+  #     - 'services/**'
+  #     - 'platform/templates/**'
+  #     - '.github/workflows/**'
+  # pull_request:
+  #   branches:
+  #     - main
+  #     - Dev
+  #   paths:
+  #     - 'platform/infra/**'
+  workflow_dispatch:
+    inputs:
+      workflow_mode:
+        description: 'What to run'
+        type: choice
+        required: true
+        default: 'full-deployment'
+        options:
+          - infrastructure-only
+          - deploy-services-only
+          - full-deployment
+      environment:
+        description: 'Environment to deploy'
+        type: choice
+        required: true
+        default: 'dev'
+        options:
+          - dev
+          - staging
+          - prod
+      terraform_layer:
+        description: 'Infrastructure layer (for infrastructure-only mode)'
+        type: choice
+        required: true
+        default: 'all'
+        options:
+          - all
+          - foundation
+          - shared-services
+          - services-environment
+      services_to_deploy:
+        description: 'Services to deploy (comma-separated or "all")'
+        type: string
+        required: true
+        default: 'all'
+      terraform_action:
+        description: 'Terraform action'
+        type: choice
+        required: true
+        default: 'plan'
+        options:
+          - plan
+          - apply
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: riskinsure-${{ github.workflow }}-${{ github.event.inputs.environment || 'dev' }}
+  cancel-in-progress: false
+
+jobs:
+  # ==========================================================================
+  # Determine what to run
+  # ==========================================================================
+  determine-workflow:
+    name: 'Determine Workflow'
+    runs-on: ubuntu-latest
+    outputs:
+      run_infrastructure: ${{ steps.decide.outputs.run_infrastructure }}
+      run_services: ${{ steps.decide.outputs.run_services }}
+      environment: ${{ steps.decide.outputs.environment }}
+      terraform_action: ${{ steps.decide.outputs.terraform_action }}
+      terraform_layer: ${{ steps.decide.outputs.terraform_layer }}
+      services_to_deploy: ${{ steps.decide.outputs.services_to_deploy }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Decide what to run
+        id: decide
+        shell: bash
+        run: |
+          # Defaults (safe)
+          RUN_INFRA="false"
+          RUN_SERVICES="false"
+          ENV="dev"
+          ACTION="plan"
+          LAYER="all"
+          SERVICES="all"
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            ENV="${{ github.event.inputs.environment }}"
+            ACTION="${{ github.event.inputs.terraform_action }}"
+            LAYER="${{ github.event.inputs.terraform_layer }}"
+            SERVICES="${{ github.event.inputs.services_to_deploy }}"
+
+            case "${{ github.event.inputs.workflow_mode }}" in
+              infrastructure-only)
+                RUN_INFRA="true"
+                RUN_SERVICES="false"
+                ;;
+              deploy-services-only)
+                RUN_INFRA="false"
+                RUN_SERVICES="true"
+                ;;
+              full-deployment)
+                RUN_INFRA="true"
+                RUN_SERVICES="true"
+                ;;
+              *)
+                echo "Unknown workflow_mode. Failing."
+                exit 1
+                ;;
+            esac
+
+          elif [ "${{ github.event_name }}" = "push" ]; then
+            ACTION="plan"
+            # Conservative defaults for push: run only if relevant changes detected
+            RUN_INFRA="false"
+            RUN_SERVICES="false"
+
+            git diff --name-only HEAD^ HEAD > changed_files.txt || true
+
+            if grep -q "^platform/infra/" changed_files.txt; then
+              RUN_INFRA="true"
+            fi
+
+            if grep -qE "^services/|^platform/templates/" changed_files.txt; then
+              RUN_SERVICES="true"
+            fi
+
+          elif [ "${{ github.event_name }}" = "pull_request" ]; then
+            ACTION="plan"
+            RUN_INFRA="false"
+            RUN_SERVICES="false"
+
+            # NOTE: If you enable PR trigger, consider fetch-depth: 0 or fetch base ref.
+            git diff --name-only origin/main...HEAD > changed_files.txt || true
+
+            if grep -q "^platform/infra/" changed_files.txt; then
+              RUN_INFRA="true"
+            fi
+            if grep -qE "^services/|^platform/templates/" changed_files.txt; then
+              RUN_SERVICES="true"
+            fi
+          fi
+
+          echo "run_infrastructure=$RUN_INFRA" >> "$GITHUB_OUTPUT"
+          echo "run_services=$RUN_SERVICES" >> "$GITHUB_OUTPUT"
+          echo "environment=$ENV" >> "$GITHUB_OUTPUT"
+          echo "terraform_action=$ACTION" >> "$GITHUB_OUTPUT"
+          echo "terraform_layer=$LAYER" >> "$GITHUB_OUTPUT"
+          echo "services_to_deploy=$SERVICES" >> "$GITHUB_OUTPUT"
+
+          echo "📋 Workflow Decision:"
+          echo "  - Run Infrastructure: $RUN_INFRA"
+          echo "  - Run Services: $RUN_SERVICES"
+          echo "  - Environment: $ENV"
+          echo "  - Action: $ACTION"
+          echo "  - Layer: $LAYER"
+          echo "  - Services: $SERVICES"
+
+  # ==========================================================================
+  # Call Infrastructure Workflow
+  # ==========================================================================
+  call-infrastructure:
+    name: 'Run Infrastructure'
+    needs: determine-workflow
+    if: needs.determine-workflow.outputs.run_infrastructure == 'true'
+    uses: ./.github/workflows/infrastructure.yml
+    with:
+      environment: ${{ needs.determine-workflow.outputs.environment }}
+      terraform_layer: ${{ needs.determine-workflow.outputs.terraform_layer }}
+      terraform_action: ${{ needs.determine-workflow.outputs.terraform_action }}
+    secrets: inherit
+
+  # ==========================================================================
+  # Get Existing Infrastructure (for deploy-services-only mode)
+  # ==========================================================================
+  get-infrastructure-info:
+    name: 'Get Infrastructure Info'
+    needs: [determine-workflow, call-infrastructure]
+    if: |
+      always() &&
+      needs.determine-workflow.outputs.run_services == 'true' &&
+      needs.call-infrastructure.result == 'skipped'
+    runs-on: ubuntu-latest
+    
+    permissions:
+      id-token: write
+      contents: read
+    
+    outputs:
+      resource_group_name: ${{ steps.fetch.outputs.resource_group_name }}
+      acr_login_server: ${{ steps.fetch.outputs.acr_login_server }}
+      acr_name: ${{ steps.fetch.outputs.acr_name }}
+      apps_shared_identity_id: ${{ steps.fetch.outputs.apps_shared_identity_id }}
+    
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
+      - name: Fetch Infrastructure Details
+        id: fetch
+        shell: bash
+        run: |
+          ENV="${{ needs.determine-workflow.outputs.environment }}"
+          
+          # Hardcoded RG name (matches Terraform)
+          RG="CAIS-010-RiskInsure"
+          echo "resource_group_name=$RG" >> "$GITHUB_OUTPUT"
+          
+          # Fetch ACR details
+          ACR_NAME=$(az acr list -g "$RG" --query "[0].name" -o tsv 2>/dev/null || echo "riskinsure${ENV}acr")
+          ACR_LOGIN_SERVER=$(az acr show -n "$ACR_NAME" -g "$RG" --query "loginServer" -o tsv 2>/dev/null || echo "${ACR_NAME}.azurecr.io")
+          
+          echo "acr_name=$ACR_NAME" >> "$GITHUB_OUTPUT"
+          echo "acr_login_server=$ACR_LOGIN_SERVER" >> "$GITHUB_OUTPUT"
+          
+          # Fetch UAMI details
+          UAMI_NAME="riskinsure-${ENV}-apps-identity"
+          UAMI_ID=$(az identity show -n "$UAMI_NAME" -g "$RG" --query "id" -o tsv 2>/dev/null || echo "N/A")
+          
+          echo "apps_shared_identity_id=$UAMI_ID" >> "$GITHUB_OUTPUT"
+          
+          echo "📋 Fetched Infrastructure Details:"
+          echo "  RG: $RG"
+          echo "  ACR: $ACR_NAME ($ACR_LOGIN_SERVER)"
+          echo "  UAMI: $UAMI_ID"
+
+  # ==========================================================================
+  # Call Build & Deploy Workflow
+  # ==========================================================================
+  call-build-deploy:
+    name: 'Run Build & Deploy'
+    needs: [determine-workflow, call-infrastructure, get-infrastructure-info]
+    if: |
+      always() &&
+      needs.determine-workflow.outputs.run_services == 'true' &&
+      (needs.call-infrastructure.result == 'success' || needs.call-infrastructure.result == 'skipped')
+    uses: ./.github/workflows/build-and-deploy.yml
+    with:
+      environment: ${{ needs.determine-workflow.outputs.environment }}
+      services_to_deploy: ${{ needs.determine-workflow.outputs.services_to_deploy }}
+      acr_login_server: ${{ needs.call-infrastructure.result == 'success' && needs.call-infrastructure.outputs.acr_login_server || needs.get-infrastructure-info.outputs.acr_login_server }}
+      acr_name: ${{ needs.call-infrastructure.result == 'success' && needs.call-infrastructure.outputs.acr_name || needs.get-infrastructure-info.outputs.acr_name }}
+      resource_group_name: ${{ needs.call-infrastructure.result == 'success' && needs.call-infrastructure.outputs.resource_group_name || needs.get-infrastructure-info.outputs.resource_group_name }}
+      apps_shared_identity_id: ${{ needs.call-infrastructure.result == 'success' && needs.call-infrastructure.outputs.apps_shared_identity_id || needs.get-infrastructure-info.outputs.apps_shared_identity_id }}
+      terraform_action: ${{ needs.determine-workflow.outputs.terraform_action }}
+    secrets: inherit
+
+  # ==========================================================================
+  # Summary
+  # ==========================================================================
+  summary:
+    name: '📊 Pipeline Summary'
+    needs: [determine-workflow, call-infrastructure, call-build-deploy]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate Summary
+        shell: bash
+        run: |
+          echo "# 🚀 RiskInsure Deployment Pipeline" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Environment:** \`${{ needs.determine-workflow.outputs.environment }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Triggered by:** @${{ github.actor }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Event:** \`${{ github.event_name }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Terraform action:** \`${{ needs.determine-workflow.outputs.terraform_action }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "## 📋 Workflow Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Workflow | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|----------|--------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Infrastructure | ${{ needs.call-infrastructure.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Build & Deploy | ${{ needs.call-build-deploy.result }} |" >> "$GITHUB_STEP_SUMMARY"
