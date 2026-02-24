@@ -1,4 +1,4 @@
-﻿name: 'Build & Deploy Services (Reusable)'
+name: 'Build & Deploy Services (Reusable)'
 
 on:
   workflow_call:
@@ -129,7 +129,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Azure Login
         uses: azure/login@v2
@@ -223,7 +223,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3

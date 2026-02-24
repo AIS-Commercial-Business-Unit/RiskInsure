@@ -1,4 +1,4 @@
-﻿name: 'Infrastructure Provisioning (Reusable)'
+name: 'Infrastructure Provisioning (Reusable)'
 
 on:
   workflow_call:
@@ -68,7 +68,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
@@ -152,7 +152,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Resolve Resource Group (from foundation outputs or fallback)
         id: rg
