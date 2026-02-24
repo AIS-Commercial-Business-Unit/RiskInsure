@@ -15,6 +15,7 @@ COPY ["platform/RiskInsure.PublicContracts/RiskInsure.PublicContracts.csproj", "
 
 # Copy service projects
 COPY ["services/policy/src/Domain/Domain.csproj", "services/policy/src/Domain/"]
+COPY ["services/policy/src/Infrastructure/Infrastructure.csproj", "services/policy/src/Infrastructure/"]
 COPY ["services/policy/src/Api/Api.csproj", "services/policy/src/Api/"]
 
 # Restore dependencies
