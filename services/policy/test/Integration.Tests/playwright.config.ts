@@ -1,3 +1,7 @@
+import * as dotenv from 'dotenv';
+
+dotenv.config();
+
 import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
@@ -6,9 +10,15 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: 1,
-  reporter: 'html',
+  reporter: [
+    ['html'],
+    ['list'],
+    ['junit', { outputFile: 'test-results/junit.xml' }]
+  ],
   use: {
-    baseURL: 'http://localhost:7077',
+    baseURL: (process.env.API_BASE_URL || 'http://localhost:7077')
+      .replace(/\/+$/, '')
+      .replace(/\/api$/i, ''),
     trace: 'on-first-retry',
   },
   projects: [
