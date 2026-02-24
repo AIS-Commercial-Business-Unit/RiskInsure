@@ -1,0 +1,63 @@
+services:
+  # ============================================================================
+  # Infrastructure - RabbitMQ and Cosmos DB Emulator
+  # ============================================================================
+
+  rabbitmq:
+    container_name: rabbitmq
+    image: rabbitmq:3-management #try updating to 4.2.3-management later (or 'management'?)
+    networks:
+      - riskinsure
+    ports:
+      - "5672:5672"
+      - "15672:15672" # Management UI 
+    restart: unless-stopped
+    healthcheck:
+      test: rabbitmq-diagnostics check_port_connectivity
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      start_interval: 10s
+      retries: 3
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+
+  cosmos-emulator:
+    # Web UI available at https://localhost:8081/_explorer/index.html
+    container_name: cosmos-emulator
+    # Specify the hostname that will be added to the generated 
+    # self-signed SSL certificate as a Subject Alternate Name 
+    # Other docker containers can connect to the emulator using this 
+    # hostname, and it will match the SSL certificate
+    hostname: cosmos.domain
+    image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest
+    entrypoint: ["/usr/local/bin/entrypoint-cosmos.sh"]
+    ports:
+      - "8081:8081"
+      - "10251:10251"
+      - "10252:10252"
+      - "10253:10253"
+      - "10254:10254"
+    environment:
+      - AZURE_COSMOS_EMULATOR_PARTITION_COUNT=10
+      - AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE=true
+    volumes:
+      - cosmos-data:/data/db
+      - ./entrypoint-cosmos.sh:/usr/local/bin/entrypoint-cosmos.sh
+    networks:
+      - riskinsure
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 1 bash -c '</dev/tcp/localhost/8081' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+
+
+networks:
+  riskinsure:
+    driver: bridge
+
+volumes:
+  cosmos-data: {}
+  rabbitmq-data: {}
