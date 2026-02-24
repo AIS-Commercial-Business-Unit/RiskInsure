@@ -79,6 +79,10 @@ resource "azurerm_container_app" "ratingandunderwriting_api" {
         name        = "ConnectionStrings__ServiceBus"
         secret_name = "servicebus-connection-string"
       }
+      env {
+        name  = "IS_LOCAL_DEV"
+        value = "false"
+      }
     }
   }
 
@@ -172,6 +176,10 @@ resource "azurerm_container_app" "ratingandunderwriting_endpoint" {
       env {
         name        = "ConnectionStrings__ServiceBus"
         secret_name = "servicebus-connection-string"
+      }
+      env {
+        name  = "IS_LOCAL_DEV"
+        value = "false"
       }
     }
 

@@ -70,6 +70,10 @@ resource "azurerm_container_app" "billing_api" {
         name        = "ConnectionStrings__ServiceBus"
         secret_name = "servicebus-connection-string"
       }
+      env {
+        name  = "IS_LOCAL_DEV"
+        value = "false"
+      }
 
       env {
         name  = "CosmosDb__DatabaseName"
@@ -80,6 +84,7 @@ resource "azurerm_container_app" "billing_api" {
         name  = "CosmosDb__BillingContainerName"
         value = "Billing"
       }
+
     }
   }
 
@@ -171,6 +176,10 @@ resource "azurerm_container_app" "billing_endpoint" {
       env {
         name  = "CosmosDb__BillingContainerName"
         value = "Billing"
+      }
+      env {
+        name  = "IS_LOCAL_DEV"
+        value = "false"
       }
     }
 
