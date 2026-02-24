@@ -10,12 +10,33 @@ services:
     command: --setup-and-run
     ports:
       - "33333:33333"
+    volumes:
+      - ./License.xml:/usr/share/ParticularSoftware/license.xml:ro
+      - ./License.xml:/app/license.xml:ro
     environment:
-      - TRANSPORTTYPE=RabbitMQ.ClassicConventionalRouting
-      - CONNECTIONSTRING=${RABBITMQ_CONNECTION_STRING}
-      - PARTICULARSOFTWARE_LICENSE=${PARTICULARSOFTWARE_LICENSE}
-      - RAVENDB_CONNECTIONSTRING=http://servicecontrol-ravendb:8080
-      - REMOTEINSTANCES=[{"api_uri":"http://servicecontrol-audit:44444/api"}]
+      PARTICULARSOFTWARE_LICENSE: |
+        <?xml version="1.0" encoding="utf-8"?>
+        <license type="Non-Production Development" Applications="All" expiration="2026-05-03" id="74298c67-cd8a-44a3-b403-b73fff9b6eef">
+          <name>Steven.Suing@ais.com</name>
+          <Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
+            <SignedInfo>
+              <CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315" />
+              <SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1" />
+              <Reference URI="">
+                <Transforms>
+                  <Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature" />
+                </Transforms>
+                <DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1" />
+                <DigestValue>z0hb8DWB6E0epgdyoxYWPM95k7M=</DigestValue>
+              </Reference>
+            </SignedInfo>
+            <SignatureValue>0oFthfd5iJcR7oT5+Klgk8Z8tdPaK7a1yn3gySku2rJV0DJNxyVBg1DnM93vjLoiDSXbIiFqLkyJk8zhZMGpl2KH+8M9jyav833Jz4rEjCPnYNyXj7O8eqnauNcngxJtyL4qAtrmn96yqCCGCt2JcIs7ivDfg6HxHOLbf/JQrtQ=</SignatureValue>
+          </Signature>
+        </license>
+      TRANSPORTTYPE: RabbitMQ.ClassicConventionalRouting
+      CONNECTIONSTRING: ${RABBITMQ_CONNECTION_STRING}
+      RAVENDB_CONNECTIONSTRING: http://servicecontrol-ravendb:8080
+      REMOTEINSTANCES: '[{"api_uri":"http://servicecontrol-audit:44444/api"}]'
     networks:
       - riskinsure
     depends_on:
@@ -35,12 +56,36 @@ services:
       - riskinsure
     ports:
       - "44445:44444"
+    volumes:
+      - ./License.xml:/usr/share/ParticularSoftware/license.xml:ro
+      - ./License.xml:/app/license.xml:ro
     environment:
-      - TRANSPORTTYPE=RabbitMQ.ClassicConventionalRouting
-      - CONNECTIONSTRING=${RABBITMQ_CONNECTION_STRING}
-      - RAVENDB_CONNECTIONSTRING=http://servicecontrol-ravendb:8080
-      - SERVICECONTROLQUEUEADDRESS=Particular.ServiceControl
+      PARTICULARSOFTWARE_LICENSE: |
+        <?xml version="1.0" encoding="utf-8"?>
+        <license type="Non-Production Development" Applications="All" expiration="2026-05-03" id="74298c67-cd8a-44a3-b403-b73fff9b6eef">
+          <name>Steven.Suing@ais.com</name>
+          <Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
+            <SignedInfo>
+              <CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315" />
+              <SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1" />
+              <Reference URI="">
+                <Transforms>
+                  <Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature" />
+                </Transforms>
+                <DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1" />
+                <DigestValue>z0hb8DWB6E0epgdyoxYWPM95k7M=</DigestValue>
+              </Reference>
+            </SignedInfo>
+            <SignatureValue>0oFthfd5iJcR7oT5+Klgk8Z8tdPaK7a1yn3gySku2rJV0DJNxyVBg1DnM93vjLoiDSXbIiFqLkyJk8zhZMGpl2KH+8M9jyav833Jz4rEjCPnYNyXj7O8eqnauNcngxJtyL4qAtrmn96yqCCGCt2JcIs7ivDfg6HxHOLbf/JQrtQ=</SignatureValue>
+          </Signature>
+        </license>
+      TRANSPORTTYPE: RabbitMQ.ClassicConventionalRouting
+      CONNECTIONSTRING: ${RABBITMQ_CONNECTION_STRING}
+      RAVENDB_CONNECTIONSTRING: http://servicecontrol-ravendb:8080
+      SERVICECONTROLQUEUEADDRESS: Particular.ServiceControl
     depends_on:
+      servicecontrol:
+        condition: service_healthy
       servicecontrol-ravendb:
         condition: service_healthy
       # servicebus-emulator:
@@ -52,9 +97,31 @@ services:
     container_name: servicecontrol-monitoring
     image: particular/servicecontrol-monitoring:latest
     command: --setup-and-run
+    volumes:
+      - ./License.xml:/usr/share/ParticularSoftware/license.xml:ro
+      - ./License.xml:/app/license.xml:ro
     environment:
-      - TRANSPORTTYPE=RabbitMQ.ClassicConventionalRouting
-      - CONNECTIONSTRING=${RABBITMQ_CONNECTION_STRING}
+      PARTICULARSOFTWARE_LICENSE: |
+        <?xml version="1.0" encoding="utf-8"?>
+        <license type="Non-Production Development" Applications="All" expiration="2026-05-03" id="74298c67-cd8a-44a3-b403-b73fff9b6eef">
+          <name>Steven.Suing@ais.com</name>
+          <Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
+            <SignedInfo>
+              <CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315" />
+              <SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1" />
+              <Reference URI="">
+                <Transforms>
+                  <Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature" />
+                </Transforms>
+                <DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1" />
+                <DigestValue>z0hb8DWB6E0epgdyoxYWPM95k7M=</DigestValue>
+              </Reference>
+            </SignedInfo>
+            <SignatureValue>0oFthfd5iJcR7oT5+Klgk8Z8tdPaK7a1yn3gySku2rJV0DJNxyVBg1DnM93vjLoiDSXbIiFqLkyJk8zhZMGpl2KH+8M9jyav833Jz4rEjCPnYNyXj7O8eqnauNcngxJtyL4qAtrmn96yqCCGCt2JcIs7ivDfg6HxHOLbf/JQrtQ=</SignatureValue>
+          </Signature>
+        </license>
+      TRANSPORTTYPE: RabbitMQ.ClassicConventionalRouting
+      CONNECTIONSTRING: ${RABBITMQ_CONNECTION_STRING}
     restart: unless-stopped
     networks:
       - riskinsure
@@ -161,6 +228,8 @@ services:
         PROJECT_PATH: services/billing/src/Api/Api.csproj
     ports:
       - "7071:8080"
+    volumes:
+      - ./license.xml:/app/license.xml:ro
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
@@ -185,6 +254,8 @@ services:
       dockerfile: platform/templates/Dockerfile.endpoint.compose
       args:
         PROJECT_PATH: services/billing/src/Endpoint.In/Endpoint.In.csproj
+    volumes:
+      - ./license.xml:/app/license.xml:ro
     environment:
       - DOTNET_ENVIRONMENT=Development
       - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
@@ -213,6 +284,8 @@ services:
         PROJECT_PATH: services/customer/src/Api/Api.csproj
     ports:
       - "7073:8080"
+    volumes:
+      - ./license.xml:/app/license.xml:ro
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
@@ -237,6 +310,8 @@ services:
       dockerfile: platform/templates/Dockerfile.endpoint.compose
       args:
         PROJECT_PATH: services/customer/src/Endpoint.In/Endpoint.In.csproj
+    volumes:
+      - ./license.xml:/app/license.xml:ro
     environment:
       - DOTNET_ENVIRONMENT=Development
       - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
@@ -265,6 +340,8 @@ services:
         PROJECT_PATH: services/fundstransfermgt/src/Api/Api.csproj
     ports:
       - "7075:8080"
+    volumes:
+      - ./license.xml:/app/license.xml:ro
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
@@ -289,6 +366,8 @@ services:
       dockerfile: platform/templates/Dockerfile.endpoint.compose
       args:
         PROJECT_PATH: services/fundstransfermgt/src/Endpoint.In/Endpoint.In.csproj
+    volumes:
+      - ./license.xml:/app/license.xml:ro
     environment:
       - DOTNET_ENVIRONMENT=Development
       - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
@@ -317,6 +396,8 @@ services:
         PROJECT_PATH: services/policy/src/Api/Api.csproj
     ports:
       - "7077:8080"
+    volumes:
+      - ./license.xml:/app/license.xml:ro
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
@@ -341,6 +422,8 @@ services:
       dockerfile: platform/templates/Dockerfile.endpoint.compose
       args:
         PROJECT_PATH: services/policy/src/Endpoint.In/Endpoint.In.csproj
+    volumes:
+      - ./license.xml:/app/license.xml:ro
     environment:
       - DOTNET_ENVIRONMENT=Development
       - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
@@ -369,6 +452,8 @@ services:
         PROJECT_PATH: services/ratingandunderwriting/src/Api/Api.csproj
     ports:
       - "7079:8080"
+    volumes:
+      - ./license.xml:/app/license.xml:ro
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
@@ -393,6 +478,8 @@ services:
       dockerfile: platform/templates/Dockerfile.endpoint.compose
       args:
         PROJECT_PATH: services/ratingandunderwriting/src/Endpoint.In/Endpoint.In.csproj
+    volumes:
+      - ./license.xml:/app/license.xml:ro
     environment:
       - DOTNET_ENVIRONMENT=Development
       - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}

@@ -78,7 +78,8 @@ try
         (config, endpoint, routing) =>
         {
             endpoint.SendOnly();
-        });
+        },
+        isSendOnly: true);
 
     var app = builder.Build();
 
