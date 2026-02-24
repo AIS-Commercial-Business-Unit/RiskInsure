@@ -11,22 +11,22 @@ COPY ["Directory.Build.props", "."]
 COPY ["Directory.Packages.props", "."]
 
 # Copy PublicContracts (shared dependency)
-COPY ["platform/publiccontracts/RiskInsure.PublicContracts/RiskInsure.PublicContracts.csproj", "platform/publiccontracts/RiskInsure.PublicContracts/"]
+COPY ["platform/RiskInsure.PublicContracts/RiskInsure.PublicContracts.csproj", "platform/RiskInsure.PublicContracts/"]
 
 # Copy service projects
-COPY ["services/billing/src/Domain/Domain.csproj", "services/billing/src/Domain/"]
-COPY ["services/billing/src/Infrastructure/Infrastructure.csproj", "services/billing/src/Infrastructure/"]
-COPY ["services/billing/src/Endpoint.In/Endpoint.In.csproj", "services/billing/src/Endpoint.In/"]
+COPY ["services/policy/src/Domain/Domain.csproj", "services/policy/src/Domain/"]
+COPY ["services/policy/src/Infrastructure/Infrastructure.csproj", "services/policy/src/Infrastructure/"]
+COPY ["services/policy/src/Endpoint.In/Endpoint.In.csproj", "services/policy/src/Endpoint.In/"]
 
 # Restore dependencies
-RUN dotnet restore "services/billing/src/Endpoint.In/Endpoint.In.csproj"
+RUN dotnet restore "services/policy/src/Endpoint.In/Endpoint.In.csproj"
 
 # Copy remaining source code
-COPY ["platform/publiccontracts/", "platform/publiccontracts/"]
-COPY ["services/billing/", "services/billing/"]
+COPY ["platform/RiskInsure.PublicContracts/", "platform/RiskInsure.PublicContracts/"]
+COPY ["services/policy/", "services/policy/"]
 
 # Build and publish
-WORKDIR "/src/services/billing/src/Endpoint.In"
+WORKDIR "/src/services/policy/src/Endpoint.In"
 RUN dotnet publish --no-restore -c Release -o /app/publish
 
 # Runtime stage
@@ -45,5 +45,5 @@ RUN chown -R nservicebus:nservicebus /app
 # Switch to non-root user
 USER nservicebus
 
-# NServiceBus endpoints are long-running console apps (no HTTP ports)
-ENTRYPOINT ["dotnet", "RiskInsure.Billing.Endpoint.In.dll"]
+# NServiceBus endpoints are long-running console apps (no HTTP ports, no healthcheck needed)
+ENTRYPOINT ["dotnet", "Endpoint.In.dll"]
