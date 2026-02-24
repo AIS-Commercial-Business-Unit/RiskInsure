@@ -5,20 +5,20 @@ services:
 
   # FileRetrieval API (REST API for configuration management)
   fileretrieval-api:
+    container_name: fileretrieval-api
     build:
       context: ../..
       dockerfile: platform/templates/Dockerfile.api.compose
       args:
         PROJECT_PATH: platform/fileintegration/src/FileRetrieval.API/FileRetrieval.API.csproj
         ASSEMBLY_NAME: FileRetrieval.API.dll
-    container_name: file-retrieval-api
     ports:
       - "7090:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__CosmosDb=AccountEndpoint=https://cosmos-emulator:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==
-      - ConnectionStrings__RabbitMQ=host=rabbitmq;username=guest;password=guest
+      - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
       - Messaging__MessageBroker=RabbitMQ
       - CosmosDb__DatabaseName=file-retrieval      
     depends_on:
@@ -30,26 +30,27 @@ services:
       - riskinsure
 
   # FileRetrieval Worker (Message handler and scheduler)
-  # fileretrieval-worker:
-  #   build:
-  #     context: ../..
-  #     dockerfile: platform/templates/Dockerfile.endpoint.compose
-  #     args:
-  #       PROJECT_PATH: platform/fileintegration/src/FileRetrieval.Worker/FileRetrieval.Worker.csproj
-  #   container_name: file-retrieval-worker
-  #   environment:
-  #     - DOTNET_ENVIRONMENT=Development
-  #     - ConnectionStrings__CosmosDb=AccountEndpoint=https://cosmos-emulator:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==
-  #     - ConnectionStrings__RabbitMQ=host=rabbitmq;username=guest;password=guest
-  #     - Messaging__MessageBroker=RabbitMQ
-  #     - CosmosDb__DatabaseName=file-retrieval
-  #   depends_on:
-  #     cosmos-emulator:
-  #       condition: service_healthy
-  #     rabbitmq:
-  #       condition: service_healthy
-  #   networks:
-  #     - riskinsure
+  fileretrieval-worker:
+    container_name: fileretrieval-worker
+    build:
+      context: ../..
+      dockerfile: platform/templates/Dockerfile.endpoint.compose
+      args:
+        PROJECT_PATH: platform/fileintegration/src/FileRetrieval.Worker/FileRetrieval.Worker.csproj
+        ASSEMBLY_NAME: FileRetrieval.Worker.dll
+    environment:
+      - DOTNET_ENVIRONMENT=Development
+      - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
+      - Messaging__MessageBroker=RabbitMQ
+      - CosmosDb__DatabaseName=file-retrieval
+    depends_on:
+      cosmos-emulator:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - riskinsure
 
 networks:
   riskinsure:
