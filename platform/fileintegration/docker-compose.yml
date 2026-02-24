@@ -80,13 +80,71 @@ services:
       timeout: 5s
       retries: 3
 
-  # Azure Service Bus (using local emulator alternative - not officially available)
-  # Note: For local development, use Azure Service Bus in cloud or use RabbitMQ as alternative
-  # This is commented out as Azure Service Bus emulator is not available for Linux
-  # servicebus:
-  #   image: mcr.microsoft.com/azure-messaging/servicebus-emulator:latest
-  #   ports:
-  #     - "5672:5672"
+  # RabbitMQ (Message broker for NServiceBus transport)
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: file-retrieval-rabbitmq
+    ports:
+      - "5672:5672"   # AMQP protocol
+      - "15672:15672" # Management UI
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+      - RABBITMQ_DEFAULT_VHOST=/
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # FileRetrieval API (REST API for configuration management)
+  fileretrieval-api:
+    build:
+      context: ../..
+      dockerfile: platform/templates/Dockerfile.api.compose
+      args:
+        PROJECT_PATH: platform/fileintegration/src/FileRetrieval.API/FileRetrieval.API.csproj
+    container_name: file-retrieval-api
+    ports:
+      - "7080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__CosmosDb=AccountEndpoint=https://cosmos-emulator:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==
+      - ConnectionStrings__RabbitMQ=host=rabbitmq;username=guest;password=guest
+      - Messaging__MessageBroker=RabbitMQ
+      - CosmosDb__DatabaseName=file-retrieval
+    depends_on:
+      cosmos-emulator:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - default
+
+  # FileRetrieval Worker (Message handler and scheduler)
+  fileretrieval-worker:
+    build:
+      context: ../..
+      dockerfile: platform/templates/Dockerfile.endpoint.compose
+      args:
+        PROJECT_PATH: platform/fileintegration/src/FileRetrieval.Worker/FileRetrieval.Worker.csproj
+    container_name: file-retrieval-worker
+    environment:
+      - DOTNET_ENVIRONMENT=Development
+      - ConnectionStrings__CosmosDb=AccountEndpoint=https://cosmos-emulator:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==
+      - ConnectionStrings__RabbitMQ=host=rabbitmq;username=guest;password=guest
+      - Messaging__MessageBroker=RabbitMQ
+      - CosmosDb__DatabaseName=file-retrieval
+    depends_on:
+      cosmos-emulator:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - default
 
 volumes:
   cosmos-data:
@@ -94,6 +152,8 @@ volumes:
   azurite-data:
     driver: local
   ftp-data:
+    driver: local
+  rabbitmq-data:
     driver: local
 
 networks:

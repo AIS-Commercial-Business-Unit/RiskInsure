@@ -12,6 +12,7 @@
     <PackageReference Include="Microsoft.Azure.Cosmos" />
     <PackageReference Include="Newtonsoft.Json" />
     <PackageReference Include="NServiceBus" />
+    <PackageReference Include="NServiceBus.RabbitMQ" />
     <PackageReference Include="NServiceBus.Transport.AzureServiceBus" />
     <PackageReference Include="NCrontab" />
     <PackageReference Include="FluentFTP" />

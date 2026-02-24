@@ -122,48 +122,32 @@ builder.Services.AddSwaggerGen(options =>
     }
 });
 
-// Configure NServiceBus endpoint
-var connectionString = builder.Configuration.GetConnectionString("ServiceBus") 
-    ?? throw new InvalidOperationException("ServiceBus connection string is not configured");
+// Configure NServiceBus endpoint with dual transport support
+builder.Host.NServiceBusEnvironmentConfiguration(
+    "FileRetrieval.API",
+    (config, endpoint, routing) =>
+    {
+        // This is a send-only endpoint (API doesn't handle messages, just sends commands)
+        endpoint.SendOnly();
 
-var transport = new AzureServiceBusTransport(connectionString, TopicTopology.Default);
-var endpointConfiguration = new EndpointConfiguration("FileRetrieval.API");
-
-endpointConfiguration.UseTransport(transport);
-
-// Configure message routing - send commands to Worker
-var routing = endpointConfiguration.UseTransport(transport);
-routing.RouteToEndpoint(
-    typeof(FileRetrieval.Contracts.Commands.CreateConfiguration),
-    "FileRetrieval.Worker"
-);
-routing.RouteToEndpoint(
-    typeof(FileRetrieval.Contracts.Commands.UpdateConfiguration),
-    "FileRetrieval.Worker"
-);
-routing.RouteToEndpoint(
-    typeof(FileRetrieval.Contracts.Commands.DeleteConfiguration),
-    "FileRetrieval.Worker"
-);
-routing.RouteToEndpoint(
-    typeof(FileRetrieval.Contracts.Commands.ExecuteFileCheck),
-    "FileRetrieval.Worker"
-);
-
-// This is a send-only endpoint (API doesn't handle messages, just sends commands)
-endpointConfiguration.SendOnly();
-
-// Use JSON serialization
-endpointConfiguration.UseSerialization<SystemJsonSerializer>();
-
-// Configure conventions for commands and events
-var conventions = endpointConfiguration.Conventions();
-conventions.DefiningCommandsAs(type =>
-    type.Namespace?.StartsWith("FileRetrieval.Contracts.Commands") == true);
-conventions.DefiningEventsAs(type =>
-    type.Namespace?.StartsWith("FileRetrieval.Contracts.Events") == true);
-
-builder.UseNServiceBus(endpointConfiguration);
+        // Configure message routing - send commands to Worker
+        routing.RouteToEndpoint(
+            typeof(FileRetrieval.Contracts.Commands.CreateConfiguration),
+            "FileRetrieval.Worker"
+        );
+        routing.RouteToEndpoint(
+            typeof(FileRetrieval.Contracts.Commands.UpdateConfiguration),
+            "FileRetrieval.Worker"
+        );
+        routing.RouteToEndpoint(
+            typeof(FileRetrieval.Contracts.Commands.DeleteConfiguration),
+            "FileRetrieval.Worker"
+        );
+        routing.RouteToEndpoint(
+            typeof(FileRetrieval.Contracts.Commands.ExecuteFileCheck),
+            "FileRetrieval.Worker"
+        );
+    });
 
 // Configure JWT authentication
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");

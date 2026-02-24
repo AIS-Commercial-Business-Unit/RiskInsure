@@ -3,75 +3,50 @@ using RiskInsure.FileRetrieval.Infrastructure;
 using RiskInsure.FileRetrieval.Infrastructure.Scheduling;
 using NServiceBus;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 
-var builder = Host.CreateApplicationBuilder(args);
-
-// T143: Add Application Insights for distributed tracing
-builder.Services.AddApplicationInsightsTelemetryWorkerService(options =>
-{
-    options.ConnectionString = builder.Configuration["ApplicationInsights:ConnectionString"];
-    options.EnableAdaptiveSampling = true;
-});
-
-// Add infrastructure services (Cosmos DB, repositories, Key Vault)
-builder.Services.AddInfrastructure(builder.Configuration);
-
-// Add health checks
-builder.Services.AddHealthChecks()
-    .AddCheck("self", () => HealthCheckResult.Healthy("Worker is running"))
-    .AddCheck("cosmos-db", () =>
+var host = Host.CreateDefaultBuilder(args)
+    .ConfigureServices((context, services) =>
     {
-        // Simple check - will be replaced with actual Cosmos DB health check in infrastructure layer
-        return HealthCheckResult.Healthy("Cosmos DB configured");
-    }, tags: new[] { "db", "cosmos" });
+        // T143: Add Application Insights for distributed tracing
+        services.AddApplicationInsightsTelemetryWorkerService(options =>
+        {
+            options.ConnectionString = context.Configuration["ApplicationInsights:ConnectionString"];
+            options.EnableAdaptiveSampling = true;
+        });
 
-// Configure NServiceBus endpoint
-var connectionString = builder.Configuration.GetConnectionString("ServiceBus") 
-    ?? throw new InvalidOperationException("ServiceBus connection string is not configured");
+        // Add infrastructure services (Cosmos DB, repositories, Key Vault)
+        services.AddInfrastructure(context.Configuration);
 
-var transport = new AzureServiceBusTransport(connectionString, TopicTopology.Default);
-var endpointConfiguration = new EndpointConfiguration("FileRetrieval.Worker");
+        // Add health checks
+        services.AddHealthChecks()
+            .AddCheck("self", () => HealthCheckResult.Healthy("Worker is running"))
+            .AddCheck("cosmos-db", () =>
+            {
+                // Simple check - will be replaced with actual Cosmos DB health check in infrastructure layer
+                return HealthCheckResult.Healthy("Cosmos DB configured");
+            }, tags: new[] { "db", "cosmos" });
 
-endpointConfiguration.UseTransport(transport);
+        // Register SchedulerHostedService for scheduled file checks
+        services.AddHostedService<SchedulerHostedService>();
 
-// Configure message routing
-var routing = endpointConfiguration.UseTransport(transport);
-routing.RouteToEndpoint(
-    typeof(FileRetrieval.Contracts.Commands.ProcessDiscoveredFile),
-    "WorkflowOrchestrator"
-);
+        // Add Worker hosted service (for message handling)
+        services.AddHostedService<Worker>();
+    })
+    .NServiceBusEnvironmentConfiguration(
+        "FileRetrieval.Worker",
+        (config, endpoint, routing) =>
+        {
+            // Configure message routing
+            routing.RouteToEndpoint(
+                typeof(FileRetrieval.Contracts.Commands.ProcessDiscoveredFile),
+                "WorkflowOrchestrator"
+            );
+        })
+    .Build();
 
-// Enable installers for development
-endpointConfiguration.EnableInstallers();
+await host.RunAsync();
 
-// Configure error queue
-endpointConfiguration.SendFailedMessagesTo("error");
 
-// Configure audit queue
-endpointConfiguration.AuditProcessedMessagesTo("audit");
 
-// Use JSON serialization
-endpointConfiguration.UseSerialization<SystemJsonSerializer>();
-
-// Configure conventions for commands and events
-var conventions = endpointConfiguration.Conventions();
-conventions.DefiningCommandsAs(type =>
-    type.Namespace?.StartsWith("FileRetrieval.Contracts.Commands") == true);
-conventions.DefiningEventsAs(type =>
-    type.Namespace?.StartsWith("FileRetrieval.Contracts.Events") == true);
-
-// Configure recoverability
-var recoverability = endpointConfiguration.Recoverability();
-recoverability.Immediate(settings => settings.NumberOfRetries(3));
-recoverability.Delayed(settings => settings.NumberOfRetries(2));
-
-builder.UseNServiceBus(endpointConfiguration);
-
-// Register SchedulerHostedService for scheduled file checks
-builder.Services.AddHostedService<SchedulerHostedService>();
-
-// Add Worker hosted service (for message handling)
-builder.Services.AddHostedService<Worker>();
-
-var host = builder.Build();
-host.Run();
