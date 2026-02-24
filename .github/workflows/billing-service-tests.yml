@@ -159,9 +159,9 @@ jobs:
           - service: customer
             integration_tests_path: services/customer/test/Integration.Tests
             api_var: API_CUSTOMER_BASE_URL
-          - service: fundstransfermgt
-            integration_tests_path: services/fundstransfermgt/test/Integration.Tests
-            api_var: API_FUNDSTRANSFERMGT_BASE_URL
+          - service: fundstransfermgmt
+            integration_tests_path: services/fundstransfermgmt/test/Integration.Tests
+            api_var: API_FUNDSTRANSFERMGMT_BASE_URL
           - service: policy
             integration_tests_path: services/policy/test/Integration.Tests
             api_var: API_POLICY_BASE_URL
@@ -172,17 +172,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4 
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: ${{ matrix.integration_tests_path }}/package.json
+          cache-dependency-path: ${{ matrix.integration_tests_path }}/package-lock.json
 
       - name: Install Playwright Dependencies
         run: npm install --no-audit --no-fund
