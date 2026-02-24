@@ -14,18 +14,18 @@ COPY ["Directory.Packages.props", "."]
 COPY ["platform/RiskInsure.PublicContracts/RiskInsure.PublicContracts.csproj", "platform/RiskInsure.PublicContracts/"]
 
 # Copy service projects
-COPY ["services/billing/src/Domain/Domain.csproj", "services/billing/src/Domain/"]
-COPY ["services/billing/src/Api/Api.csproj", "services/billing/src/Api/"]
+COPY ["services/ratingandunderwriting/src/Domain/Domain.csproj", "services/ratingandunderwriting/src/Domain/"]
+COPY ["services/ratingandunderwriting/src/Api/Api.csproj", "services/ratingandunderwriting/src/Api/"]
 
 # Restore dependencies
-RUN dotnet restore "services/billing/src/Api/Api.csproj"
+RUN dotnet restore "services/ratingandunderwriting/src/Api/Api.csproj"
 
 # Copy remaining source code
 COPY ["platform/RiskInsure.PublicContracts/", "platform/RiskInsure.PublicContracts/"]
-COPY ["services/billing/", "services/billing/"]
+COPY ["services/ratingandunderwriting/", "services/ratingandunderwriting/"]
 
 # Build and publish
-WORKDIR "/src/services/billing/src/Api"
+WORKDIR "/src/services/ratingandunderwriting/src/Api"
 RUN dotnet publish --no-restore -c Release -o /app/publish
 
 # Runtime stage
@@ -52,7 +52,7 @@ EXPOSE 8080
 
 # Health check endpoint
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD curl -f http://localhost:8080/api/billing/health || exit 1
+  CMD curl -f http://localhost:8080/api/ratingandunderwriting/health || exit 1
 
 # Set ASP.NET Core to listen on port 8080 (non-root)
 ENV ASPNETCORE_URLS=http://+:8080

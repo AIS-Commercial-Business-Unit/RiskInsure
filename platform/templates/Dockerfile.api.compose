@@ -41,5 +41,5 @@ COPY --chmod=+x "entrypoint.sh" "/entrypoint.sh"
 
 # Runtime ENTRYPOINT: use emulator entrypoint for local development,
 # otherwise run the app directly for cloud deployments.
-# Set IS_LOCAL_DEV=true in docker-compose for local emulator runs.
-ENTRYPOINT ["/bin/sh", "-c", "if [ \"$IS_LOCAL_DEV\" = \"true\" ]; then /entrypoint.sh \"${COSMOS_HOST:-cosmos.domain}\" \"${COSMOS_PORT:-8081}\" \"Api.dll\"; else exec dotnet Api.dll; fi"]
+
+ENTRYPOINT ["/entrypoint.sh", "cosmos.domain", "8081", "Api.dll"]
