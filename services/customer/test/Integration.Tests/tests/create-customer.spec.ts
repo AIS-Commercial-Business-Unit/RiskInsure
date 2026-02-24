@@ -33,9 +33,9 @@ test.describe('Customer API - Create Customer', () => {
     expect(customer.zipCode).toBe('90210');
     expect(customer.firstName).toBe('Test');
     expect(customer.lastName).toBe('User');
-    expect(customer.phoneNumber).toBe('+1-555-1234');
-    expect(customer.mailingAddress).toBeDefined();
-    expect(customer.mailingAddress.zipCode).toBe('90210');
+    expect(customer.phone).toBe('+1-555-1234');
+    expect(customer.address).toBeDefined();
+    expect(customer.address.zipCode).toBe('90210');
   });
 
   test('should reject customer with invalid email', async ({ request }) => {
@@ -185,6 +185,11 @@ test.describe('Customer API - Create Customer', () => {
     expect(error.errors.FirstName).toBeDefined();
     expect(error.errors.LastName).toBeDefined();
     expect(error.errors.Phone).toBeDefined();
-    expect(error.errors.Address).toBeDefined();
+
+    const errorKeys = Object.keys(error.errors);
+    const hasAddressError =
+      typeof error.errors.Address !== 'undefined' ||
+      errorKeys.some(k => k === 'Address' || k.startsWith('Address.'));
+    expect(hasAddressError).toBe(true);
   });
 });

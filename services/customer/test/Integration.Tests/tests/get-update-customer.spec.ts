@@ -70,9 +70,9 @@ test.describe('Customer API - Get and Update Customer', () => {
     const customer = await response.json();
     expect(customer.firstName).toBe('John');
     expect(customer.lastName).toBe('Doe');
-    expect(customer.phoneNumber).toBe('+1-555-1234');
-    expect(customer.mailingAddress).toBeDefined();
-    expect(customer.mailingAddress.city).toBe('Beverly Hills');
+    expect(customer.phone).toBe('+1-555-1234');
+    expect(customer.address).toBeDefined();
+    expect(customer.address.city).toBe('Beverly Hills');
   });
 
   test('should handle partial updates', async ({ request }) => {

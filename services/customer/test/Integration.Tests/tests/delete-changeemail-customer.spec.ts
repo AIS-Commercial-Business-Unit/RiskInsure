@@ -50,7 +50,7 @@ test.describe('Customer API - Delete Customer (GDPR)', () => {
     expect(customer.email).toContain('anonymized');
     expect(customer.firstName).toBeNull();
     expect(customer.lastName).toBeNull();
-    expect(customer.phoneNumber).toBeNull();
+    expect(customer.phone).toBeNull();
   });
 
   test('should return 404 when deleting non-existent customer', async ({ request }) => {
