@@ -90,6 +90,9 @@ services:
       - ConnectionStrings__ServiceBus=${SERVICEBUS_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__BillingContainerName=Billing
+      - IS_LOCAL_DEV=true
+      - COSMOS_HOST=cosmos.domain
+      - COSMOS_PORT=8081
     networks:
       - riskinsure
     depends_on:
@@ -110,6 +113,9 @@ services:
       - ConnectionStrings__ServiceBus=${SERVICEBUS_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__BillingContainerName=Billing
+      - IS_LOCAL_DEV=true
+      - COSMOS_HOST=cosmos.domain
+      - COSMOS_PORT=8081
     depends_on:
       cosmos-emulator:
         condition: service_healthy
@@ -136,6 +142,9 @@ services:
       - ConnectionStrings__ServiceBus=${SERVICEBUS_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=customer
+      - IS_LOCAL_DEV=true
+      - COSMOS_HOST=cosmos.domain
+      - COSMOS_PORT=8081
     networks:
       - riskinsure
     depends_on:
@@ -156,6 +165,9 @@ services:
       - ConnectionStrings__ServiceBus=${SERVICEBUS_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=customer
+      - IS_LOCAL_DEV=true
+      - COSMOS_HOST=cosmos.domain
+      - COSMOS_PORT=8081
     depends_on:
       cosmos-emulator:
         condition: service_healthy
@@ -182,6 +194,9 @@ services:
       - ConnectionStrings__ServiceBus=${SERVICEBUS_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=fundstransfermgt
+      - IS_LOCAL_DEV=true
+      - COSMOS_HOST=cosmos.domain
+      - COSMOS_PORT=8081
     networks:
       - riskinsure
     depends_on:
@@ -202,6 +217,9 @@ services:
       - ConnectionStrings__ServiceBus=${SERVICEBUS_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=fundstransfermgt
+      - IS_LOCAL_DEV=true
+      - COSMOS_HOST=cosmos.domain
+      - COSMOS_PORT=8081
     depends_on:
       cosmos-emulator:
         condition: service_healthy
@@ -228,6 +246,9 @@ services:
       - ConnectionStrings__ServiceBus=${SERVICEBUS_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=policy
+      - IS_LOCAL_DEV=true
+      - COSMOS_HOST=cosmos.domain
+      - COSMOS_PORT=8081
     networks:
       - riskinsure
     depends_on:
@@ -248,6 +269,9 @@ services:
       - ConnectionStrings__ServiceBus=${SERVICEBUS_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=policy
+      - IS_LOCAL_DEV=true
+      - COSMOS_HOST=cosmos.domain
+      - COSMOS_PORT=8081
     depends_on:
       cosmos-emulator:
         condition: service_healthy
@@ -274,6 +298,9 @@ services:
       - ConnectionStrings__ServiceBus=${SERVICEBUS_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=ratingunderwriting
+      - IS_LOCAL_DEV=true
+      - COSMOS_HOST=cosmos.domain
+      - COSMOS_PORT=8081
     networks:
       - riskinsure
     depends_on:
@@ -294,6 +321,9 @@ services:
       - ConnectionStrings__ServiceBus=${SERVICEBUS_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=ratingunderwriting
+      - IS_LOCAL_DEV=true
+      - COSMOS_HOST=cosmos.domain
+      - COSMOS_PORT=8081
     depends_on:
       cosmos-emulator:
         condition: service_healthy

@@ -33,5 +33,8 @@ RUN apt-get update && apt-get install -y wget curl --no-install-recommends && rm
 # Copy published application
 COPY --from=build /app/publish .
 COPY --chmod=+x "entrypoint.sh" "/entrypoint.sh"
-# Run the endpoint directly (no emulator entrypoint for cloud deployments)
-ENTRYPOINT ["dotnet", "Endpoint.In.dll"]
+
+# Runtime ENTRYPOINT: use emulator entrypoint for local development,
+# otherwise run the endpoint directly for cloud deployments.
+# Set IS_LOCAL_DEV=true in docker-compose for local emulator runs.
+ENTRYPOINT ["/bin/sh", "-c", "if [ \"$IS_LOCAL_DEV\" = \"true\" ]; then /entrypoint.sh \"${COSMOS_HOST:-cosmos.domain}\" \"${COSMOS_PORT:-8081}\" \"Endpoint.In.dll\"; else exec dotnet Endpoint.In.dll; fi"]
