@@ -56,7 +56,12 @@ try
     });
 
     // Configure NServiceBus
-    builder.NServiceBusEnvironmentConfiguration("RiskInsure.Policy.Endpoint");
+    builder.NServiceBusEnvironmentConfiguration("RiskInsure.Policy.Endpoint",
+        (config, endpoint, routing) =>
+        {
+          // Route commands to Billing Endpoint
+          //  routing.RouteToEndpoint(typeof(RecordPayment), "RiskInsure.Billing.Endpoint");
+        });
 
     var host = builder.Build();
     await host.RunAsync();

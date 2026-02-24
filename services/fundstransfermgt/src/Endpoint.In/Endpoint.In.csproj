@@ -18,6 +18,7 @@
     <PackageReference Include="NServiceBus.RabbitMQ" />
     <PackageReference Include="NServiceBus.Persistence.CosmosDB" />
     <PackageReference Include="NServiceBus.SagaAudit" />
+    <PackageReference Include="NServiceBus.Metrics.ServiceControl" />
 
     <!-- Logging -->
     <PackageReference Include="Serilog.AspNetCore" />

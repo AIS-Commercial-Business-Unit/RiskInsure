@@ -18,7 +18,12 @@ Log.Logger = new LoggerConfiguration()
 builder.Host.UseSerilog();
 
 // NServiceBus configuration (send-only endpoint)
-builder.Host.NServiceBusEnvironmentConfiguration("RiskInsure.Customer.Api");
+builder.Host.NServiceBusEnvironmentConfiguration("RiskInsure.Customer.Api",
+    (config, endpoint, routing) =>
+    {
+        endpoint.SendOnly();
+    },
+    isSendOnly: true);
 
 // Add services to the container
 builder.Services.AddControllers();

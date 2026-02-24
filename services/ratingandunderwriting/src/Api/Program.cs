@@ -19,7 +19,12 @@ Log.Logger = new LoggerConfiguration()
 builder.Host.UseSerilog();
 
 // NServiceBus (send-only endpoint for API)
-builder.Host.NServiceBusEnvironmentConfiguration("RiskInsure.RatingAndUnderwriting.Api");
+builder.Host.NServiceBusEnvironmentConfiguration("RiskInsure.RatingAndUnderwriting.Api",
+    (config, endpoint, routing) =>
+    {
+        endpoint.SendOnly();
+    },
+    isSendOnly: true);
 
 // Cosmos DB
 var cosmosConnectionString = builder.Configuration.GetConnectionString("CosmosDb");

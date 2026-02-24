@@ -15,7 +15,12 @@ try
 
     var host = Host.CreateDefaultBuilder(args)
         .UseSerilog()
-        .NServiceBusEnvironmentConfiguration("RiskInsure.RatingAndUnderwriting.Endpoint")
+        .NServiceBusEnvironmentConfiguration("RiskInsure.RatingAndUnderwriting.Endpoint",
+        (config, endpoint, routing) =>
+        {
+          // Route commands to Billing Endpoint
+          //  routing.RouteToEndpoint(typeof(RecordPayment), "RiskInsure.Billing.Endpoint");
+        })
         .ConfigureServices((context, services) =>
         {
             // Register Cosmos DB container

@@ -136,7 +136,8 @@ try
 
             // Route commands to Billing Endpoint
             routing.RouteToEndpoint(typeof(RecordPayment), "RiskInsure.Billing.Endpoint");
-        });
+        },
+        isSendOnly: true);
 
     var app = builder.Build();
 
