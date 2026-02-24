@@ -11,6 +11,7 @@
     <PackageReference Include="NServiceBus.Extensions.Hosting" />
     <PackageReference Include="NServiceBus.RabbitMQ" />
     <PackageReference Include="NServiceBus.Persistence.CosmosDB" />
+    <PackageReference Include="NServiceBus.Metrics.ServiceControl" />
     <PackageReference Include="NServiceBus.SagaAudit" />
     <PackageReference Include="Serilog.Extensions.Hosting" />
     <PackageReference Include="Serilog.Sinks.Console" />

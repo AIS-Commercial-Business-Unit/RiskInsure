@@ -17,7 +17,12 @@ try
 {
     var host = Host.CreateDefaultBuilder(args)
         .UseSerilog()
-        .NServiceBusEnvironmentConfiguration("RiskInsure.FundTransferMgt.Endpoint")
+        .NServiceBusEnvironmentConfiguration("RiskInsure.FundTransferMgt.Endpoint",
+        (config, endpoint, routing) =>
+        {
+          // Route commands to Billing Endpoint
+          //  routing.RouteToEndpoint(typeof(RecordPayment), "RiskInsure.Billing.Endpoint");
+        })
         .ConfigureServices((context, services) =>
         {
             var cosmosConnectionString = context.Configuration.GetConnectionString("CosmosDb");

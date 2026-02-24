@@ -39,5 +39,4 @@ EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
 COPY --chmod=+x "entrypoint.sh" "/entrypoint.sh"
 
-# Run the application directly (no emulator entrypoint for cloud deployments)
-ENTRYPOINT ["dotnet", "Api.dll"]
+ENTRYPOINT ["/entrypoint.sh", "cosmos.domain", "8081", "Api.dll"]

@@ -12,7 +12,8 @@ public static class NServiceBusConfigurationExtensions
     public static IHostBuilder NServiceBusEnvironmentConfiguration(
         this IHostBuilder hostBuilder,
         string endpointName,
-        Action<IConfiguration, EndpointConfiguration, RoutingSettings>? configurationAction = null)
+        Action<IConfiguration, EndpointConfiguration, RoutingSettings>? configurationAction = null,
+        bool isSendOnly = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(endpointName);
 
@@ -27,6 +28,13 @@ public static class NServiceBusConfigurationExtensions
                 .ApplyNServiceBusLicense(context.Configuration)
                 .PersistWithCosmosDb(context.Configuration)
                 .ApplySharedEndpointConfiguration();
+
+            // Heartbeats, metrics, and custom checks only apply to full endpoints
+            // Send-only endpoints (APIs) cannot receive messages so these features are not supported
+            if (!isSendOnly)
+            {
+                endpointConfiguration.ConfigureServicePlatformConnection();
+            }
 
             RoutingSettings routing;
             var messageBroker = context.Configuration["Messaging:MessageBroker"];
@@ -124,12 +132,6 @@ public static class NServiceBusConfigurationExtensions
         endpointConfiguration.AuditProcessedMessagesTo("audit");
         endpointConfiguration.AuditSagaStateChanges("audit");
 
-        // ServiceControl metrics - disabled for send-only endpoints
-        // Note: Send-only endpoints (API) cannot send metrics
-        // Only enable for full endpoints (Endpoint.In) if ServiceControl is running
-        // var metrics = endpointConfiguration.EnableMetrics();
-        // metrics.SendMetricDataToServiceControl("particular.monitoring", TimeSpan.FromSeconds(10));
-
         // Message conventions (namespace-based)
         var conventions = endpointConfiguration.Conventions();
         conventions.DefiningEventsAs(type =>
@@ -140,6 +142,31 @@ public static class NServiceBusConfigurationExtensions
             type.Namespace != null && type.Namespace.EndsWith("Messages"));
 
         return endpointConfiguration;
+    }
+
+    /// <summary>
+    /// Configures the ServicePlatform connection for full (non-send-only) endpoints.
+    /// Enables heartbeats, metrics, and custom checks so the endpoint is visible
+    /// in ServicePulse for monitoring and health tracking.
+    /// </summary>
+    private static void ConfigureServicePlatformConnection(
+        this EndpointConfiguration endpointConfiguration)
+    {
+        // Heartbeats - sends periodic heartbeat messages to ServiceControl
+        // so ServicePulse can detect when an endpoint is offline
+        endpointConfiguration.SendHeartbeatTo(
+            serviceControlQueue: "Particular.ServiceControl",
+            frequency: TimeSpan.FromSeconds(10),
+            timeToLive: TimeSpan.FromSeconds(40));
+
+        // Metrics - sends performance data (processing time, throughput, etc.)
+        // to the monitoring instance for the ServicePulse Monitoring tab
+        var metrics = endpointConfiguration.EnableMetrics();
+        metrics.SendMetricDataToServiceControl(
+            serviceControlMetricsAddress: "Particular.Monitoring",
+            interval: TimeSpan.FromSeconds(10));
+
+        Console.WriteLine("[NServiceBus]: ServicePlatform connection configured (heartbeats, metrics)");
     }
 
     private static EndpointConfiguration PersistWithCosmosDb(this 
