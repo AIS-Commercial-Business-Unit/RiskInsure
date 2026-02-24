@@ -1,7 +1,11 @@
 
 import * as dotenv from 'dotenv';
 
-dotenv.config();
+// Only load .env file for local development (not in CI)
+// In CI, environment variables are provided by GitHub Actions
+if (!process.env.CI) {
+  dotenv.config();
+}
 
 import { defineConfig, devices } from '@playwright/test';
 

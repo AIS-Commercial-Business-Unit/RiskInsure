@@ -202,11 +202,11 @@ jobs:
       - name: Set API Base URLs (E2E)
         if: matrix.service == 'e2e'
         run: |
-          echo "API_BILLING_BASE_URL=${{ env.API_BILLING_BASE_URL }}" >> "$GITHUB_ENV"
-          echo "API_CUSTOMER_BASE_URL=${{ env.API_CUSTOMER_BASE_URL }}" >> "$GITHUB_ENV"
-          echo "API_FUNDSTRANSFERMGT_BASE_URL=${{ env.API_FUNDSTRANSFERMGT_BASE_URL }}" >> "$GITHUB_ENV"
-          echo "API_POLICY_BASE_URL=${{ env.API_POLICY_BASE_URL }}" >> "$GITHUB_ENV"
-          echo "API_RATINGANDUNDERWRITING_BASE_URL=${{ env.API_RATINGANDUNDERWRITING_BASE_URL }}" >> "$GITHUB_ENV"
+          echo "CUSTOMER_API_URL=${{ env.API_CUSTOMER_BASE_URL }}" >> "$GITHUB_ENV"
+          echo "RATINGANDUNDERWRITING_API_URL=${{ env.API_RATINGANDUNDERWRITING_BASE_URL }}" >> "$GITHUB_ENV"
+          echo "POLICY_API_URL=${{ env.API_POLICY_BASE_URL }}" >> "$GITHUB_ENV"
+          echo "BILLING_API_URL=${{ env.API_BILLING_BASE_URL }}" >> "$GITHUB_ENV"
+          echo "FUNDS_TRANSFER_API_URL=${{ env.API_FUNDSTRANSFERMGT_BASE_URL }}" >> "$GITHUB_ENV"
         working-directory: ${{ matrix.integration_tests_path }}
 
       - name: Debug API Base URL
@@ -214,11 +214,11 @@ jobs:
           echo "service=${{ matrix.service }}"
           if [[ "${{ matrix.service }}" == "e2e" ]]; then
             echo "E2E Test - All API URLs:"
-            echo "API_BILLING_BASE_URL=${{ env.API_BILLING_BASE_URL }}"
-            echo "API_CUSTOMER_BASE_URL=${{ env.API_CUSTOMER_BASE_URL }}"
-            echo "API_FUNDSTRANSFERMGT_BASE_URL=${{ env.API_FUNDSTRANSFERMGT_BASE_URL }}"
-            echo "API_POLICY_BASE_URL=${{ env.API_POLICY_BASE_URL }}"
-            echo "API_RATINGANDUNDERWRITING_BASE_URL=${{ env.API_RATINGANDUNDERWRITING_BASE_URL }}"
+            echo "CUSTOMER_API_URL=$CUSTOMER_API_URL"
+            echo "RATINGANDUNDERWRITING_API_URL=$RATINGANDUNDERWRITING_API_URL"
+            echo "POLICY_API_URL=$POLICY_API_URL"
+            echo "BILLING_API_URL=$BILLING_API_URL"
+            echo "FUNDS_TRANSFER_API_URL=$FUNDS_TRANSFER_API_URL"
           else
             echo "api_var=${{ matrix.api_var }}"
             echo "API_BASE_URL=${API_BASE_URL}"
