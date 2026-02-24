@@ -12,8 +12,11 @@ test.describe('Quote to Policy Flow', () => {
     validateConfig(config);
     console.log('E2E Test Configuration:', {
       customer: config.apis.customer,
-      rating: config.apis.rating,
+      // rating: config.apis.rating,
+      ratingandunderwriting: config.apis.ratingandunderwriting,
       policy: config.apis.policy,
+      billing: config.apis.billing,
+      fundsTransfer: config.apis.fundsTransfer,
       eventualConsistencyTimeout: config.timeouts.eventualConsistency,
     });
   });
