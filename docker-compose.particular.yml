@@ -1,0 +1,180 @@
+include:
+  - ./docker-compose.infrastructure.yml # RabbitMQ and Cosmos DB Emulator
+
+services:
+  # ============================================================================
+  # Monitoring with ServiceControl
+  # Example: https://github.com/Particular/PlatformContainerExamples/blob/main/docker-compose/compose.yml
+  # ============================================================================
+
+  servicecontrol:
+    container_name: servicecontrol
+    image: particular/servicecontrol:latest
+    command: --setup-and-run
+    ports:
+      - "33333:33333"
+    volumes:
+      - ./License.xml:/usr/share/ParticularSoftware/license.xml:ro
+      - ./License.xml:/app/license.xml:ro
+    environment:
+      PARTICULARSOFTWARE_LICENSE: |
+        <?xml version="1.0" encoding="utf-8"?>
+        <license type="Non-Production Development" Applications="All" expiration="2026-05-03" id="74298c67-cd8a-44a3-b403-b73fff9b6eef">
+          <name>Steven.Suing@ais.com</name>
+          <Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
+            <SignedInfo>
+              <CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315" />
+              <SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1" />
+              <Reference URI="">
+                <Transforms>
+                  <Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature" />
+                </Transforms>
+                <DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1" />
+                <DigestValue>z0hb8DWB6E0epgdyoxYWPM95k7M=</DigestValue>
+              </Reference>
+            </SignedInfo>
+            <SignatureValue>0oFthfd5iJcR7oT5+Klgk8Z8tdPaK7a1yn3gySku2rJV0DJNxyVBg1DnM93vjLoiDSXbIiFqLkyJk8zhZMGpl2KH+8M9jyav833Jz4rEjCPnYNyXj7O8eqnauNcngxJtyL4qAtrmn96yqCCGCt2JcIs7ivDfg6HxHOLbf/JQrtQ=</SignatureValue>
+          </Signature>
+        </license>
+      TRANSPORTTYPE: RabbitMQ.ClassicConventionalRouting
+      CONNECTIONSTRING: ${RABBITMQ_CONNECTION_STRING}
+      RAVENDB_CONNECTIONSTRING: http://servicecontrol-ravendb:8080
+      REMOTEINSTANCES: '[{"api_uri":"http://servicecontrol-audit:44444/api"}]'
+    networks:
+      - riskinsure
+    depends_on:
+      # servicebus-emulator:
+      #   condition: service_started
+      rabbitmq:
+        condition: service_healthy
+      servicecontrol-ravendb:
+        condition: service_healthy
+
+  servicecontrol-audit:
+    container_name: servicecontrol-audit  
+    image: particular/servicecontrol-audit:latest
+    command: --setup-and-run
+    restart: unless-stopped
+    networks:
+      - riskinsure
+    ports:
+      - "44445:44444"
+    volumes:
+      - ./License.xml:/usr/share/ParticularSoftware/license.xml:ro
+      - ./License.xml:/app/license.xml:ro
+    environment:
+      PARTICULARSOFTWARE_LICENSE: |
+        <?xml version="1.0" encoding="utf-8"?>
+        <license type="Non-Production Development" Applications="All" expiration="2026-05-03" id="74298c67-cd8a-44a3-b403-b73fff9b6eef">
+          <name>Steven.Suing@ais.com</name>
+          <Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
+            <SignedInfo>
+              <CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315" />
+              <SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1" />
+              <Reference URI="">
+                <Transforms>
+                  <Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature" />
+                </Transforms>
+                <DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1" />
+                <DigestValue>z0hb8DWB6E0epgdyoxYWPM95k7M=</DigestValue>
+              </Reference>
+            </SignedInfo>
+            <SignatureValue>0oFthfd5iJcR7oT5+Klgk8Z8tdPaK7a1yn3gySku2rJV0DJNxyVBg1DnM93vjLoiDSXbIiFqLkyJk8zhZMGpl2KH+8M9jyav833Jz4rEjCPnYNyXj7O8eqnauNcngxJtyL4qAtrmn96yqCCGCt2JcIs7ivDfg6HxHOLbf/JQrtQ=</SignatureValue>
+          </Signature>
+        </license>
+      TRANSPORTTYPE: RabbitMQ.ClassicConventionalRouting
+      CONNECTIONSTRING: ${RABBITMQ_CONNECTION_STRING}
+      RAVENDB_CONNECTIONSTRING: http://servicecontrol-ravendb:8080
+      SERVICECONTROLQUEUEADDRESS: Particular.ServiceControl
+    depends_on:
+      servicecontrol:
+        condition: service_healthy
+      servicecontrol-ravendb:
+        condition: service_healthy
+      # servicebus-emulator:
+      #   condition: service_started
+      rabbitmq:
+        condition: service_healthy
+
+  servicecontrol-monitoring:
+    container_name: servicecontrol-monitoring
+    image: particular/servicecontrol-monitoring:latest
+    command: --setup-and-run
+    volumes:
+      - ./License.xml:/usr/share/ParticularSoftware/license.xml:ro
+      - ./License.xml:/app/license.xml:ro
+    environment:
+      PARTICULARSOFTWARE_LICENSE: |
+        <?xml version="1.0" encoding="utf-8"?>
+        <license type="Non-Production Development" Applications="All" expiration="2026-05-03" id="74298c67-cd8a-44a3-b403-b73fff9b6eef">
+          <name>Steven.Suing@ais.com</name>
+          <Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
+            <SignedInfo>
+              <CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315" />
+              <SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1" />
+              <Reference URI="">
+                <Transforms>
+                  <Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature" />
+                </Transforms>
+                <DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1" />
+                <DigestValue>z0hb8DWB6E0epgdyoxYWPM95k7M=</DigestValue>
+              </Reference>
+            </SignedInfo>
+            <SignatureValue>0oFthfd5iJcR7oT5+Klgk8Z8tdPaK7a1yn3gySku2rJV0DJNxyVBg1DnM93vjLoiDSXbIiFqLkyJk8zhZMGpl2KH+8M9jyav833Jz4rEjCPnYNyXj7O8eqnauNcngxJtyL4qAtrmn96yqCCGCt2JcIs7ivDfg6HxHOLbf/JQrtQ=</SignatureValue>
+          </Signature>
+        </license>
+      TRANSPORTTYPE: RabbitMQ.ClassicConventionalRouting
+      CONNECTIONSTRING: ${RABBITMQ_CONNECTION_STRING}
+    restart: unless-stopped
+    networks:
+      - riskinsure
+    ports:
+      - "33633:33633"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      # servicebus-emulator:
+      #   condition: service_started
+
+  servicepulse:
+    container_name: servicepulse
+    image: particular/servicepulse:latest
+    networks:
+      - riskinsure
+    ports:
+      - "9090:9090"
+    environment:
+      SERVICECONTROL_URL: http://servicecontrol:33333
+      MONITORING_URL: http://servicecontrol-monitoring:33633
+    restart: unless-stopped
+    depends_on:
+      servicecontrol:
+        condition: service_healthy
+      servicecontrol-monitoring:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      # servicebus-emulator:
+      #   condition: service_started
+
+
+  # WARNING: A single database container should not be shared between multiple ServiceControl instances in production scenarios.
+  servicecontrol-ravendb:
+    container_name: servicecontrol-ravendb
+    image: particular/servicecontrol-ravendb:latest
+    networks:
+      - riskinsure
+    ports:
+      - "8080:8080"
+    volumes:
+      - raven-config:/var/lib/ravendb/config
+      - raven-data:/var/lib/ravendb/data
+
+
+networks:
+  riskinsure:
+    driver: bridge
+
+volumes:
+  raven-config: {}
+  raven-data: {}

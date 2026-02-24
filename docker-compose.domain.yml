@@ -1,0 +1,268 @@
+include:
+  - ./docker-compose.infrastructure.yml # RabbitMQ and Cosmos DB Emulator
+
+services:
+  # ============================================================================
+  # Billing Domain
+  # ============================================================================
+  billing-api:
+    build:
+      context: .
+      dockerfile: platform/templates/Dockerfile.api.compose
+      args:
+        PROJECT_PATH: services/billing/src/Api/Api.csproj
+    ports:
+      - "7071:8080"
+    volumes:
+      - ./license.xml:/app/license.xml:ro
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
+      - CosmosDb__DatabaseName=RiskInsure
+      - CosmosDb__BillingContainerName=Billing
+      - Messaging__MessageBroker=RabbitMQ
+    networks:
+      - riskinsure
+    depends_on:
+      cosmos-emulator:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  billing-endpoint:
+    build:
+      context: .
+      dockerfile: platform/templates/Dockerfile.endpoint.compose
+      args:
+        PROJECT_PATH: services/billing/src/Endpoint.In/Endpoint.In.csproj
+    volumes:
+      - ./license.xml:/app/license.xml:ro
+    environment:
+      - DOTNET_ENVIRONMENT=Development
+      - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
+      - CosmosDb__DatabaseName=RiskInsure
+      - CosmosDb__BillingContainerName=Billing
+      - Messaging__MessageBroker=RabbitMQ
+    depends_on:
+      cosmos-emulator:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - riskinsure
+
+  # ============================================================================
+  # Customer Domain
+  # ============================================================================
+  customer-api:
+    build:
+      context: .
+      dockerfile: platform/templates/Dockerfile.api.compose
+      args:
+        PROJECT_PATH: services/customer/src/Api/Api.csproj
+    ports:
+      - "7073:8080"
+    volumes:
+      - ./license.xml:/app/license.xml:ro
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
+      - CosmosDb__DatabaseName=RiskInsure
+      - CosmosDb__ContainerName=customer
+      - Messaging__MessageBroker=RabbitMQ
+    networks:
+      - riskinsure
+    depends_on:
+      cosmos-emulator:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  customer-endpoint:
+    build:
+      context: .
+      dockerfile: platform/templates/Dockerfile.endpoint.compose
+      args:
+        PROJECT_PATH: services/customer/src/Endpoint.In/Endpoint.In.csproj
+    volumes:
+      - ./license.xml:/app/license.xml:ro
+    environment:
+      - DOTNET_ENVIRONMENT=Development
+      - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
+      - CosmosDb__DatabaseName=RiskInsure
+      - CosmosDb__ContainerName=customer
+      - Messaging__MessageBroker=RabbitMQ
+    depends_on:
+      cosmos-emulator:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - riskinsure
+
+  # ============================================================================
+  # Funds Transfer Management Domain
+  # ============================================================================
+  fundstransfermgt-api:
+    build:
+      context: .
+      dockerfile: platform/templates/Dockerfile.api.compose
+      args:
+        PROJECT_PATH: services/fundstransfermgt/src/Api/Api.csproj
+    ports:
+      - "7075:8080"
+    volumes:
+      - ./license.xml:/app/license.xml:ro
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
+      - CosmosDb__DatabaseName=RiskInsure
+      - CosmosDb__ContainerName=fundstransfermgt
+      - Messaging__MessageBroker=RabbitMQ
+    networks:
+      - riskinsure
+    depends_on:
+      cosmos-emulator:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  fundstransfermgt-endpoint:
+    build:
+      context: .
+      dockerfile: platform/templates/Dockerfile.endpoint.compose
+      args:
+        PROJECT_PATH: services/fundstransfermgt/src/Endpoint.In/Endpoint.In.csproj
+    volumes:
+      - ./license.xml:/app/license.xml:ro
+    environment:
+      - DOTNET_ENVIRONMENT=Development
+      - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
+      - CosmosDb__DatabaseName=RiskInsure
+      - CosmosDb__ContainerName=fundstransfermgt
+      - Messaging__MessageBroker=RabbitMQ
+    depends_on:
+      cosmos-emulator:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - riskinsure
+
+  # ============================================================================
+  # Policy Domain
+  # ============================================================================
+  policy-api:
+    build:
+      context: .
+      dockerfile: platform/templates/Dockerfile.api.compose
+      args:
+        PROJECT_PATH: services/policy/src/Api/Api.csproj
+    ports:
+      - "7077:8080"
+    volumes:
+      - ./license.xml:/app/license.xml:ro
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
+      - CosmosDb__DatabaseName=RiskInsure
+      - CosmosDb__ContainerName=policy
+      - Messaging__MessageBroker=RabbitMQ
+    networks:
+      - riskinsure
+    depends_on:
+      cosmos-emulator:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  policy-endpoint:
+    build:
+      context: .
+      dockerfile: platform/templates/Dockerfile.endpoint.compose
+      args:
+        PROJECT_PATH: services/policy/src/Endpoint.In/Endpoint.In.csproj
+    volumes:
+      - ./license.xml:/app/license.xml:ro
+    environment:
+      - DOTNET_ENVIRONMENT=Development
+      - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
+      - CosmosDb__DatabaseName=RiskInsure
+      - CosmosDb__ContainerName=policy
+      - Messaging__MessageBroker=RabbitMQ
+    depends_on:
+      cosmos-emulator:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - riskinsure
+
+  # ============================================================================
+  # Rating & Underwriting Domain
+  # ============================================================================
+  ratingandunderwriting-api:
+    build:
+      context: .
+      dockerfile: platform/templates/Dockerfile.api.compose
+      args:
+        PROJECT_PATH: services/ratingandunderwriting/src/Api/Api.csproj
+    ports:
+      - "7079:8080"
+    volumes:
+      - ./license.xml:/app/license.xml:ro
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
+      - CosmosDb__DatabaseName=RiskInsure
+      - CosmosDb__ContainerName=ratingunderwriting
+      - Messaging__MessageBroker=RabbitMQ
+    networks:
+      - riskinsure
+    depends_on:
+      cosmos-emulator:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  ratingandunderwriting-endpoint:
+    build:
+      context: .
+      dockerfile: platform/templates/Dockerfile.endpoint.compose
+      args:
+        PROJECT_PATH: services/ratingandunderwriting/src/Endpoint.In/Endpoint.In.csproj
+    volumes:
+      - ./license.xml:/app/license.xml:ro
+    environment:
+      - DOTNET_ENVIRONMENT=Development
+      - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
+      - CosmosDb__DatabaseName=RiskInsure
+      - CosmosDb__ContainerName=ratingunderwriting
+      - Messaging__MessageBroker=RabbitMQ
+    depends_on:
+      cosmos-emulator:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - riskinsure
+
+
+networks:
+  riskinsure:
+    driver: bridge
