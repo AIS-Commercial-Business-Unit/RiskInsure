@@ -56,7 +56,6 @@ services:
 
 networks:
   riskinsure:
-    driver: bridge
 
 volumes:
   cosmos-data: {}
