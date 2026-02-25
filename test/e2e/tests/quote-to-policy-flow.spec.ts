@@ -22,6 +22,8 @@ test.describe('Quote to Policy Flow', () => {
   });
 
   test('complete quote to policy workflow with Class A approval', async ({ request }) => {
+    test.setTimeout(180000); // 3 minutes for full workflow (accounts for cold starts + eventual consistency)
+    
     // Step 1: Create Customer (Customer Domain - 7073)
     const customer = await createCustomer(request, {
       firstName: 'Alice',
@@ -107,6 +109,8 @@ test.describe('Quote to Policy Flow', () => {
   });
 
   test('complete quote to policy workflow with Class B approval', async ({ request }) => {
+    test.setTimeout(180000); // 3 minutes for full workflow
+    
     // Step 1: Create Customer
     const customer = await createCustomer(request, {
       firstName: 'Bob',
