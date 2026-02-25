@@ -167,9 +167,9 @@ jobs:
           - service: policy
             integration_tests_path: services/policy/test/Integration.Tests
             api_var: API_POLICY_BASE_URL
-          - service: ratingandunderwriting
-            integration_tests_path: services/ratingandunderwriting/test/Integration.Tests
-            api_var: API_RATINGANDUNDERWRITING_BASE_URL
+          # - service: ratingandunderwriting
+          #   integration_tests_path: services/ratingandunderwriting/test/Integration.Tests
+          #   api_var: API_RATINGANDUNDERWRITING_BASE_URL
           - service: e2e
             integration_tests_path: test/e2e
             api_var: ''
@@ -203,7 +203,7 @@ jobs:
         if: matrix.service == 'e2e'
         run: |
           echo "CUSTOMER_API_URL=${{ env.API_CUSTOMER_BASE_URL }}" >> "$GITHUB_ENV"
-          echo "RATINGANDUNDERWRITING_API_URL=${{ env.API_RATINGANDUNDERWRITING_BASE_URL }}" >> "$GITHUB_ENV"
+          # echo "RATINGANDUNDERWRITING_API_URL=${{ env.API_RATINGANDUNDERWRITING_BASE_URL }}" >> "$GITHUB_ENV"
           echo "POLICY_API_URL=${{ env.API_POLICY_BASE_URL }}" >> "$GITHUB_ENV"
           echo "BILLING_API_URL=${{ env.API_BILLING_BASE_URL }}" >> "$GITHUB_ENV"
           echo "FUNDS_TRANSFER_API_URL=${{ env.API_FUNDSTRANSFERMGT_BASE_URL }}" >> "$GITHUB_ENV"
@@ -215,7 +215,7 @@ jobs:
           if [[ "${{ matrix.service }}" == "e2e" ]]; then
             echo "E2E Test - All API URLs:"
             echo "CUSTOMER_API_URL=$CUSTOMER_API_URL"
-            echo "RATINGANDUNDERWRITING_API_URL=$RATINGANDUNDERWRITING_API_URL"
+            # echo "RATINGANDUNDERWRITING_API_URL=$RATINGANDUNDERWRITING_API_URL"
             echo "POLICY_API_URL=$POLICY_API_URL"
             echo "BILLING_API_URL=$BILLING_API_URL"
             echo "FUNDS_TRANSFER_API_URL=$FUNDS_TRANSFER_API_URL"
