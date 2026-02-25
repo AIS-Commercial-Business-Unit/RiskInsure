@@ -23,6 +23,7 @@ C# 13 / .NET 10.0 with nullable reference types enabled: Follow standard convent
 
 ## Recent Changes
 - 001-file-retrieval-config: Added C# 13 / .NET 10.0 with nullable reference types enabled
+- 001-file-retrieval-config: Added C# 13 / .NET 10.0 with nullable reference types enabled
 
 - 001-workflow-orchestration: Added C# 13 / .NET 10.0 with nullable reference types enabled
 

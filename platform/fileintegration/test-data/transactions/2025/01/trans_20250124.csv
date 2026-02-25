@@ -1,0 +1,4 @@
+AccountID,TransactionDate,Amount,Type,Description
+12345,2025-01-24,1500.00,PREMIUM,Annual premium payment
+12346,2025-01-24,250.00,CLAIM,Partial claim settlement
+12347,2025-01-24,3200.00,PREMIUM,Monthly premium payment

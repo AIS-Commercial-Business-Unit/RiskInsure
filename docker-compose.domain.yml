@@ -265,4 +265,3 @@ services:
 
 networks:
   riskinsure:
-    driver: bridge

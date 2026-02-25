@@ -3,9 +3,9 @@
 
 # From https://github.com/Azure/cosmosdb-emulator-recipes/blob/main/dotnet/linux/entrypoint.sh
 
-cosmosHost=$1
-cosmosPort=$2
-assemblyName=$3
+cosmosHost=$COSMOS_DOMAIN
+cosmosPort=$COSMOS_PORT
+assemblyName=$ASSEMBLY_NAME_TO_RUN
 
 # This will allow the container to pull the self-signed CosmosDB 
 # SSL certificate and add it to the trusted certs, which is required
