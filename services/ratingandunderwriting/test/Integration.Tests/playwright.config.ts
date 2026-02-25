@@ -6,10 +6,10 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
-  fullyParallel: false,
+  fullyParallel: true, // Safe: tests use different partition keys
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: 1,
+  workers: process.env.CI ? 3 : 2, // Parallel execution within Cosmos DB 400 RU/s limits
   timeout: 60000, // Default timeout of 60 seconds for all tests
   reporter: [
     ['html'],

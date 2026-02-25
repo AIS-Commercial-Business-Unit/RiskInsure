@@ -22,7 +22,7 @@ test.describe('Get Customer Quotes', () => {
     });
 
     test('should return all quotes for customer', async ({ request }) => {
-        
+
         // Create multiple quotes for the same customer
         for (let i = 0; i < 3; i++) {
             const response = await request.post('/api/quotes/start', {
@@ -37,6 +37,8 @@ test.describe('Get Customer Quotes', () => {
                     propertyZipCode: '60601'
                 }
             });
+
+            expect(response.status()).toBe(201);
 
             const result = await response.json();
             quoteIds.push(result.quoteId);
@@ -72,6 +74,8 @@ test.describe('Get Customer Quotes', () => {
             }
         });
 
+        expect(startResponse.status()).toBe(201);
+
         const startResult = await startResponse.json();
         const quoteId = startResult.quoteId;
 
@@ -91,7 +95,7 @@ test.describe('Get Customer Quotes', () => {
     });
 
     test('should include premium in quoted quotes', async ({ request }) => {
-        
+
         // Create and underwrite a quote
         const startResponse = await request.post('/api/quotes/start', {
             data: {
@@ -106,17 +110,21 @@ test.describe('Get Customer Quotes', () => {
             }
         });
 
+        expect(startResponse.status()).toBe(201);
+
         const startResult = await startResponse.json();
         const quoteId = startResult.quoteId;
 
         // Submit underwriting
-        await request.post(`/api/quotes/${quoteId}/submit-underwriting`, {
+        const uwResponse = await request.post(`/api/quotes/${quoteId}/submit-underwriting`, {
             data: {
                 priorClaimsCount: 0,
                 propertyAgeYears: 10,
                 creditTier: 'Excellent'
             }
         });
+
+        expect(uwResponse.status()).toBe(200);
 
         const response = await request.get(`/api/customers/${customerId}/quotes`);
 
@@ -132,8 +140,6 @@ test.describe('Get Customer Quotes', () => {
     });
 
     test('should return quotes in different statuses', async ({ request }) => {
-        test.setTimeout(30000); // Extended timeout for creating 3 quotes with different statuses
-        
         // Create draft quote
         const draftResponse = await request.post('/api/quotes/start', {
             data: {
@@ -147,7 +153,8 @@ test.describe('Get Customer Quotes', () => {
                 propertyZipCode: '60601'
             }
         });
-        const draftResult = await draftResponse.json();
+
+        expect(draftResponse.status()).toBe(201);
 
         // Create and quote another
         const quotedResponse = await request.post('/api/quotes/start', {
@@ -162,15 +169,20 @@ test.describe('Get Customer Quotes', () => {
                 propertyZipCode: '60601'
             }
         });
+
+        expect(quotedResponse.status()).toBe(201);
+
         const quotedResult = await quotedResponse.json();
 
-        await request.post(`/api/quotes/${quotedResult.quoteId}/submit-underwriting`, {
+        const uwQuotedResponse = await request.post(`/api/quotes/${quotedResult.quoteId}/submit-underwriting`, {
             data: {
                 priorClaimsCount: 0,
                 propertyAgeYears: 10,
                 creditTier: 'Excellent'
             }
         });
+
+        expect(uwQuotedResponse.status()).toBe(200);
 
         // Create, quote, and accept another
         const acceptedResponse = await request.post('/api/quotes/start', {
@@ -185,16 +197,24 @@ test.describe('Get Customer Quotes', () => {
                 propertyZipCode: '60601'
             }
         });
+
+        expect(acceptedResponse.status()).toBe(201);
+
         const acceptedResult = await acceptedResponse.json();
 
-        await request.post(`/api/quotes/${acceptedResult.quoteId}/submit-underwriting`, {
+        const uwAcceptedResponse = await request.post(`/api/quotes/${acceptedResult.quoteId}/submit-underwriting`, {
             data: {
                 priorClaimsCount: 0,
                 propertyAgeYears: 10,
                 creditTier: 'Excellent'
             }
         });
-        await request.post(`/api/quotes/${acceptedResult.quoteId}/accept`);
+
+        expect(uwAcceptedResponse.status()).toBe(200);
+
+        const acceptResponse = await request.post(`/api/quotes/${acceptedResult.quoteId}/accept`);
+
+        expect(acceptResponse.status()).toBe(200);
 
         const response = await request.get(`/api/customers/${customerId}/quotes`);
 
@@ -208,8 +228,6 @@ test.describe('Get Customer Quotes', () => {
     });
 
     test('should not return quotes from other customers', async ({ request }) => {
-        test.setTimeout(30000); // Extended timeout for multiple API calls
-        
         // Create quote for this customer
         const response1 = await request.post('/api/quotes/start', {
             data: {
@@ -224,9 +242,13 @@ test.describe('Get Customer Quotes', () => {
             }
         });
 
+        expect(response1.status()).toBe(201);
+
+        const quote1 = await response1.json();
+
         // Create quote for different customer
         const otherCustomerId = crypto.randomUUID();
-        await request.post('/api/quotes/start', {
+        const response2 = await request.post('/api/quotes/start', {
             data: {
                 customerId: otherCustomerId,
                 structureCoverageLimit: 200000,
@@ -239,6 +261,8 @@ test.describe('Get Customer Quotes', () => {
             }
         });
 
+        expect(response2.status()).toBe(201);
+
         const response = await request.get(`/api/customers/${customerId}/quotes`);
 
         expect(response.status()).toBe(200);
@@ -246,8 +270,6 @@ test.describe('Get Customer Quotes', () => {
         const result = await response.json();
         expect(result.customerId).toBe(customerId);
         expect(result.quotes).toHaveLength(1);
-
-        const quote1 = await response1.json();
         expect(result.quotes[0].quoteId).toBe(quote1.quoteId);
     });
 });

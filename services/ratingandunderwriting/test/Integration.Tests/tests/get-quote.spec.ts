@@ -23,6 +23,8 @@ test.describe('Get Quote', () => {
             }
         });
 
+        expect(response.status()).toBe(201);
+
         const result = await response.json();
         quoteId = result.quoteId;
     });
@@ -49,16 +51,16 @@ test.describe('Get Quote', () => {
     });
 
     test('should retrieve quoted quote with premium', async ({ request }) => {
-        test.setTimeout(60000); // Extended timeout for multiple API calls
-        
         // Submit underwriting to get premium
-        await request.post(`/api/quotes/${quoteId}/submit-underwriting`, {
+        const uwResponse = await request.post(`/api/quotes/${quoteId}/submit-underwriting`, {
             data: {
                 priorClaimsCount: 0,
                 propertyAgeYears: 10,
                 creditTier: 'Excellent'
             }
         });
+
+        expect(uwResponse.status()).toBe(200);
 
         const response = await request.get(`/api/quotes/${quoteId}`);
 
@@ -72,10 +74,8 @@ test.describe('Get Quote', () => {
     });
 
     test('should retrieve accepted quote', async ({ request }) => {
-        test.setTimeout(60000); // Extended timeout for multiple API calls
-        
         // Submit underwriting first
-        await request.post(`/api/quotes/${quoteId}/submit-underwriting`, {
+        const uwResponse = await request.post(`/api/quotes/${quoteId}/submit-underwriting`, {
             data: {
                 priorClaimsCount: 0,
                 propertyAgeYears: 10,
@@ -83,8 +83,12 @@ test.describe('Get Quote', () => {
             }
         });
 
+        expect(uwResponse.status()).toBe(200);
+
         // Accept the quote
-        await request.post(`/api/quotes/${quoteId}/accept`);
+        const acceptResponse = await request.post(`/api/quotes/${quoteId}/accept`);
+
+        expect(acceptResponse.status()).toBe(200);
 
         const response = await request.get(`/api/quotes/${quoteId}`);
 
@@ -110,13 +114,15 @@ test.describe('Get Quote', () => {
 
     test('should retrieve quote with different underwriting classes', async ({ request }) => {
         // Submit Class B underwriting
-        await request.post(`/api/quotes/${quoteId}/submit-underwriting`, {
+        const uwResponse = await request.post(`/api/quotes/${quoteId}/submit-underwriting`, {
             data: {
                 priorClaimsCount: 1,
                 propertyAgeYears: 25,
                 creditTier: 'Good'
             }
         });
+
+        expect(uwResponse.status()).toBe(200);
 
         const response = await request.get(`/api/quotes/${quoteId}`);
 
