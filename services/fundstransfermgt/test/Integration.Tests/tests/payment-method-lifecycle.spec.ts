@@ -15,11 +15,10 @@ import { randomUUID } from 'crypto';
 
 test.describe('Payment Method Lifecycle', () => {
   let customerId: string;
-  const baseUrl = process.env.API_BASE_URL || 'http://localhost:7073/api';
 
   test.beforeEach(() => {
     // Generate unique customer ID for each test run
-    customerId = `CUST-${Date.now()}`;
+    customerId = `CUST-${randomUUID()}`;
   });
 
   test('Add credit card workflow', async ({ request }) => {
@@ -29,7 +28,7 @@ test.describe('Payment Method Lifecycle', () => {
     
     // Step 1: Add credit card
     console.log('📋 Step 1: Adding credit card...');
-    const addCardResponse = await request.post(`${baseUrl}/payment-methods/credit-card`, {
+    const addCardResponse = await request.post(`/api/payment-methods/credit-card`, {
       data: {
         paymentMethodId: paymentMethodId,
         customerId: customerId,
@@ -60,7 +59,7 @@ test.describe('Payment Method Lifecycle', () => {
 
     // Step 2: Retrieve payment method
     console.log('📋 Step 2: Retrieving payment method...');
-    const getResponse = await request.get(`${baseUrl}/payment-methods/${paymentMethodId}`);
+    const getResponse = await request.get(`/api/payment-methods/${paymentMethodId}`);
     expect(getResponse.status()).toBe(200);
     
     const retrieved = await getResponse.json();
@@ -70,7 +69,7 @@ test.describe('Payment Method Lifecycle', () => {
 
     // Step 3: List payment methods for customer
     console.log('📋 Step 3: Listing payment methods for customer...');
-    const listResponse = await request.get(`${baseUrl}/payment-methods?customerId=${customerId}`);
+    const listResponse = await request.get(`/api/payment-methods?customerId=${customerId}`);
     expect(listResponse.status()).toBe(200);
     
     const paymentMethods = await listResponse.json();
@@ -83,13 +82,13 @@ test.describe('Payment Method Lifecycle', () => {
 
     // Step 4: Remove payment method
     console.log('📋 Step 4: Removing payment method...');
-    const removeResponse = await request.delete(`${baseUrl}/payment-methods/${paymentMethodId}`);
+    const removeResponse = await request.delete(`/api/payment-methods/${paymentMethodId}`);
     expect(removeResponse.status()).toBe(204);
     console.log('✅ Step 4: Payment method removed');
 
     // Step 5: Verify payment method is inactive
     console.log('📋 Step 5: Verifying payment method is inactive...');
-    const finalGetResponse = await request.get(`${baseUrl}/payment-methods/${paymentMethodId}`);
+    const finalGetResponse = await request.get(`/api/payment-methods/${paymentMethodId}`);
     expect(finalGetResponse.status()).toBe(200);
     
     const finalState = await finalGetResponse.json();
@@ -104,7 +103,7 @@ test.describe('Payment Method Lifecycle', () => {
     
     // Add ACH account
     console.log('📋 Adding ACH account...');
-    const addAchResponse = await request.post(`${baseUrl}/payment-methods/ach`, {
+    const addAchResponse = await request.post(`/api/payment-methods/ach`, {
       data: {
         paymentMethodId: paymentMethodId,
         customerId: customerId,
@@ -129,7 +128,7 @@ test.describe('Payment Method Lifecycle', () => {
   test('Validation - invalid card number', async ({ request }) => {
     console.log('🔍 Testing invalid card number...');
     
-    const response = await request.post(`${baseUrl}/payment-methods/credit-card`, {
+    const response = await request.post(`/api/payment-methods/credit-card`, {
       data: {
         paymentMethodId: randomUUID(),
         customerId: customerId,
@@ -159,7 +158,7 @@ test.describe('Payment Method Lifecycle', () => {
   test('Validation - empty cardholder name', async ({ request }) => {
     console.log('🔍 Testing empty cardholder name...');
     
-    const response = await request.post(`${baseUrl}/payment-methods/credit-card`, {
+    const response = await request.post(`/api/payment-methods/credit-card`, {
       data: {
         paymentMethodId: randomUUID(),
         customerId: customerId,
@@ -187,7 +186,7 @@ test.describe('Payment Method Lifecycle', () => {
   test('Validation - expired card', async ({ request }) => {
     console.log('🔍 Testing expired card...');
     
-    const response = await request.post(`${baseUrl}/payment-methods/credit-card`, {
+    const response = await request.post(`/api/payment-methods/credit-card`, {
       data: {
         paymentMethodId: randomUUID(),
         customerId: customerId,
@@ -214,7 +213,7 @@ test.describe('Payment Method Lifecycle', () => {
   test('Validation - invalid routing number', async ({ request }) => {
     console.log('🔍 Testing invalid routing number...');
     
-    const response = await request.post(`${baseUrl}/payment-methods/ach`, {
+    const response = await request.post(`/api/payment-methods/ach`, {
       data: {
         paymentMethodId: randomUUID(),
         customerId: customerId,

@@ -298,22 +298,22 @@ Based on plan.md, the project uses:
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T133 [P] Create file-retrieval-standards.md documentation in services/file-retrieval/docs/file-retrieval-standards.md with domain terminology glossary
-- [ ] T134 [P] Create deployment guide in services/file-retrieval/docs/deployment.md for Azure Container Apps
-- [ ] T135 [P] Create Docker Compose file for local development with Cosmos DB emulator, Azurite, test FTP server
-- [ ] T136 [P] Add health check endpoints to API and Worker for Azure Container Apps readiness probes
-- [ ] T137 Add performance testing for 100+ concurrent file checks (SC-004 validation)
-- [ ] T138 Add load testing for 1000+ configurations across all clients (scale validation)
-- [ ] T139 Implement rate limiting for API endpoints to prevent abuse
-- [ ] T140 Add comprehensive error handling middleware in API with structured error responses
-- [ ] T141 Add security headers (CORS, CSP, HSTS) to API responses
-- [ ] T142 Implement API versioning strategy (v1 prefix) in ConfigurationController and ExecutionHistoryController
-- [ ] T143 Add integration with Azure Application Insights for distributed tracing
-- [ ] T144 [P] Code review and refactoring for consistency with RiskInsure standards
-- [ ] T145 [P] Update quickstart.md validation steps based on implementation learnings
+- [X] T133 [P] Create file-retrieval-standards.md documentation in services/file-retrieval/docs/file-retrieval-standards.md with domain terminology glossary
+- [X] T134 [P] Create deployment guide in services/file-retrieval/docs/deployment.md for Azure Container Apps
+- [X] T135 [P] Create Docker Compose file for local development with Cosmos DB emulator, Azurite, test FTP server
+- [X] T136 [P] Add health check endpoints to API and Worker for Azure Container Apps readiness probes
+- [X] T137 Add performance testing for 100+ concurrent file checks (SC-004 validation)
+- [X] T138 Add load testing for 1000+ configurations across all clients (scale validation)
+- [X] T139 Implement rate limiting for API endpoints to prevent abuse
+- [X] T140 Add comprehensive error handling middleware in API with structured error responses
+- [X] T141 Add security headers (CORS, CSP, HSTS) to API responses
+- [X] T142 Implement API versioning strategy (v1 prefix) in ConfigurationController and ExecutionHistoryController
+- [X] T143 Add integration with Azure Application Insights for distributed tracing
+- [X] T144 [P] Code review and refactoring for consistency with RiskInsure standards (automated verification complete, peer review pending)
+- [X] T145 [P] Update quickstart.md validation steps based on implementation learnings
 - [ ] T146 Run all integration tests against real Azure resources (Cosmos DB, Service Bus, Azure Blob Storage)
-- [ ] T147 Verify constitution compliance: domain language consistency, single-partition queries, atomic state transitions, idempotent handlers
-- [ ] T148 Create runbook for common operational scenarios (configuration not executing, connection failures, file not found)
+- [X] T147 Verify constitution compliance: domain language consistency, single-partition queries, atomic state transitions, idempotent handlers
+- [X] T148 Create runbook for common operational scenarios (configuration not executing, connection failures, file not found)
 
 ---
 

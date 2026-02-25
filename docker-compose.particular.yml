@@ -173,7 +173,6 @@ services:
 
 networks:
   riskinsure:
-    driver: bridge
 
 volumes:
   raven-config: {}

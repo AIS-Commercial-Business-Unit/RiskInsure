@@ -6,6 +6,10 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG PROJECT_PATH
 WORKDIR /src
 
+# Default Assembly name to 'Endpoint.In.dll' if not provided as ARG
+ARG ASSEMBLY_NAME
+ENV ASSEMBLY_NAME_X=${ASSEMBLY_NAME_X:-Endpoint.In.dll}
+
 # Copy solution and dependency files
 COPY ["RiskInsure.slnx", "."]
 COPY ["Directory.Build.props", "."]
@@ -13,8 +17,7 @@ COPY ["Directory.Packages.props", "."]
 COPY ["GlobalUsings.cs", "."]
 
 # Copy all project files for restore
-COPY ["platform/RiskInsure.PublicContracts/", "platform/RiskInsure.PublicContracts/"]
-COPY ["platform/fileintegration/contracts/", "platform/fileintegration/contracts/"]
+COPY ["platform/", "platform/"]
 COPY ["services/", "services/"]
 
 # Restore dependencies for the specific project
@@ -34,4 +37,9 @@ RUN apt-get update && apt-get install -y wget curl --no-install-recommends && rm
 COPY --from=build /app/publish .
 COPY --chmod=+x "entrypoint.sh" "/entrypoint.sh"
 
-ENTRYPOINT ["/entrypoint.sh", "cosmos.domain", "8081", "Endpoint.In.dll"]
+ARG ASSEMBLY_NAME
+
+ENV COSMOS_DOMAIN=cosmos.domain
+ENV COSMOS_PORT=8081
+ENV ASSEMBLY_NAME_TO_RUN=${ASSEMBLY_NAME:-Endpoint.In.dll}
+ENTRYPOINT ["/entrypoint.sh"]

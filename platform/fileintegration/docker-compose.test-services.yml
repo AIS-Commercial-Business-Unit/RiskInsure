@@ -1,0 +1,65 @@
+services:
+  # Azurite (Azure Storage Emulator - for Azure Blob Storage testing)
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:latest
+    container_name: file-retrieval-azurite
+    ports:
+      - "10000:10000"  # Blob service
+      - "10001:10001"  # Queue service
+      - "10002:10002"  # Table service
+    volumes:
+      - azurite-data:/data
+    command: azurite --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0 --loose --skipApiVersionCheck
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "10000"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Test FTP Server (for FTP protocol testing)
+  ftp-server:
+    image: fauria/vsftpd:latest
+    container_name: file-retrieval-ftp
+    ports:
+      - "20:20"
+      - "21:21"
+      - "21100-21110:21100-21110"
+    environment:
+      - FTP_USER=testuser
+      - FTP_PASS=testpass
+      - PASV_ADDRESS=file-retrieval-ftp
+      - PASV_ADDRESS_ENABLE=YES
+      - PASV_MIN_PORT=21100
+      - PASV_MAX_PORT=21110
+      - LOG_STDOUT=true
+    volumes:
+      - ftp-data:/home/vsftpd
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "21"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Test HTTPS Server (for HTTPS protocol testing)
+  https-server:
+    image: nginx:alpine
+    container_name: file-retrieval-https
+    ports:
+      - "8443:443"
+      - "8080:80"
+    volumes:
+      - ./test-data:/usr/share/nginx/html:ro
+      - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:80/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+
+volumes:
+  azurite-data:
+  ftp-data:
+
+networks:
+  riskinsure:

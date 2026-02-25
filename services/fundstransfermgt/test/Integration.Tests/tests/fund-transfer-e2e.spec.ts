@@ -20,11 +20,10 @@ import { randomUUID } from 'crypto';
 
 test.describe('Fund Transfer End-to-End Workflow', () => {
   let customerId: string;
-  const baseUrl = process.env.API_BASE_URL || 'http://localhost:7073/api';
 
   test.beforeEach(() => {
     // Generate unique customer ID for each test run to avoid conflicts
-    customerId = `CUST-${Date.now()}`;
+    customerId = `CUST-${randomUUID()}`;
   });
 
   test('Complete credit card fund transfer workflow', async ({ request }) => {
@@ -36,7 +35,7 @@ test.describe('Fund Transfer End-to-End Workflow', () => {
     console.log('\n📋 STEP 1: Adding credit card payment method...');
     const paymentMethodId = randomUUID();
     
-    const addCardResponse = await request.post(`${baseUrl}/payment-methods/credit-card`, {
+    const addCardResponse = await request.post(`/api/payment-methods/credit-card`, {
       data: {
         paymentMethodId: paymentMethodId,
         customerId: customerId,
@@ -76,7 +75,7 @@ test.describe('Fund Transfer End-to-End Workflow', () => {
     // ==========================================
     console.log('\n📋 STEP 2: Verifying payment method retrieval...');
     
-    const getPaymentMethodResponse = await request.get(`${baseUrl}/payment-methods/${paymentMethodId}`);
+    const getPaymentMethodResponse = await request.get(`/api/payment-methods/${paymentMethodId}`);
     expect(getPaymentMethodResponse.status()).toBe(200);
     
     const retrievedPaymentMethod = await getPaymentMethodResponse.json();
@@ -93,7 +92,7 @@ test.describe('Fund Transfer End-to-End Workflow', () => {
     const transferAmount = 150.00;
     const transferPurpose = 'E2E Test - Premium Payment';
     
-    const transferResponse = await request.post(`${baseUrl}/fund-transfers`, {
+    const transferResponse = await request.post(`/api/fund-transfers`, {
       data: {
         customerId: customerId,
         paymentMethodId: paymentMethodId,
@@ -126,7 +125,7 @@ test.describe('Fund Transfer End-to-End Workflow', () => {
     // ==========================================
     console.log('\n📋 STEP 4: Retrieving transfer by ID...');
     
-    const getTransferResponse = await request.get(`${baseUrl}/fund-transfers/${transfer.transactionId}`);
+    const getTransferResponse = await request.get(`/api/fund-transfers/${transfer.transactionId}`);
     expect(getTransferResponse.status()).toBe(200);
     
     const retrievedTransfer = await getTransferResponse.json();
@@ -142,7 +141,7 @@ test.describe('Fund Transfer End-to-End Workflow', () => {
     // ==========================================
     console.log('\n📋 STEP 5: Retrieving customer transfer history...');
     
-    const historyResponse = await request.get(`${baseUrl}/fund-transfers?customerId=${customerId}`);
+    const historyResponse = await request.get(`/api/fund-transfers?customerId=${customerId}`);
     expect(historyResponse.status()).toBe(200);
     
     const transfers = await historyResponse.json();
@@ -161,7 +160,7 @@ test.describe('Fund Transfer End-to-End Workflow', () => {
     // ==========================================
     console.log('\n📋 STEP 6: Creating second transfer to verify history...');
     
-    const secondTransferResponse = await request.post(`${baseUrl}/fund-transfers`, {
+    const secondTransferResponse = await request.post(`/api/fund-transfers`, {
       data: {
         customerId: customerId,
         paymentMethodId: paymentMethodId,
@@ -174,7 +173,7 @@ test.describe('Fund Transfer End-to-End Workflow', () => {
     const secondTransfer = await secondTransferResponse.json();
     expect(secondTransfer.status).toBe('Settled');
     
-    const updatedHistoryResponse = await request.get(`${baseUrl}/fund-transfers?customerId=${customerId}`);
+    const updatedHistoryResponse = await request.get(`/api/fund-transfers?customerId=${customerId}`);
     const updatedTransfers = await updatedHistoryResponse.json();
     expect(updatedTransfers.length).toBe(2);
     
@@ -193,7 +192,7 @@ test.describe('Fund Transfer End-to-End Workflow', () => {
     console.log('\n📋 STEP 1: Adding ACH payment method...');
     const paymentMethodId = randomUUID();
     
-    const addAchResponse = await request.post(`${baseUrl}/payment-methods/ach`, {
+    const addAchResponse = await request.post(`/api/payment-methods/ach`, {
       data: {
         paymentMethodId: paymentMethodId,
         customerId: customerId,
@@ -225,7 +224,7 @@ test.describe('Fund Transfer End-to-End Workflow', () => {
     
     const transferAmount = 500.00;
     
-    const transferResponse = await request.post(`${baseUrl}/fund-transfers`, {
+    const transferResponse = await request.post(`/api/fund-transfers`, {
       data: {
         customerId: customerId,
         paymentMethodId: paymentMethodId,
@@ -254,7 +253,7 @@ test.describe('Fund Transfer End-to-End Workflow', () => {
     
     const invalidPaymentMethodId = randomUUID();
     
-    const transferResponse = await request.post(`${baseUrl}/fund-transfers`, {
+    const transferResponse = await request.post(`/api/fund-transfers`, {
       data: {
         customerId: customerId,
         paymentMethodId: invalidPaymentMethodId,
@@ -276,7 +275,7 @@ test.describe('Fund Transfer End-to-End Workflow', () => {
     
     // Create payment method
     const paymentMethodId = randomUUID();
-    await request.post(`${baseUrl}/payment-methods/credit-card`, {
+    await request.post(`/api/payment-methods/credit-card`, {
       data: {
         paymentMethodId: paymentMethodId,
         customerId: customerId,
@@ -296,10 +295,10 @@ test.describe('Fund Transfer End-to-End Workflow', () => {
     });
     
     // Remove payment method (makes it inactive)
-    await request.delete(`${baseUrl}/payment-methods/${paymentMethodId}`);
+    await request.delete(`/api/payment-methods/${paymentMethodId}`);
     
     // Try to use inactive payment method
-    const transferResponse = await request.post(`${baseUrl}/fund-transfers`, {
+    const transferResponse = await request.post(`/api/fund-transfers`, {
       data: {
         customerId: customerId,
         paymentMethodId: paymentMethodId,
@@ -319,11 +318,11 @@ test.describe('Fund Transfer End-to-End Workflow', () => {
   test('Error handling - transfer with wrong customer payment method', async ({ request }) => {
     console.log('🔍 Testing error handling for payment method belonging to different customer...');
     
-    const otherCustomerId = `CUST-OTHER-${Date.now()}`;
+    const otherCustomerId = `CUST-OTHER-${randomUUID()}`;
     const paymentMethodId = randomUUID();
     
     // Create payment method for different customer
-    await request.post(`${baseUrl}/payment-methods/credit-card`, {
+    await request.post(`/api/payment-methods/credit-card`, {
       data: {
         paymentMethodId: paymentMethodId,
         customerId: otherCustomerId,
@@ -343,7 +342,7 @@ test.describe('Fund Transfer End-to-End Workflow', () => {
     });
     
     // Try to use payment method with different customer ID
-    const transferResponse = await request.post(`${baseUrl}/fund-transfers`, {
+    const transferResponse = await request.post(`/api/fund-transfers`, {
       data: {
         customerId: customerId, // Different customer
         paymentMethodId: paymentMethodId, // Belongs to otherCustomerId
@@ -365,7 +364,7 @@ test.describe('Fund Transfer End-to-End Workflow', () => {
     
     // Add credit card
     const creditCardId = randomUUID();
-    const creditCardResponse = await request.post(`${baseUrl}/payment-methods/credit-card`, {
+    const creditCardResponse = await request.post(`/api/payment-methods/credit-card`, {
       data: {
         paymentMethodId: creditCardId,
         customerId: customerId,
@@ -387,7 +386,7 @@ test.describe('Fund Transfer End-to-End Workflow', () => {
     
     // Add ACH account
     const achId = randomUUID();
-    const achResponse = await request.post(`${baseUrl}/payment-methods/ach`, {
+    const achResponse = await request.post(`/api/payment-methods/ach`, {
       data: {
         paymentMethodId: achId,
         customerId: customerId,
@@ -402,7 +401,7 @@ test.describe('Fund Transfer End-to-End Workflow', () => {
     console.log('✅ Added both credit card and ACH payment methods');
     
     // Transfer with credit card
-    const ccTransferResponse = await request.post(`${baseUrl}/fund-transfers`, {
+    const ccTransferResponse = await request.post(`/api/fund-transfers`, {
       data: {
         customerId: customerId,
         paymentMethodId: creditCardId,
@@ -417,7 +416,7 @@ test.describe('Fund Transfer End-to-End Workflow', () => {
     console.log('✅ Credit card transfer completed');
     
     // Transfer with ACH
-    const achTransferResponse = await request.post(`${baseUrl}/fund-transfers`, {
+    const achTransferResponse = await request.post(`/api/fund-transfers`, {
       data: {
         customerId: customerId,
         paymentMethodId: achId,
@@ -432,7 +431,7 @@ test.describe('Fund Transfer End-to-End Workflow', () => {
     console.log('✅ ACH transfer completed');
     
     // Verify both transfers in history
-    const historyResponse = await request.get(`${baseUrl}/fund-transfers?customerId=${customerId}`);
+    const historyResponse = await request.get(`/api/fund-transfers?customerId=${customerId}`);
     const transfers = await historyResponse.json();
     expect(transfers.length).toBe(2);
     
@@ -453,7 +452,7 @@ test.describe('Fund Transfer End-to-End Workflow', () => {
     console.log('🔍 Testing large amount transfer...');
     
     const paymentMethodId = randomUUID();
-    await request.post(`${baseUrl}/payment-methods/credit-card`, {
+    await request.post(`/api/payment-methods/credit-card`, {
       data: {
         paymentMethodId: paymentMethodId,
         customerId: customerId,
@@ -473,7 +472,7 @@ test.describe('Fund Transfer End-to-End Workflow', () => {
     });
     
     const largeAmount = 10000.00;
-    const transferResponse = await request.post(`${baseUrl}/fund-transfers`, {
+    const transferResponse = await request.post(`/api/fund-transfers`, {
       data: {
         customerId: customerId,
         paymentMethodId: paymentMethodId,
@@ -495,7 +494,7 @@ test.describe('Fund Transfer End-to-End Workflow', () => {
     console.log('🔍 Testing retrieval of non-existent transfer...');
     
     const fakeTransactionId = randomUUID();
-    const response = await request.get(`${baseUrl}/fund-transfers/${fakeTransactionId}`);
+    const response = await request.get(`/api/fund-transfers/${fakeTransactionId}`);
     
     expect(response.status()).toBe(404);
     

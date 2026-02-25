@@ -1,0 +1,3 @@
+include:
+  - ./docker-compose.fileintegration.yml
+  - ./docker-compose.test-services.yml # Azurite, FTP server, HTTPS server
