@@ -73,7 +73,7 @@ export async function startQuote(
 
   const data = { ...defaultData, ...quoteData };
 
-  const response = await request.post(`${config.apis.rating}/api/quotes/start`, {
+  const response = await request.post(`${config.apis.ratingandunderwriting}/api/quotes/start`, {
     data,
     timeout: config.timeouts.apiRequest,
   });
@@ -99,7 +99,7 @@ export async function submitUnderwriting(
   const data = { ...defaultData, ...underwritingData };
 
   const response = await request.post(
-    `${config.apis.rating}/api/quotes/${quoteId}/submit-underwriting`,
+    `${config.apis.ratingandunderwriting}/api/quotes/${quoteId}/submit-underwriting`,
     {
       data,
       timeout: config.timeouts.apiRequest,
@@ -117,7 +117,7 @@ export async function acceptQuote(
   quoteId: string
 ): Promise<AcceptQuoteResponse> {
   const response = await request.post(
-    `${config.apis.rating}/api/quotes/${quoteId}/accept`,
+    `${config.apis.ratingandunderwriting}/api/quotes/${quoteId}/accept`,
     { timeout: config.timeouts.apiRequest }
   );
 
@@ -133,7 +133,7 @@ export async function getQuote(
   quoteId: string
 ): Promise<Quote> {
   const response = await request.get(
-    `${config.apis.rating}/api/quotes/${quoteId}`,
+    `${config.apis.ratingandunderwriting}/api/quotes/${quoteId}`,
     { timeout: config.timeouts.apiRequest }
   );
 

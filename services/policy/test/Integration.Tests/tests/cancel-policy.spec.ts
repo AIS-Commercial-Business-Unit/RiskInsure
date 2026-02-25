@@ -1,15 +1,16 @@
 import { test, expect } from '@playwright/test';
+import { randomUUID } from 'crypto';
 
 test.describe('Cancel Policy', () => {
   // NOTE: Tests requiring existing policies deferred to enterprise integration tests
   // Only testing validation and error scenarios that the API layer controls
   
   test('should return 404 when policy not found', async ({ request }) => {
-    const nonExistentPolicyId = crypto.randomUUID();
+    const nonExistentPolicyId = randomUUID();
 
     const response = await request.post(`/api/policies/${nonExistentPolicyId}/cancel`, {
       data: {
-        cancellationReason: 'Test',
+        reason: 'Test',
         cancellationDate: new Date().toISOString()
       }
     });
@@ -18,14 +19,15 @@ test.describe('Cancel Policy', () => {
 
     const error = await response.json();
     expect(error.error).toBe('PolicyNotFound');
+    expect(error.message).toContain(nonExistentPolicyId);
   });
 
   test('should validate required fields', async ({ request }) => {
-    const policyId = crypto.randomUUID();
+    const policyId = randomUUID();
 
     const response = await request.post(`/api/policies/${policyId}/cancel`, {
       data: {
-        // Missing cancellationReason
+        // reason: "Unhappy",
         cancellationDate: new Date().toISOString()
       }
     });
@@ -33,10 +35,17 @@ test.describe('Cancel Policy', () => {
     expect(response.status()).toBe(400);
 
     const error = await response.json();
-    // ASP.NET Core returns ProblemDetails format for validation errors
+    
+    // Validation error for missing required property comes back as:
+    // { status: 400, errors: { "$": ["...missing required properties including: 'reason'..."] } }
     expect(error.status).toBe(400);
     expect(error.errors).toBeDefined();
-    expect(error.errors.CancellationReason).toBeDefined();
-    expect(Array.isArray(error.errors.CancellationReason)).toBe(true);
+    
+    // Check that the error mentions the missing 'reason' field
+    const errorMessages = Object.values(error.errors).flat() as string[];
+    const hasReasonError = errorMessages.some((msg: string) => 
+      msg.toLowerCase().includes('reason')
+    );
+    expect(hasReasonError).toBe(true);
   });
 });

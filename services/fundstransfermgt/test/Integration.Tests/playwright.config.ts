@@ -1,3 +1,8 @@
+
+import * as dotenv from 'dotenv';
+
+dotenv.config();
+
 import { defineConfig, devices } from '@playwright/test';
 
 /**
@@ -32,7 +37,7 @@ export default defineConfig({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: process.env.API_BASE_URL || 'http://localhost:7073/api',
+    baseURL: process.env.API_BASE_URL || 'http://localhost:7075',
     
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
@@ -48,7 +53,8 @@ export default defineConfig({
   projects: [
     {
       name: 'api-tests',
-      testMatch: '**/*.spec.ts'
+      testMatch: '**/*.spec.ts',
+      use: { ...devices['Desktop Chrome'] },
     },
   ],
 
