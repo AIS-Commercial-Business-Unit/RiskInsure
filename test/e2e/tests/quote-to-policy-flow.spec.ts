@@ -155,6 +155,7 @@ test.describe('Quote to Policy Flow', () => {
   });
 
   test('declined quote does not create policy', async ({ request }) => {
+    test.setTimeout(180000); // 3 minutes for full workflow (accounts for cold starts + eventual consistency)
     // Step 1: Create Customer
     const customer = await createCustomer(request, {
       firstName: 'Charlie',
