@@ -1,4 +1,4 @@
-﻿name: 'Infrastructure Provisioning (Reusable)'
+name: 'Infrastructure Provisioning (Reusable)'
 
 on:
   workflow_call:
@@ -18,7 +18,7 @@ on:
     outputs:
       resource_group_name:
         description: 'Resource group name'
-        value: ${{ jobs.shared-services.outputs.resource_group_name }}
+        value: ${{ jobs.shared_services.outputs.resource_group_name }}
       acr_login_server:
         description: 'ACR login server'
         value: ${{ jobs.foundation.outputs.acr_login_server }}
@@ -27,7 +27,7 @@ on:
         value: ${{ jobs.foundation.outputs.acr_name }}
       apps_shared_identity_id:
         description: 'User-assigned managed identity ID'
-        value: ${{ jobs.shared-services.outputs.apps_shared_identity_id }}
+        value: ${{ jobs.shared_services.outputs.apps_shared_identity_id }}
 
 env:
   TERRAFORM_VERSION: '1.11.4'
@@ -122,7 +122,7 @@ jobs:
   # ==========================================================================
   # Shared Services Layer (Cosmos DB, Service Bus, UAMI, Role Assignments)
   # ==========================================================================
-  shared-services:
+  shared_services:
     name: 'Shared Services & Identity'
     needs: foundation
     if: |
@@ -274,9 +274,9 @@ jobs:
   # ==========================================================================
   # Wait for Role Assignment Propagation
   # ==========================================================================
-  role-propagation-wait:
+  role_propagation_wait:
     name: 'Wait for Role Propagation'
-    needs: shared-services
+    needs: shared_services
     if: inputs.terraform_action == 'apply'
     runs-on: ubuntu-latest
 
@@ -290,11 +290,11 @@ jobs:
           echo ""
           echo " SUMMARY:"
           echo "  Environment: ${{ inputs.environment }}"
-          echo "  Resource Group: ${{ needs.shared-services.outputs.resource_group_name }}"
-          echo "  Key Vault: ${{ needs.shared-services.outputs.key_vault_name }}"
-          echo "  UAMI Name: ${{ needs.shared-services.outputs.apps_shared_identity_name }}"
-          echo "  UAMI Resource ID: ${{ needs.shared-services.outputs.apps_shared_identity_id }}"
-          echo "  UAMI Principal ID: ${{ needs.shared-services.outputs.apps_shared_identity_principal_id }}"
+          echo "  Resource Group: ${{ needs.shared_services.outputs.resource_group_name }}"
+          echo "  Key Vault: ${{ needs.shared_services.outputs.key_vault_name }}"
+          echo "  UAMI Name: ${{ needs.shared_services.outputs.apps_shared_identity_name }}"
+          echo "  UAMI Resource ID: ${{ needs.shared_services.outputs.apps_shared_identity_id }}"
+          echo "  UAMI Principal ID: ${{ needs.shared_services.outputs.apps_shared_identity_principal_id }}"
           echo ""
           echo " Waiting 60 seconds for role assignments to propagate..."
           echo ""
@@ -311,10 +311,10 @@ jobs:
           echo ""
           echo " Next Steps:"
           echo "  1. Verify UAMI exists:"
-          echo "     az identity show -n ${{ needs.shared-services.outputs.apps_shared_identity_name }} -g ${{ needs.shared-services.outputs.resource_group_name }}"
+          echo "     az identity show -n ${{ needs.shared_services.outputs.apps_shared_identity_name }} -g ${{ needs.shared_services.outputs.resource_group_name }}"
           echo ""
           echo "  2. Verify roles assigned (use Principal ID):"
-          echo "     az role assignment list --assignee ${{ needs.shared-services.outputs.apps_shared_identity_principal_id }} -o table"
+          echo "     az role assignment list --assignee ${{ needs.shared_services.outputs.apps_shared_identity_principal_id }} -o table"
           echo ""
           echo "  3. Run main pipeline to deploy services."
           echo ""
@@ -324,7 +324,7 @@ jobs:
   # ==========================================================================
   verify:
     name: 'Verify Infrastructure & Permissions'
-    needs: [shared-services, role-propagation-wait]
+    needs: [shared_services, role_propagation_wait]
     if: inputs.terraform_action == 'apply'
     runs-on: ubuntu-latest
 
@@ -343,8 +343,8 @@ jobs:
       - name: Verify UAMI Exists
         shell: bash
         run: |
-          RG="${{ needs.shared-services.outputs.resource_group_name }}"
-          UAMI_NAME="${{ needs.shared-services.outputs.apps_shared_identity_name }}"
+          RG="${{ needs.shared_services.outputs.resource_group_name }}"
+          UAMI_NAME="${{ needs.shared_services.outputs.apps_shared_identity_name }}"
           echo " Verifying UAMI: $UAMI_NAME (RG: $RG)"
 
           az identity show -n "$UAMI_NAME" -g "$RG" --query "id" -o tsv
@@ -353,7 +353,7 @@ jobs:
       - name: Verify Role Assignments
         shell: bash
         run: |
-          PRINCIPAL_ID="${{ needs.shared-services.outputs.apps_shared_identity_principal_id }}"
+          PRINCIPAL_ID="${{ needs.shared_services.outputs.apps_shared_identity_principal_id }}"
           echo " Verifying role assignments for UAMI principalId: $PRINCIPAL_ID"
           az role assignment list --assignee "$PRINCIPAL_ID" --query "[].roleDefinitionName" -o table
           echo " Role assignments verified"
@@ -361,8 +361,8 @@ jobs:
       - name: Verify Cosmos DB
         shell: bash
         run: |
-          RG="${{ needs.shared-services.outputs.resource_group_name }}"
-          COSMOS_ACCOUNT="${{ needs.shared-services.outputs.cosmosdb_account_name }}"
+          RG="${{ needs.shared_services.outputs.resource_group_name }}"
+          COSMOS_ACCOUNT="${{ needs.shared_services.outputs.cosmosdb_account_name }}"
           echo " Verifying Cosmos DB: $COSMOS_ACCOUNT (RG: $RG)"
 
           if [ "$COSMOS_ACCOUNT" = "N/A" ] || [ -z "$COSMOS_ACCOUNT" ]; then
@@ -376,8 +376,8 @@ jobs:
       - name: Verify Service Bus
         shell: bash
         run: |
-          RG="${{ needs.shared-services.outputs.resource_group_name }}"
-          SERVICEBUS_FQDN="${{ needs.shared-services.outputs.servicebus_namespace_fqdn }}"
+          RG="${{ needs.shared_services.outputs.resource_group_name }}"
+          SERVICEBUS_FQDN="${{ needs.shared_services.outputs.servicebus_namespace_fqdn }}"
           echo " Verifying Service Bus: $SERVICEBUS_FQDN (RG: $RG)"
 
           if [ "$SERVICEBUS_FQDN" = "N/A" ] || [ -z "$SERVICEBUS_FQDN" ]; then
