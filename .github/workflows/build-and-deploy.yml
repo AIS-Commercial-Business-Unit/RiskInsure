@@ -149,7 +149,10 @@ jobs:
           # Convert "billing,policy,customer" -> ["billing","policy","customer"]
           SERVICES_ARRAY=$(echo "$SERVICES_INPUT" | jq -R 'split(",") | map(select(length > 0))')
           
-          echo "matrix={\"service\":$SERVICES_ARRAY}" >> "$GITHUB_OUTPUT"
+          # Properly format the matrix output using jq
+          MATRIX_JSON=$(jq -n --argjson services "$SERVICES_ARRAY" '{"service": $services}')
+          
+          echo "matrix=$MATRIX_JSON" >> "$GITHUB_OUTPUT"
           echo "Parsed services: $SERVICES_ARRAY"
 
   # ==========================================================================
@@ -316,11 +319,47 @@ jobs:
       - name: Terraform Validate
         run: terraform validate
 
+      - name: Build Terraform Targets
+        id: targets
+        shell: bash
+        run: |
+          SERVICES="${{ inputs.services_to_deploy }}"
+          
+          # If "all", don't use targeting (deploy everything)
+          if [ "$SERVICES" = "all" ]; then
+            echo "targets=" >> "$GITHUB_OUTPUT"
+            echo "✅ Deploying all services (no targeting)"
+            exit 0
+          fi
+          
+          # Build target flags for specific services
+          TARGETS=""
+          IFS=',' read -ra SERVICE_ARRAY <<< "$SERVICES"
+          for service in "${SERVICE_ARRAY[@]}"; do
+            service=$(echo "$service" | xargs)  # trim whitespace
+            
+            # Convert service name to terraform resource name (replace hyphens with underscores)
+            tf_service_name="${service//-/_}"
+            
+            # Handle special case: ratingunderwriting -> ratingandunderwriting in terraform
+            if [ "$service" = "ratingunderwriting" ]; then
+              tf_service_name="ratingandunderwriting"
+            fi
+            
+            # Add targets for both API and Endpoint containers
+            TARGETS="$TARGETS -target=azurerm_container_app.${tf_service_name}_api"
+            TARGETS="$TARGETS -target=azurerm_container_app.${tf_service_name}_endpoint"
+          done
+          
+          echo "targets=$TARGETS" >> "$GITHUB_OUTPUT"
+          echo "✅ Terraform targets: $TARGETS"
+
       - name: Terraform Plan
         run: |
           terraform plan \
             -var="environment=${{ inputs.environment }}" \
             -var="image_tag=${{ github.sha }}" \
+            ${{ steps.targets.outputs.targets }} \
             -out=tfplan \
             -input=false
         env:
