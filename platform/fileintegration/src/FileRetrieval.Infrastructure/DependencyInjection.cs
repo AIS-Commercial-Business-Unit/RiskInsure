@@ -1,6 +1,10 @@
 using Microsoft.Azure.Cosmos;
+using Azure.Identity;
+using Azure.Security.KeyVault.Secrets;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using FileRetrieval.Application.Protocols;
+using RiskInsure.FileRetrieval.Application.Services;
 using RiskInsure.FileRetrieval.Domain.Repositories;
 using RiskInsure.FileRetrieval.Infrastructure.Configuration;
 using RiskInsure.FileRetrieval.Infrastructure.Cosmos;
@@ -47,6 +51,28 @@ public static class DependencyInjection
         services.AddScoped<IFileRetrievalConfigurationRepository, FileRetrievalConfigurationRepository>();
         services.AddScoped<IFileRetrievalExecutionRepository, FileRetrievalExecutionRepository>();
         services.AddScoped<IDiscoveredFileRepository, DiscoveredFileRepository>();
+
+        // Application services (scoped)
+        services.AddScoped<ConfigurationService>();
+        services.AddScoped<ExecutionHistoryService>();
+        services.AddScoped<FileCheckService>();
+        services.AddScoped<ProtocolAdapterFactory>();
+
+        // Stateless utility/metrics services (singletons)
+        services.AddSingleton<TokenReplacementService>();
+        services.AddSingleton<FileRetrievalMetricsService>();
+
+        // HTTP client factory for protocol adapters
+        services.AddHttpClient();
+
+        // Azure Key Vault SecretClient (for protocol adapters)
+        services.AddSingleton<SecretClient>(_ =>
+        {
+            var vaultUri = configuration["AzureKeyVault:VaultUri"]
+                ?? throw new InvalidOperationException("AzureKeyVault:VaultUri configuration is missing");
+
+            return new SecretClient(new Uri(vaultUri), new DefaultAzureCredential());
+        });
 
         // Key Vault (singleton)
         services.AddSingleton<KeyVaultSecretClient>();

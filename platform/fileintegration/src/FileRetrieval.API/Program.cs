@@ -1,4 +1,6 @@
 using RiskInsure.FileRetrieval.Infrastructure;
+using RiskInsure.FileRetrieval.Application.Services;
+using FileRetrieval.Application.Protocols;
 using NServiceBus;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -8,6 +10,13 @@ using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseDefaultServiceProvider((context, options) =>
+{
+    var isDevelopment = context.HostingEnvironment.IsDevelopment();
+    options.ValidateScopes = isDevelopment;
+    options.ValidateOnBuild = isDevelopment;
+});
 
 // T143: Add Application Insights for distributed tracing
 builder.Services.AddApplicationInsightsTelemetry(options =>
@@ -19,6 +28,15 @@ builder.Services.AddApplicationInsightsTelemetry(options =>
 
 // Add infrastructure services (Cosmos DB, repositories, Key Vault)
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// Defensive registration for message handler dependencies
+// (keeps startup resilient if an older infrastructure assembly is loaded)
+// builder.Services.AddScoped<ConfigurationService>();
+// builder.Services.AddScoped<ExecutionHistoryService>();
+// builder.Services.AddScoped<FileCheckService>();
+// builder.Services.AddScoped<ProtocolAdapterFactory>();
+// builder.Services.AddSingleton<TokenReplacementService>();
+// builder.Services.AddSingleton<FileRetrievalMetricsService>();
 
 // Add controllers
 builder.Services.AddControllers();

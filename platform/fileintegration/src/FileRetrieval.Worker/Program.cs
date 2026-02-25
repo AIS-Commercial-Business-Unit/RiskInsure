@@ -1,12 +1,20 @@
 using FileRetrieval.Worker;
 using RiskInsure.FileRetrieval.Infrastructure;
 using RiskInsure.FileRetrieval.Infrastructure.Scheduling;
+using RiskInsure.FileRetrieval.Application.Services;
+using FileRetrieval.Application.Protocols;
 using NServiceBus;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 var host = Host.CreateDefaultBuilder(args)
+    .UseDefaultServiceProvider((context, options) =>
+    {
+        var isDevelopment = context.HostingEnvironment.IsDevelopment();
+        options.ValidateScopes = isDevelopment;
+        options.ValidateOnBuild = isDevelopment;
+    })
     .ConfigureServices((context, services) =>
     {
         // T143: Add Application Insights for distributed tracing

@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.DependencyInjection;
 using NServiceBus;
 using RiskInsure.FileRetrieval.Domain.Repositories;
 using RiskInsure.FileRetrieval.Infrastructure.Configuration;
@@ -17,7 +18,7 @@ namespace RiskInsure.FileRetrieval.Infrastructure.Scheduling;
 /// </summary>
 public class SchedulerHostedService : BackgroundService
 {
-    private readonly IFileRetrievalConfigurationRepository _configurationRepository;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ScheduleEvaluator _scheduleEvaluator;
     private readonly IMessageSession _messageSession;
     private readonly ILogger<SchedulerHostedService> _logger;
@@ -34,13 +35,13 @@ public class SchedulerHostedService : BackgroundService
     private readonly ConcurrentDictionary<Guid, DateTimeOffset> _inProgressChecks;
 
     public SchedulerHostedService(
-        IFileRetrievalConfigurationRepository configurationRepository,
+        IServiceScopeFactory scopeFactory,
         ScheduleEvaluator scheduleEvaluator,
         IMessageSession messageSession,
         IOptions<SchedulerOptions> options,
         ILogger<SchedulerHostedService> logger)
     {
-        _configurationRepository = configurationRepository ?? throw new ArgumentNullException(nameof(configurationRepository));
+        _scopeFactory = scopeFactory ?? throw new ArgumentNullException(nameof(scopeFactory));
         _scheduleEvaluator = scheduleEvaluator ?? throw new ArgumentNullException(nameof(scheduleEvaluator));
         _messageSession = messageSession ?? throw new ArgumentNullException(nameof(messageSession));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -111,8 +112,10 @@ public class SchedulerHostedService : BackgroundService
             // 1. Use a secondary index on NextScheduledRun for efficient queries
             // 2. Implement pagination for large numbers of configurations
             // 3. Use a distributed lock to prevent multiple instances from processing the same configuration
-            
-            var allConfigurations = await _configurationRepository.GetAllActiveConfigurationsAsync(cancellationToken);
+
+            using var scope = _scopeFactory.CreateScope();
+            var configurationRepository = scope.ServiceProvider.GetRequiredService<IFileRetrievalConfigurationRepository>();
+            var allConfigurations = await configurationRepository.GetAllActiveConfigurationsAsync(cancellationToken);
 
             _logger.LogDebug("Found {Count} active configurations to check", allConfigurations.Count());
 
