@@ -1,5 +1,7 @@
+/// <reference types="node" />
+
 import { test, expect } from '@playwright/test';
-import { randomUUID } from 'crypto';
+import { randomUUID } from 'node:crypto';
 
 /**
  * Billing Account Lifecycle Integration Tests
@@ -17,7 +19,6 @@ test.describe('Billing Account Lifecycle', () => {
   let accountId: string;
   let customerId: string;
   let policyNumber: string;
-  const baseUrl = process.env.API_BASE_URL || 'http://localhost:7071/api';
 
   test.beforeEach(() => {
     // Generate unique IDs for each test run
@@ -31,12 +32,12 @@ test.describe('Billing Account Lifecycle', () => {
     
     // Step 1: Verify account doesn't exist (404)
     console.log('📋 Step 1: Checking account does not exist...');
-    const getResponse1 = await request.get(`${baseUrl}/billing/accounts/${accountId}`);
+    const getResponse1 = await request.get(`/api/billing/accounts/${accountId}`);
     expect(getResponse1.status()).toBe(404);
 
     // Step 2: Create billing account
     console.log('📋 Step 2: Creating billing account...');
-    const createResponse = await request.post(`${baseUrl}/billing/accounts`, {
+    const createResponse = await request.post(`/api/billing/accounts`, {
       data: {
         accountId: accountId,
         customerId: customerId,
@@ -56,7 +57,7 @@ test.describe('Billing Account Lifecycle', () => {
 
     // Step 3: Verify account exists with correct initial state
     console.log('📋 Step 3: Verifying account initial state...');
-    const getResponse2 = await request.get(`${baseUrl}/billing/accounts/${accountId}`);
+    const getResponse2 = await request.get(`/api/billing/accounts/${accountId}`);
     expect(getResponse2.status()).toBe(200);
     
     const account1 = await getResponse2.json();
@@ -69,13 +70,13 @@ test.describe('Billing Account Lifecycle', () => {
 
     // Step 4: Activate account
     console.log('📋 Step 4: Activating account...');
-    const activateResponse = await request.post(`${baseUrl}/billing/accounts/${accountId}/activate`);
+    const activateResponse = await request.post(`/api/billing/accounts/${accountId}/activate`);
     expect(activateResponse.status()).toBe(200);
     console.log('✅ Step 4: Account activated');
 
     // Step 5: Verify account is now Active
     console.log('📋 Step 5: Verifying Active status...');
-    const getResponse3 = await request.get(`${baseUrl}/billing/accounts/${accountId}`);
+    const getResponse3 = await request.get(`/api/billing/accounts/${accountId}`);
     expect(getResponse3.status()).toBe(200);
     
     const account2 = await getResponse3.json();
@@ -84,7 +85,7 @@ test.describe('Billing Account Lifecycle', () => {
 
     // Step 6: Record first payment ($150)
     console.log('📋 Step 6: Recording first payment ($150)...');
-    const payment1Response = await request.post(`${baseUrl}/billing/payments`, {
+    const payment1Response = await request.post(`/api/billing/payments`, {
       data: {
         accountId: accountId,
         amount: 150.00,
@@ -98,7 +99,7 @@ test.describe('Billing Account Lifecycle', () => {
 
     // Step 7: Verify payment was applied
     console.log('📋 Step 7: Verifying first payment applied...');
-    const getResponse4 = await request.get(`${baseUrl}/billing/accounts/${accountId}`);
+    const getResponse4 = await request.get(`/api/billing/accounts/${accountId}`);
     expect(getResponse4.status()).toBe(200);
     
     const account3 = await getResponse4.json();
@@ -108,7 +109,7 @@ test.describe('Billing Account Lifecycle', () => {
 
     // Step 8: Record second payment ($200)
     console.log('📋 Step 8: Recording second payment ($200)...');
-    const payment2Response = await request.post(`${baseUrl}/billing/payments`, {
+    const payment2Response = await request.post(`/api/billing/payments`, {
       data: {
         accountId: accountId,
         amount: 200.00,
@@ -122,7 +123,7 @@ test.describe('Billing Account Lifecycle', () => {
 
     // Step 9: Verify total payments
     console.log('📋 Step 9: Verifying total payments...');
-    const getResponse5 = await request.get(`${baseUrl}/billing/accounts/${accountId}`);
+    const getResponse5 = await request.get(`/api/billing/accounts/${accountId}`);
     expect(getResponse5.status()).toBe(200);
     
     const account4 = await getResponse5.json();
@@ -132,7 +133,7 @@ test.describe('Billing Account Lifecycle', () => {
 
     // Step 10: Update premium
     console.log('📋 Step 10: Updating premium to $600...');
-    const updatePremiumResponse = await request.put(`${baseUrl}/billing/accounts/${accountId}/premium`, {
+    const updatePremiumResponse = await request.put(`/api/billing/accounts/${accountId}/premium`, {
       data: {
         newPremiumOwed: 600.00,
         changeReason: 'Premium increase due to policy change'
@@ -144,7 +145,7 @@ test.describe('Billing Account Lifecycle', () => {
 
     // Verify premium was updated
     console.log('📋 Step 10b: Verifying premium change...');
-    const getResponse6 = await request.get(`${baseUrl}/billing/accounts/${accountId}`);
+    const getResponse6 = await request.get(`/api/billing/accounts/${accountId}`);
     const account5 = await getResponse6.json();
     expect(account5.currentPremiumOwed).toBe(600.00);
     expect(account5.outstandingBalance).toBe(250.00); // 600 - 350 paid
@@ -152,7 +153,7 @@ test.describe('Billing Account Lifecycle', () => {
 
     // Step 11: Suspend account
     console.log('📋 Step 11: Suspending account...');
-    const suspendResponse = await request.post(`${baseUrl}/billing/accounts/${accountId}/suspend`, {
+    const suspendResponse = await request.post(`/api/billing/accounts/${accountId}/suspend`, {
       data: {
         suspensionReason: 'Non-payment'
       }
@@ -163,14 +164,14 @@ test.describe('Billing Account Lifecycle', () => {
 
     // Verify status is Suspended
     console.log('📋 Step 11b: Verifying Suspended status...');
-    const getResponse7 = await request.get(`${baseUrl}/billing/accounts/${accountId}`);
+    const getResponse7 = await request.get(`/api/billing/accounts/${accountId}`);
     const account6 = await getResponse7.json();
     expect(account6.status).toBe('Suspended');
     console.log('✅ Step 11b: Status is Suspended');
 
     // Step 12: Close account
     console.log('📋 Step 12: Closing account...');
-    const closeResponse = await request.post(`${baseUrl}/billing/accounts/${accountId}/close`, {
+    const closeResponse = await request.post(`/api/billing/accounts/${accountId}/close`, {
       data: {
         closureReason: 'Policy terminated'
       }
@@ -181,7 +182,7 @@ test.describe('Billing Account Lifecycle', () => {
 
     // Final verification
     console.log('📋 Step 13: Final verification...');
-    const getResponse8 = await request.get(`${baseUrl}/billing/accounts/${accountId}`);
+    const getResponse8 = await request.get(`/api/billing/accounts/${accountId}`);
     const finalAccount = await getResponse8.json();
     expect(finalAccount.status).toBe('Closed');
     console.log('✅ Test completed successfully! Status: Closed');
@@ -189,7 +190,7 @@ test.describe('Billing Account Lifecycle', () => {
 
   test('Get all accounts includes created account', async ({ request }) => {
     // Create an account
-    await request.post(`${baseUrl}/billing/accounts`, {
+    await request.post(`/api/billing/accounts`, {
       data: {
         accountId: accountId,
         customerId: customerId,
@@ -202,7 +203,7 @@ test.describe('Billing Account Lifecycle', () => {
     });
 
     // Get all accounts
-    const getAllResponse = await request.get(`${baseUrl}/billing/accounts`);
+    const getAllResponse = await request.get(`/api/billing/accounts`);
     expect(getAllResponse.status()).toBe(200);
     
     const accounts = await getAllResponse.json();
@@ -216,7 +217,7 @@ test.describe('Billing Account Lifecycle', () => {
 
   test('Payment validation - negative amount', async ({ request }) => {
     // Create and activate account
-    await request.post(`${baseUrl}/billing/accounts`, {
+    await request.post(`/api/billing/accounts`, {
       data: {
         accountId: accountId,
         customerId: customerId,
@@ -228,10 +229,10 @@ test.describe('Billing Account Lifecycle', () => {
       }
     });
     
-    await request.post(`${baseUrl}/billing/accounts/${accountId}/activate`);
+    await request.post(`/api/billing/accounts/${accountId}/activate`);
 
     // Try to record negative payment
-    const paymentResponse = await request.post(`${baseUrl}/billing/payments`, {
+    const paymentResponse = await request.post(`/api/billing/payments`, {
       data: {
         accountId: accountId,
         amount: -50.00,
@@ -252,7 +253,7 @@ test.describe('Billing Account Lifecycle', () => {
 
   test('Payment validation - exceeds balance', async ({ request }) => {
     // Create and activate account
-    await request.post(`${baseUrl}/billing/accounts`, {
+    await request.post(`/api/billing/accounts`, {
       data: {
         accountId: accountId,
         customerId: customerId,
@@ -264,10 +265,10 @@ test.describe('Billing Account Lifecycle', () => {
       }
     });
     
-    await request.post(`${baseUrl}/billing/accounts/${accountId}/activate`);
+    await request.post(`/api/billing/accounts/${accountId}/activate`);
 
     // Try to pay more than owed
-    const paymentResponse = await request.post(`${baseUrl}/billing/payments`, {
+    const paymentResponse = await request.post(`/api/billing/payments`, {
       data: {
         accountId: accountId,
         amount: 150.00, // More than $100 owed
@@ -288,7 +289,7 @@ test.describe('Billing Account Lifecycle', () => {
 
   test('Cannot record payment on inactive account', async ({ request }) => {
     // Create account but DON'T activate
-    await request.post(`${baseUrl}/billing/accounts`, {
+    await request.post(`/api/billing/accounts`, {
       data: {
         accountId: accountId,
         customerId: customerId,
@@ -301,7 +302,7 @@ test.describe('Billing Account Lifecycle', () => {
     });
 
     // Try to record payment on Pending account
-    const paymentResponse = await request.post(`${baseUrl}/billing/payments`, {
+    const paymentResponse = await request.post(`/api/billing/payments`, {
       data: {
         accountId: accountId,
         amount: 100.00,

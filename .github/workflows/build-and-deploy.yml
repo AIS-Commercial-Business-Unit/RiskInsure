@@ -1,4 +1,4 @@
-﻿name: 'Build & Deploy Services (Reusable)'
+name: 'Build & Deploy Services (Reusable)'
 
 on:
   workflow_call:
@@ -48,7 +48,7 @@ jobs:
   # ==========================================================================
   # Pre-Flight Checks - Verify UAMI exists before proceeding
   # ==========================================================================
-  preflight-checks:
+  preflight_checks:
     name: 'Pre-Flight Checks'
     runs-on: ubuntu-latest
 
@@ -84,10 +84,10 @@ jobs:
   # ==========================================================================
   # Parse Services
   # ==========================================================================
-  parse-services:
+  parse_services:
     name: 'Parse Services'
     runs-on: ubuntu-latest
-    needs: preflight-checks
+    needs: preflight_checks
 
     outputs:
       services_matrix: ${{ steps.parse.outputs.matrix }}
@@ -101,7 +101,7 @@ jobs:
           
           # If "all", expand to all services
           if [ "$SERVICES_INPUT" = "all" ]; then
-            SERVICES_INPUT="billing,policy,customer,fundstransfermgt,ratingunderwriting"
+            SERVICES_INPUT="billing,customer,file-retrieval,fundstransfermgt,policy,ratingunderwriting"
           fi
           
           # Convert "billing,policy,customer" -> ["billing","policy","customer"]
@@ -113,10 +113,10 @@ jobs:
   # ==========================================================================
   # Build & Push Docker Images (only if terraform_action == 'apply')
   # ==========================================================================
-  build-and-push:
+  build_and_push:
     name: 'Build & Push: ${{ matrix.service }}'
     runs-on: ubuntu-latest
-    needs: parse-services
+    needs: parse_services
     if: inputs.terraform_action == 'apply'
 
     permissions:
@@ -124,7 +124,7 @@ jobs:
       contents: read
 
     strategy:
-      matrix: ${{ fromJson(needs.parse-services.outputs.services_matrix) }}
+      matrix: ${{ fromJson(needs.parse_services.outputs.services_matrix) }}
       fail-fast: false
 
     steps:
@@ -204,13 +204,13 @@ jobs:
   # ==========================================================================
   # Deploy Container Apps (using Terraform)
   # ==========================================================================
-  deploy-apps:
+  deploy_apps:
     name: 'Deploy Container Apps'
     runs-on: ubuntu-latest
-    needs: [parse-services, build-and-push]
+    needs: [parse_services, build_and_push]
     if: |
       always() &&
-      (needs.build-and-push.result == 'success' || needs.build-and-push.result == 'skipped')
+      (needs.build_and_push.result == 'success' || needs.build_and_push.result == 'skipped')
 
     permissions:
       id-token: write
@@ -267,10 +267,10 @@ jobs:
   # ==========================================================================
   # Health Check (verify all services are running)
   # ==========================================================================
-  health-check:
+  health_check:
     name: 'Health Check: ${{ matrix.service }}'
     runs-on: ubuntu-latest
-    needs: [parse-services, deploy-apps]
+    needs: [parse_services, deploy_apps]
     if: inputs.terraform_action == 'apply'
 
     permissions:
