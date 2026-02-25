@@ -22,7 +22,6 @@ test.describe('Get Customer Quotes', () => {
     });
 
     test('should return all quotes for customer', async ({ request }) => {
-        test.setTimeout(60000); // Extended timeout for multiple API calls
         
         // Create multiple quotes for the same customer
         for (let i = 0; i < 3; i++) {
@@ -92,7 +91,6 @@ test.describe('Get Customer Quotes', () => {
     });
 
     test('should include premium in quoted quotes', async ({ request }) => {
-        test.setTimeout(60000); // Extended timeout for multiple API calls
         
         // Create and underwrite a quote
         const startResponse = await request.post('/api/quotes/start', {
@@ -134,7 +132,7 @@ test.describe('Get Customer Quotes', () => {
     });
 
     test('should return quotes in different statuses', async ({ request }) => {
-        test.setTimeout(90000); // Extended timeout for creating 3 quotes with different statuses
+        test.setTimeout(30000); // Extended timeout for creating 3 quotes with different statuses
         
         // Create draft quote
         const draftResponse = await request.post('/api/quotes/start', {
@@ -210,7 +208,7 @@ test.describe('Get Customer Quotes', () => {
     });
 
     test('should not return quotes from other customers', async ({ request }) => {
-        test.setTimeout(60000); // Extended timeout for multiple API calls
+        test.setTimeout(30000); // Extended timeout for multiple API calls
         
         // Create quote for this customer
         const response1 = await request.post('/api/quotes/start', {

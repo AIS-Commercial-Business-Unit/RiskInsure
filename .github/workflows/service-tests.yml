@@ -170,9 +170,6 @@ jobs:
           - service: ratingandunderwriting
             integration_tests_path: services/ratingandunderwriting/test/Integration.Tests
             api_var: API_RATINGANDUNDERWRITING_BASE_URL
-          - service: e2e
-            integration_tests_path: test/e2e
-            api_var: ''
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -192,37 +189,11 @@ jobs:
         run: npx playwright install --with-deps chromium
         working-directory: ${{ matrix.integration_tests_path }}
 
-      - name: Set API Base URL (Single Service)
+      - name: Set API Base URL
         if: matrix.api_var != ''
         run: |
           api_var="${{ matrix.api_var }}"
           echo "API_BASE_URL=${!api_var}" >> "$GITHUB_ENV"
-        working-directory: ${{ matrix.integration_tests_path }}
-
-      - name: Set API Base URLs (E2E)
-        if: matrix.service == 'e2e'
-        run: |
-          echo "API_BILLING_BASE_URL=${{ env.API_BILLING_BASE_URL }}" >> "$GITHUB_ENV"
-          echo "API_CUSTOMER_BASE_URL=${{ env.API_CUSTOMER_BASE_URL }}" >> "$GITHUB_ENV"
-          echo "API_FUNDSTRANSFERMGT_BASE_URL=${{ env.API_FUNDSTRANSFERMGT_BASE_URL }}" >> "$GITHUB_ENV"
-          echo "API_POLICY_BASE_URL=${{ env.API_POLICY_BASE_URL }}" >> "$GITHUB_ENV"
-          echo "API_RATINGANDUNDERWRITING_BASE_URL=${{ env.API_RATINGANDUNDERWRITING_BASE_URL }}" >> "$GITHUB_ENV"
-        working-directory: ${{ matrix.integration_tests_path }}
-
-      - name: Debug API Base URL
-        run: |
-          echo "service=${{ matrix.service }}"
-          if [[ "${{ matrix.service }}" == "e2e" ]]; then
-            echo "E2E Test - All API URLs:"
-            echo "API_BILLING_BASE_URL=${{ env.API_BILLING_BASE_URL }}"
-            echo "API_CUSTOMER_BASE_URL=${{ env.API_CUSTOMER_BASE_URL }}"
-            echo "API_FUNDSTRANSFERMGT_BASE_URL=${{ env.API_FUNDSTRANSFERMGT_BASE_URL }}"
-            echo "API_POLICY_BASE_URL=${{ env.API_POLICY_BASE_URL }}"
-            echo "API_RATINGANDUNDERWRITING_BASE_URL=${{ env.API_RATINGANDUNDERWRITING_BASE_URL }}"
-          else
-            echo "api_var=${{ matrix.api_var }}"
-            echo "API_BASE_URL=${API_BASE_URL}"
-          fi
         working-directory: ${{ matrix.integration_tests_path }}
 
       - name: Run Integration Tests
@@ -248,11 +219,84 @@ jobs:
           retention-days: 15
           if-no-files-found: warn
 
+  e2e-tests:
+      name: End-to-End Tests
+      runs-on: ubuntu-latest
+      needs: integration-tests
+      if: always() # Run even if some integration tests failed
+      environment: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || 'dev' }}
+
+      env:
+        API_BILLING_BASE_URL: ${{ vars.API_BILLING_BASE_URL }}
+        API_CUSTOMER_BASE_URL: ${{ vars.API_CUSTOMER_BASE_URL }}
+        API_FUNDSTRANSFERMGT_BASE_URL: ${{ vars.API_FUNDSTRANSFERMGT_BASE_URL }}
+        API_POLICY_BASE_URL: ${{ vars.API_POLICY_BASE_URL }}
+        API_RATINGANDUNDERWRITING_BASE_URL: ${{ vars.API_RATINGANDUNDERWRITING_BASE_URL }}
+
+      steps:
+        - name: Checkout code
+          uses: actions/checkout@v4
+
+        - name: Setup Node.js
+          uses: actions/setup-node@v4
+          with:
+            node-version: ${{ env.NODE_VERSION }}
+            cache: 'npm'
+            cache-dependency-path: test/e2e/package-lock.json
+
+        - name: Install Playwright Dependencies
+          run: npm install --no-audit --no-fund
+          working-directory: test/e2e
+
+        - name: Install Playwright Browsers
+          run: npx playwright install --with-deps chromium
+          working-directory: test/e2e
+
+        - name: Set E2E API Base URLs
+          run: |
+            echo "CUSTOMER_API_URL=${{ env.API_CUSTOMER_BASE_URL }}" >> "$GITHUB_ENV"
+            echo "RATINGANDUNDERWRITING_API_URL=${{ env.API_RATINGANDUNDERWRITING_BASE_URL }}" >> "$GITHUB_ENV"
+            echo "POLICY_API_URL=${{ env.API_POLICY_BASE_URL }}" >> "$GITHUB_ENV"
+            echo "BILLING_API_URL=${{ env.API_BILLING_BASE_URL }}" >> "$GITHUB_ENV"
+            echo "FUNDS_TRANSFER_API_URL=${{ env.API_FUNDSTRANSFERMGT_BASE_URL }}" >> "$GITHUB_ENV"
+
+        - name: Debug E2E Configuration
+          run: |
+            echo "E2E Test - All API URLs:"
+            echo "CUSTOMER_API_URL=$CUSTOMER_API_URL"
+            echo "RATINGANDUNDERWRITING_API_URL=$RATINGANDUNDERWRITING_API_URL"
+            echo "POLICY_API_URL=$POLICY_API_URL"
+            echo "BILLING_API_URL=$BILLING_API_URL"
+            echo "FUNDS_TRANSFER_API_URL=$FUNDS_TRANSFER_API_URL"
+
+        - name: Run E2E Tests
+          run: npm test
+          working-directory: test/e2e
+          env:
+            CI: true
+
+        - name: Upload E2E Test Results
+          uses: actions/upload-artifact@v4
+          if: always()
+          with:
+            name: e2e-test-results
+            path: test/e2e/test-results/
+            if-no-files-found: warn
+
+        - name: Upload E2E Playwright Report
+          uses: actions/upload-artifact@v4
+          if: always()
+          with:
+            name: e2e-playwright-report
+            path: test/e2e/playwright-report/
+            retention-days: 15
+            if-no-files-found: warn
+
   test-summary:
     name: Test Summary
     runs-on: ubuntu-latest
     environment: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || 'dev' }}
-    needs: [unit-tests, integration-tests]
+    needs: [unit-tests, integration-tests, e2e-tests]
     if: always()
 
     steps:
@@ -270,3 +314,4 @@ jobs:
             ./artifacts/**/*.xml
           check_name: Services Test Results
           comment_mode: always
+          
