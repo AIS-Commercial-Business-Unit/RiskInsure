@@ -3,6 +3,7 @@ using Microsoft.Azure.Cosmos;
 using RiskInsure.RatingAndUnderwriting.Domain.Managers;
 using RiskInsure.RatingAndUnderwriting.Domain.Repositories;
 using RiskInsure.RatingAndUnderwriting.Domain.Services;
+using RiskInsure.Observability;
 using Serilog;
 
 Log.Logger = new LoggerConfiguration()
@@ -23,6 +24,9 @@ try
         })
         .ConfigureServices((context, services) =>
         {
+            // OpenTelemetry → Application Insights (only active when APPLICATIONINSIGHTS_CONNECTION_STRING is set)
+            services.AddRiskInsureOpenTelemetry(context.Configuration, "RiskInsure.RatingAndUnderwriting.Endpoint");
+
             // Register Cosmos DB container
             var cosmosConnectionString = context.Configuration.GetConnectionString("CosmosDb")
                 ?? throw new InvalidOperationException("CosmosDb connection string not configured");

@@ -68,12 +68,54 @@ _logger.LogInformation($"Processing event {eventId} with status {status}");
 - Filtering by category
 - Namespace-based filtering
 
-### Application Insights Integration
-- Configuration for Azure
-- Custom telemetry
-- Performance tracking
-- Dependency tracking
-- Exception tracking
+### Application Insights Integration via OpenTelemetry
+
+All services export telemetry (traces, metrics, structured logs) to Azure Application Insights
+through OpenTelemetry using the shared `platform/observability/RiskInsure.Observability.csproj` project.
+
+**How it works**:
+- The `APPLICATIONINSIGHTS_CONNECTION_STRING` environment variable activates export
+- Azure Container Apps automatically injects this when Application Insights is linked
+- When the variable is absent (local dev), no exporter is registered — Serilog console logging is sufficient
+- NServiceBus 9.x automatically emits traces and metrics under the `NServiceBus.Core` ActivitySource
+
+**Wiring for API projects** (`Program.cs`):
+```csharp
+using RiskInsure.Observability;
+// ...
+builder.Services.AddRiskInsureOpenTelemetryForApi(builder.Configuration, "RiskInsure.{Service}.Api");
+```
+
+**Wiring for Endpoint.In projects** (`Program.cs`):
+```csharp
+using RiskInsure.Observability;
+// ...
+services.AddRiskInsureOpenTelemetry(context.Configuration, "RiskInsure.{Service}.Endpoint");
+```
+
+**What gets exported automatically**:
+- ASP.NET Core HTTP request/response traces and metrics (API projects)
+- NServiceBus message send/publish/process spans and metrics
+- Outbound HTTP client calls
+- .NET runtime metrics (GC, thread pool, etc.)
+- Structured log messages (ILogger) with scopes
+
+**Local development**: Developers see all relevant information through Serilog console output.
+No Application Insights resource is needed for local dev. If a developer wants to test
+Application Insights integration locally, they can set `APPLICATIONINSIGHTS_CONNECTION_STRING`
+in their `appsettings.Development.json` or as an environment variable:
+```json
+{
+  "APPLICATIONINSIGHTS_CONNECTION_STRING": "InstrumentationKey=...;IngestionEndpoint=..."
+}
+```
+
+**Pipeline / deployment**: The connection string should be configured as an Azure Container Apps
+secret or environment variable. When Application Insights is linked to the Container Apps
+environment, Azure injects `APPLICATIONINSIGHTS_CONNECTION_STRING` automatically — no
+per-environment configuration files are needed.
+
+**Reference**: https://docs.particular.net/nservicebus/operations/opentelemetry
 
 ### Performance Considerations
 - Avoid expensive operations in log messages

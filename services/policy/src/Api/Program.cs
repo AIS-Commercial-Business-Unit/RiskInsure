@@ -2,6 +2,7 @@ using Microsoft.Azure.Cosmos;
 using RiskInsure.Policy.Domain.Managers;
 using RiskInsure.Policy.Domain.Repositories;
 using RiskInsure.Policy.Domain.Services;
+using RiskInsure.Observability;
 using Scalar.AspNetCore;
 using Serilog;
 using RiskInsure.Policy.Infrastructure;
@@ -19,6 +20,9 @@ try
     var builder = WebApplication.CreateBuilder(args);
 
     builder.Host.UseSerilog();
+
+    // OpenTelemetry → Application Insights (only active when APPLICATIONINSIGHTS_CONNECTION_STRING is set)
+    builder.Services.AddRiskInsureOpenTelemetryForApi(builder.Configuration, "RiskInsure.Policy.Api");
 
     builder.Services.AddControllers()
         .AddJsonOptions(options =>

@@ -82,6 +82,11 @@ resource "azurerm_container_app" "billing_api" {
         value = "Billing"
       }
 
+      env {
+        name  = "APPLICATIONINSIGHTS_CONNECTION_STRING"
+        value = data.terraform_remote_state.foundation.outputs.application_insights_connection_string
+      }
+
     }
   }
 
@@ -173,6 +178,11 @@ resource "azurerm_container_app" "billing_endpoint" {
       env {
         name  = "CosmosDb__BillingContainerName"
         value = "Billing"
+      }
+
+      env {
+        name  = "APPLICATIONINSIGHTS_CONNECTION_STRING"
+        value = data.terraform_remote_state.foundation.outputs.application_insights_connection_string
       }
 
     }
