@@ -14,19 +14,19 @@ COPY ["Directory.Packages.props", "."]
 COPY ["platform/RiskInsure.PublicContracts/RiskInsure.PublicContracts.csproj", "platform/RiskInsure.PublicContracts/"]
 
 # Copy service projects
-COPY ["services/billing/src/Domain/Domain.csproj", "services/billing/src/Domain/"]
-COPY ["services/billing/src/Infrastructure/Infrastructure.csproj", "services/billing/src/Infrastructure/"]
-COPY ["services/billing/src/Endpoint.In/Endpoint.In.csproj", "services/billing/src/Endpoint.In/"]
+COPY ["services/customer/src/Domain/Domain.csproj", "services/customer/src/Domain/"]
+COPY ["services/customer/src/Infrastructure/Infrastructure.csproj", "services/customer/src/Infrastructure/"]
+COPY ["services/customer/src/Endpoint.In/Endpoint.In.csproj", "services/customer/src/Endpoint.In/"]
 
 # Restore dependencies
-RUN dotnet restore "services/billing/src/Endpoint.In/Endpoint.In.csproj"
+RUN dotnet restore "services/customer/src/Endpoint.In/Endpoint.In.csproj"
 
 # Copy remaining source code
 COPY ["platform/RiskInsure.PublicContracts/", "platform/RiskInsure.PublicContracts/"]
-COPY ["services/billing/", "services/billing/"]
+COPY ["services/customer/", "services/customer/"]
 
 # Build and publish
-WORKDIR "/src/services/billing/src/Endpoint.In"
+WORKDIR "/src/services/customer/src/Endpoint.In"
 RUN dotnet publish --no-restore -c Release -o /app/publish
 
 # Runtime stage

@@ -71,6 +71,7 @@ resource "azurerm_container_app" "billing_api" {
         secret_name = "servicebus-connection-string"
       }
 
+
       env {
         name  = "CosmosDb__DatabaseName"
         value = "RiskInsure"
@@ -80,6 +81,7 @@ resource "azurerm_container_app" "billing_api" {
         name  = "CosmosDb__BillingContainerName"
         value = "Billing"
       }
+
     }
   }
 
@@ -172,6 +174,7 @@ resource "azurerm_container_app" "billing_endpoint" {
         name  = "CosmosDb__BillingContainerName"
         value = "Billing"
       }
+
     }
 
 
