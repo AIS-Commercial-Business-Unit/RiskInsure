@@ -1,6 +1,6 @@
 using Microsoft.Azure.Cosmos;
 
-namespace Infrastructure;
+namespace RiskInsure.Policy.Infrastructure;
 
 public static class CosmosDbInitializer
 {

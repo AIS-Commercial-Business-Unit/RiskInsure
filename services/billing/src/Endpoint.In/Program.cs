@@ -2,11 +2,10 @@ using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using NServiceBus;
 using RiskInsure.Billing.Domain.Managers;
 using RiskInsure.Billing.Domain.Services.BillingDb;
 using Serilog;
-using Infrastructure;
+using RiskInsure.Billing.Infrastructure;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -18,7 +17,12 @@ try
 
     var host = Host.CreateDefaultBuilder(args)
         .UseSerilog()
-        .NServiceBusEnvironmentConfiguration("RiskInsure.Billing.Endpoint")
+        .NServiceBusEnvironmentConfiguration("RiskInsure.Billing.Endpoint",
+        (config, endpoint, routing) =>
+        {
+          // Route commands to Billing Endpoint
+          //  routing.RouteToEndpoint(typeof(RecordPayment), "RiskInsure.Billing.Endpoint");
+        })
         .ConfigureServices((context, services) =>
         {
             // Register Cosmos DB container for billing data (not sagas - sagas configured in NServiceBus persistence)

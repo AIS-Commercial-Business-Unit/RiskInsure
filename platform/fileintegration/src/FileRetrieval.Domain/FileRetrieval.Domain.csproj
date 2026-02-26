@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>RiskInsure.FileRetrieval.Domain</RootNamespace>
+  </PropertyGroup>
+
+  <!-- Domain layer - pure domain logic, no external dependencies -->
+
+</Project>

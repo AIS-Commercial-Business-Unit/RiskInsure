@@ -13,7 +13,7 @@ This agent maintains documentation in the **root `docs/` folder** covering:
 ### System-Level Documentation
 
 - **`docs/architecture.md`** - High-level system architecture
-  - Component diagram (Logic Apps, NServiceBus endpoints, Cosmos DB, Service Bus)
+   - Component diagram (Logic Apps, NServiceBus endpoints, Cosmos DB, RabbitMQ)
   - Data flow across services
   - Integration patterns
   - Technology stack overview
@@ -21,7 +21,7 @@ This agent maintains documentation in the **root `docs/` folder** covering:
 - **`docs/deployment-guide.md`** - Deployment procedures
   - Azure infrastructure setup
   - Container Apps configuration
-  - Service Bus topic/subscription topology
+   - RabbitMQ queue/exchange topology
   - Cosmos DB provisioning
   - Environment variables and secrets
 
@@ -184,7 +184,7 @@ RiskInsure is an event-driven insurance processing platform...
 
 ### Billing Service
 **Responsibility**: Invoice generation and billing cycles
-**Technology**: .NET 10, NServiceBus 10, Cosmos DB
+**Technology**: .NET 10, NServiceBus 9.x, Cosmos DB
 **Endpoints**: 
 - Billing.Api (HTTP API)
 - Billing.Endpoint.In (Message processing)
@@ -196,7 +196,7 @@ RiskInsure is an event-driven insurance processing platform...
 
 ## Infrastructure
 - Azure Container Apps for NServiceBus hosting
-- Azure Service Bus for messaging
+- RabbitMQ for messaging transport
 - Azure Cosmos DB (one container per service)
 ...
 ```

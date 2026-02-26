@@ -449,4 +449,4 @@ expect(finalResponse.status()).toBe(200);
 
 - [testing-standards.md](testing-standards.md) - Testing best practices and coverage requirements
 - [playwright-integration-testing.md](playwright-integration-testing.md) - Detailed Playwright patterns
-- [constitution.md](constitution.md) - Test coverage thresholds (Principle VIII)
+- [constitution.md](../.specify/memory/constitution.md) - Test coverage thresholds (Principle VIII)

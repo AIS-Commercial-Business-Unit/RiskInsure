@@ -1,0 +1,496 @@
+name: 'Build & Deploy Services (Reusable)'
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        type: string
+      services_to_deploy:
+        description: 'Comma-separated list of services (e.g., billing,policy,customer,fundstransfermgt,ratingunderwriting)'
+        required: true
+        type: string
+      acr_login_server:
+        description: 'ACR login server'
+        required: true
+        type: string
+      acr_name:
+        description: 'ACR name'
+        required: true
+        type: string
+      resource_group_name:
+        description: 'Resource group name'
+        required: true
+        type: string
+      apps_shared_identity_id:
+        description: 'User-assigned managed identity ID'
+        required: true
+        type: string
+      terraform_action:
+        description: 'Terraform action (plan or apply)'
+        required: false
+        type: string
+        default: 'plan'
+
+env:
+  TERRAFORM_VERSION: '1.11.4'
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: riskinsure-services-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  # ==========================================================================
+  # Pre-Flight Checks - Verify UAMI exists before proceeding
+  # ==========================================================================
+  preflight_checks:
+    name: 'Pre-Flight Checks'
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    outputs:
+      uami_id: ${{ steps.uami.outputs.uami_id }}
+
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Verify or Discover Managed Identity
+        id: uami
+        shell: bash
+        run: |
+          UAMI_ID="${{ inputs.apps_shared_identity_id }}"
+          RG="${{ inputs.resource_group_name }}"
+          ENV="${{ inputs.environment }}"
+          
+          echo "🔍 Verifying UAMI..."
+          echo "  Provided UAMI ID: ${UAMI_ID:-<empty>}"
+          echo "  Resource Group: $RG"
+          echo "  Environment: $ENV"
+          
+          # Auto-discovery if UAMI ID is missing or empty
+          if [ -z "$UAMI_ID" ] || [ "$UAMI_ID" = "N/A" ]; then
+            echo "⚠️  No valid UAMI ID provided - attempting auto-discovery..."
+            
+            UAMI_NAME="riskinsure-${ENV}-app-mi"
+            echo "🔍 Looking for UAMI: $UAMI_NAME in $RG"
+            
+            DISCOVERED_ID=$(az identity show -n "$UAMI_NAME" -g "$RG" --query "id" -o tsv 2>/dev/null || echo "")
+            
+            if [ -z "$DISCOVERED_ID" ] || [ "$DISCOVERED_ID" = "null" ]; then
+              echo "❌ ERROR: UAMI not found: $UAMI_NAME"
+              echo "❌ Searched in: $RG"
+              echo ""
+              echo "Available identities in resource group:"
+              az identity list -g "$RG" --query "[].{Name:name, ResourceGroup:resourceGroup}" -o table || echo "No identities found"
+              echo ""
+              echo "💡 Please run 'infrastructure-only' mode with terraform_action='apply' first to create the UAMI."
+              exit 1
+            else
+              echo "✅ Auto-discovered UAMI: $UAMI_NAME"
+              echo "   ID: $DISCOVERED_ID"
+              UAMI_ID="$DISCOVERED_ID"
+            fi
+          else
+            # Verify provided UAMI exists
+            UAMI_NAME=$(basename "$UAMI_ID")
+            VERIFIED_ID=$(az identity show -n "$UAMI_NAME" -g "$RG" --query "id" -o tsv 2>/dev/null || echo "")
+            
+            if [ -z "$VERIFIED_ID" ] || [ "$VERIFIED_ID" = "null" ]; then
+              echo "❌ ERROR: Provided UAMI not found: $UAMI_NAME"
+              echo "❌ Searched in: $RG"
+              exit 1
+            fi
+            
+            echo "✅ UAMI verified: $UAMI_NAME"
+          fi
+          
+          # Persist the final UAMI ID as job output
+          echo "uami_id=$UAMI_ID" >> "$GITHUB_OUTPUT"
+          
+          echo ""
+          echo "📋 Final UAMI ID: $UAMI_ID"
+
+  # ==========================================================================
+  # Parse Services
+  # ==========================================================================
+  parse_services:
+    name: 'Parse Services'
+    runs-on: ubuntu-latest
+    needs: preflight_checks
+
+    outputs:
+      services_matrix: ${{ steps.parse.outputs.matrix }}
+
+    steps:
+      - name: Parse services_to_deploy into JSON array
+        id: parse
+        shell: bash
+        run: |
+          SERVICES_INPUT="${{ inputs.services_to_deploy }}"
+          
+          # If "all", expand to all services
+          if [ "$SERVICES_INPUT" = "all" ]; then
+            SERVICES_INPUT="billing,customer,fundstransfermgt,policy,ratingunderwriting"
+          fi
+          
+          # Convert "billing,policy,customer" -> {"service":["billing","policy","customer"]}
+          # Use a single jq command to avoid GitHub Actions output quirks
+          MATRIX_JSON=$(echo "$SERVICES_INPUT" | jq -Rc 'split(",") | map(select(length > 0)) | {service: .}')
+          
+          echo "matrix=$MATRIX_JSON" >> "$GITHUB_OUTPUT"
+          
+          echo "✅ Parsed services matrix:"
+          echo "$MATRIX_JSON" | jq '.'
+
+  # ==========================================================================
+  # Build & Push Docker Images (always build to ensure images exist for plan/apply)
+  # ==========================================================================
+  build_and_push:
+    name: 'Build & Push: ${{ matrix.service }}'
+    runs-on: ubuntu-latest
+    needs: parse_services
+    # Always build images so Terraform can reference them in both plan and apply
+
+    permissions:
+      id-token: write
+      contents: read
+
+    strategy:
+      matrix: ${{ fromJson(needs.parse_services.outputs.services_matrix) }}
+      fail-fast: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: ACR Login
+        shell: bash
+        run: |
+          ACR_NAME="${{ inputs.acr_name }}"
+          echo "🔐 Logging into ACR: $ACR_NAME"
+          az acr login --name "$ACR_NAME"
+
+      - name: Determine service path and project prefix
+        id: paths
+        shell: bash
+        run: |
+          SERVICE="${{ matrix.service }}"
+          
+          # Map service names to correct directory, .NET project prefix, and image names
+          case "$SERVICE" in
+            file-retrieval)
+              SERVICE_DIR="platform/fileintegration"
+              PROJECT_PREFIX="FileRetrieval"
+              IMAGE_NAME="file-retrieval"
+              ;;
+            fundstransfermgt)
+              SERVICE_DIR="services/fundstransfermgt"
+              PROJECT_PREFIX="FundsTransferMgt"
+              IMAGE_NAME="fundstransfermgt"
+              ;;
+            ratingunderwriting)
+              SERVICE_DIR="services/ratingandunderwriting"
+              PROJECT_PREFIX="RatingUnderwriting"
+              IMAGE_NAME="ratingandunderwriting"
+              ;;
+            billing)
+              SERVICE_DIR="services/billing"
+              PROJECT_PREFIX="Billing"
+              IMAGE_NAME="billing"
+              ;;
+            customer)
+              SERVICE_DIR="services/customer"
+              PROJECT_PREFIX="Customer"
+              IMAGE_NAME="customer"
+              ;;
+            policy)
+              SERVICE_DIR="services/policy"
+              PROJECT_PREFIX="Policy"
+              IMAGE_NAME="policy"
+              ;;
+            *)
+              echo "❌ ERROR: Unknown service: $SERVICE"
+              exit 1
+              ;;
+          esac
+          
+          echo "service_dir=$SERVICE_DIR" >> "$GITHUB_OUTPUT"
+          echo "project_prefix=$PROJECT_PREFIX" >> "$GITHUB_OUTPUT"
+          echo "image_name=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
+          echo "✅ Service: $SERVICE → Dir: $SERVICE_DIR, Prefix: $PROJECT_PREFIX, Image: $IMAGE_NAME"
+
+      - name: Build API Image
+        shell: bash
+        run: |
+          SERVICE="${{ matrix.service }}"
+          SERVICE_DIR="${{ steps.paths.outputs.service_dir }}"
+          PROJECT_PREFIX="${{ steps.paths.outputs.project_prefix }}"
+          IMAGE_NAME="${{ steps.paths.outputs.image_name }}"
+          ACR_SERVER="${{ inputs.acr_login_server }}"
+          IMAGE_TAG="${{ github.sha }}"
+          
+          API_IMAGE="$ACR_SERVER/$IMAGE_NAME-api:$IMAGE_TAG"
+          
+          echo "🔨 Building API image: $API_IMAGE"
+          echo "   Dockerfile: $SERVICE_DIR/src/Api/Dockerfile"
+          
+          docker build \
+            -t "$API_IMAGE" \
+            -f "$SERVICE_DIR/src/Api/Dockerfile" \
+            --build-arg SERVICE_NAME=$SERVICE \
+            .
+          
+          docker push "$API_IMAGE"
+          echo "✅ API image pushed: $API_IMAGE"
+
+      - name: Build Endpoint.In Image
+        shell: bash
+        run: |
+          SERVICE="${{ matrix.service }}"
+          SERVICE_DIR="${{ steps.paths.outputs.service_dir }}"
+          PROJECT_PREFIX="${{ steps.paths.outputs.project_prefix }}"
+          IMAGE_NAME="${{ steps.paths.outputs.image_name }}"
+          ACR_SERVER="${{ inputs.acr_login_server }}"
+          IMAGE_TAG="${{ github.sha }}"
+          
+          ENDPOINT_IMAGE="$ACR_SERVER/$IMAGE_NAME-endpoint:$IMAGE_TAG"
+          
+          echo "🔨 Building Endpoint.In image: $ENDPOINT_IMAGE"
+          echo "   Dockerfile: $SERVICE_DIR/src/Endpoint.In/Dockerfile"
+          
+          docker build \
+            -t "$ENDPOINT_IMAGE" \
+            -f "$SERVICE_DIR/src/Endpoint.In/Dockerfile" \
+            --build-arg SERVICE_NAME=$SERVICE \
+            .
+          
+          docker push "$ENDPOINT_IMAGE"
+          echo "✅ Endpoint.In image pushed: $ENDPOINT_IMAGE"
+
+  # ==========================================================================
+  # Deploy Container Apps (using Terraform)
+  # ==========================================================================
+  deploy_apps:
+    name: 'Deploy Container Apps'
+    runs-on: ubuntu-latest
+    needs: [parse_services, build_and_push, preflight_checks]
+    if: |
+      always() &&
+      (needs.build_and_push.result == 'success' || needs.build_and_push.result == 'skipped')
+
+    permissions:
+      id-token: write
+      contents: read
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: platform/infra/services
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+
+      - name: Terraform Init
+        run: terraform init -input=false
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Build Terraform Targets
+        id: targets
+        shell: bash
+        run: |
+          SERVICES="${{ inputs.services_to_deploy }}"
+          
+          # If "all", don't use targeting (deploy everything)
+          if [ "$SERVICES" = "all" ]; then
+            echo "targets=" >> "$GITHUB_OUTPUT"
+            echo "✅ Deploying all services (no targeting)"
+            exit 0
+          fi
+          
+          # Build target flags for specific services
+          TARGETS=""
+          IFS=',' read -ra SERVICE_ARRAY <<< "$SERVICES"
+          for service in "${SERVICE_ARRAY[@]}"; do
+            service=$(echo "$service" | xargs)  # trim whitespace
+            
+            # Convert service name to terraform resource name (replace hyphens with underscores)
+            tf_service_name="${service//-/_}"
+            
+            # Handle special case: ratingunderwriting -> ratingandunderwriting in terraform
+            if [ "$service" = "ratingunderwriting" ]; then
+              tf_service_name="ratingandunderwriting"
+            fi
+            
+            # Add targets for both API and Endpoint containers
+            TARGETS="$TARGETS -target=azurerm_container_app.${tf_service_name}_api"
+            TARGETS="$TARGETS -target=azurerm_container_app.${tf_service_name}_endpoint"
+          done
+          
+          echo "targets=$TARGETS" >> "$GITHUB_OUTPUT"
+          echo "✅ Terraform targets: $TARGETS"
+
+      - name: Terraform Plan
+        run: |
+          terraform plan \
+            -var="environment=${{ inputs.environment }}" \
+            -var="image_tag=${{ github.sha }}" \
+            ${{ steps.targets.outputs.targets }} \
+            -out=tfplan \
+            -input=false
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Terraform Apply
+        if: inputs.terraform_action == 'apply'
+        run: terraform apply -auto-approve tfplan
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+  # ==========================================================================
+  # Health Check (verify all services are running)
+  # ==========================================================================
+  health_check:
+    name: 'Health Check: ${{ matrix.service }}'
+    runs-on: ubuntu-latest
+    needs: [parse_services, deploy_apps]
+    if: inputs.terraform_action == 'apply'
+
+    permissions:
+      id-token: write
+      contents: read
+
+    strategy:
+      matrix: ${{ fromJson(needs.parse_services.outputs.services_matrix) }}
+      fail-fast: false
+
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Determine Container App Names
+        id: app_names
+        shell: bash
+        run: |
+          SERVICE="${{ matrix.service }}"
+          
+          # Map service names to actual container app names (handle special cases)
+          case "$SERVICE" in
+            ratingunderwriting)
+              IMAGE_NAME="ratingandunderwriting"
+              ;;
+            *)
+              IMAGE_NAME="$SERVICE"
+              ;;
+          esac
+          
+          echo "image_name=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
+          echo "✅ Service: $SERVICE → Container Apps: ${IMAGE_NAME}-api, ${IMAGE_NAME}-endpoint"
+
+      - name: Check API Container App
+        shell: bash
+        run: |
+          RG="${{ inputs.resource_group_name }}"
+          IMAGE_NAME="${{ steps.app_names.outputs.image_name }}"
+          APP_NAME="$IMAGE_NAME-api"
+          
+          echo "🔍 Checking API: $APP_NAME (RG: $RG)"
+          
+          STATUS=$(az containerapp show \
+            --name "$APP_NAME" \
+            --resource-group "$RG" \
+            --query "properties.runningStatus" \
+            -o tsv 2>/dev/null || echo "NotFound")
+          
+          echo "Status: $STATUS"
+          
+          if [ "$STATUS" = "Running" ]; then
+            echo " $APP_NAME is running"
+          else
+            echo " $APP_NAME status: $STATUS"
+          fi
+
+      - name: Check Endpoint.In Container App
+        shell: bash
+        run: |
+          RG="${{ inputs.resource_group_name }}"
+          IMAGE_NAME="${{ steps.app_names.outputs.image_name }}"
+          APP_NAME="$IMAGE_NAME-endpoint"
+          
+          echo "🔍 Checking Endpoint: $APP_NAME (RG: $RG)"
+          
+          STATUS=$(az containerapp show \
+            --name "$APP_NAME" \
+            --resource-group "$RG" \
+            --query "properties.runningStatus" \
+            -o tsv 2>/dev/null || echo "NotFound")
+          
+          echo "Status: $STATUS"
+          
+          if [ "$STATUS" = "Running" ]; then
+            echo " $APP_NAME is running"
+          else
+            echo " $APP_NAME status: $STATUS"
+          fi
+
+      - name: Get Container App URL
+        shell: bash
+        run: |
+          RG="${{ inputs.resource_group_name }}"
+          IMAGE_NAME="${{ steps.app_names.outputs.image_name }}"
+          APP_NAME="$IMAGE_NAME-api"
+          
+          FQDN=$(az containerapp show \
+            --name "$APP_NAME" \
+            --resource-group "$RG" \
+            --query "properties.configuration.ingress.fqdn" \
+            -o tsv 2>/dev/null || echo "N/A")
+          
+          if [ "$FQDN" != "N/A" ]; then
+            echo " API URL: https://$FQDN"
+          else
+            echo " No FQDN available for $APP_NAME"
+          fi

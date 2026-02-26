@@ -79,7 +79,7 @@ Follow the interactive prompts.
 After initialization:
 
 1. **Review documentation**:
-   - [copilot-instructions/constitution.md](../copilot-instructions/constitution.md) - Architectural rules
+   - [.specify/memory/constitution.md](../.specify/memory/constitution.md) - Architectural rules
    - [copilot-instructions/project-structure.md](../copilot-instructions/project-structure.md) - Service template
 
 2. **Create service structure**:
@@ -116,7 +116,7 @@ After creating from template:
 - [ ] Update `CODEOWNERS` with your team/organization
 - [ ] Configure branch protection rules (require reviews)
 - [ ] Set up CI/CD workflows
-- [ ] Configure Azure resources (Cosmos DB, Service Bus)
+- [ ] Configure Azure resources (Cosmos DB) and RabbitMQ broker
 - [ ] Delete template-specific files (optional):
   - [ ] `scripts/Initialize-Template.ps1`
   - [ ] `.github/template-instructions.md` (this file)
@@ -157,7 +157,7 @@ After creating from template:
 ## ❓ FAQ
 
 **Q: Can I use this template for non-Azure projects?**  
-A: Yes, but you'll need to replace Azure-specific components (Cosmos DB, Service Bus, Container Apps). Update `constitution.md` Principle IX (Technology Constraints) with your stack.
+A: Yes, but you'll need to replace cloud-specific components as needed (e.g., Cosmos DB, RabbitMQ broker, Container Apps). Update `constitution.md` Principle IX (Technology Constraints) with your stack.
 
 **Q: What's the difference between `PublicContracts` and `ServiceName.Domain/Contracts`?**  
 A: `PublicContracts` contains **shared** events/commands used between services. `ServiceName.Domain/Contracts` contains **internal** contracts used only within that service.
@@ -179,7 +179,7 @@ A: Domain layer 90%+, Application layer 80%+. See `constitution.md` Principle VI
 ## 📖 Additional Resources
 
 - **[Template Initialization Guide](../docs/TEMPLATE-INITIALIZATION.md)** - Detailed setup instructions
-- **[Constitution](../copilot-instructions/constitution.md)** - Architectural principles
+- **[Constitution](../.specify/memory/constitution.md)** - Architectural principles
 - **[Project Structure](../copilot-instructions/project-structure.md)** - Service template
 - **[Copilot Instructions](copilot-instructions.md)** - Coding standards
 
@@ -189,7 +189,7 @@ A: Domain layer 90%+, Application layer 80%+. See `constitution.md` Principle VI
 
 **Issues with template**:
 - Check [TEMPLATE-INITIALIZATION.md](../docs/TEMPLATE-INITIALIZATION.md)
-- Review [constitution.md](../copilot-instructions/constitution.md)
+- Review [constitution.md](../.specify/memory/constitution.md)
 - File issue in template repository (not your project repo)
 
 **Issues with your project**:

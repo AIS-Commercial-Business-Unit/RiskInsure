@@ -31,7 +31,7 @@ Before invoking this agent, ensure:
 1. **Technical specification exists**: `services/{domain}/docs/technical/{domain}-technical-spec.md`
 2. **Business requirements exist**: `services/{domain}/docs/business/{domain}-business-requirements.md`
 3. **Cosmos DB Emulator running**: - this can be pulled from other domain appsettings.Development.json files
-4. **Azure Service Bus namespace created**: Connection string available - this can be pulled from other domain appsettings.Development.json files
+4. **RabbitMQ broker available**: Connection string available (e.g., `host=localhost;username=guest;password=guest`)
 5. **.NET 10 SDK installed**
 6. **Node.js installed** (for Playwright tests)
 
@@ -88,14 +88,13 @@ The agent **EXECUTES** this structured approach (actual file creation and builds
 5. **appsettings.Development.json.template** - Template with placeholders
 6. **Endpoint.In.csproj** - Project file
 
-### Phase 5a: Service Bus Queue Setup
-**CREATE** queue creation script:
-1. **../Infrastructure/queues.sh** - Bash script to create Service Bus queues and subscriptions
-   - Include shared infrastructure queues (error, audit, particular.monitoring)
-   - Create endpoint for this domain
-   - Add subscriptions for any PublicContracts events this domain subscribes to
-   - Make script executable with `chmod +x`
-   - Add usage instructions in comments
+### Phase 5a: RabbitMQ Topology Setup
+**CREATE** topology helper script:
+1. **../Infrastructure/queues.sh** - Bash script to verify/create RabbitMQ queues/exchanges/bindings as needed
+    - Include shared infrastructure queues (error, audit, particular.monitoring)
+    - Verify endpoint queue for this domain exists
+    - Make script executable with `chmod +x`
+    - Add usage instructions in comments
 
 ### Phase 6: Unit Tests
 **CREATE** actual test files:
@@ -234,7 +233,7 @@ test.skip('should cancel active policy', async ({ request }) => {
 - Use structured logging (not string concatenation)
 
 **Principle VI: Message-Based Integration**
-- Commands published to Service Bus
+- Commands sent via RabbitMQ transport
 - Events for cross-domain communication
 - All messages include MessageId, OccurredUtc, IdempotencyKey
 
@@ -366,55 +365,52 @@ public class {Event}Handler : IHandleMessages<{Event}>
 }
 ```
 
-### Service Bus Queue Setup Script (queues.sh)
+### RabbitMQ Topology Setup Script (queues.sh)
 ```bash
 #!/bin/bash
-# Azure Service Bus Queue Setup for {Domain} Service
-# Run this script after creating a Service Bus namespace to set up queues and subscriptions
+# RabbitMQ topology setup for {Domain} Service
+# Run this script after RabbitMQ is available to verify queues/exchanges/bindings
 
 set -e  # Exit on error
 
 # Check if connection string is set
-if [ -z "$AzureServiceBus_ConnectionString" ]; then
-    echo "❌ Error: AzureServiceBus_ConnectionString environment variable is not set"
+if [ -z "$RABBITMQ_CONNECTION_STRING" ]; then
+    echo "❌ Error: RABBITMQ_CONNECTION_STRING environment variable is not set"
     echo ""
     echo "Set it with:"
-    echo "  export AzureServiceBus_ConnectionString='Endpoint=sb://YOUR-NAMESPACE.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=YOUR-KEY'"
+    echo "  export RABBITMQ_CONNECTION_STRING='host=localhost;username=guest;password=guest'"
     echo ""
     exit 1
 fi
 
 echo "========================================="
-echo " Setting up {Domain} Service Queues"
+echo " Setting up {Domain} RabbitMQ Topology"
 echo "========================================="
 echo ""
 
-# Shared error and audit queues (run once per namespace)
-echo "Creating shared infrastructure queues..."
-asb-transport queue create error || echo "  ℹ️  Queue 'error' may already exist"
-asb-transport queue create audit || echo "  ℹ️  Queue 'audit' may already exist"
-asb-transport queue create particular.monitoring || echo "  ℹ️  Queue 'particular.monitoring' may already exist"
+# Shared error and audit queues (verify/create as needed)
+echo "Verifying shared infrastructure queues..."
+echo "  ℹ️  Ensure queues 'error', 'audit', and 'particular.monitoring' exist"
 echo ""
 
 # {Domain} service endpoint
-echo "Creating {Domain} endpoint..."
-asb-transport endpoint create RiskInsure.{Domain}.Endpoint
+echo "Verifying {Domain} endpoint queue..."
+echo "  ℹ️  Ensure queue 'RiskInsure.{Domain}.Endpoint' exists"
 echo ""
 
-# {Domain} service subscriptions (add one line per PublicContracts event subscribed to)
-echo "Creating {Domain} subscriptions..."
-# asb-transport endpoint subscribe RiskInsure.{Domain}.Endpoint RiskInsure.PublicContracts.Events.{EventName}
-echo "  ℹ️  No cross-domain subscriptions for {Domain} service"
+# {Domain} service bindings/subscriptions
+echo "Verifying {Domain} bindings/subscriptions..."
+echo "  ℹ️  Configure event bindings based on subscribed PublicContracts events"
 
 echo ""
-echo "✅ {Domain} service queues created successfully!"
+echo "✅ {Domain} RabbitMQ topology verified!"
 ```
 
 **⚠️ IMPORTANT**: When creating new domains:
 1. Create `queues.sh` in `services/{domain}/src/Infrastructure/`
 2. Make it executable: `chmod +x queues.sh`
-3. Add `asb-transport endpoint subscribe` lines for each PublicContracts event the domain subscribes to
-4. Document internal domain events (they don't need Service Bus subscriptions)
+3. Add queue/exchange binding checks for each PublicContracts event the domain subscribes to
+4. Document internal domain events (they don't need cross-domain bindings)
 
 The agent **EXECUTES AND VERIFIES** (not just checks):
 
@@ -496,7 +492,7 @@ The domain is complete when:
 5. ✅ Endpoint.In starts without "Production requires..." error
 6. ✅ Integration tests pass (Playwright UI mode)
 7. ✅ Swagger/Scalar UI accessible at `/scalar/v1`
-8. ✅ Events publish to Service Bus
+8. ✅ Events publish to RabbitMQ transport
 9. ✅ Cosmos DB container created with correct partition key
 10. ✅ No constitutional principle violations
 
@@ -595,7 +591,7 @@ Index the solution since there are additions into other projects for cross domai
 
 The agent uses these sources:
 1. **[copilot-instructions/project-structure.md](../copilot-instructions/project-structure.md)** - Layer responsibilities
-2. **[copilot-instructions/constitution.md](../copilot-instructions/constitution.md)** - Core principles
+2. **[.specify/memory/constitution.md](../.specify/memory/constitution.md)** - Core principles
 3. **[copilot-instructions/init.api.md](../copilot-instructions/init.api.md)** - API project setup
 4. **Technical specification** - Domain-specific requirements
 5. **Existing implementations** - Billing and FundsTransferMgt as patterns

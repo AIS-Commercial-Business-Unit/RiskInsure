@@ -7,7 +7,7 @@ End-to-end API integration tests using Playwright.
 - Node.js 18+ installed
 - Rating & Underwriting API running on http://localhost:7079
 - Cosmos DB Emulator running
-- Azure Service Bus connection configured
+- RabbitMQ connection configured
 
 ## Setup
 

@@ -192,7 +192,7 @@ Continue? (yes/no):
    
 2. **Configure local development**
    - Set up Cosmos DB emulator
-   - Set up Azure Service Bus
+   - Set up RabbitMQ broker
    
 3. **Define your domain**
    - Document terminology in domain-specific-standards.md
@@ -200,7 +200,7 @@ Continue? (yes/no):
 
 ## Reference Documentation
 
-- Constitution: copilot-instructions/constitution.md
+- Constitution: .specify/memory/constitution.md
 - Project Structure: copilot-instructions/project-structure.md
 - Template Guide: docs/TEMPLATE-INITIALIZATION.md
 ```
@@ -228,7 +228,7 @@ Next Steps:
   4. Run tests: dotnet test
 
 Documentation:
-  - Constitution:      copilot-instructions/constitution.md
+   - Constitution:      .specify/memory/constitution.md
   - Project Structure: copilot-instructions/project-structure.md
   - Copilot Rules:     .github/copilot-instructions.md
 
@@ -400,7 +400,7 @@ Expected:
 
 - **[TEMPLATE-INITIALIZATION.md](../docs/TEMPLATE-INITIALIZATION.md)**: Manual initialization guide
 - **[Initialize-Template.ps1](../scripts/Initialize-Template.ps1)**: Automated PowerShell script
-- **[constitution.md](../copilot-instructions/constitution.md)**: Architectural principles
+- **[constitution.md](../.specify/memory/constitution.md)**: Architectural principles
 - **[project-structure.md](../copilot-instructions/project-structure.md)**: Service template
 
 ---

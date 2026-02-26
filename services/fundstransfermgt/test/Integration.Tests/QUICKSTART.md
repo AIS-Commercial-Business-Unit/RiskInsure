@@ -7,7 +7,7 @@ This guide will help you run the comprehensive fund transfer end-to-end integrat
 - [ ] .NET 10 SDK installed
 - [ ] Node.js 18+ installed
 - [ ] Cosmos DB Emulator running
-- [ ] Azure Service Bus (connection string in appsettings.Development.json)
+- [ ] RabbitMQ (connection string in appsettings.Development.json)
 
 ## Step-by-Step Setup
 
@@ -52,7 +52,7 @@ Edit and add your connection strings:
 {
   "ConnectionStrings": {
     "CosmosDb": "AccountEndpoint=https://localhost:8081/;AccountKey=C2y6yDjf5...",
-    "ServiceBus": "Endpoint=sb://your-namespace.servicebus.windows.net/..."
+      "RabbitMQ": "host=localhost;username=guest;password=guest"
   }
 }
 ```
@@ -209,12 +209,12 @@ Stop-Process -Id <PID> -Force
 3. Restart emulator
 4. Check firewall isn't blocking localhost:8081
 
-### Service Bus Connection Failed
-**Error**: Cannot connect to Service Bus
+### RabbitMQ Connection Failed
+**Error**: Cannot connect to RabbitMQ
 
 **Solutions**:
-1. Verify Service Bus connection string in appsettings.Development.json
-2. Check Service Bus namespace exists in Azure
+1. Verify RabbitMQ connection string in appsettings.Development.json
+2. Check RabbitMQ broker is running and reachable
 3. Verify connection string has correct permissions
 
 ### Tests Fail with "Payment method not found"

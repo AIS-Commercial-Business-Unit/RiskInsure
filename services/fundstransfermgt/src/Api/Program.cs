@@ -169,7 +169,8 @@ try
 
             // Route commands to Fund Transfer Management Endpoint if needed
             // routing.RouteToEndpoint(typeof(SomeCommand), "RiskInsure.FundTransferMgt.Endpoint");
-        });
+        },
+        isSendOnly: true);
 
     var app = builder.Build();
 

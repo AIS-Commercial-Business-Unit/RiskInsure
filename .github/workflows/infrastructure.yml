@@ -1,0 +1,417 @@
+name: 'Infrastructure Provisioning (Reusable)'
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        type: string
+      terraform_layer:
+        description: 'Which layer to deploy'
+        required: true
+        type: string
+      terraform_action:
+        description: 'Terraform action (plan or apply)'
+        required: true
+        type: string
+    outputs:
+      resource_group_name:
+        description: 'Resource group name'
+        value: ${{ jobs.shared_services.outputs.resource_group_name }}
+      acr_login_server:
+        description: 'ACR login server'
+        value: ${{ jobs.foundation.outputs.acr_login_server }}
+      acr_name:
+        description: 'ACR name'
+        value: ${{ jobs.foundation.outputs.acr_name }}
+      apps_shared_identity_id:
+        description: 'User-assigned managed identity ID'
+        value: ${{ jobs.shared_services.outputs.apps_shared_identity_id }}
+
+env:
+  TERRAFORM_VERSION: '1.11.4'
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: riskinsure-infra-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  # ==========================================================================
+  # Foundation Layer (ACR, VNet, Log Analytics, KeyVault)
+  # ==========================================================================
+  foundation:
+    name: 'Foundation Layer'
+    if: |
+      inputs.terraform_layer == 'all' ||
+      inputs.terraform_layer == 'foundation'
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: platform/infra/foundation
+
+    outputs:
+      resource_group_name: ${{ steps.outputs.outputs.resource_group_name }}
+      acr_login_server: ${{ steps.outputs.outputs.acr_login_server }}
+      acr_name: ${{ steps.outputs.outputs.acr_name }}
+      key_vault_name: ${{ steps.outputs.outputs.key_vault_name }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+
+      - name: Terraform Init
+        run: terraform init -input=false
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        run: |
+          terraform plan \
+            -var="environment=${{ inputs.environment }}" \
+            -out=tfplan \
+            -input=false
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Terraform Apply
+        if: inputs.terraform_action == 'apply'
+        run: terraform apply -auto-approve tfplan
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Export Outputs
+        id: outputs
+        run: |
+          RG_OUT="$(terraform output -raw resource_group_name 2>/dev/null || true)"
+          if [ -z "$RG_OUT" ] || [ "$RG_OUT" = "null" ]; then
+            RG_OUT="CAIS-010-RiskInsure"
+          fi
+          echo "resource_group_name=$RG_OUT" >> "$GITHUB_OUTPUT"
+          
+          ACR_SERVER_OUT="$(terraform output -raw acr_login_server 2>/dev/null || true)"
+          if [ -z "$ACR_SERVER_OUT" ] || [ "$ACR_SERVER_OUT" = "null" ]; then
+            ACR_SERVER_OUT=""
+          fi
+          echo "acr_login_server=$ACR_SERVER_OUT" >> "$GITHUB_OUTPUT"
+          
+          ACR_NAME_OUT="$(terraform output -raw acr_name 2>/dev/null || true)"
+          if [ -z "$ACR_NAME_OUT" ] || [ "$ACR_NAME_OUT" = "null" ]; then
+            ACR_NAME_OUT=""
+          fi
+          echo "acr_name=$ACR_NAME_OUT" >> "$GITHUB_OUTPUT"
+          
+          KV_OUT="$(terraform output -raw key_vault_name 2>/dev/null || true)"
+          if [ -z "$KV_OUT" ] || [ "$KV_OUT" = "null" ]; then
+            KV_OUT="riskinsure-${{ inputs.environment }}-kv"
+          fi
+          echo "key_vault_name=$KV_OUT" >> "$GITHUB_OUTPUT"
+
+  # ==========================================================================
+  # Shared Services Layer (Cosmos DB, Service Bus, UAMI, Role Assignments)
+  # ==========================================================================
+  shared_services:
+    name: 'Shared Services & Identity'
+    needs: foundation
+    if: |
+      always() &&
+      (needs.foundation.result == 'success' || needs.foundation.result == 'skipped') &&
+      (inputs.terraform_layer == 'all' || inputs.terraform_layer == 'shared-services')
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: platform/infra/shared-services
+
+    outputs:
+      cosmosdb_endpoint: ${{ steps.outputs.outputs.cosmosdb_endpoint }}
+      cosmosdb_account_name: ${{ steps.outputs.outputs.cosmosdb_account_name }}
+      servicebus_namespace_fqdn: ${{ steps.outputs.outputs.servicebus_namespace_fqdn }}
+      apps_shared_identity_id: ${{ steps.outputs.outputs.apps_shared_identity_id }}
+      apps_shared_identity_principal_id: ${{ steps.outputs.outputs.apps_shared_identity_principal_id }}
+      apps_shared_identity_name: ${{ steps.outputs.outputs.apps_shared_identity_name }}
+      resource_group_name: ${{ steps.rg.outputs.resource_group_name }}
+      key_vault_name: ${{ steps.kv.outputs.key_vault_name }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve Resource Group (from foundation outputs or fallback)
+        id: rg
+        shell: bash
+        run: |
+          RG="${{ needs.foundation.outputs.resource_group_name }}"
+          if [ -z "$RG" ] || [ "$RG" = "null" ]; then
+            RG="CAIS-010-RiskInsure"
+          fi
+          echo "resource_group_name=$RG" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve Key Vault Name (from foundation outputs or fallback)
+        id: kv
+        shell: bash
+        run: |
+          KV="${{ needs.foundation.outputs.key_vault_name }}"
+          if [ -z "$KV" ] || [ "$KV" = "null" ]; then
+            KV="riskinsure-${{ inputs.environment }}-kv"
+          fi
+          echo "key_vault_name=$KV" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+
+      - name: Terraform Init
+        run: terraform init -input=false
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Select tfvars file
+        id: tfvars
+        run: |
+          ENV="${{ inputs.environment }}"
+          if [ -f "${ENV}.tfvars" ]; then
+            echo "file=${ENV}.tfvars" >> "$GITHUB_OUTPUT"
+          else
+            echo "file=" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Terraform Plan
+        run: |
+          if [ -n "${{ steps.tfvars.outputs.file }}" ]; then
+            terraform plan \
+              -var-file="${{ steps.tfvars.outputs.file }}" \
+              -out=tfplan \
+              -input=false
+          else
+            terraform plan \
+              -var="environment=${{ inputs.environment }}" \
+              -out=tfplan \
+              -input=false
+          fi
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Terraform Apply
+        if: inputs.terraform_action == 'apply'
+        run: terraform apply -auto-approve tfplan
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Export Outputs
+        id: outputs
+        run: |
+          echo "cosmosdb_endpoint=$(terraform output -raw cosmosdb_endpoint 2>/dev/null || echo '')" >> "$GITHUB_OUTPUT"
+          echo "cosmosdb_account_name=$(terraform output -raw cosmosdb_account_name 2>/dev/null || echo '')" >> "$GITHUB_OUTPUT"
+          echo "servicebus_namespace_fqdn=$(terraform output -raw servicebus_namespace_fqdn 2>/dev/null || echo '')" >> "$GITHUB_OUTPUT"
+          echo "apps_shared_identity_id=$(terraform output -raw apps_shared_identity_id 2>/dev/null || echo '')" >> "$GITHUB_OUTPUT"
+          echo "apps_shared_identity_principal_id=$(terraform output -raw apps_shared_identity_principal_id 2>/dev/null || echo '')" >> "$GITHUB_OUTPUT"
+          echo "apps_shared_identity_name=$(terraform output -raw apps_shared_identity_name 2>/dev/null || echo '')" >> "$GITHUB_OUTPUT"
+
+      - name: Azure Login
+        if: inputs.terraform_action == 'apply'
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Store Secrets in Key Vault
+        if: inputs.terraform_action == 'apply'
+        shell: bash
+        run: |
+          COSMOS_CONN=$(terraform output -raw cosmosdb_connection_string 2>/dev/null || echo "")
+          SERVICEBUS_CONN=$(terraform output -raw servicebus_connection_string 2>/dev/null || echo "")
+          KV_NAME="${{ steps.kv.outputs.key_vault_name }}"
+
+          echo "Using Key Vault: $KV_NAME"
+
+          if [ -n "$COSMOS_CONN" ]; then
+            az keyvault secret set --vault-name "$KV_NAME" \
+              --name "CosmosDbConnectionString" --value "$COSMOS_CONN" || echo " Key Vault not ready"
+          else
+            echo " Cosmos connection string output not found; skipping KV write"
+          fi
+
+          if [ -n "$SERVICEBUS_CONN" ]; then
+            az keyvault secret set --vault-name "$KV_NAME" \
+              --name "ServiceBusConnectionString" --value "$SERVICEBUS_CONN" || echo " Key Vault not ready"
+          else
+            echo " ServiceBus connection string output not found; skipping KV write"
+          fi
+
+  # ==========================================================================
+  # Wait for Role Assignment Propagation
+  # ==========================================================================
+  role_propagation_wait:
+    name: 'Wait for Role Propagation'
+    needs: shared_services
+    if: inputs.terraform_action == 'apply'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Display Infrastructure Summary
+        shell: bash
+        run: |
+          echo ""
+          echo " Infrastructure & Identity Setup Complete"
+          echo ""
+          echo ""
+          echo " SUMMARY:"
+          echo "  Environment: ${{ inputs.environment }}"
+          echo "  Resource Group: ${{ needs.shared_services.outputs.resource_group_name }}"
+          echo "  Key Vault: ${{ needs.shared_services.outputs.key_vault_name }}"
+          echo "  UAMI Name: ${{ needs.shared_services.outputs.apps_shared_identity_name }}"
+          echo "  UAMI Resource ID: ${{ needs.shared_services.outputs.apps_shared_identity_id }}"
+          echo "  UAMI Principal ID: ${{ needs.shared_services.outputs.apps_shared_identity_principal_id }}"
+          echo ""
+          echo " Waiting 60 seconds for role assignments to propagate..."
+          echo ""
+
+      - name: Wait 60 seconds for role propagation
+        run: sleep 60
+
+      - name: Propagation Complete
+        shell: bash
+        run: |
+          echo ""
+          echo " Role Propagation Complete!"
+          echo ""
+          echo ""
+          echo " Next Steps:"
+          echo "  1. Verify UAMI exists:"
+          echo "     az identity show -n ${{ needs.shared_services.outputs.apps_shared_identity_name }} -g ${{ needs.shared_services.outputs.resource_group_name }}"
+          echo ""
+          echo "  2. Verify roles assigned (use Principal ID):"
+          echo "     az role assignment list --assignee ${{ needs.shared_services.outputs.apps_shared_identity_principal_id }} -o table"
+          echo ""
+          echo "  3. Run main pipeline to deploy services."
+          echo ""
+
+  # ==========================================================================
+  # Verify Infrastructure & Permissions
+  # ==========================================================================
+  verify:
+    name: 'Verify Infrastructure & Permissions'
+    needs: [shared_services, role_propagation_wait]
+    if: inputs.terraform_action == 'apply'
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Verify UAMI Exists
+        shell: bash
+        run: |
+          RG="${{ needs.shared_services.outputs.resource_group_name }}"
+          UAMI_NAME="${{ needs.shared_services.outputs.apps_shared_identity_name }}"
+          echo " Verifying UAMI: $UAMI_NAME (RG: $RG)"
+
+          az identity show -n "$UAMI_NAME" -g "$RG" --query "id" -o tsv
+          echo " UAMI verified"
+
+      - name: Verify Role Assignments
+        shell: bash
+        run: |
+          PRINCIPAL_ID="${{ needs.shared_services.outputs.apps_shared_identity_principal_id }}"
+          echo " Verifying role assignments for UAMI principalId: $PRINCIPAL_ID"
+          az role assignment list --assignee "$PRINCIPAL_ID" --query "[].roleDefinitionName" -o table
+          echo " Role assignments verified"
+
+      - name: Verify Cosmos DB
+        shell: bash
+        run: |
+          RG="${{ needs.shared_services.outputs.resource_group_name }}"
+          COSMOS_ACCOUNT="${{ needs.shared_services.outputs.cosmosdb_account_name }}"
+          echo " Verifying Cosmos DB: $COSMOS_ACCOUNT (RG: $RG)"
+
+          if [ "$COSMOS_ACCOUNT" = "N/A" ] || [ -z "$COSMOS_ACCOUNT" ]; then
+            echo " Cosmos account output not available; skipping"
+            exit 0
+          fi
+
+          az cosmosdb show --name "$COSMOS_ACCOUNT" --resource-group "$RG" --query "endpoint" -o tsv
+          echo " Cosmos DB verified"
+
+      - name: Verify Service Bus
+        shell: bash
+        run: |
+          RG="${{ needs.shared_services.outputs.resource_group_name }}"
+          SERVICEBUS_FQDN="${{ needs.shared_services.outputs.servicebus_namespace_fqdn }}"
+          echo " Verifying Service Bus: $SERVICEBUS_FQDN (RG: $RG)"
+
+          if [ "$SERVICEBUS_FQDN" = "N/A" ] || [ -z "$SERVICEBUS_FQDN" ]; then
+            echo " Service Bus output not available; skipping"
+            exit 0
+          fi
+
+          NAMESPACE_NAME=$(echo "$SERVICEBUS_FQDN" | cut -d'.' -f1)
+          az servicebus namespace show --name "$NAMESPACE_NAME" --resource-group "$RG" --query "name" -o tsv
+          echo " Service Bus verified"
+
+      - name: Final Status
+        shell: bash
+        run: |
+          echo ""
+          echo ""
+          echo " ALL INFRASTRUCTURE & IDENTITY VERIFIED"
+          echo ""
+          echo ""
+          echo "Ready for application deployment."
+          echo ""

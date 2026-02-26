@@ -4,7 +4,7 @@ using RiskInsure.Policy.Domain.Repositories;
 using RiskInsure.Policy.Domain.Services;
 using Scalar.AspNetCore;
 using Serilog;
-using Infrastructure;
+using RiskInsure.Policy.Infrastructure;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -78,7 +78,8 @@ try
         (config, endpoint, routing) =>
         {
             endpoint.SendOnly();
-        });
+        },
+        isSendOnly: true);
 
     var app = builder.Build();
 

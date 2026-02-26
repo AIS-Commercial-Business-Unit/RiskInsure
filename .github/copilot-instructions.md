@@ -4,7 +4,7 @@
 
 ## Critical First Steps
 
-1. **Read the Constitution**: [copilot-instructions/constitution.md](../copilot-instructions/constitution.md) contains non-negotiable architectural rules
+1. **Read the Constitution**: [.specify/memory/constitution.md](../.specify/memory/constitution.md) contains non-negotiable architectural rules
 2. **Understand Project Structure**: [copilot-instructions/project-structure.md](../copilot-instructions/project-structure.md) defines the multi-layer template
 3. **Check Domain Standards**: Each service may have `docs/domain-specific-standards.md` (e.g., [FileIntegration standards](../platform/fileintegration/docs/filerun-processing-standards.md))
 
@@ -43,11 +43,11 @@ RiskInsure/
 
 ## Architecture Principles
 
-**Primary Reference**: [copilot-instructions/constitution.md](../copilot-instructions/constitution.md)
+**Primary Reference**: [.specify/memory/constitution.md](../.specify/memory/constitution.md)
 
 ### Core Patterns
 
-- **Event-Driven Architecture**: Services integrate via Azure Service Bus (NServiceBus 9.x)
+- **Event-Driven Architecture**: Services integrate via RabbitMQ transport (NServiceBus 9.x)
 - **Message-Based Integration**: Commands (imperative) and Events (past-tense) as C# records
 - **Single-Partition Cosmos DB**: One container per domain, partitioned by processing unit (`/fileRunId`, `/orderId`)
 - **Thin Message Handlers**: Validate → call Domain manager → publish events (no business logic in handlers)
@@ -72,7 +72,7 @@ RiskInsure/
 
 ### Azure Services
 - **Azure Cosmos DB**: Primary data store (NoSQL, single-partition strategy)
-- **Azure Service Bus**: Message transport (Standard SKU for dev)
+- **RabbitMQ**: Message transport (local container for dev, broker in hosted environments)
 - **Azure Container Apps**: NServiceBus endpoint hosting with KEDA scaling
 - **Azure Logic Apps Standard**: Orchestration workflows
 - **Azure Blob Storage**: Large payload storage
@@ -100,19 +100,8 @@ docker run -p 8081:8081 -p 10251-10254:10251-10254 `
   -e AZURE_COSMOS_EMULATOR_PARTITION_COUNT=10 `
   mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest
 
-# 3. Create Azure Service Bus namespace (one-time)
-az servicebus namespace create `
-  --resource-group riskinsure-dev `
-  --name riskinsure-dev-bus `
-  --location eastus `
-  --sku Standard
-
-# 4. Get connection string
-az servicebus namespace authorization-rule keys list `
-  --resource-group riskinsure-dev `
-  --namespace-name riskinsure-dev-bus `
-  --name RootManageSharedAccessKey `
-  --query primaryConnectionString -o tsv
+# 3. Start local RabbitMQ (one-time)
+docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management
 ```
 
 ### Configuration Files
@@ -123,7 +112,7 @@ az servicebus namespace authorization-rule keys list `
 {
   "ConnectionStrings": {
     "CosmosDb": "AccountEndpoint=https://localhost:8081/;AccountKey=C2y6yDjf5...",
-    "ServiceBus": "Endpoint=sb://riskinsure-dev-bus.servicebus.windows.net/..."
+    "RabbitMQ": "host=localhost;username=guest;password=guest"
   },
   "Logging": {
     "LogLevel": {
@@ -147,7 +136,7 @@ dotnet run
 # Terminal 2: Endpoint.In (Message handlers)
 cd services/billing/src/Endpoint.In
 dotnet run
-# Processes messages from Service Bus
+# Processes messages from RabbitMQ transport
 ```
 
 **Port Convention**: Each service uses `707X` for API, `707X+1` for Endpoint.In (Billing: 7071/7072).
@@ -207,9 +196,9 @@ var host = Host.CreateDefaultBuilder(args)
 - Enables installers (auto-creates queues)
 
 **Production mode** (automatic):
-- Uses Managed Identity (`DefaultAzureCredential`)
+- Uses RabbitMQ connection settings from `ConnectionStrings:RabbitMQ` or `RabbitMQ:ConnectionString`
 - Configures retry policies
-- Requires `AzureServiceBus:FullyQualifiedNamespace` and `CosmosDb:Endpoint` config
+- Requires broker connectivity and `CosmosDb:Endpoint` config
 
 ---
 
@@ -525,7 +514,7 @@ Each service MAY define domain-specific standards in `docs/domain-specific-stand
 
 ## Related Documentation
 
-- **[copilot-instructions/constitution.md](../copilot-instructions/constitution.md)** - Non-negotiable architectural rules (READ THIS FIRST)
+- **[.specify/memory/constitution.md](../.specify/memory/constitution.md)** - Non-negotiable architectural rules (READ THIS FIRST)
 - **[copilot-instructions/project-structure.md](../copilot-instructions/project-structure.md)** - Multi-layer project structure template
 - **[docs/architecture.md](../docs/architecture.md)** - System architecture overview (if exists)
 - **Service-specific standards**: `services/{ServiceName}/docs/domain-specific-standards.md`
@@ -544,7 +533,7 @@ Each service MAY define domain-specific standards in `docs/domain-specific-stand
 7. Document domain-specific standards
 
 ### When adding a feature:
-1. Review [constitution.md](../copilot-instructions/constitution.md) principles
+1. Review [constitution.md](../.specify/memory/constitution.md) principles
 2. Design messages (commands/events) first
 3. Write tests (TDD encouraged)
 4. Implement in Domain → Infrastructure → API order

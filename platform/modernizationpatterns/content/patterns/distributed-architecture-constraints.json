@@ -1,0 +1,102 @@
+{
+  "id": "distributed-architecture-constraints",
+  "slug": "distributed-architecture-constraints",
+  "title": "Recognize the fallacies of distributed architecture",
+  "category": "strategic",
+  "subcategory": "guardrails",
+  "summary": "Build cloud-native systems that recognize and mitigate the eight fallacies of distributed computing from the start.",
+  "decisionGuidance": {
+    "problemSolved": "Puts up front the constraints you need to consider when building your overall platform. Most systems fail because they ignore distributed systems fallacies like unreliable networks, latency, bandwidth limits, and changing topologies.",
+    "whenToUse": [
+      "Always — if you're building cloud-native applications",
+      "When you want predictable outcomes at scale",
+      "Multiple teams need consistency, transactional guarantees, security, bandwidth management, performance, and scalability",
+      "You're designing systems that must survive production conditions at large scale"
+    ],
+    "whenNotToUse": [
+      "Single-server applications with no distributed components",
+      "Short-lived prototypes that will never see production"
+    ]
+  },
+  "enablingTechnologies": [
+    "Messaging-based systems (RabbitMQ, Azure Service Bus)",
+    "Enterprise service bus frameworks (MassTransit, NServiceBus)",
+    "Event streaming platforms (Kafka, Azure Event Grid)",
+    "Retry libraries (Polly for transient and secondary retries)",
+    "Infrastructure as code (Terraform, Bicep)",
+    "Policy as code (OPA, Azure Policy)",
+    "Security as code (GitHub Advanced Security, SAST/DAST)",
+    "Architecture decision records (ADRs)",
+    "Reference architectures and templates"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "These constraints are not obvious at the beginning of projects — easy to ignore during development",
+      "Problems only show up in production at large scale when 'anything can happen'",
+      "Much harder to change architecture after system is built and deployed",
+      "Architects from single-application backgrounds don't see bandwidth limits, latency impacts, or topology changes",
+      "Testing and development environments don't expose these issues",
+      "Teams may resist constraints without understanding the production consequences"
+    ],
+    "opinionatedGuidance": "Enforce these constraints at the beginning. Force the system to understand that distributed systems are fundamentally different. Address as many of the eight fallacies as you can from day one. Use architectural governance to prevent teams from ignoring these realities. Build distributed thinking into your platform patterns and templates."
+  },
+  "complexity": {
+    "level": "high",
+    "rationale": "Not everyone thinks in terms of distributed architecture. Architects who grew up building single applications don't naturally see problems like bandwidth limits, topology changes, or network unreliability. Requires fundamental shift in thinking.",
+    "teamImpact": "Affects all teams — requires working in a certain way to achieve consistency, transactional integrity, security, bandwidth management, performance, and scalability across a large cloud-native system.",
+    "skillDemand": "Architectural governance, deep understanding of distributed systems concepts, knowledge of all eight fallacies and mitigation patterns. Many patterns in this catalog address these concerns.",
+    "operationalDemand": "High — requires DevOps practices that address constantly changing topology, infrastructure as code, automated deployment, monitoring, and observability.",
+    "toolingDemand": "Infrastructure as code, security as code, policy as code, messaging platforms, retry frameworks, templates, CI/CD validation, observability platforms."
+  },
+  "starterDiagram": {
+    "title": "Addressing the eight fallacies of distributed computing",
+    "description": "Build systems that recognize network unreliability, latency, bandwidth limits, security concerns, topology changes, multiple administrators, transport costs, and heterogeneous networks.",
+    "nodes": [
+      "Fallacy 1: Network is reliable → Use retries (transient & secondary), idempotency, dead-letter queues",
+      "Fallacy 2: Latency is zero → Use async messaging, fire-and-forget, CQRS patterns",
+      "Fallacy 3: Bandwidth is infinite → Keep messages small, reference by ID, avoid large payloads",
+      "Fallacy 4: Network is secure → Use managed identity, TLS, secrets management, encryption",
+      "Fallacy 5: Topology doesn't change → Use service discovery, infrastructure as code, dynamic scaling",
+      "Fallacy 6: One administrator → Use bounded contexts, event-driven architecture, observability",
+      "Fallacy 7: Transport cost is zero → Minimize calls, batch operations, optimize queries",
+      "Fallacy 8: Network is homogeneous → Use standard contracts, anti-corruption layers, versioning"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Large insurance company modernizing from mainframe to cloud with 7 different domain/business contexts. Each context had 3 running processes sharing the workload.",
+    "approach": "Built distributed systems from the ground up with fallacies in mind: implemented outbox pattern for reliable messaging, transient retry with Polly, secondary retry for delayed failures, never put large objects in message broker (reference by ID), infrastructure as code for topology changes, ability to scale individual components independently. Enforced constraints through architectural governance and templates.",
+    "outcome": "Successfully modernized off the mainframe and met project goals and deadlines. System could scale components as needed, redeploy when topology changed, and handle production conditions reliably. No surprises at scale because constraints were addressed from day one."
+  },
+  "relatedPatterns": [
+    "outbox-idempotency",
+    "saga-process-manager",
+    "replay-reprocessing",
+    "devsecops-first-class",
+    "bounded-context-first",
+    "event-driven-architecture"
+  ],
+  "furtherReading": [
+    {
+      "title": "Fallacies of Distributed Computing",
+      "sourceId": "fallacies-distributed-computing",
+      "link": "https://en.wikipedia.org/wiki/Fallacies_of_distributed_computing",
+      "citationRequired": false
+    },
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": "https://www.amazon.com/Architecture-Modernization-Socio-technical-alignment-structure/dp/1633438155",
+      "citationRequired": false
+    }
+  ],
+  "tags": [
+    "guardrails",
+    "governance",
+    "consistency",
+    "distributed-architecture",
+    "fallacies",
+    "reliability",
+    "scalability"
+  ],
+  "lastUpdated": "2026-02-18"
+}

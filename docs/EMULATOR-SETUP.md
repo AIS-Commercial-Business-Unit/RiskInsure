@@ -26,7 +26,7 @@ See [.devcontainer/README.md](.devcontainer/README.md) for full documentation.
 
 2. **Start emulators** (first time):
    ```bash
-   docker-compose up -d servicebus-emulator cosmos-emulator
+   docker-compose up -d rabbitmq cosmos-emulator
    ```
 
 3. **Wait for emulators to be ready** (~2-3 minutes):
@@ -34,7 +34,7 @@ See [.devcontainer/README.md](.devcontainer/README.md) for full documentation.
    # Check Cosmos DB (should return HTML)
    curl -k https://localhost:8081/_explorer/index.html
    
-   # Check Service Bus (should connect)
+   # Check RabbitMQ (should connect)
    nc -zv localhost 5672
    ```
 
@@ -65,7 +65,7 @@ docker-compose logs -f
 docker logs riskinsure-policy-api-1 -f
 
 # Emulators
-docker logs servicebus-emulator -f
+docker logs rabbitmq -f
 docker logs cosmos-emulator -f
 ```
 
@@ -91,13 +91,17 @@ docker-compose down -v
 
 If you prefer using real Azure resources for local development:
 
-1. **Create Azure resources**:
+1. **Create resources**:
    ```bash
    # Service Bus namespace (Standard SKU)
    az servicebus namespace create \
      --resource-group riskinsure-dev \
      --name riskinsure-dev-bus \
      --sku Standard
+   # RabbitMQ broker (example: local Docker)
+   docker run -d --name rabbitmq \
+      -p 5672:5672 -p 15672:15672 \
+       rabbitmq:3-management
 
    # Cosmos DB account (free tier)
    az cosmosdb create \
@@ -108,6 +112,8 @@ If you prefer using real Azure resources for local development:
 
 2. **Get connection strings**:
    ```bash
+   # RabbitMQ
+   echo "host=localhost;username=guest;password=guest"
    # Service Bus
    az servicebus namespace authorization-rule keys list \
      --resource-group riskinsure-dev \
@@ -127,6 +133,7 @@ If you prefer using real Azure resources for local development:
    ```bash
    cat > .env << EOF
    SERVICEBUS_CONNECTION_STRING="<your-service-bus-connection-string>"
+   RABBITMQ_CONNECTION_STRING="host=localhost;username=guest;password=guest"
    COSMOSDB_CONNECTION_STRING="<your-cosmos-connection-string>"
    EOF
    ```
@@ -151,18 +158,18 @@ If it fails, increase Docker memory to at least 4GB:
 - Docker Desktop: Settings → Resources → Memory → 4GB
 - Rancher Desktop: Preferences → Virtual Machine → Memory → 4GB
 
-### Service Bus Connection Errors
+### RabbitMQ Connection Errors
 
 Ensure the emulator is running:
 ```bash
-docker logs servicebus-emulator
+docker logs rabbitmq
 
-# Should see: "Service Bus Emulator is running"
+# Should see: RabbitMQ startup and health logs
 ```
 
 If connection fails:
 ```bash
-docker-compose restart servicebus-emulator
+docker-compose restart rabbitmq
 ```
 
 ### Port Conflicts
@@ -215,7 +222,7 @@ Run only services you need:
 docker-compose up -d customer-api ratingandunderwriting-api
 
 # Just emulators
-docker-compose up -d servicebus-emulator cosmos-emulator
+docker-compose up -d rabbitmq cosmos-emulator
 ```
 
 ## Comparison: Emulators vs Azure
@@ -237,4 +244,4 @@ docker-compose up -d servicebus-emulator cosmos-emulator
 - See [docs/getting-started.md](docs/getting-started.md) for architecture overview
 - See [docs/docker-development.md](docs/docker-development.md) for Docker workflows
 - See [test/e2e/README.md](test/e2e/README.md) for testing guide
-- See [copilot-instructions/constitution.md](copilot-instructions/constitution.md) for coding standards
+- See [.specify/memory/constitution.md](../.specify/memory/constitution.md) for coding standards

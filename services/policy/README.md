@@ -111,7 +111,7 @@ services/policy/
 
 ### External Dependencies
 - **Platform**: RiskInsure.PublicContracts (PolicyIssued, QuoteAccepted events)
-- **Infrastructure**: Azure Cosmos DB, Azure Service Bus
+- **Infrastructure**: Azure Cosmos DB, RabbitMQ transport
 
 ### Internal Dependencies
 - Api → Domain → Infrastructure
@@ -122,7 +122,7 @@ services/policy/
 ### Prerequisites
 - .NET 10 SDK
 - Azure Cosmos DB instance (or emulator)
-- Azure Service Bus namespace
+- RabbitMQ broker
 
 ### Configuration
 
@@ -130,7 +130,7 @@ services/policy/
 ```json
 {
   "ConnectionStrings": {
-    "ServiceBus": "Endpoint=sb://...",
+    "RabbitMQ": "host=...;username=...;password=...",
     "CosmosDb": "AccountEndpoint=https://..."
   },
   "CosmosDb": {
@@ -144,7 +144,7 @@ services/policy/
 ```json
 {
   "ConnectionStrings": {
-    "ServiceBus": "Endpoint=sb://...",
+    "RabbitMQ": "host=...;username=...;password=...",
     "CosmosDb": "AccountEndpoint=https://..."
   },
   "CosmosDb": {
@@ -168,7 +168,7 @@ dotnet run
 ```powershell
 cd services/policy/src/Endpoint.In
 dotnet run
-# Listens for QuoteAccepted events from Service Bus
+# Listens for QuoteAccepted events from RabbitMQ transport
 ```
 
 ### Testing
@@ -282,7 +282,7 @@ public async Task<Policy> CancelPolicyAsync(string policyId, DateTimeOffset canc
 **API fails to start**:
 - Verify port 7077 is available: `netstat -ano | findstr :7077`
 - Check connection strings in appsettings.Development.json
-- Ensure Cosmos DB and Service Bus are accessible
+- Ensure Cosmos DB and RabbitMQ are accessible
 
 **Endpoint.In shows "Production requires..." error**:
 - Verify launchSettings.json has `DOTNET_ENVIRONMENT=Development`
@@ -290,7 +290,7 @@ public async Task<Policy> CancelPolicyAsync(string policyId, DateTimeOffset canc
 
 **QuoteAccepted events not processed**:
 - Verify Endpoint.In is running
-- Check Service Bus queue `RiskInsure.Policy.Endpoint` exists
+- Check RabbitMQ queue `RiskInsure.Policy.Endpoint` exists
 - Review NServiceBus logs for routing issues
 
 **Policy number generation fails**:
@@ -305,7 +305,7 @@ public async Task<Policy> CancelPolicyAsync(string policyId, DateTimeOffset canc
 
 ## Constitutional Compliance
 
-This domain follows all principles from [constitution.md](../../../copilot-instructions/constitution.md):
+This domain follows all principles from [constitution.md](../../../.specify/memory/constitution.md):
 
 - ✅ **I. Domain Language**: Uses "Policy", "Bound", "Issued", "Cancelled" consistently
 - ✅ **II. Single-Partition Data Model**: `/policyId` partition key, all related data co-located

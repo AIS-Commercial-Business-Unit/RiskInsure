@@ -1,0 +1,83 @@
+{
+  "id": "time-as-ticks",
+  "slug": "time-as-ticks",
+  "title": "Time as ticks (configurable time progression)",
+  "category": "devops",
+  "subcategory": "operational-excellence",
+  "summary": "Design integration workflows and schedulers with injectable time providers so long-running processes can be tested in minutes instead of days.",
+  "decisionGuidance": {
+    "problemSolved": "Testing time-dependent workflows requires waiting for actual time to pass, making integration tests slow and impractical. Time becomes friction in the development cycle.",
+    "whenToUse": [
+      "You have workflows that span hours, days, or weeks",
+      "Batch processes, schedulers, or polling mechanisms control flow",
+      "Integration tests need to validate timeout, retry, or expiration logic",
+      "Time is a key actor in business process orchestration"
+    ],
+    "whenNotToUse": [
+      "System has no time-dependent behavior",
+      "Retrofitting existing systems without time abstraction (high cost)",
+      "Real-time systems where actual clock behavior is critical to validate"
+    ]
+  },
+  "enablingTechnologies": [
+    "Dependency injection frameworks",
+    "Time provider abstractions (IClock, TimeProvider)",
+    "Workflow engines with time control APIs",
+    "Test frameworks with time mocking"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Must be designed in from the start—retrofitting is expensive",
+      "All time-dependent code must use the abstraction consistently",
+      "Production configuration must use real time (avoid accidental acceleration)",
+      "Time zones and daylight saving can complicate testing"
+    ],
+    "opinionatedGuidance": "Treat time as a collaborator, not a global constant. Inject a time provider at workflow/process boundaries. In production, it returns actual time. In tests, you control ticks explicitly. This is architectural—cannot be added late without refactoring."
+  },
+  "complexity": {
+    "level": "high",
+    "rationale": "Requires upfront architectural discipline to abstract time consistently across all time-dependent components. Retrofitting is prohibitively expensive.",
+    "teamImpact": "multi-team",
+    "skillDemand": "Developers must understand dependency injection, time abstractions, and test design patterns.",
+    "operationalDemand": "Low once implemented—configuration switches between real/test time.",
+    "toolingDemand": "Time provider interfaces, DI container, workflow engine with time control."
+  },
+  "starterDiagram": {
+    "title": "Time abstraction flow",
+    "description": "Inject time provider; tests control ticks.",
+    "nodes": [
+      "Time Provider Interface",
+      "Production: Real Clock",
+      "Test: Controlled Ticks",
+      "Workflow/Scheduler",
+      "Fast Integration Tests"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Payment processing workflow with 3-day settlement window and retry logic",
+    "approach": "Injected ITimeProvider into workflow engine. Production uses SystemClock. Tests use TestClock that advances time on demand. 72-hour workflow validated in 2 minutes.",
+    "outcome": "Integration test suite runs in minutes instead of days. Timeout, retry, and expiration logic fully validated without waiting."
+  },
+  "relatedPatterns": [
+    "durable-file-processing",
+    "saga-process-manager",
+    "replay-reprocessing",
+    "developer-experience-kpi"
+  ],
+  "furtherReading": [
+    {
+      "title": "Time abstraction patterns in testing",
+      "sourceId": "testing-patterns",
+      "link": null,
+      "citationRequired": false
+    }
+  ],
+  "tags": [
+    "testing",
+    "time",
+    "workflow",
+    "integration-testing",
+    "developer-productivity"
+  ],
+  "lastUpdated": "2026-02-17"
+}

@@ -17,9 +17,9 @@ docker run -p 8081:8081 -p 10251-10254:10251-10254 `
   mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator:latest
 ```
 
-**Azure Service Bus**:
-- Create namespace: `riskinsure-dev-bus` (Standard SKU)
-- Get connection string from Azure Portal
+**RabbitMQ**:
+- Start broker (for local): `docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 rabbitmq:3-management`
+- Use connection string: `host=localhost;username=guest;password=guest`
 
 ### 2. Configuration
 
@@ -30,7 +30,7 @@ Create `appsettings.Development.json` in each project:
 {
   "ConnectionStrings": {
     "CosmosDb": "AccountEndpoint=https://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==",
-    "ServiceBus": "Endpoint=sb://riskinsure-dev-bus.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=YOUR_KEY_HERE"
+    "RabbitMQ": "host=localhost;username=guest;password=guest"
   },
   "Logging": {
     "LogLevel": {
@@ -52,7 +52,7 @@ Create `appsettings.Development.json` in each project:
 {
   "ConnectionStrings": {
     "CosmosDb": "AccountEndpoint=https://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==",
-    "ServiceBus": "Endpoint=sb://riskinsure-dev-bus.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=YOUR_KEY_HERE"
+    "RabbitMQ": "host=localhost;username=guest;password=guest"
   },
   "Logging": {
     "LogLevel": {
@@ -68,7 +68,7 @@ Create `appsettings.Development.json` in each project:
 {
   "ConnectionStrings": {
     "CosmosDb": "AccountEndpoint=https://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==",
-    "ServiceBus": "Endpoint=sb://riskinsure-dev-bus.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=YOUR_KEY_HERE"
+    "RabbitMQ": "host=localhost;username=guest;password=guest"
   },
   "Logging": {
     "LogLevel": {
@@ -92,7 +92,7 @@ dotnet run
 ```powershell
 cd services/fundstransfermgt/src/Endpoint.In
 dotnet run
-# Processes messages from Service Bus
+# Processes messages from RabbitMQ transport
 ```
 
 **Terminal 3 - Billing Endpoint.In**:
@@ -214,7 +214,7 @@ Content-Type: application/json
    - CaptureCode populated
    - SettledUtc not null
 
-2. **FundsSettled event published** to Service Bus:
+2. **FundsSettled event published** to RabbitMQ transport:
    ```json
    {
      "messageId": "guid",
@@ -304,7 +304,7 @@ Content-Type: application/json
 
 **Verification**:
 1. **Refund document created** in FundTransferMgt-Transactions container
-2. **FundsRefunded event published** to Service Bus
+2. **FundsRefunded event published** to RabbitMQ transport
 3. **Check logs** in Billing Endpoint.In terminal:
    ```
    [Information] Received FundsRefunded event for customer CUST-E2E-TEST-001, refund amount 50.00
@@ -348,7 +348,7 @@ GET http://localhost:7071/api/billing-accounts/BA-xxx
 ### Issue: FundsSettled event not received by Billing
 
 **Diagnosis**:
-1. Check Service Bus topic exists
+1. Check RabbitMQ queues/exchanges exist
 2. Verify Billing Endpoint.In subscribed to topic
 3. Check NServiceBus configuration in both endpoints
 4. Verify PublicContracts referenced in both projects
@@ -440,4 +440,4 @@ After successful E2E test:
 2. **Add error handling tests** (authorization failures, invalid cards, etc.)
 3. **Test concurrent scenarios** (multiple transfers in parallel)
 4. **Add monitoring** (Application Insights, metrics)
-5. **Deploy to Azure** (Container Apps, managed Cosmos DB, Service Bus)
+5. **Deploy to Azure** (Container Apps, managed Cosmos DB, RabbitMQ or equivalent broker)

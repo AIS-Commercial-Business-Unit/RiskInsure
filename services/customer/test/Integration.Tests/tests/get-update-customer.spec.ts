@@ -1,20 +1,34 @@
 import { test, expect } from '@playwright/test';
 
+import { randomUUID } from 'node:crypto';
+
 test.describe('Customer API - Get and Update Customer', () => {
   let customerId: string;
 
   test.beforeAll(async ({ request }) => {
     // Create a customer for testing
-    customerId = crypto.randomUUID();
-    
-    await request.post('/api/customers', {
+    const email = `test-${randomUUID()}@example.com`;
+
+    const createResponse = await request.post('/api/customers', {
       data: {
-        customerId: customerId,
-        email: `test-${customerId}@example.com`,
-        birthDate: '1990-05-15T00:00:00Z',
-        zipCode: '90210'
+        firstName: 'Test',
+        lastName: 'User',
+        email: email,
+        phone: '+1-555-1234',
+        address: {
+          street: '123 Main St',
+          city: 'Beverly Hills',
+          state: 'CA',
+          zipCode: '90210'
+        },
+        birthDate: '1990-05-15T00:00:00Z'
       }
     });
+
+    expect(createResponse.status()).toBe(201);
+    const created = await createResponse.json();
+    customerId = created.customerId;
+    expect(customerId).toBeDefined();
   });
 
   test('should retrieve customer by ID', async ({ request }) => {
@@ -29,7 +43,7 @@ test.describe('Customer API - Get and Update Customer', () => {
   });
 
   test('should return 404 for non-existent customer', async ({ request }) => {
-    const nonExistentId = crypto.randomUUID();
+    const nonExistentId = randomUUID();
     
     const response = await request.get(`/api/customers/${nonExistentId}`);
 
@@ -56,9 +70,9 @@ test.describe('Customer API - Get and Update Customer', () => {
     const customer = await response.json();
     expect(customer.firstName).toBe('John');
     expect(customer.lastName).toBe('Doe');
-    expect(customer.phoneNumber).toBe('+1-555-1234');
-    expect(customer.mailingAddress).toBeDefined();
-    expect(customer.mailingAddress.city).toBe('Beverly Hills');
+    expect(customer.phone).toBe('+1-555-1234');
+    expect(customer.address).toBeDefined();
+    expect(customer.address.city).toBe('Beverly Hills');
   });
 
   test('should handle partial updates', async ({ request }) => {

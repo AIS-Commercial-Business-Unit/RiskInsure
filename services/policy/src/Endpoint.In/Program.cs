@@ -6,7 +6,7 @@ using RiskInsure.Policy.Domain.Managers;
 using RiskInsure.Policy.Domain.Repositories;
 using RiskInsure.Policy.Domain.Services;
 using Serilog;
-using Infrastructure;
+using RiskInsure.Policy.Infrastructure;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -56,7 +56,12 @@ try
     });
 
     // Configure NServiceBus
-    builder.NServiceBusEnvironmentConfiguration("RiskInsure.Policy.Endpoint");
+    builder.NServiceBusEnvironmentConfiguration("RiskInsure.Policy.Endpoint",
+        (config, endpoint, routing) =>
+        {
+          // Route commands to Billing Endpoint
+          //  routing.RouteToEndpoint(typeof(RecordPayment), "RiskInsure.Billing.Endpoint");
+        });
 
     var host = builder.Build();
     await host.RunAsync();

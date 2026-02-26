@@ -1,0 +1,15 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/FileRetrieval.API/FileRetrieval.API.csproj" />
+    <Project Path="src/FileRetrieval.Application/FileRetrieval.Application.csproj" />
+    <Project Path="src/FileRetrieval.Contracts/FileRetrieval.Contracts.csproj" />
+    <Project Path="src/FileRetrieval.Domain/FileRetrieval.Domain.csproj" />
+    <Project Path="src/FileRetrieval.Infrastructure/FileRetrieval.Infrastructure.csproj" />
+    <Project Path="src/FileRetrieval.Worker/FileRetrieval.Worker.csproj" />
+  </Folder>
+  <Folder Name="/test/">
+    <Project Path="test/FileRetrieval.Application.Tests/FileRetrieval.Application.Tests.csproj" />
+    <Project Path="test/FileRetrieval.Domain.Tests/FileRetrieval.Domain.Tests.csproj" />
+    <Project Path="test/FileRetrieval.Integration.Tests/FileRetrieval.Integration.Tests.csproj" />
+  </Folder>
+</Solution>

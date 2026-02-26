@@ -1,0 +1,71 @@
+{
+  "id": "center-of-excellence-timeboxed",
+  "slug": "center-of-excellence-timeboxed",
+  "title": "Center of Excellence (time-boxed)",
+  "category": "enablement",
+  "subcategory": "governance",
+  "summary": "A temporary structure to set standards, seed capability, and then transition ownership to platform and product teams.",
+  "decisionGuidance": {
+    "problemSolved": "Permanent CoEs become bottlenecks; modernization needs scalable ownership.",
+    "whenToUse": [
+      "You need to standardize quickly across regions",
+      "Capability is immature"
+    ],
+    "whenNotToUse": [
+      "You already have mature platform teams and standards"
+    ]
+  },
+  "enablingTechnologies": [
+    "Standards repo",
+    "Playbooks",
+    "Pattern catalog"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "CoE hoards decisions",
+      "No exit plan"
+    ],
+    "opinionatedGuidance": "Define the sunset plan on day one: what moves to platform team, what moves to governance."
+  },
+  "complexity": {
+    "level": "medium",
+    "rationale": "Useful early, risky if permanent.",
+    "teamImpact": "multi-team",
+    "skillDemand": "Enterprise governance and enablement leadership.",
+    "operationalDemand": "Moderate—sets standards that drive ops outcomes.",
+    "toolingDemand": "Docs, policy checks, templates."
+  },
+  "starterDiagram": {
+    "title": "Seed then transition",
+    "description": "CoE defines then hands off.",
+    "nodes": [
+      "CoE",
+      "Standards",
+      "Platform team",
+      "Product teams"
+    ]
+  },
+  "realWorldExample": {
+    "context": "Early platform adoption",
+    "approach": "Ran a CoE for 90 days to establish standards then transitioned ownership.",
+    "outcome": "Faster alignment with less long-term centralization."
+  },
+  "relatedPatterns": [
+    "platform-team-model",
+    "distributed-architecture-constraints"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": "https://www.amazon.com/Architecture-Modernization-Socio-technical-alignment-structure/dp/1633438155",
+      "citationRequired": false
+    }
+  ],
+  "tags": [
+    "coe",
+    "governance",
+    "standards"
+  ],
+  "lastUpdated": "2026-02-17"
+}

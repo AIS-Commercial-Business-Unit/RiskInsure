@@ -191,7 +191,7 @@ Event-driven .NET 10 monorepo using NServiceBus, Azure Cosmos DB, and Azure Cont
 ## 🏗️ Architecture
 
 This repository implements an **event-driven architecture** with:
-- **NServiceBus 10** for message-based integration via Azure Service Bus
+- **NServiceBus 9.x** for message-based integration via RabbitMQ transport
 - **Azure Cosmos DB** for single-partition NoSQL persistence
 - **Azure Container Apps** for hosting NServiceBus endpoints with KEDA scaling
 - **Azure Logic Apps Standard** for orchestration workflows
@@ -260,7 +260,7 @@ See [copilot-instructions/project-structure.md](copilot-instructions/project-str
 
 ## 📖 Documentation
 
-- **[Constitution](copilot-instructions/constitution.md)** - Non-negotiable architectural rules
+- **[Constitution](.specify/memory/constitution.md)** - Non-negotiable architectural rules
 - **[Project Structure](copilot-instructions/project-structure.md)** - Bounded context template
 - **[Copilot Instructions](.github/copilot-instructions.md)** - Coding assistant rules
 - **[Template Initialization](docs/TEMPLATE-INITIALIZATION.md)** - How this template was initialized
@@ -278,7 +278,7 @@ See [SECURITY.md](SECURITY.md) for vulnerability reporting.
 
 ## 📋 Contributing
 
-1. Review [constitution.md](copilot-instructions/constitution.md) principles
+1. Review [constitution.md](.specify/memory/constitution.md) principles
 2. Follow [project-structure.md](copilot-instructions/project-structure.md) template
 3. Ensure test coverage meets thresholds
 4. All PRs require review from @your-org/contributors
@@ -328,7 +328,7 @@ $initDocPath = "docs/TEMPLATE-INITIALIZATION.md"
 
 2. **Configure local development**
    - Set up Cosmos DB emulator
-   - Set up Azure Service Bus (local emulator or cloud)
+   - Set up Azure Service Bus (cloud) or RabbitMQ (local container or managed broker)
    - Copy appsettings.Development.json.template files
 
 3. **Define your domain**
@@ -338,7 +338,7 @@ $initDocPath = "docs/TEMPLATE-INITIALIZATION.md"
 
 4. **Set up CI/CD**
    - Configure GitHub Actions workflows
-   - Set up Azure resources (Cosmos DB, Service Bus, Container Apps)
+    - Set up Azure resources (Cosmos DB, Service Bus or RabbitMQ broker, Container Apps)
 
 ## Template Cleanup (Optional)
 
@@ -348,7 +348,7 @@ You can now delete these template-specific files:
 
 ## Reference Documentation
 
-- **[Constitution](../copilot-instructions/constitution.md)** - Architectural principles
+- **[Constitution](../.specify/memory/constitution.md)** - Architectural principles
 - **[Project Structure](../copilot-instructions/project-structure.md)** - Service template
 - **[Copilot Instructions](../.github/copilot-instructions.md)** - Coding standards
 "@ | Set-Content -Path $initDocPath
@@ -386,6 +386,6 @@ Write-Host "  3. Run: dotnet build"
 Write-Host "  4. Run: dotnet test`n"
 
 Write-Host "Documentation:" -ForegroundColor Yellow
-Write-Host "  - Constitution:      copilot-instructions/constitution.md"
+Write-Host "  - Constitution:      .specify/memory/constitution.md"
 Write-Host "  - Project Structure: copilot-instructions/project-structure.md"
 Write-Host "  - Copilot Rules:     .github/copilot-instructions.md`n"
