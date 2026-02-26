@@ -22,5 +22,6 @@
     <ProjectReference Include="..\Domain\Domain.csproj" />
     <ProjectReference Include="..\Infrastructure\Infrastructure.csproj" />
     <ProjectReference Include="..\..\..\..\platform\RiskInsure.PublicContracts\RiskInsure.PublicContracts.csproj" />
+    <ProjectReference Include="..\..\..\..\platform\observability\RiskInsure.Observability.csproj" />
   </ItemGroup>
 </Project>

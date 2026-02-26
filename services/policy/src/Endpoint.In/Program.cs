@@ -5,6 +5,7 @@ using Microsoft.Extensions.Hosting;
 using RiskInsure.Policy.Domain.Managers;
 using RiskInsure.Policy.Domain.Repositories;
 using RiskInsure.Policy.Domain.Services;
+using RiskInsure.Observability;
 using Serilog;
 using RiskInsure.Policy.Infrastructure;
 using System.Text.Json;
@@ -24,6 +25,9 @@ try
 
     builder.ConfigureServices((context, services) =>
     {
+        // OpenTelemetry → Application Insights (only active when APPLICATIONINSIGHTS_CONNECTION_STRING is set)
+        services.AddRiskInsureOpenTelemetry(context.Configuration, "RiskInsure.Policy.Endpoint");
+
         // Configure Cosmos DB with custom serializer
         var cosmosConnectionString = context.Configuration.GetConnectionString("CosmosDb")
             ?? throw new InvalidOperationException("CosmosDb connection string not configured");

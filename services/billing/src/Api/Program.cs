@@ -4,6 +4,7 @@ using RiskInsure.Billing.Domain.Contracts.Commands;
 using RiskInsure.Billing.Domain.Managers;
 using RiskInsure.Billing.Domain.Services.BillingDb;
 using RiskInsure.Billing.Infrastructure;
+using RiskInsure.Observability;
 using Scalar.AspNetCore;
 using Serilog;
 
@@ -19,6 +20,9 @@ try
 
     // Configure Serilog
     builder.Host.UseSerilog();
+
+    // OpenTelemetry → Application Insights (only active when APPLICATIONINSIGHTS_CONNECTION_STRING is set)
+    builder.Services.AddRiskInsureOpenTelemetryForApi(builder.Configuration, "RiskInsure.Billing.Api");
 
     // Add controllers with JSON options for enum string conversion
     builder.Services.AddControllers()

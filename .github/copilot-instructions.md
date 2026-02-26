@@ -16,6 +16,7 @@
 RiskInsure/
 ├── platform/                         # Shared infrastructure
 │   ├── RiskInsure.PublicContracts/   # Cross-service message contracts
+│   ├── observability/                # Shared OpenTelemetry + App Insights config
 │   ├── fileintegration/contracts/    # ACH/NACHA processing contracts
 │   ├── infra/                        # Terraform templates
 │   └── templates/                    # Dockerfile.api, Dockerfile.endpoint
@@ -72,10 +73,21 @@ RiskInsure/
 
 ### Azure Services
 - **Azure Cosmos DB**: Primary data store (NoSQL, single-partition strategy)
+- **Azure Application Insights**: Observability via OpenTelemetry (`platform/observability/`)
 - **RabbitMQ**: Message transport (local container for dev, broker in hosted environments)
 - **Azure Container Apps**: NServiceBus endpoint hosting with KEDA scaling
 - **Azure Logic Apps Standard**: Orchestration workflows
 - **Azure Blob Storage**: Large payload storage
+
+### Observability (OpenTelemetry + Application Insights)
+- Shared project: `platform/observability/RiskInsure.Observability.csproj`
+- All Api and Endpoint.In projects MUST reference this shared project
+- Api projects call `services.AddRiskInsureOpenTelemetryForApi(configuration, serviceName)` in `Program.cs`
+- Endpoint.In projects call `services.AddRiskInsureOpenTelemetry(configuration, serviceName)` in `Program.cs`
+- Telemetry is exported to Application Insights **only** when `APPLICATIONINSIGHTS_CONNECTION_STRING` is set
+- Azure Container Apps injects this automatically when Application Insights is linked — no per-environment config needed
+- Locally, no exporter is registered — Serilog console logging provides developer visibility
+- NServiceBus 9.x `NServiceBus.Core` traces and metrics are captured automatically
 
 
 ---
@@ -529,8 +541,9 @@ Each service MAY define domain-specific standards in `docs/domain-specific-stand
 3. Add Infrastructure layer (handlers, repositories)
 4. Add API layer (HTTP endpoints)
 5. Configure Endpoint.In (NServiceBus hosting)
-6. **Add all projects to RiskInsure.slnx** using `dotnet sln add <path-to-csproj>`
-7. Document domain-specific standards
+6. **Add OpenTelemetry**: Reference `platform/observability/RiskInsure.Observability.csproj` from Api and Endpoint.In, call `AddRiskInsureOpenTelemetryForApi` / `AddRiskInsureOpenTelemetry` in `Program.cs`
+7. **Add all projects to RiskInsure.slnx** using `dotnet sln add <path-to-csproj>`
+8. Document domain-specific standards
 
 ### When adding a feature:
 1. Review [constitution.md](../.specify/memory/constitution.md) principles

@@ -1,5 +1,8 @@
 <Solution>
   <Folder Name="/platform/" />
+  <Folder Name="/platform/observability/">
+    <Project Path="platform/observability/RiskInsure.Observability.csproj" />
+  </Folder>
   <Folder Name="/platform/publiccontracts/">
     <Project Path="platform/RiskInsure.PublicContracts/RiskInsure.PublicContracts.csproj" />
   </Folder>

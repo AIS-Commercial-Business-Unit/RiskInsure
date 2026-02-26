@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using RiskInsure.Billing.Domain.Managers;
 using RiskInsure.Billing.Domain.Services.BillingDb;
+using RiskInsure.Observability;
 using Serilog;
 using RiskInsure.Billing.Infrastructure;
 
@@ -25,6 +26,9 @@ try
         })
         .ConfigureServices((context, services) =>
         {
+            // OpenTelemetry → Application Insights (only active when APPLICATIONINSIGHTS_CONNECTION_STRING is set)
+            services.AddRiskInsureOpenTelemetry(context.Configuration, "RiskInsure.Billing.Endpoint");
+
             // Register Cosmos DB container for billing data (not sagas - sagas configured in NServiceBus persistence)
             var cosmosConnectionString = context.Configuration.GetConnectionString("CosmosDb")
                 ?? throw new InvalidOperationException("CosmosDb connection string not configured");

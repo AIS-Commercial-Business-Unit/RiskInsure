@@ -127,7 +127,7 @@ This constitution defines **non-negotiable architectural rules** for all project
 
 ### V. Structured Observability
 
-**The Rule**: All logs and telemetry MUST include relevant correlation identifiers.
+**The Rule**: All logs and telemetry MUST include relevant correlation identifiers. All services MUST configure OpenTelemetry with Application Insights export for production environments.
 
 **Requirements**:
 - Include processing run identifier (e.g., `fileRunId`, `batchId`) in all logs
@@ -135,6 +135,15 @@ This constitution defines **non-negotiable architectural rules** for all project
 - Include correlation ID from message context
 - Include operation name for all logged operations
 - Use structured logging (not string concatenation)
+
+**OpenTelemetry Requirements**:
+- All Api and Endpoint.In projects MUST reference `platform/observability/RiskInsure.Observability.csproj`
+- Api projects MUST call `services.AddRiskInsureOpenTelemetryForApi(configuration, serviceName)` at startup
+- Endpoint.In projects MUST call `services.AddRiskInsureOpenTelemetry(configuration, serviceName)` at startup
+- Telemetry (traces, metrics, logs) is exported to Application Insights only when `APPLICATIONINSIGHTS_CONNECTION_STRING` is set
+- Locally, no Application Insights exporter is registered — Serilog console logging provides developer visibility
+- NServiceBus 9.x `NServiceBus.Core` ActivitySource is automatically captured by the shared configuration
+- Azure Container Apps automatically injects `APPLICATIONINSIGHTS_CONNECTION_STRING` when Application Insights is linked — no per-environment configuration is needed
 
 **Log Levels**:
 - **Information**: State transitions, completion events, normal operations
@@ -226,6 +235,8 @@ This constitution defines **non-negotiable architectural rules** for all project
 - ✅ NServiceBus 9.x+ with Azure Service Bus and RabbitMQ transport
 - ✅ Azure Logic Apps Standard for orchestration workflows
 - ✅ Azure Container Apps for hosting NServiceBus endpoints
+- ✅ Azure Application Insights via OpenTelemetry (`Azure.Monitor.OpenTelemetry.Exporter`)
+- ✅ OpenTelemetry for distributed tracing, metrics, and log export
 - ✅ xUnit for testing
 
 **Prohibited Technologies**:

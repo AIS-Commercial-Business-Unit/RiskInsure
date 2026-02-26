@@ -4,6 +4,7 @@ using NServiceBus;
 using RiskInsure.RatingAndUnderwriting.Domain.Managers;
 using RiskInsure.RatingAndUnderwriting.Domain.Repositories;
 using RiskInsure.RatingAndUnderwriting.Domain.Services;
+using RiskInsure.Observability;
 using Serilog;
 using Scalar.AspNetCore;
 
@@ -17,6 +18,9 @@ Log.Logger = new LoggerConfiguration()
     .CreateLogger();
 
 builder.Host.UseSerilog();
+
+// OpenTelemetry → Application Insights (only active when APPLICATIONINSIGHTS_CONNECTION_STRING is set)
+builder.Services.AddRiskInsureOpenTelemetryForApi(builder.Configuration, "RiskInsure.RatingAndUnderwriting.Api");
 
 // NServiceBus (send-only endpoint for API)
 builder.Host.NServiceBusEnvironmentConfiguration("RiskInsure.RatingAndUnderwriting.Api",

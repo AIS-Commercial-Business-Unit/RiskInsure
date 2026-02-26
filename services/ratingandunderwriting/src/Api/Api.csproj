@@ -20,6 +20,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Domain\Domain.csproj" />
     <ProjectReference Include="..\Infrastructure\Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\..\platform\observability\RiskInsure.Observability.csproj" />
   </ItemGroup>
 
 </Project>

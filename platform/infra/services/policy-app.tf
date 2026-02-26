@@ -80,6 +80,11 @@ resource "azurerm_container_app" "policy_api" {
         secret_name = "servicebus-connection-string"
       }
 
+      env {
+        name  = "APPLICATIONINSIGHTS_CONNECTION_STRING"
+        value = data.terraform_remote_state.foundation.outputs.application_insights_connection_string
+      }
+
     }
   }
 
@@ -174,7 +179,12 @@ resource "azurerm_container_app" "policy_endpoint" {
         name        = "ConnectionStrings__ServiceBus"
         secret_name = "servicebus-connection-string"
       }
- 
+
+      env {
+        name  = "APPLICATIONINSIGHTS_CONNECTION_STRING"
+        value = data.terraform_remote_state.foundation.outputs.application_insights_connection_string
+      }
+
     }
 
   }
