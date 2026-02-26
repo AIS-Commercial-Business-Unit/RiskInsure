@@ -18,8 +18,8 @@ test.describe('Submit Underwriting', () => {
         propertyZipCode: '60601'
       }
     });
-
-    expect(response.status()).toBe(201);
+    
+    expect(response.status(), `StartQuote failed with ${response.status()} - cannot proceed without a valid quoteId`).toBe(201);
 
     const result = await response.json();
     quoteId = result.quoteId;
