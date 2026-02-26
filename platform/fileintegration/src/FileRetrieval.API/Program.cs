@@ -3,8 +3,10 @@ using RiskInsure.FileRetrieval.Application.Services;
 using FileRetrieval.Application.Protocols;
 using NServiceBus;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Logging;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Text.RegularExpressions;
 using Microsoft.OpenApi.Models;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
@@ -28,15 +30,6 @@ builder.Services.AddApplicationInsightsTelemetry(options =>
 
 // Add infrastructure services (Cosmos DB, repositories, Key Vault)
 builder.Services.AddInfrastructure(builder.Configuration);
-
-// Defensive registration for message handler dependencies
-// (keeps startup resilient if an older infrastructure assembly is loaded)
-// builder.Services.AddScoped<ConfigurationService>();
-// builder.Services.AddScoped<ExecutionHistoryService>();
-// builder.Services.AddScoped<FileCheckService>();
-// builder.Services.AddScoped<ProtocolAdapterFactory>();
-// builder.Services.AddSingleton<TokenReplacementService>();
-// builder.Services.AddSingleton<FileRetrievalMetricsService>();
 
 // Add controllers
 builder.Services.AddControllers();
@@ -176,6 +169,9 @@ var audience = jwtSettings["Audience"] ?? throw new InvalidOperationException("J
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        options.IncludeErrorDetails = true;
+        options.UseSecurityTokenValidators = true;
+
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -190,16 +186,58 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
         options.Events = new JwtBearerEvents
         {
+            OnMessageReceived = context =>
+            {
+                var authHeader = context.Request.Headers.Authorization.ToString();
+
+                if (string.IsNullOrWhiteSpace(authHeader))
+                {
+                    return Task.CompletedTask;
+                }
+
+                var token = authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
+                    ? authHeader["Bearer ".Length..]
+                    : authHeader;
+
+                token = token.Trim().Trim('"').Replace("\r", string.Empty).Replace("\n", string.Empty);
+
+                // Remove any non-base64url characters that may be introduced by client/header formatting
+                var normalizedToken = Regex.Replace(token, "[^A-Za-z0-9\\-_.]", string.Empty);
+
+                if (!string.Equals(token, normalizedToken, StringComparison.Ordinal))
+                {
+                    var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                    logger.LogWarning(
+                        "JWT token normalization removed {RemovedCount} invalid characters",
+                        token.Length - normalizedToken.Length);
+                }
+
+                token = normalizedToken;
+
+                if (token.Split('.').Length != 3)
+                {
+                    context.Fail("Malformed JWT in Authorization header.");
+                    return Task.CompletedTask;
+                }
+
+                context.Token = token;
+                return Task.CompletedTask;
+            },
             OnAuthenticationFailed = context =>
             {
                 var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+
                 logger.LogWarning("JWT authentication failed: {Error}", context.Exception.Message);
+                logger.LogWarning(
+                    "JWT auth header length: {Length}",
+                    context.Request.Headers.Authorization.ToString().Length);
+
                 return Task.CompletedTask;
             },
             OnTokenValidated = context =>
             {
                 var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-                var clientId = context.Principal?.FindFirst("clientId")?.Value;
+                var clientId = context.Principal?.FindFirst("client_id")?.Value;
                 var userId = context.Principal?.FindFirst("sub")?.Value;
                 logger.LogDebug("JWT token validated for user {UserId}, client {ClientId}", userId, clientId);
                 return Task.CompletedTask;
@@ -211,7 +249,8 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("ClientAccess", policy =>
         policy.RequireAuthenticatedUser()
-              .RequireClaim("clientId"));
+              .RequireAssertion(context =>
+                    context.User.HasClaim(c => c.Type == "client_id")));
 });
 
 var app = builder.Build();
