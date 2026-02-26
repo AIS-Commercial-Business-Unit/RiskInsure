@@ -177,17 +177,11 @@ resource "azurerm_servicebus_subscription" "subscriptions" {
 }
 
 # ==========================================================================
-# Subscription Rules (default SQL filter - matches all messages)
+# Subscription Rules
 # ==========================================================================
-
-resource "azurerm_servicebus_subscription_rule" "default_rules" {
-  for_each = local.subscriptions
-
-  name            = "$Default"
-  subscription_id = azurerm_servicebus_subscription.subscriptions[each.key].id
-  filter_type     = "SqlFilter"
-  sql_filter      = "1=1"
-}
+# Note: Azure automatically creates a $Default rule with "1=1" SQL filter 
+# when a subscription is created. We don't need to explicitly create it.
+# If you need custom filters in the future, add them here as separate resources.
 
 # ==========================================================================
 # Authorization Rule (for dev/test - use Managed Identity in prod)
