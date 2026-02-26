@@ -11,17 +11,18 @@ COPY ["Directory.Build.props", "."]
 COPY ["Directory.Packages.props", "."]
 
 # Copy PublicContracts (shared dependency)
-COPY ["platform/publiccontracts/RiskInsure.PublicContracts/RiskInsure.PublicContracts.csproj", "platform/publiccontracts/RiskInsure.PublicContracts/"]
+COPY ["platform/RiskInsure.PublicContracts/RiskInsure.PublicContracts.csproj", "platform/RiskInsure.PublicContracts/"]
 
 # Copy service projects
 COPY ["services/billing/src/Domain/Domain.csproj", "services/billing/src/Domain/"]
+COPY ["services/billing/src/Infrastructure/Infrastructure.csproj", "services/billing/src/Infrastructure/"]
 COPY ["services/billing/src/Endpoint.In/Endpoint.In.csproj", "services/billing/src/Endpoint.In/"]
 
 # Restore dependencies
 RUN dotnet restore "services/billing/src/Endpoint.In/Endpoint.In.csproj"
 
 # Copy remaining source code
-COPY ["platform/publiccontracts/", "platform/publiccontracts/"]
+COPY ["platform/RiskInsure.PublicContracts/", "platform/RiskInsure.PublicContracts/"]
 COPY ["services/billing/", "services/billing/"]
 
 # Build and publish
@@ -44,5 +45,5 @@ RUN chown -R nservicebus:nservicebus /app
 # Switch to non-root user
 USER nservicebus
 
-# NServiceBus endpoints are long-running console apps (no HTTP ports)
-ENTRYPOINT ["dotnet", "RiskInsure.Billing.Endpoint.In.dll"]
+# NServiceBus endpoints are long-running console apps (no HTTP ports, no healthcheck needed)
+ENTRYPOINT ["dotnet", "Endpoint.In.dll"]

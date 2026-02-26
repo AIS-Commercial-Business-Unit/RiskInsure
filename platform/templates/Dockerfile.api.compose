@@ -4,6 +4,7 @@
 # Build stage
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG PROJECT_PATH
+
 WORKDIR /src
 
 # Copy solution and dependency files
@@ -13,7 +14,7 @@ COPY ["Directory.Packages.props", "."]
 COPY ["GlobalUsings.cs", "."]
 
 # Copy all project files for restore
-COPY ["platform/RiskInsure.PublicContracts/", "platform/RiskInsure.PublicContracts/"]
+COPY ["platform/", "platform/"]
 COPY ["services/", "services/"]
 
 # Restore dependencies for the specific project
@@ -37,6 +38,12 @@ EXPOSE 8080
 
 # Set ASP.NET Core to listen on port 8080
 ENV ASPNETCORE_URLS=http://+:8080
+
 COPY --chmod=+x "entrypoint.sh" "/entrypoint.sh"
 
-ENTRYPOINT ["/entrypoint.sh", "cosmos.domain", "8081", "Api.dll"]
+ARG ASSEMBLY_NAME
+
+ENV COSMOS_DOMAIN=cosmos.domain
+ENV COSMOS_PORT=8081
+ENV ASSEMBLY_NAME_TO_RUN=${ASSEMBLY_NAME:-Api.dll}
+ENTRYPOINT ["/entrypoint.sh"]

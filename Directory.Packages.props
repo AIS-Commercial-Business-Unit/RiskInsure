@@ -59,5 +59,13 @@
     <PackageVersion Include="FluentFTP" Version="51.1.0" />
     <PackageVersion Include="FluentValidation.AspNetCore" Version="11.3.0" />
     <PackageVersion Include="NSwag.AspNetCore" Version="14.2.0" />
+    <!-- Health Checks -->
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.CosmosDb" Version="9.0.0" />
+    <PackageVersion Include="AspNetCore.HealthChecks.UI.Client" Version="9.0.0" />
+    <!-- Application Insights -->
+    <PackageVersion Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.22.0" />
+    <PackageVersion Include="Microsoft.ApplicationInsights.WorkerService" Version="2.22.0" />
+    <PackageVersion Include="Microsoft.ApplicationInsights.NLogTarget" Version="2.22.0" />
   </ItemGroup>
 </Project>

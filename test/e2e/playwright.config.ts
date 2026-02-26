@@ -1,3 +1,12 @@
+
+import * as dotenv from 'dotenv';
+
+// Only load .env file for local development (not in CI)
+// In CI, environment variables are provided by GitHub Actions
+if (!process.env.CI) {
+  dotenv.config();
+}
+
 import { defineConfig, devices } from '@playwright/test';
 
 /**
@@ -30,6 +39,8 @@ export default defineConfig({
       'Content-Type': 'application/json',
       'Accept': 'application/json'
     },
+    // API request timeout - increased for Azure Container Apps cold starts in CI
+    actionTimeout: process.env.CI ? 60000 : 30000, // 60s in CI, 30s locally
     trace: process.env.CI ? 'on-first-retry' : 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -49,6 +60,6 @@ export default defineConfig({
   // Global timeout for entire test run
   globalTimeout: 15 * 60 * 1000, // 15 minutes
   
-  // Per-test timeout
-  timeout: 60 * 1000, // 60 seconds per test
+  // Per-test timeout - increased for multi-domain workflows with cold starts
+  timeout: process.env.CI ? 120000 : 60000, // 120s in CI, 60s locally
 });

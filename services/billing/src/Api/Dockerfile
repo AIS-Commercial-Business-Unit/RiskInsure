@@ -11,17 +11,18 @@ COPY ["Directory.Build.props", "."]
 COPY ["Directory.Packages.props", "."]
 
 # Copy PublicContracts (shared dependency)
-COPY ["platform/publiccontracts/RiskInsure.PublicContracts/RiskInsure.PublicContracts.csproj", "platform/publiccontracts/RiskInsure.PublicContracts/"]
+COPY ["platform/RiskInsure.PublicContracts/RiskInsure.PublicContracts.csproj", "platform/RiskInsure.PublicContracts/"]
 
 # Copy service projects
 COPY ["services/billing/src/Domain/Domain.csproj", "services/billing/src/Domain/"]
+COPY ["services/billing/src/Infrastructure/Infrastructure.csproj", "services/billing/src/Infrastructure/"]
 COPY ["services/billing/src/Api/Api.csproj", "services/billing/src/Api/"]
 
 # Restore dependencies
 RUN dotnet restore "services/billing/src/Api/Api.csproj"
 
 # Copy remaining source code
-COPY ["platform/publiccontracts/", "platform/publiccontracts/"]
+COPY ["platform/RiskInsure.PublicContracts/", "platform/RiskInsure.PublicContracts/"]
 COPY ["services/billing/", "services/billing/"]
 
 # Build and publish
@@ -37,6 +38,9 @@ RUN groupadd -r apiuser && useradd -r -g apiuser apiuser
 
 # Copy published application
 COPY --from=build /app/publish .
+
+# Install curl for healthchecks
+RUN apt-get update && apt-get install -y curl --no-install-recommends && rm -rf /var/lib/apt/lists/*
 
 # Set ownership
 RUN chown -R apiuser:apiuser /app
@@ -55,4 +59,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
 ENV ASPNETCORE_URLS=http://+:8080
 
 # Run the application
-ENTRYPOINT ["dotnet", "RiskInsure.Billing.Api.dll"]
+ENTRYPOINT ["dotnet", "Api.dll"]

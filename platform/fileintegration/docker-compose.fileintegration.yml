@@ -1,0 +1,56 @@
+include:
+  - ../../docker-compose.infrastructure.yml # RabbitMQ and Cosmos DB Emulator
+
+services:
+
+  # FileRetrieval API (REST API for configuration management)
+  fileretrieval-api:
+    container_name: fileretrieval-api
+    build:
+      context: ../..
+      dockerfile: platform/templates/Dockerfile.api.compose
+      args:
+        PROJECT_PATH: platform/fileintegration/src/FileRetrieval.API/FileRetrieval.API.csproj
+        ASSEMBLY_NAME: FileRetrieval.API.dll
+    ports:
+      - "7090:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
+      - Messaging__MessageBroker=RabbitMQ
+      - CosmosDb__DatabaseName=file-retrieval      
+    depends_on:
+      cosmos-emulator:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - riskinsure
+
+  # FileRetrieval Worker (Message handler and scheduler)
+  fileretrieval-worker:
+    container_name: fileretrieval-worker
+    build:
+      context: ../..
+      dockerfile: platform/templates/Dockerfile.endpoint.compose
+      args:
+        PROJECT_PATH: platform/fileintegration/src/FileRetrieval.Worker/FileRetrieval.Worker.csproj
+        ASSEMBLY_NAME: FileRetrieval.Worker.dll
+    environment:
+      - DOTNET_ENVIRONMENT=Development
+      - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
+      - Messaging__MessageBroker=RabbitMQ
+      - CosmosDb__DatabaseName=file-retrieval
+    depends_on:
+      cosmos-emulator:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - riskinsure
+
+networks:
+  riskinsure:

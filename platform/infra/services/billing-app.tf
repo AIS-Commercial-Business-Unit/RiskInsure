@@ -72,6 +72,11 @@ resource "azurerm_container_app" "billing_api" {
       }
 
       env {
+        name  = "Messaging__MessageBroker"
+        value = "AzureServiceBus"
+      }
+
+      env {
         name  = "CosmosDb__DatabaseName"
         value = "RiskInsure"
       }
@@ -80,6 +85,7 @@ resource "azurerm_container_app" "billing_api" {
         name  = "CosmosDb__BillingContainerName"
         value = "Billing"
       }
+
     }
   }
 
@@ -164,6 +170,11 @@ resource "azurerm_container_app" "billing_endpoint" {
       }
 
       env {
+        name  = "Messaging__MessageBroker"
+        value = "AzureServiceBus"
+      }
+
+      env {
         name  = "CosmosDb__DatabaseName"
         value = "RiskInsure"
       }
@@ -172,6 +183,7 @@ resource "azurerm_container_app" "billing_endpoint" {
         name  = "CosmosDb__BillingContainerName"
         value = "Billing"
       }
+
     }
 
 
