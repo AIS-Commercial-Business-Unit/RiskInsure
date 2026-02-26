@@ -71,6 +71,10 @@ resource "azurerm_container_app" "billing_api" {
         secret_name = "servicebus-connection-string"
       }
 
+      env {
+        name  = "Messaging__MessageBroker"
+        value = "AzureServiceBus"
+      }
 
       env {
         name  = "CosmosDb__DatabaseName"
@@ -163,6 +167,11 @@ resource "azurerm_container_app" "billing_endpoint" {
       env {
         name        = "ConnectionStrings__ServiceBus"
         secret_name = "servicebus-connection-string"
+      }
+
+      env {
+        name  = "Messaging__MessageBroker"
+        value = "AzureServiceBus"
       }
 
       env {
