@@ -141,15 +141,6 @@ jobs:
                 ;;
             esac
 
-            # Prevent service deployment when terraform_action is 'plan'
-            # Services require actual infrastructure to exist (not just planned)
-            if [ "$ACTION" = "plan" ] && [ "$RUN_SERVICES" = "true" ]; then
-              echo "⚠️  WARNING: terraform_action=plan detected with service deployment requested"
-              echo "⚠️  Service deployment requires 'apply' to ensure infrastructure exists"
-              echo "⚠️  Setting RUN_SERVICES=false to prevent deployment failure"
-              RUN_SERVICES="false"
-            fi
-
           elif [ "${{ github.event_name }}" = "push" ]; then
             ACTION="plan"
             # Conservative defaults for push: run only if relevant changes detected
