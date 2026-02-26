@@ -10,6 +10,12 @@ Log.Logger = new LoggerConfiguration()
 
 builder.UseSerilog();
 
+// Application Insights telemetry (auto-reads APPLICATIONINSIGHTS_CONNECTION_STRING env var)
+builder.ConfigureServices((context, services) =>
+{
+    services.AddApplicationInsightsTelemetryWorkerService();
+});
+
 // NServiceBus configuration
 builder.NServiceBusEnvironmentConfiguration("RiskInsure.Customer.Endpoint");
 

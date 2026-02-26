@@ -17,6 +17,9 @@ Log.Logger = new LoggerConfiguration()
 
 builder.Host.UseSerilog();
 
+// Application Insights telemetry (auto-reads APPLICATIONINSIGHTS_CONNECTION_STRING env var)
+builder.Services.AddApplicationInsightsTelemetry();
+
 // NServiceBus configuration (send-only endpoint)
 builder.Host.NServiceBusEnvironmentConfiguration("RiskInsure.Customer.Api",
     (config, endpoint, routing) =>

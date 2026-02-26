@@ -16,6 +16,7 @@
     <PackageReference Include="Newtonsoft.Json" />
     <PackageReference Include="Serilog.Extensions.Hosting" />
     <PackageReference Include="Serilog.Sinks.Console" />
+    <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" />
   </ItemGroup>
 
   <ItemGroup>

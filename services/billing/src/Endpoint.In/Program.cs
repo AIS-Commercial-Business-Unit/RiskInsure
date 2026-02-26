@@ -25,6 +25,9 @@ try
         })
         .ConfigureServices((context, services) =>
         {
+            // Application Insights telemetry (auto-reads APPLICATIONINSIGHTS_CONNECTION_STRING env var)
+            services.AddApplicationInsightsTelemetryWorkerService();
+
             // Register Cosmos DB container for billing data (not sagas - sagas configured in NServiceBus persistence)
             var cosmosConnectionString = context.Configuration.GetConnectionString("CosmosDb")
                 ?? throw new InvalidOperationException("CosmosDb connection string not configured");
