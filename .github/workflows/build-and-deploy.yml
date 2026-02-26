@@ -252,11 +252,11 @@ jobs:
           API_IMAGE="$ACR_SERVER/$IMAGE_NAME-api:$IMAGE_TAG"
           
           echo "🔨 Building API image: $API_IMAGE"
-          echo "   Dockerfile: $SERVICE_DIR/src/${PROJECT_PREFIX}.Api/Dockerfile"
+          echo "   Dockerfile: $SERVICE_DIR/src/Api/Dockerfile"
           
           docker build \
             -t "$API_IMAGE" \
-            -f "$SERVICE_DIR/src/${PROJECT_PREFIX}.Api/Dockerfile" \
+            -f "$SERVICE_DIR/src/Api/Dockerfile" \
             --build-arg SERVICE_NAME=$SERVICE \
             .
           
@@ -276,11 +276,11 @@ jobs:
           ENDPOINT_IMAGE="$ACR_SERVER/$IMAGE_NAME-endpoint:$IMAGE_TAG"
           
           echo "🔨 Building Endpoint.In image: $ENDPOINT_IMAGE"
-          echo "   Dockerfile: $SERVICE_DIR/src/${PROJECT_PREFIX}.Endpoint.In/Dockerfile"
+          echo "   Dockerfile: $SERVICE_DIR/src/Endpoint.In/Dockerfile"
           
           docker build \
             -t "$ENDPOINT_IMAGE" \
-            -f "$SERVICE_DIR/src/${PROJECT_PREFIX}.Endpoint.In/Dockerfile" \
+            -f "$SERVICE_DIR/src/Endpoint.In/Dockerfile" \
             --build-arg SERVICE_NAME=$SERVICE \
             .
           
