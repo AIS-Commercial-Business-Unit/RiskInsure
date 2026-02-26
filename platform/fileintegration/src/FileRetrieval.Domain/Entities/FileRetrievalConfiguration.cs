@@ -60,16 +60,6 @@ public class FileRetrievalConfiguration
     public required ScheduleDefinition Schedule { get; set; }
 
     /// <summary>
-    /// Events to publish when files are found (at least 1 required)
-    /// </summary>
-    public required List<EventDefinition> EventsToPublish { get; set; } = [];
-
-    /// <summary>
-    /// Commands to send when files are found (optional)
-    /// </summary>
-    public List<CommandDefinition> CommandsToSend { get; set; } = [];
-
-    /// <summary>
     /// Whether configuration is active (inactive configs are not scheduled)
     /// </summary>
     public bool IsActive { get; set; } = true;
@@ -136,12 +126,6 @@ public class FileRetrievalConfiguration
 
         if (FileExtension?.Length > 10)
             throw new ArgumentException("FileExtension max 10 characters", nameof(FileExtension));
-
-        if (EventsToPublish.Count == 0)
-            throw new ArgumentException("At least one EventDefinition must be present", nameof(EventsToPublish));
-
-        if (CommandsToSend.Count > 10)
-            throw new ArgumentException("Maximum 10 commands allowed", nameof(CommandsToSend));
 
         if (CreatedAt > DateTimeOffset.UtcNow)
             throw new ArgumentException("CreatedAt cannot be in the future", nameof(CreatedAt));

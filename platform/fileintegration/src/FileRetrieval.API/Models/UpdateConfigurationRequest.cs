@@ -51,14 +51,4 @@ public class UpdateConfigurationRequest
     /// Schedule definition (cron expression and timezone)
     /// </summary>
     public required ScheduleDefinitionDto Schedule { get; init; }
-
-    /// <summary>
-    /// Events to publish when files are discovered
-    /// </summary>
-    public required List<EventDefinitionDto> EventsToPublish { get; init; }
-
-    /// <summary>
-    /// Optional commands to send when files are discovered
-    /// </summary>
-    public List<CommandDefinitionDto>? CommandsToSend { get; init; }
 }

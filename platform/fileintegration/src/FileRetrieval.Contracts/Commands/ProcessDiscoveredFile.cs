@@ -27,7 +27,4 @@ public record ProcessDiscoveredFile : ICommand
     // Configuration metadata
     public required string ConfigurationName { get; init; }
     public required string Protocol { get; init; }
-    
-    // Custom command data from CommandDefinition
-    public Dictionary<string, object>? CommandData { get; init; }
 }

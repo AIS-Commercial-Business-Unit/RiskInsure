@@ -32,11 +32,11 @@ public class ExecutionHistoryController : ControllerBase
 
     private string GetClientIdFromClaims()
     {
-        var clientId = User.FindFirst("clientId")?.Value;
+        var clientId = User.FindFirst("client_id")?.Value;
         if (string.IsNullOrWhiteSpace(clientId))
         {
-            _logger.LogWarning("ClientId claim not found in JWT token");
-            throw new UnauthorizedAccessException("ClientId claim is required");
+            _logger.LogWarning("client_id claim not found in JWT token");
+            throw new UnauthorizedAccessException("client_id claim is required but not found in token");
         }
         return clientId;
     }

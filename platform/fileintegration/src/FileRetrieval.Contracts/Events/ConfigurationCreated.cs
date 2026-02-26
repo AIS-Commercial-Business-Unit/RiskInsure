@@ -27,5 +27,4 @@ public record ConfigurationCreated : IEvent
     
     // Metadata
     public int EventCount { get; init; } // Number of events to publish
-    public int CommandCount { get; init; } // Number of commands to send
 }

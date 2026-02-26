@@ -46,14 +46,4 @@ public class CreateConfigurationRequest
     /// Schedule definition for when to execute file checks
     /// </summary>
     public required ScheduleDefinitionDto Schedule { get; set; }
-
-    /// <summary>
-    /// Events to publish when files are found (at least 1 required)
-    /// </summary>
-    public required List<EventDefinitionDto> EventsToPublish { get; set; }
-
-    /// <summary>
-    /// Commands to send when files are found (optional, max 10)
-    /// </summary>
-    public List<CommandDefinitionDto> CommandsToSend { get; set; } = [];
 }

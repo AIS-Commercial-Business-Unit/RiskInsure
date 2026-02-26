@@ -49,13 +49,6 @@ public class ConfigurationRequestValidator : AbstractValidator<CreateConfigurati
             .NotNull().WithMessage("Schedule is required")
             .SetValidator(new ScheduleDefinitionValidator());
 
-        RuleFor(x => x.EventsToPublish)
-            .NotNull().WithMessage("EventsToPublish is required")
-            .Must(x => x != null && x.Count > 0).WithMessage("At least one EventDefinition must be specified");
-
-        RuleFor(x => x.CommandsToSend)
-            .Must(x => x == null || x.Count <= 10).WithMessage("Maximum 10 commands allowed");
-
         // Protocol-specific validation
         When(x => x.Protocol?.Equals("Ftp", StringComparison.OrdinalIgnoreCase) == true, () =>
         {
