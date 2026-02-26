@@ -20,6 +20,9 @@ try
 
     builder.Host.UseSerilog();
 
+    // Application Insights telemetry (auto-reads APPLICATIONINSIGHTS_CONNECTION_STRING env var)
+    builder.Services.AddApplicationInsightsTelemetry();
+
     builder.Services.AddControllers()
         .AddJsonOptions(options =>
         {

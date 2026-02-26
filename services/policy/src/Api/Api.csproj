@@ -8,6 +8,7 @@
     <PackageReference Include="Scalar.AspNetCore" />
     <PackageReference Include="Serilog.AspNetCore" />
     <PackageReference Include="Serilog.Sinks.Console" />
+    <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" />
     <PackageReference Include="NServiceBus" />
     <PackageReference Include="NServiceBus.Transport.AzureServiceBus" />
     <PackageReference Include="NServiceBus.Extensions.Hosting" />
