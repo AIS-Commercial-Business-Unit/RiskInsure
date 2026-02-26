@@ -5,7 +5,7 @@ test.describe('Submit Underwriting', () => {
   
   let quoteId: string;
 
-  test.beforeEach(async ({ request }) => {
+  test('initial test for submit-underwriting tests', async ({ request }) => {
     const response = await request.post('/api/quotes/start', {
       data: {
         customerId: crypto.randomUUID(),

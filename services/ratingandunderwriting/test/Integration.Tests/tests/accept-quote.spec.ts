@@ -5,7 +5,7 @@ test.describe('Accept Quote', () => {
   
   let quoteId: string;
 
-  test.beforeEach(async ({ request }) => {
+  test('initial test for accept-quotes tests', async ({ request }) => {
     // Start quote
     const startResponse = await request.post('/api/quotes/start', {
       data: {

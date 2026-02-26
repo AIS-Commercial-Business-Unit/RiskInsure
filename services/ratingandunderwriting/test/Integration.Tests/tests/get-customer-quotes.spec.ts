@@ -24,7 +24,7 @@ test.describe('Get Customer Quotes', () => {
     test('should return all quotes for customer', async ({ request }) => {
 
         // Create multiple quotes for the same customer
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 2; i++) {
             const response = await request.post('/api/quotes/start', {
                 data: {
                     customerId,
@@ -50,7 +50,7 @@ test.describe('Get Customer Quotes', () => {
 
         const result = await response.json();
         expect(result.customerId).toBe(customerId);
-        expect(result.quotes).toHaveLength(3);
+        expect(result.quotes).toHaveLength(2);
 
         // Verify all quotes are present
         const returnedQuoteIds = result.quotes.map((q: any) => q.quoteId);

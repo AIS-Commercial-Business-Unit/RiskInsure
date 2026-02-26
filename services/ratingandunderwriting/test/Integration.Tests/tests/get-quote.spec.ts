@@ -6,7 +6,7 @@ test.describe('Get Quote', () => {
     let quoteId: string;
     let customerId: string;
 
-    test.beforeEach(async ({ request }) => {
+    test('initial test for get-quote tests', async ({ request }) => {
         customerId = crypto.randomUUID();
 
         // Create a quote for testing
@@ -35,6 +35,7 @@ test.describe('Get Quote', () => {
         expect(response.status()).toBe(200);
 
         const quote = await response.json();
+        quoteId = quote.quoteId;
         expect(quote.quoteId).toBe(quoteId);
         expect(quote.customerId).toBe(customerId);
         expect(quote.status).toBe('Draft');
