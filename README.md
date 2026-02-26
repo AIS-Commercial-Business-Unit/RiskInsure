@@ -64,7 +64,7 @@ See [☁️ GitHub Codespaces](#️-github-codespaces-recommended-for-new-develo
    ```bash
    git clone https://github.com/your-org/RiskInsure.git
    cd RiskInsure
-   cp .env.emulator .env
+   cp .env.example .env
    ```
 
 2. **Start emulators**:

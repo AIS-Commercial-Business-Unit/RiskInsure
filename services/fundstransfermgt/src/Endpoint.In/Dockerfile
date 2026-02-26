@@ -1,5 +1,5 @@
 # Multi-stage Dockerfile for NServiceBus Endpoint.In projects
-# Optimized for Azure Container Apps deployment with KEDA scaling
+# Optimized for Azure Container Apps deployment
 
 # Build stage
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
@@ -14,23 +14,23 @@ COPY ["Directory.Packages.props", "."]
 COPY ["platform/RiskInsure.PublicContracts/RiskInsure.PublicContracts.csproj", "platform/RiskInsure.PublicContracts/"]
 
 # Copy service projects
-COPY ["services/billing/src/Domain/Domain.csproj", "services/billing/src/Domain/"]
-COPY ["services/billing/src/Infrastructure/Infrastructure.csproj", "services/billing/src/Infrastructure/"]
-COPY ["services/billing/src/Endpoint.In/Endpoint.In.csproj", "services/billing/src/Endpoint.In/"]
+COPY ["services/fundstransfermgt/src/Domain/Domain.csproj", "services/fundstransfermgt/src/Domain/"]
+COPY ["services/fundstransfermgt/src/Infrastructure/Infrastructure.csproj", "services/fundstransfermgt/src/Infrastructure/"]
+COPY ["services/fundstransfermgt/src/Endpoint.In/Endpoint.In.csproj", "services/fundstransfermgt/src/Endpoint.In/"]
 
 # Restore dependencies
-RUN dotnet restore "services/billing/src/Endpoint.In/Endpoint.In.csproj"
+RUN dotnet restore "services/fundstransfermgt/src/Endpoint.In/Endpoint.In.csproj"
 
 # Copy remaining source code
 COPY ["platform/RiskInsure.PublicContracts/", "platform/RiskInsure.PublicContracts/"]
-COPY ["services/billing/", "services/billing/"]
+COPY ["services/fundstransfermgt/", "services/fundstransfermgt/"]
 
 # Build and publish
-WORKDIR "/src/services/billing/src/Endpoint.In"
+WORKDIR "/src/services/fundstransfermgt/src/Endpoint.In"
 RUN dotnet publish --no-restore -c Release -o /app/publish
 
 # Runtime stage
-FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+FROM mcr.microsoft.com/dotnet/runtime:10.0 AS runtime
 WORKDIR /app
 
 # Create non-root user for security
@@ -45,5 +45,6 @@ RUN chown -R nservicebus:nservicebus /app
 # Switch to non-root user
 USER nservicebus
 
-# NServiceBus endpoints are long-running console apps (no HTTP ports, no healthcheck needed)
+# Run the NServiceBus endpoint (long-running console application)
+# No HTTP exposure, no healthcheck - this is a message-driven endpoint
 ENTRYPOINT ["dotnet", "Endpoint.In.dll"]

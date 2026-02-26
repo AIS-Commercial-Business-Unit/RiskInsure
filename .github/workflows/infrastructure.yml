@@ -111,13 +111,29 @@ jobs:
       - name: Export Outputs
         id: outputs
         run: |
-          echo "resource_group_name=$(terraform output -raw resource_group_name 2>/dev/null || echo 'CAIS-010-RiskInsure')" >> "$GITHUB_OUTPUT"
-          echo "acr_login_server=$(terraform output -raw acr_login_server 2>/dev/null || echo 'N/A')" >> "$GITHUB_OUTPUT"
-          echo "acr_name=$(terraform output -raw acr_name 2>/dev/null || echo 'N/A')" >> "$GITHUB_OUTPUT"
-          echo "key_vault_name=$(terraform output -raw key_vault_name 2>/dev/null || echo "riskinsure-${{ inputs.environment }}-kv")" >> "$GITHUB_OUTPUT"
-          echo "acr_login_server=$(terraform output -raw acr_login_server 2>/dev/null || echo 'N/A')" >> "$GITHUB_OUTPUT"
-          echo "acr_name=$(terraform output -raw acr_name 2>/dev/null || echo 'N/A')" >> "$GITHUB_OUTPUT"
-          echo "key_vault_name=$(terraform output -raw key_vault_name 2>/dev/null || echo "riskinsure-${{ inputs.environment }}-kv")" >> "$GITHUB_OUTPUT"
+          RG_OUT="$(terraform output -raw resource_group_name 2>/dev/null || true)"
+          if [ -z "$RG_OUT" ] || [ "$RG_OUT" = "null" ]; then
+            RG_OUT="CAIS-010-RiskInsure"
+          fi
+          echo "resource_group_name=$RG_OUT" >> "$GITHUB_OUTPUT"
+          
+          ACR_SERVER_OUT="$(terraform output -raw acr_login_server 2>/dev/null || true)"
+          if [ -z "$ACR_SERVER_OUT" ] || [ "$ACR_SERVER_OUT" = "null" ]; then
+            ACR_SERVER_OUT=""
+          fi
+          echo "acr_login_server=$ACR_SERVER_OUT" >> "$GITHUB_OUTPUT"
+          
+          ACR_NAME_OUT="$(terraform output -raw acr_name 2>/dev/null || true)"
+          if [ -z "$ACR_NAME_OUT" ] || [ "$ACR_NAME_OUT" = "null" ]; then
+            ACR_NAME_OUT=""
+          fi
+          echo "acr_name=$ACR_NAME_OUT" >> "$GITHUB_OUTPUT"
+          
+          KV_OUT="$(terraform output -raw key_vault_name 2>/dev/null || true)"
+          if [ -z "$KV_OUT" ] || [ "$KV_OUT" = "null" ]; then
+            KV_OUT="riskinsure-${{ inputs.environment }}-kv"
+          fi
+          echo "key_vault_name=$KV_OUT" >> "$GITHUB_OUTPUT"
 
   # ==========================================================================
   # Shared Services Layer (Cosmos DB, Service Bus, UAMI, Role Assignments)
@@ -232,12 +248,12 @@ jobs:
       - name: Export Outputs
         id: outputs
         run: |
-          echo "cosmosdb_endpoint=$(terraform output -raw cosmosdb_endpoint 2>/dev/null || echo 'N/A')" >> "$GITHUB_OUTPUT"
-          echo "cosmosdb_account_name=$(terraform output -raw cosmosdb_account_name 2>/dev/null || echo 'N/A')" >> "$GITHUB_OUTPUT"
-          echo "servicebus_namespace_fqdn=$(terraform output -raw servicebus_namespace_fqdn 2>/dev/null || echo 'N/A')" >> "$GITHUB_OUTPUT"
-          echo "apps_shared_identity_id=$(terraform output -raw apps_shared_identity_id 2>/dev/null || echo 'N/A')" >> "$GITHUB_OUTPUT"
-          echo "apps_shared_identity_principal_id=$(terraform output -raw apps_shared_identity_principal_id 2>/dev/null || echo 'N/A')" >> "$GITHUB_OUTPUT"
-          echo "apps_shared_identity_name=$(terraform output -raw apps_shared_identity_name 2>/dev/null || echo 'N/A')" >> "$GITHUB_OUTPUT"
+          echo "cosmosdb_endpoint=$(terraform output -raw cosmosdb_endpoint 2>/dev/null || echo '')" >> "$GITHUB_OUTPUT"
+          echo "cosmosdb_account_name=$(terraform output -raw cosmosdb_account_name 2>/dev/null || echo '')" >> "$GITHUB_OUTPUT"
+          echo "servicebus_namespace_fqdn=$(terraform output -raw servicebus_namespace_fqdn 2>/dev/null || echo '')" >> "$GITHUB_OUTPUT"
+          echo "apps_shared_identity_id=$(terraform output -raw apps_shared_identity_id 2>/dev/null || echo '')" >> "$GITHUB_OUTPUT"
+          echo "apps_shared_identity_principal_id=$(terraform output -raw apps_shared_identity_principal_id 2>/dev/null || echo '')" >> "$GITHUB_OUTPUT"
+          echo "apps_shared_identity_name=$(terraform output -raw apps_shared_identity_name 2>/dev/null || echo '')" >> "$GITHUB_OUTPUT"
 
       - name: Azure Login
         if: inputs.terraform_action == 'apply'

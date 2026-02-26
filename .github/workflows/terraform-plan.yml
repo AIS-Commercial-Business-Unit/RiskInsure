@@ -250,7 +250,8 @@ jobs:
     if: |
       always() &&
       needs.determine_workflow.outputs.run_services == 'true' &&
-      needs.call_infrastructure.result == 'skipped'
+      (needs.call_infrastructure.result == 'skipped' || 
+       needs.call_infrastructure.outputs.apps_shared_identity_id == '')
     runs-on: ubuntu-latest
     
     permissions:
@@ -337,15 +338,16 @@ jobs:
     if: |
       always() &&
       needs.determine_workflow.outputs.run_services == 'true' &&
-      (needs.call_infrastructure.result == 'success' || needs.call_infrastructure.result == 'skipped')
+      (needs.call_infrastructure.result == 'success' || needs.call_infrastructure.result == 'skipped') &&
+      (needs.get_infrastructure_info.result == 'success' || needs.get_infrastructure_info.result == 'skipped')
     uses: ./.github/workflows/build-and-deploy.yml
     with:
       environment: ${{ needs.determine_workflow.outputs.environment }}
       services_to_deploy: ${{ needs.determine_workflow.outputs.services_to_deploy }}
-      acr_login_server: ${{ needs.call_infrastructure.result == 'success' && needs.call_infrastructure.outputs.acr_login_server || needs.get_infrastructure_info.outputs.acr_login_server }}
-      acr_name: ${{ needs.call_infrastructure.result == 'success' && needs.call_infrastructure.outputs.acr_name || needs.get_infrastructure_info.outputs.acr_name }}
-      resource_group_name: ${{ needs.call_infrastructure.result == 'success' && needs.call_infrastructure.outputs.resource_group_name || needs.get_infrastructure_info.outputs.resource_group_name }}
-      apps_shared_identity_id: ${{ needs.call_infrastructure.result == 'success' && needs.call_infrastructure.outputs.apps_shared_identity_id || needs.get_infrastructure_info.outputs.apps_shared_identity_id }}
+      acr_login_server: ${{ needs.call_infrastructure.outputs.acr_login_server || needs.get_infrastructure_info.outputs.acr_login_server }}
+      acr_name: ${{ needs.call_infrastructure.outputs.acr_name || needs.get_infrastructure_info.outputs.acr_name }}
+      resource_group_name: ${{ needs.call_infrastructure.outputs.resource_group_name || needs.get_infrastructure_info.outputs.resource_group_name }}
+      apps_shared_identity_id: ${{ needs.call_infrastructure.outputs.apps_shared_identity_id || needs.get_infrastructure_info.outputs.apps_shared_identity_id }}
       terraform_action: ${{ needs.determine_workflow.outputs.terraform_action }}
     secrets: inherit
 
