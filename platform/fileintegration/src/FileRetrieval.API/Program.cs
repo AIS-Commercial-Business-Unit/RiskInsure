@@ -226,12 +226,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             OnAuthenticationFailed = context =>
             {
                 var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-
                 logger.LogWarning("JWT authentication failed: {Error}", context.Exception.Message);
-                logger.LogWarning(
-                    "JWT auth header length: {Length}",
-                    context.Request.Headers.Authorization.ToString().Length);
-
                 return Task.CompletedTask;
             },
             OnTokenValidated = context =>
