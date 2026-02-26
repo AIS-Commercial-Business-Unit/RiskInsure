@@ -1,4 +1,5 @@
 using RiskInsure.FileRetrieval.Domain.Enums;
+using System.Text.Json.Serialization;
 
 namespace RiskInsure.FileRetrieval.Domain.ValueObjects;
 
@@ -15,6 +16,7 @@ public sealed class FtpProtocolSettings : ProtocolSettings
     public bool UsePassiveMode { get; init; }
     public TimeSpan ConnectionTimeout { get; init; }
 
+    [JsonConstructor]
     public FtpProtocolSettings(
         string server,
         int port,
@@ -22,7 +24,7 @@ public sealed class FtpProtocolSettings : ProtocolSettings
         string passwordKeyVaultSecret,
         bool useTls = true,
         bool usePassiveMode = true,
-        TimeSpan? connectionTimeout = null)
+        TimeSpan connectionTimeout = default)
         : base(ProtocolType.FTP)
     {
         if (string.IsNullOrWhiteSpace(server))
@@ -44,7 +46,7 @@ public sealed class FtpProtocolSettings : ProtocolSettings
         PasswordKeyVaultSecret = passwordKeyVaultSecret;
         UseTls = useTls;
         UsePassiveMode = usePassiveMode;
-        ConnectionTimeout = connectionTimeout ?? TimeSpan.FromSeconds(30);
+        ConnectionTimeout = connectionTimeout == default ? TimeSpan.FromSeconds(30) : connectionTimeout;
 
         if (ConnectionTimeout <= TimeSpan.Zero)
             throw new ArgumentException("ConnectionTimeout must be positive", nameof(connectionTimeout));

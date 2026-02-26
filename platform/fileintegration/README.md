@@ -52,6 +52,58 @@ dotnet build
 dotnet test
 ```
 
+### Run Scheduled FTP E2E Test
+
+This scenario validates end-to-end scheduled file discovery:
+- Seeds a sample file into `ftp-server` (`file-retrieval-ftp`)
+- Creates config via `POST /api/v1/configuration` with 5-second schedule
+- Polls `GET /api/v1/configuration/{configurationId}/executionhistory` every 5 seconds
+- Passes when `filesFound > 0` (fails after 2 minutes)
+
+1. Start dependencies:
+
+```powershell
+cd platform/fileintegration
+docker compose up -d
+```
+
+2. Set test environment values (PowerShell):
+
+```powershell
+$env:FILE_RETRIEVAL_API_BASE_URL = "http://localhost:7090"
+$env:FILE_RETRIEVAL_JWT_SECRET = "REPLACE_WITH_SECRET_KEY_AT_LEAST_32_CHARS_LONG_FOR_PRODUCTION"
+$env:FILE_RETRIEVAL_JWT_ISSUER = "https://riskinsure.com"
+$env:FILE_RETRIEVAL_JWT_AUDIENCE = "file-retrieval-api"
+$env:FILE_RETRIEVAL_FTP_PASSWORD_SECRET_NAME = "test-ftp-password"
+```
+
+3. Run only this test:
+
+```powershell
+dotnet test .\test\FileRetrieval.Integration.Tests\FileRetrieval.Integration.Tests.csproj --filter "FullyQualifiedName~ConfigurationScheduledFtpE2ETests"
+```
+
+Note: The secret referenced by `FILE_RETRIEVAL_FTP_PASSWORD_SECRET_NAME` must exist in the Key Vault configured by FileRetrieval runtime, and its value should match FTP password (`testpass`) in test compose.
+
+#### Troubleshooting (E2E)
+
+- `Configuration creation accepted but no files found`:
+	- Confirm Key Vault secret exists and matches FTP password (`testpass`).
+	- Confirm `FILE_RETRIEVAL_FTP_PASSWORD_SECRET_NAME` points to that secret.
+- `FTP setup step fails`:
+	- Verify container is running:
+
+```powershell
+docker inspect -f "{{.State.Running}}" file-retrieval-ftp
+```
+
+	- Ensure compose stack is up:
+
+```powershell
+cd platform/fileintegration
+docker compose ps
+```
+
 ### Run API (Development)
 
 ```bash

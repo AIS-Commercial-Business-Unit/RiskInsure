@@ -37,7 +37,11 @@ public static class DependencyInjection
                 {
                     PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
                     DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
-                    Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+                    Converters =
+                    {
+                        new ProtocolSettingsJsonConverter(),
+                        new System.Text.Json.Serialization.JsonStringEnumConverter()
+                    }
                 }),
                 RequestTimeout = TimeSpan.FromSeconds(10),
                 MaxRetryAttemptsOnRateLimitedRequests = 3,

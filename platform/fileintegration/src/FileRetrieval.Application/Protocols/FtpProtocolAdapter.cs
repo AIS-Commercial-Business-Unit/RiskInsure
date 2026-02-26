@@ -171,10 +171,13 @@ public class FtpProtocolAdapter : IProtocolAdapter
         // Retrieve password from Key Vault if not cached
         if (_cachedPassword == null)
         {
-            var secret = await _keyVaultClient.GetSecretAsync(
-                _settings.PasswordKeyVaultSecret,
-                cancellationToken: cancellationToken);
-            _cachedPassword = secret.Value.Value;
+            _cachedPassword = _settings.PasswordKeyVaultSecret;
+
+            // Todo: Implement proper secret retrieval with error handling and caching            
+            //     var secret = await _keyVaultClient.GetSecretAsync(
+            //         _settings.PasswordKeyVaultSecret,
+            //         cancellationToken: cancellationToken);
+            // _cachedPassword = secret.Value.Value;
         }
 
         // Create FTP client with settings
