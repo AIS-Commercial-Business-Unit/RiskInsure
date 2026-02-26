@@ -37,7 +37,7 @@ services:
           </Signature>
         </license>
       TRANSPORTTYPE: ${SERVICECONTROL_TRANSPORTTYPE}
-      CONNECTIONSTRING: ${SERVICECONTROL_CONNECTIONSTRING}
+      CONNECTIONSTRING: ${MESSAGING_CONNECTION_STRING}
       RAVENDB_CONNECTIONSTRING: http://servicecontrol-ravendb:8080
       REMOTEINSTANCES: '[{"api_uri":"http://servicecontrol-audit:44444/api"}]'
     networks:
@@ -81,7 +81,7 @@ services:
           </Signature>
         </license>
       TRANSPORTTYPE: ${SERVICECONTROL_TRANSPORTTYPE}
-      CONNECTIONSTRING: ${SERVICECONTROL_CONNECTIONSTRING}
+      CONNECTIONSTRING: ${MESSAGING_CONNECTION_STRING}
       RAVENDB_CONNECTIONSTRING: http://servicecontrol-ravendb:8080
       SERVICECONTROLQUEUEADDRESS: Particular.ServiceControl
     depends_on:
@@ -120,7 +120,7 @@ services:
           </Signature>
         </license>
       TRANSPORTTYPE: ${SERVICECONTROL_TRANSPORTTYPE}
-      CONNECTIONSTRING: ${SERVICECONTROL_CONNECTIONSTRING}
+      CONNECTIONSTRING: ${MESSAGING_CONNECTION_STRING}
     restart: unless-stopped
     networks:
       - riskinsure
