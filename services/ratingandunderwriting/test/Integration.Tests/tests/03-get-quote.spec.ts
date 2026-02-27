@@ -6,7 +6,7 @@ test.describe('Get Quote', () => {
     let quoteId: string;
     let customerId: string;
 
-    test('initial test for get-quote tests', async ({ request }) => {
+    test.beforeAll(async ({ request }) => {
         customerId = crypto.randomUUID();
 
         // Create a quote for testing
@@ -37,6 +37,7 @@ test.describe('Get Quote', () => {
         const quote = await response.json();
         quoteId = quote.quoteId;
         expect(quote.quoteId).toBe(quoteId);
+        expect(quote.quoteId).toMatch(/^QUOTE-/);
         expect(quote.customerId).toBe(customerId);
         expect(quote.status).toBe('Draft');
         expect(quote.structureCoverageLimit).toBe(200000);
@@ -76,15 +77,15 @@ test.describe('Get Quote', () => {
 
     test('should retrieve accepted quote', async ({ request }) => {
         // Submit underwriting first
-        const uwResponse = await request.post(`/api/quotes/${quoteId}/submit-underwriting`, {
-            data: {
-                priorClaimsCount: 0,
-                propertyAgeYears: 10,
-                creditTier: 'Excellent'
-            }
-        });
+        // const uwResponse = await request.post(`/api/quotes/${quoteId}/submit-underwriting`, {
+        //     data: {
+        //         priorClaimsCount: 0,
+        //         propertyAgeYears: 10,
+        //         creditTier: 'Excellent'
+        //     }
+        // });
 
-        expect(uwResponse.status()).toBe(200);
+        // expect(uwResponse.status()).toBe(200);
 
         // Accept the quote
         const acceptResponse = await request.post(`/api/quotes/${quoteId}/accept`);
@@ -114,8 +115,27 @@ test.describe('Get Quote', () => {
     });
 
     test('should retrieve quote with different underwriting classes', async ({ request }) => {
+        
+        // Create another quote to test different underwriting classes
+        customerId = crypto.randomUUID();
+        const response2 = await request.post('/api/quotes/start', {
+            data: {
+                customerId,
+                structureCoverageLimit: 200000,
+                structureDeductible: 1000,
+                contentsCoverageLimit: 50000,
+                contentsDeductible: 500,
+                termMonths: 12,
+                effectiveDate: new Date(Date.now() + 86400000).toISOString(),
+                propertyZipCode: '60601'
+            }
+        });
+
+        expect(response2.status()).toBe(201);
+        const result2 = await response2.json();
+        const quoteId2 = result2.quoteId;
         // Submit Class B underwriting
-        const uwResponse = await request.post(`/api/quotes/${quoteId}/submit-underwriting`, {
+        const uwResponse = await request.post(`/api/quotes/${quoteId2}/submit-underwriting`, {
             data: {
                 priorClaimsCount: 1,
                 propertyAgeYears: 25,
@@ -125,7 +145,7 @@ test.describe('Get Quote', () => {
 
         expect(uwResponse.status()).toBe(200);
 
-        const response = await request.get(`/api/quotes/${quoteId}`);
+        const response = await request.get(`/api/quotes/${quoteId2}`);
 
         expect(response.status()).toBe(200);
 

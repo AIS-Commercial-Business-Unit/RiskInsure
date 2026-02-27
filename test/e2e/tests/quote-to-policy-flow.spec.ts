@@ -10,15 +10,15 @@ test.describe('Quote to Policy Flow', () => {
   test.beforeAll(() => {
     // Validate configuration before running tests
     validateConfig(config);
-    console.log('E2E Test Configuration:', {
-      customer: config.apis.customer,
-      // rating: config.apis.rating,
-      ratingandunderwriting: config.apis.ratingandunderwriting,
-      policy: config.apis.policy,
-      billing: config.apis.billing,
-      fundsTransfer: config.apis.fundsTransfer,
-      eventualConsistencyTimeout: config.timeouts.eventualConsistency,
-    });
+    // console.log('E2E Test Configuration:', {
+    //   customer: config.apis.customer,
+    //   // rating: config.apis.rating,
+    //   ratingandunderwriting: config.apis.ratingandunderwriting,
+    //   policy: config.apis.policy,
+    //   billing: config.apis.billing,
+    //   fundsTransfer: config.apis.fundsTransfer,
+    //   eventualConsistencyTimeout: config.timeouts.eventualConsistency,
+    // });
   });
 
   test('complete quote to policy workflow with Class A approval', async ({ request }) => {
