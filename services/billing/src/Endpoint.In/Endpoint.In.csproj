@@ -15,8 +15,14 @@
     <PackageReference Include="NServiceBus.SagaAudit" />
     <PackageReference Include="Newtonsoft.Json" />
     <PackageReference Include="Serilog.Extensions.Hosting" />
+    <PackageReference Include="Serilog.Settings.Configuration" />
     <PackageReference Include="Serilog.Sinks.Console" />
+    <PackageReference Include="Serilog.Sinks.ApplicationInsights" />
     <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" />
+    
+    <!-- OpenTelemetry (NServiceBus traces + metrics → Azure Monitor) -->
+    <PackageReference Include="Azure.Monitor.OpenTelemetry.Exporter" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
   </ItemGroup>
 
   <ItemGroup>

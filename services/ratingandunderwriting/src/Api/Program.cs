@@ -6,20 +6,36 @@ using RiskInsure.RatingAndUnderwriting.Domain.Repositories;
 using RiskInsure.RatingAndUnderwriting.Domain.Services;
 using Serilog;
 using Scalar.AspNetCore;
+using Serilog.Sinks.ApplicationInsights.TelemetryConverters;
+using Microsoft.ApplicationInsights.Extensibility;
+using Azure.Monitor.OpenTelemetry.Exporter;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Serilog
+// Serilog bootstrap logger (replaced by full config once host is built)
 Log.Logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(builder.Configuration)
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
+
+builder.Host.UseSerilog((context, services, configuration) => configuration
+    .ReadFrom.Configuration(context.Configuration)
     .Enrich.FromLogContext()
     .WriteTo.Console()
-    .CreateLogger();
-
-builder.Host.UseSerilog();
+    .WriteTo.ApplicationInsights(
+        services.GetRequiredService<TelemetryConfiguration>(),
+        TelemetryConverter.Traces));
 
 // Application Insights telemetry (auto-reads APPLICATIONINSIGHTS_CONNECTION_STRING env var)
 builder.Services.AddApplicationInsightsTelemetry();
+
+// OpenTelemetry: export NServiceBus traces and metrics to Azure Monitor
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracing => tracing
+        .AddSource("NServiceBus.Core")
+        .AddAzureMonitorTraceExporter())
+    .WithMetrics(metrics => metrics
+        .AddMeter("NServiceBus.Core")
+        .AddAzureMonitorMetricExporter());
 
 // NServiceBus (send-only endpoint for API)
 builder.Host.NServiceBusEnvironmentConfiguration("RiskInsure.RatingAndUnderwriting.Api",
