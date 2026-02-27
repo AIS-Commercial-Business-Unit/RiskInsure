@@ -6,6 +6,7 @@ services:
   # FileRetrieval API (REST API for configuration management)
   fileretrieval-api:
     container_name: fileretrieval-api
+    tty: true # This enables colored output
     build:
       context: ../..
       dockerfile: platform/templates/Dockerfile.api.compose
@@ -37,6 +38,7 @@ services:
   # FileRetrieval Worker (Message handler and scheduler)
   fileretrieval-worker:
     container_name: fileretrieval-worker
+    tty: true # This enables colored output
     build:
       context: ../..
       dockerfile: platform/templates/Dockerfile.endpoint.compose

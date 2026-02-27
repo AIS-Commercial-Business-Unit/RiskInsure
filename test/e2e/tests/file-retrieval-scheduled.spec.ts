@@ -14,6 +14,7 @@ import {
   waitForFileFound,
   waitForProcessedFileRecord,
 } from '../helpers/file-retrieval-api';
+import { logDetail, logInfo, logStep, logSuccess } from '../helpers/test-logger';
 
 
 test.describe('File Retrieval Scheduled HTTP E2E', () => {
@@ -25,19 +26,25 @@ test.describe('File Retrieval Scheduled HTTP E2E', () => {
     const clientId = `e2e-client-${Date.now()}`;
     const sampleFileName = `e2e-http-sample-${Date.now()}.txt`;
 
-    console.log('Ensuring HTTPS container is running...');
-    await ensureContainerRunning(fileRetrievalConfig.httpsContainerName);
-    console.log('Seeding test file to HTTPS container...');
+    logStep('HTTP', `Ensuring container ${fileRetrievalConfig.httpsContainerName} is running`);
+    await ensureContainerRunning(fileRetrievalConfig.httpsContainerName);    
+    logSuccess('HTTP', `Container ${fileRetrievalConfig.httpsContainerName} is running`);
+
+    logStep('HTTP', `Seeding file to HTTPS container ${fileRetrievalConfig.httpsContainerName}`);
     await seedFileToHttpsContainer(sampleFileName, `sample payload ${new Date().toISOString()}`);
+    logSuccess('HTTP', `Seeded file ${sampleFileName}`);
 
-    console.log('Creating scheduled file retrieval configuration...');
+    logStep('HTTP', 'Creating scheduled configuration in Cosmos DB');
     const created = await createHttpsConfigurationInCosmos(request, fileRetrievalConfig, sampleFileName, clientId);
-    console.log('Configuration created with ID: ' + created.id);
+    logSuccess('HTTP', `Configuration created: ${created.id}`);
 
-    console.log('Waiting for file to be found...');
+    logInfo('HTTP', 'Waiting for file discovery');
     const executionId = await waitForFileFound(request, fileRetrievalConfig, created.id, clientId, 120000, 5000);
-    console.log('Waiting for processed file record...');
+    logSuccess('HTTP', `File discovered in execution: ${executionId}`);
+
+    logInfo('HTTP', 'Waiting for processed file record');
     await waitForProcessedFileRecord(request, fileRetrievalConfig, created.id, clientId, sampleFileName, executionId, 120000, 5000);
+    logSuccess('HTTP', 'Processed file record observed');
   });
 });
 
@@ -50,23 +57,29 @@ test.describe('File Retrieval Scheduled FTP E2E', () => {
     const clientId = `e2e-client-${Date.now()}`;
     const sampleFileName = `e2e-sample-${Date.now()}.txt`;
 
+    logStep('FTP', `Ensuring container ${fileRetrievalConfig.ftpContainerName} is running`);
     await ensureContainerRunning(fileRetrievalConfig.ftpContainerName);
-    console.log("FTP container is running");
-    console.log("Adding sample file to FTP container...");
+    logSuccess('FTP', `Container ${fileRetrievalConfig.ftpContainerName} is running`);
+
+    logStep('FTP', `Seeding file to FTP container ${fileRetrievalConfig.ftpContainerName}`);
     await seedFileToFtpContainer(
       fileRetrievalConfig.ftpContainerName,
       sampleFileName,
       `sample payload ${new Date().toISOString()}`
     );
-    console.log("Sample file added to FTP container");
+    logSuccess('FTP', `Seeded file ${sampleFileName}`);
 
+    logStep('FTP', 'Creating scheduled configuration in Cosmos DB');
     const created = await createFtpConfigurationInCosmos(request, fileRetrievalConfig, sampleFileName, clientId);
-    console.log("Scheduled configuration created with ID: " + created.id);
+    logSuccess('FTP', `Configuration created: ${created.id}`);
 
+    logInfo('FTP', 'Waiting for file discovery');
     const executionId = await waitForFileFound(request, fileRetrievalConfig, created.id, clientId, 120000, 5000);
-    console.log("File found");
+    logSuccess('FTP', `File discovered in execution: ${executionId}`);
+
+    logInfo('FTP', 'Waiting for processed file record');
     await waitForProcessedFileRecord(request, fileRetrievalConfig, created.id, clientId, sampleFileName, executionId, 120000, 5000);
-    console.log("Processed file record observed");
+    logSuccess('FTP', 'Processed file record observed');
   });
 });
 
@@ -79,22 +92,29 @@ test.describe('File Retrieval Scheduled Azure Blob E2E', () => {
     const clientId = `e2e-client-${Date.now()}`;
     const sampleFileName = `e2e-blob-sample-${Date.now()}.txt`;
 
+    logStep('AZURE', `Ensuring container ${fileRetrievalConfig.azuriteContainerName} is running`);
     await ensureContainerRunning(fileRetrievalConfig.azuriteContainerName);
-    console.log('Azurite container is running');
-    console.log('Adding sample blob to Azurite...');
+    logSuccess('AZURE', `Container ${fileRetrievalConfig.azuriteContainerName} is running`);
+
+    logStep('AZURE', `Seeding file to Azure Blob container ${fileRetrievalConfig.azuriteContainerName}`);
     await seedFileToAzuriteBlob(
       fileRetrievalConfig,
       sampleFileName,
       `sample payload ${new Date().toISOString()}`
     );
-    console.log('Sample blob added to Azurite');
+    logSuccess('AZURE', `Seeded blob ${sampleFileName}`);
 
+    logStep('AZURE', 'Creating scheduled configuration in Cosmos DB');
     const created = await createAzureBlobConfigurationInCosmos(request, fileRetrievalConfig, sampleFileName, clientId);
-    console.log('Scheduled Azure Blob configuration created with ID: ' + created.id);
+    logSuccess('AZURE', `Configuration created: ${created.id}`);
 
+    logInfo('AZURE', 'Waiting for file discovery');
     const executionId = await waitForFileFound(request, fileRetrievalConfig, created.id, clientId, 120000, 5000);
-    console.log('Blob file found');
+    logSuccess('AZURE', `File discovered in execution: ${executionId}`);
+
+    logInfo('AZURE', 'Waiting for processed file record');
     await waitForProcessedFileRecord(request, fileRetrievalConfig, created.id, clientId, sampleFileName, executionId, 120000, 5000);
-    console.log('Processed file record observed');
+    logSuccess('AZURE', 'Processed file record observed');
+    logDetail('────────────────────────────────────────────────────────────');
   });
 });

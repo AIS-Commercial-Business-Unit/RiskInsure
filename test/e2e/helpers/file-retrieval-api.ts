@@ -354,7 +354,6 @@ export async function waitForProcessedFileRecord(
   const deadline = Date.now() + timeoutMs;
   let lastBody = '';
 
-  console.log(`Waiting for persisted processed file record for configuration ${configurationId}...`);
   while (Date.now() < deadline) {
     const encodedFileName = expectedFileName ? encodeURIComponent(expectedFileName) : null;
     const encodedExecutionId = executionId ? encodeURIComponent(executionId) : null;

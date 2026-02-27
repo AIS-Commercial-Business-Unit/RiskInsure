@@ -141,7 +141,9 @@ public class DiscoveredFileContentDownloadService
     {
         _logger.LogDebug("Downloading Azure Blob content from {FileUrl}", fileUrl);
 
-        var blobName = ExtractBlobNameFromUrl(fileUrl, settings.ContainerName);
+        var uriBuilder = new BlobUriBuilder(new Uri(fileUrl));
+        string blobName = uriBuilder.BlobName;
+
         var containerClient = CreateBlobContainerClient(settings);
         var blobClient = containerClient.GetBlobClient(blobName);
 
@@ -170,18 +172,5 @@ public class DiscoveredFileContentDownloadService
 
             _ => throw new InvalidOperationException($"Unsupported Azure authentication type: {settings.AuthenticationType}")
         };
-    }
-
-    private static string ExtractBlobNameFromUrl(string fileUrl, string containerName)
-    {
-        var fileUri = new Uri(fileUrl, UriKind.Absolute);
-        var absolutePath = fileUri.AbsolutePath.TrimStart('/');
-
-        if (absolutePath.StartsWith(containerName + "/", StringComparison.OrdinalIgnoreCase))
-        {
-            return Uri.UnescapeDataString(absolutePath[(containerName.Length + 1)..]);
-        }
-
-        return Uri.UnescapeDataString(absolutePath);
     }
 }
