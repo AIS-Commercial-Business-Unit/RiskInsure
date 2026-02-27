@@ -96,21 +96,14 @@ export async function seedFileToFtpContainer(
   }
 }
 
-export async function seedFileToHttpsTestData(fileName: string, fileContent: string): Promise<string> {
+export async function seedFileToHttpsContainer(fileName: string, fileContent: string): Promise<string> {
   const testDataDir = await resolveFileRetrievalTestDataDir();
   const filePath = path.join(testDataDir, fileName);
   await fs.writeFile(filePath, fileContent, 'utf8');
   return filePath;
 }
 
-export async function ensureHttpFileReachable(baseUrl: string, fileName: string): Promise<void> {
-  const fileUrl = combineUrl(baseUrl, fileName);
-  console.log('Looking for ' + fileUrl);
-  const body = await getUrlBody(fileUrl);
-  expect(body.length).toBeGreaterThan(0);
-}
-
-export async function createConfiguration(
+export async function createFtpConfigurationInCosmos(
   request: APIRequestContext,
   config: FileRetrievalConfig,
   fileName: string,
@@ -156,7 +149,7 @@ export async function createConfiguration(
   });
 
   const bodyText = await response.text();
-  expect(response.status(), `CreateConfiguration failed. Body: ${bodyText}`).toBe(202);
+  expect(response.status(), `createFtpConfigurationInCosmos failed. Body: ${bodyText}`).toBe(202);
 
   const parsed = JSON.parse(bodyText) as CreatedConfiguration;
   expect(parsed.id).toBeTruthy();
@@ -164,7 +157,7 @@ export async function createConfiguration(
   return parsed;
 }
 
-export async function createHttpsConfiguration(
+export async function createHttpsConfigurationInCosmos(
   request: APIRequestContext,
   config: FileRetrievalConfig,
   fileName: string,
@@ -179,8 +172,8 @@ export async function createHttpsConfiguration(
       Accept: 'application/json',
     },
     data: {
-      name: 'Playwright E2E Scheduled HTTP Check',
-      description: 'Playwright scheduled HTTP retrieval E2E',
+      name: 'Playwright E2E Scheduled HTTPS Check',
+      description: 'Playwright scheduled HTTPS retrieval E2E',
       protocol: 'Https',
       protocolSettings: {
         BaseUrl: config.httpsContainerBaseUrl,
@@ -201,7 +194,7 @@ export async function createHttpsConfiguration(
   });
 
   const bodyText = await response.text();
-  expect(response.status(), `CreateConfiguration failed. Body: ${bodyText}`).toBe(202);
+  expect(response.status(), `createHttpsConfigurationInCosmos failed. Body: ${bodyText}`).toBe(202);
 console.log("Create configuration status: " + response.status());
 console.log("Create configuration response: " + bodyText);
 
