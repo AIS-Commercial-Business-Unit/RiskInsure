@@ -124,6 +124,9 @@ public static class NServiceBusConfigurationExtensions
     private static EndpointConfiguration ApplySharedEndpointConfiguration(
         this EndpointConfiguration endpointConfiguration)
     {
+        // Enable OpenTelemetry instrumentation for NServiceBus traces and metrics
+        endpointConfiguration.EnableOpenTelemetry();
+
         // Serialization
         endpointConfiguration.UseSerialization<SystemJsonSerializer>();
 

@@ -24,6 +24,7 @@ services:
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__BillingContainerName=Billing
       - Messaging__MessageBroker=${MESSAGE_BROKER}
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
     networks:
       - riskinsure
     depends_on:
@@ -48,6 +49,7 @@ services:
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__BillingContainerName=Billing
       - Messaging__MessageBroker=${MESSAGE_BROKER}
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
     depends_on:
       cosmos-emulator:
         condition: service_healthy
@@ -78,6 +80,7 @@ services:
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=customer
       - Messaging__MessageBroker=${MESSAGE_BROKER}
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
     networks:
       - riskinsure
     depends_on:
@@ -102,6 +105,7 @@ services:
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=customer
       - Messaging__MessageBroker=${MESSAGE_BROKER}
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
     depends_on:
       cosmos-emulator:
         condition: service_healthy
@@ -132,6 +136,7 @@ services:
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=fundstransfermgt
       - Messaging__MessageBroker=${MESSAGE_BROKER}
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
     networks:
       - riskinsure
     depends_on:
@@ -156,6 +161,7 @@ services:
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=fundstransfermgt
       - Messaging__MessageBroker=${MESSAGE_BROKER}
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
     depends_on:
       cosmos-emulator:
         condition: service_healthy
@@ -186,6 +192,7 @@ services:
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=policy
       - Messaging__MessageBroker=${MESSAGE_BROKER}
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
     networks:
       - riskinsure
     depends_on:
@@ -210,6 +217,7 @@ services:
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=policy
       - Messaging__MessageBroker=${MESSAGE_BROKER}
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
     depends_on:
       cosmos-emulator:
         condition: service_healthy
@@ -240,6 +248,7 @@ services:
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=ratingunderwriting
       - Messaging__MessageBroker=${MESSAGE_BROKER}
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
     networks:
       - riskinsure
     depends_on:
@@ -264,6 +273,7 @@ services:
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=ratingunderwriting
       - Messaging__MessageBroker=${MESSAGE_BROKER}
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
     depends_on:
       cosmos-emulator:
         condition: service_healthy
