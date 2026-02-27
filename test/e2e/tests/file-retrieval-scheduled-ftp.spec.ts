@@ -1,7 +1,7 @@
 import { test } from '@playwright/test';
 import {
   createConfiguration,
-  ensureFtpContainerRunning,
+  ensureContainerRunning,
   getFileRetrievalConfig,
   seedFileToFtpContainer,
   waitForFileFound,
@@ -16,7 +16,7 @@ test.describe('File Retrieval Scheduled FTP E2E', () => {
     const clientId = `e2e-client-${Date.now()}`;
     const sampleFileName = `e2e-sample-${Date.now()}.txt`;
 
-    await ensureFtpContainerRunning(fileRetrievalConfig.ftpContainerName);
+    await ensureContainerRunning(fileRetrievalConfig.ftpContainerName);
     console.log("FTP container is running");
     console.log("Adding sample file to FTP container...");
     await seedFileToFtpContainer(

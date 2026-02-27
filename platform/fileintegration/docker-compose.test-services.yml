@@ -45,7 +45,7 @@ services:
       - riskinsure
 
   # Test HTTPS Server (for HTTPS protocol testing)
-  https-server:
+  file-retrieval-https:
     image: nginx:alpine
     container_name: file-retrieval-https
     ports:
@@ -54,8 +54,23 @@ services:
     volumes:
       - ./test-data:/usr/share/nginx/html:ro
       - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
+    command:
+      - /bin/sh
+      - -c
+      - |
+        apk add --no-cache openssl &&
+        mkdir -p /etc/nginx/certs &&
+        if [ ! -f /etc/nginx/certs/server.crt ] || [ ! -f /etc/nginx/certs/server.key ]; then
+          echo Creating self-signed SSL certificate for 'file-retrieval-https'
+          openssl req -x509 -nodes -days 365 \
+            -newkey rsa:2048 \
+            -keyout /etc/nginx/certs/server.key \
+            -out /etc/nginx/certs/server.crt \
+            -subj "/C=US/ST=Test/L=Test/O=RiskInsure/OU=FileRetrieval/CN=file-retrieval-https";
+        fi &&
+        nginx -g 'daemon off;'
     healthcheck:
-      test: ["CMD", "wget", "--spider", "-q", "http://localhost:80/health"]
+      test: ["CMD", "wget", "--spider", "-q", "--no-check-certificate", "https://127.0.0.1:443/health"]
       interval: 10s
       timeout: 5s
       retries: 3

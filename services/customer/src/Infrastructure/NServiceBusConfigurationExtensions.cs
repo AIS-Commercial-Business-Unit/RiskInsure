@@ -179,8 +179,6 @@ public static class NServiceBusConfigurationExtensions
                 "CosmosDb endpoint missing. Add ConnectionStrings:CosmosDb to configuration");
         }
 
-        Console.WriteLine($"[NServiceBus]: using Cosmos DB connection string: {cosmosConnectionString}");
-
         var persistence = endpointConfiguration.UsePersistence<CosmosPersistence>();
         persistence.CosmosClient(new CosmosClient(cosmosConnectionString));
         // Todo: Configuration item

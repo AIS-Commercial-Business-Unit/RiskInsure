@@ -12,15 +12,20 @@ services:
       args:
         PROJECT_PATH: platform/fileintegration/src/FileRetrieval.API/FileRetrieval.API.csproj
         ASSEMBLY_NAME: FileRetrieval.API.dll
+        SSL_SERVER_DOMAIN_2: file-retrieval-https
+        SSL_SERVER_PORT_2: 443
+        SSL_TEST_PATH_2: /
     ports:
       - "7090:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
-      - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
-      - Messaging__MessageBroker=RabbitMQ
-      - CosmosDb__DatabaseName=file-retrieval      
+      - ConnectionStrings__RabbitMQ=${MESSAGING_CONNECTION_STRING}
+      - ConnectionStrings__ServiceBus=${MESSAGING_CONNECTION_STRING}
+      - Messaging__MessageBroker=${MESSAGE_BROKER}
+      - CosmosDb__DatabaseName=RiskInsure
+      - CosmosDb__ContainerName=file-retrieval
     depends_on:
       cosmos-emulator:
         condition: service_healthy
@@ -38,12 +43,17 @@ services:
       args:
         PROJECT_PATH: platform/fileintegration/src/FileRetrieval.Worker/FileRetrieval.Worker.csproj
         ASSEMBLY_NAME: FileRetrieval.Worker.dll
+        SSL_SERVER_DOMAIN_2: file-retrieval-https
+        SSL_SERVER_PORT_2: 443
+        SSL_TEST_PATH_2: /
     environment:
       - DOTNET_ENVIRONMENT=Development
       - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
-      - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
-      - Messaging__MessageBroker=RabbitMQ
-      - CosmosDb__DatabaseName=file-retrieval
+      - ConnectionStrings__RabbitMQ=${MESSAGING_CONNECTION_STRING}
+      - ConnectionStrings__ServiceBus=${MESSAGING_CONNECTION_STRING}
+      - Messaging__MessageBroker=${MESSAGE_BROKER}
+      - CosmosDb__DatabaseName=RiskInsure
+      - CosmosDb__ContainerName=file-retrieval
     depends_on:
       cosmos-emulator:
         condition: service_healthy
