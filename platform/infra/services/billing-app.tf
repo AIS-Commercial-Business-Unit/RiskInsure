@@ -71,6 +71,10 @@ resource "azurerm_container_app" "billing_api" {
         secret_name = "servicebus-connection-string"
       }
 
+      env {
+        name  = "Messaging__MessageBroker"
+        value = "AzureServiceBus"
+      }
 
       env {
         name  = "CosmosDb__DatabaseName"
@@ -80,6 +84,11 @@ resource "azurerm_container_app" "billing_api" {
       env {
         name  = "CosmosDb__BillingContainerName"
         value = "Billing"
+      }
+
+      env {
+        name  = "APPLICATIONINSIGHTS_CONNECTION_STRING"
+        value = data.terraform_remote_state.foundation.outputs.application_insights_connection_string
       }
 
     }
@@ -166,6 +175,11 @@ resource "azurerm_container_app" "billing_endpoint" {
       }
 
       env {
+        name  = "Messaging__MessageBroker"
+        value = "AzureServiceBus"
+      }
+
+      env {
         name  = "CosmosDb__DatabaseName"
         value = "RiskInsure"
       }
@@ -173,6 +187,11 @@ resource "azurerm_container_app" "billing_endpoint" {
       env {
         name  = "CosmosDb__BillingContainerName"
         value = "Billing"
+      }
+
+      env {
+        name  = "APPLICATIONINSIGHTS_CONNECTION_STRING"
+        value = data.terraform_remote_state.foundation.outputs.application_insights_connection_string
       }
 
     }

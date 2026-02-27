@@ -25,6 +25,9 @@ try
         })
         .ConfigureServices((context, services) =>
         {
+            // Application Insights telemetry (auto-reads APPLICATIONINSIGHTS_CONNECTION_STRING env var)
+            services.AddApplicationInsightsTelemetryWorkerService();
+
             var cosmosConnectionString = context.Configuration.GetConnectionString("CosmosDb");
             if (string.IsNullOrEmpty(cosmosConnectionString))
             {

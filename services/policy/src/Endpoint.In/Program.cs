@@ -24,6 +24,9 @@ try
 
     builder.ConfigureServices((context, services) =>
     {
+        // Application Insights telemetry (auto-reads APPLICATIONINSIGHTS_CONNECTION_STRING env var)
+        services.AddApplicationInsightsTelemetryWorkerService();
+
         // Configure Cosmos DB with custom serializer
         var cosmosConnectionString = context.Configuration.GetConnectionString("CosmosDb")
             ?? throw new InvalidOperationException("CosmosDb connection string not configured");

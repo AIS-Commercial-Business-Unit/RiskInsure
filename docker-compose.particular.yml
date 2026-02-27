@@ -36,15 +36,13 @@ services:
             <SignatureValue>0oFthfd5iJcR7oT5+Klgk8Z8tdPaK7a1yn3gySku2rJV0DJNxyVBg1DnM93vjLoiDSXbIiFqLkyJk8zhZMGpl2KH+8M9jyav833Jz4rEjCPnYNyXj7O8eqnauNcngxJtyL4qAtrmn96yqCCGCt2JcIs7ivDfg6HxHOLbf/JQrtQ=</SignatureValue>
           </Signature>
         </license>
-      TRANSPORTTYPE: RabbitMQ.ClassicConventionalRouting
-      CONNECTIONSTRING: ${RABBITMQ_CONNECTION_STRING}
+      TRANSPORTTYPE: ${SERVICECONTROL_TRANSPORTTYPE}
+      CONNECTIONSTRING: ${MESSAGING_CONNECTION_STRING}
       RAVENDB_CONNECTIONSTRING: http://servicecontrol-ravendb:8080
       REMOTEINSTANCES: '[{"api_uri":"http://servicecontrol-audit:44444/api"}]'
     networks:
       - riskinsure
     depends_on:
-      # servicebus-emulator:
-      #   condition: service_started
       rabbitmq:
         condition: service_healthy
       servicecontrol-ravendb:
@@ -82,18 +80,16 @@ services:
             <SignatureValue>0oFthfd5iJcR7oT5+Klgk8Z8tdPaK7a1yn3gySku2rJV0DJNxyVBg1DnM93vjLoiDSXbIiFqLkyJk8zhZMGpl2KH+8M9jyav833Jz4rEjCPnYNyXj7O8eqnauNcngxJtyL4qAtrmn96yqCCGCt2JcIs7ivDfg6HxHOLbf/JQrtQ=</SignatureValue>
           </Signature>
         </license>
-      TRANSPORTTYPE: RabbitMQ.ClassicConventionalRouting
-      CONNECTIONSTRING: ${RABBITMQ_CONNECTION_STRING}
+      TRANSPORTTYPE: ${SERVICECONTROL_TRANSPORTTYPE}
+      CONNECTIONSTRING: ${MESSAGING_CONNECTION_STRING}
       RAVENDB_CONNECTIONSTRING: http://servicecontrol-ravendb:8080
       SERVICECONTROLQUEUEADDRESS: Particular.ServiceControl
     depends_on:
+      rabbitmq:
+        condition: service_healthy
       servicecontrol:
         condition: service_healthy
       servicecontrol-ravendb:
-        condition: service_healthy
-      # servicebus-emulator:
-      #   condition: service_started
-      rabbitmq:
         condition: service_healthy
 
   servicecontrol-monitoring:
@@ -123,8 +119,8 @@ services:
             <SignatureValue>0oFthfd5iJcR7oT5+Klgk8Z8tdPaK7a1yn3gySku2rJV0DJNxyVBg1DnM93vjLoiDSXbIiFqLkyJk8zhZMGpl2KH+8M9jyav833Jz4rEjCPnYNyXj7O8eqnauNcngxJtyL4qAtrmn96yqCCGCt2JcIs7ivDfg6HxHOLbf/JQrtQ=</SignatureValue>
           </Signature>
         </license>
-      TRANSPORTTYPE: RabbitMQ.ClassicConventionalRouting
-      CONNECTIONSTRING: ${RABBITMQ_CONNECTION_STRING}
+      TRANSPORTTYPE: ${SERVICECONTROL_TRANSPORTTYPE}
+      CONNECTIONSTRING: ${MESSAGING_CONNECTION_STRING}
     restart: unless-stopped
     networks:
       - riskinsure
@@ -133,8 +129,6 @@ services:
     depends_on:
       rabbitmq:
         condition: service_healthy
-      # servicebus-emulator:
-      #   condition: service_started
 
   servicepulse:
     container_name: servicepulse
@@ -148,14 +142,12 @@ services:
       MONITORING_URL: http://servicecontrol-monitoring:33633
     restart: unless-stopped
     depends_on:
+      rabbitmq:
+        condition: service_healthy
       servicecontrol:
         condition: service_healthy
       servicecontrol-monitoring:
         condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-      # servicebus-emulator:
-      #   condition: service_started
 
 
   # WARNING: A single database container should not be shared between multiple ServiceControl instances in production scenarios.

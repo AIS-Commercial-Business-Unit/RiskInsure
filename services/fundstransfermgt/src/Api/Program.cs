@@ -20,6 +20,9 @@ try
     // Configure Serilog
     builder.Host.UseSerilog();
 
+    // Application Insights telemetry (auto-reads APPLICATIONINSIGHTS_CONNECTION_STRING env var)
+    builder.Services.AddApplicationInsightsTelemetry();
+
     // Add controllers with JSON options for enum string conversion
     builder.Services.AddControllers()
         .AddJsonOptions(options =>
