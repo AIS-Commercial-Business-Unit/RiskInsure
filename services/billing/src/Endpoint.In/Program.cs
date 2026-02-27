@@ -6,17 +6,25 @@ using RiskInsure.Billing.Domain.Managers;
 using RiskInsure.Billing.Domain.Services.BillingDb;
 using Serilog;
 using RiskInsure.Billing.Infrastructure;
+using Serilog.Sinks.ApplicationInsights.TelemetryConverters;
+using Microsoft.ApplicationInsights.Extensibility;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
-    .CreateLogger();
+    .CreateBootstrapLogger();
 
 try
 {
     Log.Information("Starting Billing Endpoint.In");
 
     var host = Host.CreateDefaultBuilder(args)
-        .UseSerilog()
+        .UseSerilog((context, services, configuration) => configuration
+            .ReadFrom.Configuration(context.Configuration)
+            .Enrich.FromLogContext()
+            .WriteTo.Console()
+            .WriteTo.ApplicationInsights(
+                services.GetRequiredService<TelemetryConfiguration>(),
+                TelemetryConverter.Traces))
         .NServiceBusEnvironmentConfiguration("RiskInsure.Billing.Endpoint",
         (config, endpoint, routing) =>
         {

@@ -5,17 +5,23 @@ using RiskInsure.Customer.Domain.Validation;
 using RiskInsure.Customer.Infrastructure;
 using Scalar.AspNetCore;
 using Serilog;
+using Serilog.Sinks.ApplicationInsights.TelemetryConverters;
+using Microsoft.ApplicationInsights.Extensibility;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure Serilog
+// Configure Serilog with Application Insights sink
 Log.Logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(builder.Configuration)
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
+
+builder.Host.UseSerilog((context, services, configuration) => configuration
+    .ReadFrom.Configuration(context.Configuration)
     .Enrich.FromLogContext()
     .WriteTo.Console()
-    .CreateLogger();
-
-builder.Host.UseSerilog();
+    .WriteTo.ApplicationInsights(
+        services.GetRequiredService<TelemetryConfiguration>(),
+        TelemetryConverter.Traces));
 
 // Application Insights telemetry (auto-reads APPLICATIONINSIGHTS_CONNECTION_STRING env var)
 builder.Services.AddApplicationInsightsTelemetry();

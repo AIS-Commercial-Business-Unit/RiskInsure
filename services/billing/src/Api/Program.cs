@@ -6,10 +6,12 @@ using RiskInsure.Billing.Domain.Services.BillingDb;
 using RiskInsure.Billing.Infrastructure;
 using Scalar.AspNetCore;
 using Serilog;
+using Serilog.Sinks.ApplicationInsights.TelemetryConverters;
+using Microsoft.ApplicationInsights.Extensibility;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
-    .CreateLogger();
+    .CreateBootstrapLogger();
 
 try
 {
@@ -17,8 +19,14 @@ try
 
     var builder = WebApplication.CreateBuilder(args);
 
-    // Configure Serilog
-    builder.Host.UseSerilog();
+    // Configure Serilog with Application Insights sink
+    builder.Host.UseSerilog((context, services, configuration) => configuration
+        .ReadFrom.Configuration(context.Configuration)
+        .Enrich.FromLogContext()
+        .WriteTo.Console()
+        .WriteTo.ApplicationInsights(
+            services.GetRequiredService<TelemetryConfiguration>(),
+            TelemetryConverter.Traces));
 
     // Application Insights telemetry (auto-reads APPLICATIONINSIGHTS_CONNECTION_STRING env var)
     builder.Services.AddApplicationInsightsTelemetry();

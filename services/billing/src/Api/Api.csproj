@@ -19,6 +19,7 @@
     <!-- Logging -->
     <PackageReference Include="Serilog.AspNetCore" />
     <PackageReference Include="Serilog.Sinks.Console" />
+    <PackageReference Include="Serilog.Sinks.ApplicationInsights" />
     
     <!-- Application Insights -->
     <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" />

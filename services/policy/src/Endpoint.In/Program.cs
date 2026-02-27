@@ -9,10 +9,12 @@ using Serilog;
 using RiskInsure.Policy.Infrastructure;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Serilog.Sinks.ApplicationInsights.TelemetryConverters;
+using Microsoft.ApplicationInsights.Extensibility;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
-    .CreateLogger();
+    .CreateBootstrapLogger();
 
 try
 {
@@ -20,7 +22,13 @@ try
 
     var builder = Host.CreateDefaultBuilder(args);
 
-    builder.UseSerilog();
+    builder.UseSerilog((context, services, configuration) => configuration
+        .ReadFrom.Configuration(context.Configuration)
+        .Enrich.FromLogContext()
+        .WriteTo.Console()
+        .WriteTo.ApplicationInsights(
+            services.GetRequiredService<TelemetryConfiguration>(),
+            TelemetryConverter.Traces));
 
     builder.ConfigureServices((context, services) =>
     {

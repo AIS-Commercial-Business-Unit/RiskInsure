@@ -23,6 +23,7 @@
     <!-- Logging -->
     <PackageReference Include="Serilog.AspNetCore" />
     <PackageReference Include="Serilog.Sinks.Console" />
+    <PackageReference Include="Serilog.Sinks.ApplicationInsights" />
     <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" />
   </ItemGroup>
 
