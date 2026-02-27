@@ -6,17 +6,23 @@ using RiskInsure.RatingAndUnderwriting.Domain.Repositories;
 using RiskInsure.RatingAndUnderwriting.Domain.Services;
 using Serilog;
 using Scalar.AspNetCore;
+using Serilog.Sinks.ApplicationInsights.TelemetryConverters;
+using Microsoft.ApplicationInsights.Extensibility;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Serilog
+// Serilog bootstrap logger (replaced by full config once host is built)
 Log.Logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(builder.Configuration)
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
+
+builder.Host.UseSerilog((context, services, configuration) => configuration
+    .ReadFrom.Configuration(context.Configuration)
     .Enrich.FromLogContext()
     .WriteTo.Console()
-    .CreateLogger();
-
-builder.Host.UseSerilog();
+    .WriteTo.ApplicationInsights(
+        services.GetRequiredService<TelemetryConfiguration>(),
+        TelemetryConverter.Traces));
 
 // Application Insights telemetry (auto-reads APPLICATIONINSIGHTS_CONNECTION_STRING env var)
 builder.Services.AddApplicationInsightsTelemetry();

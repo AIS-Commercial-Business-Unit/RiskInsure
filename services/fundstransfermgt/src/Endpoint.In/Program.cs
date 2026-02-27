@@ -4,6 +4,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
+using Serilog.Sinks.ApplicationInsights.TelemetryConverters;
+using Microsoft.ApplicationInsights.Extensibility;
 using RiskInsure.FundTransferMgt.Domain.Managers;
 using RiskInsure.FundTransferMgt.Domain.Repositories;
 using RiskInsure.FundTransferMgt.Domain.Services;
@@ -11,12 +13,18 @@ using RiskInsure.FundTransferMgt.Infrastructure;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
-    .CreateLogger();
+    .CreateBootstrapLogger();
 
 try
 {
     var host = Host.CreateDefaultBuilder(args)
-        .UseSerilog()
+        .UseSerilog((context, services, configuration) => configuration
+            .ReadFrom.Configuration(context.Configuration)
+            .Enrich.FromLogContext()
+            .WriteTo.Console()
+            .WriteTo.ApplicationInsights(
+                services.GetRequiredService<TelemetryConfiguration>(),
+                TelemetryConverter.Traces))
         .NServiceBusEnvironmentConfiguration("RiskInsure.FundTransferMgt.Endpoint",
         (config, endpoint, routing) =>
         {

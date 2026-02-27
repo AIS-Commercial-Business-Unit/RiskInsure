@@ -4,17 +4,25 @@ using RiskInsure.RatingAndUnderwriting.Domain.Managers;
 using RiskInsure.RatingAndUnderwriting.Domain.Repositories;
 using RiskInsure.RatingAndUnderwriting.Domain.Services;
 using Serilog;
+using Serilog.Sinks.ApplicationInsights.TelemetryConverters;
+using Microsoft.ApplicationInsights.Extensibility;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
-    .CreateLogger();
+    .CreateBootstrapLogger();
 
 try
 {
     Log.Information("Starting Rating & Underwriting Endpoint.In");
 
     var host = Host.CreateDefaultBuilder(args)
-        .UseSerilog()
+        .UseSerilog((context, services, configuration) => configuration
+            .ReadFrom.Configuration(context.Configuration)
+            .Enrich.FromLogContext()
+            .WriteTo.Console()
+            .WriteTo.ApplicationInsights(
+                services.GetRequiredService<TelemetryConfiguration>(),
+                TelemetryConverter.Traces))
         .NServiceBusEnvironmentConfiguration("RiskInsure.RatingAndUnderwriting.Endpoint",
         (config, endpoint, routing) =>
         {
