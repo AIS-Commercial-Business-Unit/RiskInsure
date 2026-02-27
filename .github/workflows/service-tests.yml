@@ -15,7 +15,6 @@ on:
   push:
     branches:
       - main
-      - Dev
     paths:
       - "services/billing/**"
       - "services/customer/**"
@@ -30,7 +29,6 @@ on:
   pull_request:
     branches:
       - main
-      - Dev
     paths:
       - "services/billing/**"
       - "services/customer/**"
@@ -67,6 +65,8 @@ jobs:
             unit_tests_path: services/policy/test/Unit.Tests
           - service: ratingandunderwriting
             unit_tests_path: services/ratingandunderwriting/test/Unit.Tests
+          # - service: fileintegrationApplication
+          #   unit_tests_path: platform/fileintegration/test/FileRetrieval.Application.Tests/Services
 
     steps:
       - name: Checkout code

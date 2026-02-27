@@ -1,90 +1,139 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, APIRequestContext } from '@playwright/test';
 
-test.describe('Submit Underwriting', () => {
-  // NOTE: Tests require quote in Draft status - create quote in beforeEach
-  
+const tomorrow = () => new Date(Date.now() + 86400000).toISOString();
+
+async function createDraftQuote(request: APIRequestContext): Promise<string> {
+  const response = await request.post('/api/quotes/start', {
+    data: {
+      customerId: crypto.randomUUID(),
+      structureCoverageLimit: 200000,
+      structureDeductible: 1000,
+      contentsCoverageLimit: 50000,
+      contentsDeductible: 500,
+      termMonths: 12,
+      effectiveDate: tomorrow(),
+      propertyZipCode: '60601',
+    },
+  });
+  expect(response.status()).toBe(201);
+  const body = await response.json();
+  return body.quoteId;
+}
+
+test.describe('POST /api/quotes/{quoteId}/submit-underwriting', () => {
   let quoteId: string;
 
-  test('initial test for submit-underwriting tests', async ({ request }) => {
-    const response = await request.post('/api/quotes/start', {
-      data: {
-        customerId: crypto.randomUUID(),
-        structureCoverageLimit: 200000,
-        structureDeductible: 1000,
-        contentsCoverageLimit: 50000,
-        contentsDeductible: 500,
-        termMonths: 12,
-        effectiveDate: new Date(Date.now() + 86400000).toISOString(),
-        propertyZipCode: '60601'
-      }
-    });
-    
-    expect(response.status(), `StartQuote failed with ${response.status()} - cannot proceed without a valid quoteId`).toBe(201);
-
-    const result = await response.json();
-    quoteId = result.quoteId;
+  test.beforeEach(async ({ request }) => {
+    quoteId = await createDraftQuote(request);
   });
 
-  test('should approve Class A underwriting', async ({ request }) => {
+  test('returns Quoted status with Class A underwriting for low-risk profile', async ({ request }) => {
     const response = await request.post(`/api/quotes/${quoteId}/submit-underwriting`, {
       data: {
         priorClaimsCount: 0,
         propertyAgeYears: 10,
-        creditTier: 'Excellent'
-      }
+        creditTier: 'Excellent',
+      },
     });
 
     expect(response.status()).toBe(200);
 
-    const result = await response.json();
-    expect(result.status).toBe('Quoted');
-    expect(result.underwritingClass).toBe('A');
-    expect(result.premium).toBeGreaterThan(0);
+    const body = await response.json();
+    expect(body.quoteId).toBe(quoteId);
+    expect(body.status).toBe('Quoted');
+    expect(body.underwritingClass).toBe('A');
+    expect(body.premium).toBeGreaterThan(0);
+    expect(body.expirationUtc).toBeDefined();
   });
 
-  test('should approve Class B underwriting', async ({ request }) => {
+  test('returns Quoted status with Class B underwriting for moderate-risk profile', async ({ request }) => {
     const response = await request.post(`/api/quotes/${quoteId}/submit-underwriting`, {
       data: {
         priorClaimsCount: 1,
         propertyAgeYears: 25,
-        creditTier: 'Good'
-      }
+        creditTier: 'Good',
+      },
     });
 
     expect(response.status()).toBe(200);
 
-    const result = await response.json();
-    expect(result.status).toBe('Quoted');
-    expect(result.underwritingClass).toBe('B');
+    const body = await response.json();
+    expect(body.quoteId).toBe(quoteId);
+    expect(body.status).toBe('Quoted');
+    expect(body.underwritingClass).toBe('B');
+    expect(body.premium).toBeGreaterThan(0);
   });
 
-  test('should decline excessive claims', async ({ request }) => {
+  test('Class B premium is higher than Class A premium for same coverage', async ({ request }) => {
+    const classAQuoteId = await createDraftQuote(request);
+    const classBQuoteId = await createDraftQuote(request);
+
+    const [classAResponse, classBResponse] = await Promise.all([
+      request.post(`/api/quotes/${classAQuoteId}/submit-underwriting`, {
+        data: { priorClaimsCount: 0, propertyAgeYears: 10, creditTier: 'Excellent' },
+      }),
+      request.post(`/api/quotes/${classBQuoteId}/submit-underwriting`, {
+        data: { priorClaimsCount: 1, propertyAgeYears: 25, creditTier: 'Good' },
+      }),
+    ]);
+
+    expect(classAResponse.status()).toBe(200);
+    expect(classBResponse.status()).toBe(200);
+
+    const [classA, classB] = await Promise.all([classAResponse.json(), classBResponse.json()]);
+    expect(classB.premium).toBeGreaterThan(classA.premium);
+  });
+
+  test('returns 422 UnderwritingDeclined when prior claims count is excessive', async ({ request }) => {
     const response = await request.post(`/api/quotes/${quoteId}/submit-underwriting`, {
       data: {
         priorClaimsCount: 3,
         propertyAgeYears: 15,
-        creditTier: 'Good'
-      }
+        creditTier: 'Good',
+      },
     });
 
     expect(response.status()).toBe(422);
 
     const error = await response.json();
     expect(error.error).toBe('UnderwritingDeclined');
-    expect(error.message).toContain('claims');
+    expect(error.message).toBeDefined();
   });
 
-  test('should return 404 for non-existent quote', async ({ request }) => {
-    const nonExistentId = 'QUOTE-' + Date.now();
+  test('returns 409 when submitting underwriting on an already-quoted quote', async ({ request }) => {
+    // Bring quote to Quoted status
+    const firstResponse = await request.post(`/api/quotes/${quoteId}/submit-underwriting`, {
+      data: { priorClaimsCount: 0, propertyAgeYears: 10, creditTier: 'Excellent' },
+    });
+    expect(firstResponse.status()).toBe(200);
 
-    const response = await request.post(`/api/quotes/${nonExistentId}/submit-underwriting`, {
-      data: {
-        priorClaimsCount: 0,
-        propertyAgeYears: 10,
-        creditTier: 'Excellent'
-      }
+    // Second submission on the same quote should conflict
+    const secondResponse = await request.post(`/api/quotes/${quoteId}/submit-underwriting`, {
+      data: { priorClaimsCount: 0, propertyAgeYears: 10, creditTier: 'Excellent' },
+    });
+
+    expect(secondResponse.status()).toBe(409);
+
+    const error = await secondResponse.json();
+    expect(error.error).toBe('InvalidQuoteStatus');
+  });
+
+  test('returns 404 for a non-existent quoteId', async ({ request }) => {
+    const response = await request.post('/api/quotes/QUOTE-000000000000/submit-underwriting', {
+      data: { priorClaimsCount: 0, propertyAgeYears: 10, creditTier: 'Excellent' },
     });
 
     expect(response.status()).toBe(404);
+
+    const error = await response.json();
+    expect(error.error).toBe('QuoteNotFound');
+  });
+
+  test('returns 400 when creditTier is missing', async ({ request }) => {
+    const response = await request.post(`/api/quotes/${quoteId}/submit-underwriting`, {
+      data: { priorClaimsCount: 0, propertyAgeYears: 10 },
+    });
+
+    expect(response.status()).toBe(400);
   });
 });

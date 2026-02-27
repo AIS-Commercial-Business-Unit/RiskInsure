@@ -1,275 +1,158 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, APIRequestContext } from '@playwright/test';
 
-test.describe('Get Customer Quotes', () => {
-    // NOTE: Test retrieval of all quotes for a customer
+const tomorrow = (daysAhead = 1) => new Date(Date.now() + 86400000 * daysAhead).toISOString();
 
-    let customerId: string;
-    let quoteIds: string[] = [];
+async function createDraftQuote(
+  request: APIRequestContext,
+  customerId: string,
+  overrides: Record<string, unknown> = {}
+): Promise<string> {
+  const response = await request.post('/api/quotes/start', {
+    data: {
+      customerId,
+      structureCoverageLimit: 200000,
+      structureDeductible: 1000,
+      contentsCoverageLimit: 50000,
+      contentsDeductible: 500,
+      termMonths: 12,
+      effectiveDate: tomorrow(),
+      propertyZipCode: '60601',
+      ...overrides,
+    },
+  });
+  expect(response.status()).toBe(201);
+  const body = await response.json();
+  return body.quoteId;
+}
 
-    test.beforeEach(async ({ request }) => {
-        customerId = crypto.randomUUID();
-        quoteIds = [];
-    });
+async function submitUnderwriting(
+  request: APIRequestContext,
+  quoteId: string
+): Promise<void> {
+  const response = await request.post(`/api/quotes/${quoteId}/submit-underwriting`, {
+    data: { priorClaimsCount: 0, propertyAgeYears: 10, creditTier: 'Excellent' },
+  });
+  expect(response.status()).toBe(200);
+}
 
-    test('should return empty list for customer with no quotes', async ({ request }) => {
-        const response = await request.get(`/api/customers/${customerId}/quotes`);
+async function acceptQuote(request: APIRequestContext, quoteId: string): Promise<void> {
+  const response = await request.post(`/api/quotes/${quoteId}/accept`);
+  expect(response.status()).toBe(200);
+}
 
-        expect(response.status()).toBe(200);
+test.describe('GET /api/customers/{customerId}/quotes', () => {
+  test('returns empty list for a customer with no quotes', async ({ request }) => {
+    const customerId = crypto.randomUUID();
 
-        const result = await response.json();
-        expect(result.customerId).toBe(customerId);
-        expect(result.quotes).toEqual([]);
-    });
+    const response = await request.get(`/api/customers/${customerId}/quotes`);
 
-    test('should return all quotes for customer', async ({ request }) => {
+    expect(response.status()).toBe(200);
 
-        // Create multiple quotes for the same customer
-        for (let i = 0; i < 2; i++) {
-            const response = await request.post('/api/quotes/start', {
-                data: {
-                    customerId,
-                    structureCoverageLimit: 200000,
-                    structureDeductible: 1000,
-                    contentsCoverageLimit: 50000,
-                    contentsDeductible: 500,
-                    termMonths: 12,
-                    effectiveDate: new Date(Date.now() + 86400000 * (i + 1)).toISOString(),
-                    propertyZipCode: '60601'
-                }
-            });
+    const body = await response.json();
+    expect(body.customerId).toBe(customerId);
+    expect(body.quotes).toEqual([]);
+  });
 
-            expect(response.status()).toBe(201);
+  test('returns all quotes for a customer', async ({ request }) => {
+    const customerId = crypto.randomUUID();
 
-            const result = await response.json();
-            quoteIds.push(result.quoteId);
-        }
+    const [id1, id2] = await Promise.all([
+      createDraftQuote(request, customerId, { effectiveDate: tomorrow(1) }),
+      createDraftQuote(request, customerId, { effectiveDate: tomorrow(2) }),
+    ]);
 
-        const response = await request.get(`/api/customers/${customerId}/quotes`);
+    const response = await request.get(`/api/customers/${customerId}/quotes`);
 
-        expect(response.status()).toBe(200);
+    expect(response.status()).toBe(200);
 
-        const result = await response.json();
-        expect(result.customerId).toBe(customerId);
-        expect(result.quotes).toHaveLength(2);
+    const body = await response.json();
+    expect(body.customerId).toBe(customerId);
+    expect(body.quotes).toHaveLength(2);
 
-        // Verify all quotes are present
-        const returnedQuoteIds = result.quotes.map((q: any) => q.quoteId);
-        for (const quoteId of quoteIds) {
-            expect(returnedQuoteIds).toContain(quoteId);
-        }
-    });
+    const returnedIds = body.quotes.map((q: { quoteId: string }) => q.quoteId);
+    expect(returnedIds).toContain(id1);
+    expect(returnedIds).toContain(id2);
+  });
 
-    test('should return quote summaries with correct fields', async ({ request }) => {
-        // Create a quote
-        const startResponse = await request.post('/api/quotes/start', {
-            data: {
-                customerId,
-                structureCoverageLimit: 200000,
-                structureDeductible: 1000,
-                contentsCoverageLimit: 50000,
-                contentsDeductible: 500,
-                termMonths: 12,
-                effectiveDate: new Date(Date.now() + 86400000).toISOString(),
-                propertyZipCode: '60601'
-            }
-        });
+  test('returns quote summary with correct fields for a Draft quote', async ({ request }) => {
+    const customerId = crypto.randomUUID();
+    const quoteId = await createDraftQuote(request, customerId);
 
-        expect(startResponse.status()).toBe(201);
+    const response = await request.get(`/api/customers/${customerId}/quotes`);
 
-        const startResult = await startResponse.json();
-        const quoteId = startResult.quoteId;
+    expect(response.status()).toBe(200);
 
-        const response = await request.get(`/api/customers/${customerId}/quotes`);
+    const body = await response.json();
+    expect(body.quotes).toHaveLength(1);
 
-        expect(response.status()).toBe(200);
+    const summary = body.quotes[0];
+    expect(summary.quoteId).toBe(quoteId);
+    expect(summary.status).toBe('Draft');
+    expect(summary.premium).toBeNull();
+    expect(summary.expirationUtc).toBeDefined();
+    expect(summary.createdUtc).toBeDefined();
+  });
 
-        const result = await response.json();
-        expect(result.quotes).toHaveLength(1);
+  test('returns premium in summary after underwriting', async ({ request }) => {
+    const customerId = crypto.randomUUID();
+    const quoteId = await createDraftQuote(request, customerId);
+    await submitUnderwriting(request, quoteId);
 
-        const quote = result.quotes[0];
-        expect(quote.quoteId).toBe(quoteId);
-        expect(quote.status).toBe('Draft');
-        expect(quote.premium).toBeNull();
-        expect(quote.expirationUtc).toBeDefined();
-        expect(quote.createdUtc).toBeDefined();
-    });
+    const response = await request.get(`/api/customers/${customerId}/quotes`);
 
-    test('should include premium in quoted quotes', async ({ request }) => {
+    expect(response.status()).toBe(200);
 
-        // Create and underwrite a quote
-        const startResponse = await request.post('/api/quotes/start', {
-            data: {
-                customerId,
-                structureCoverageLimit: 200000,
-                structureDeductible: 1000,
-                contentsCoverageLimit: 50000,
-                contentsDeductible: 500,
-                termMonths: 12,
-                effectiveDate: new Date(Date.now() + 86400000).toISOString(),
-                propertyZipCode: '60601'
-            }
-        });
+    const body = await response.json();
+    expect(body.quotes).toHaveLength(1);
 
-        expect(startResponse.status()).toBe(201);
+    const summary = body.quotes[0];
+    expect(summary.quoteId).toBe(quoteId);
+    expect(summary.status).toBe('Quoted');
+    expect(summary.premium).toBeGreaterThan(0);
+  });
 
-        const startResult = await startResponse.json();
-        const quoteId = startResult.quoteId;
+  test('returns quotes across all statuses (Draft, Quoted, Accepted)', async ({ request }) => {
+    const customerId = crypto.randomUUID();
 
-        // Submit underwriting
-        const uwResponse = await request.post(`/api/quotes/${quoteId}/submit-underwriting`, {
-            data: {
-                priorClaimsCount: 0,
-                propertyAgeYears: 10,
-                creditTier: 'Excellent'
-            }
-        });
+    const draftId = await createDraftQuote(request, customerId, { effectiveDate: tomorrow(1) });
 
-        expect(uwResponse.status()).toBe(200);
+    const quotedId = await createDraftQuote(request, customerId, { effectiveDate: tomorrow(2) });
+    await submitUnderwriting(request, quotedId);
 
-        const response = await request.get(`/api/customers/${customerId}/quotes`);
+    const acceptedId = await createDraftQuote(request, customerId, { effectiveDate: tomorrow(3) });
+    await submitUnderwriting(request, acceptedId);
+    await acceptQuote(request, acceptedId);
 
-        expect(response.status()).toBe(200);
+    const response = await request.get(`/api/customers/${customerId}/quotes`);
 
-        const result = await response.json();
-        expect(result.quotes).toHaveLength(1);
+    expect(response.status()).toBe(200);
 
-        const quote = result.quotes[0];
-        expect(quote.quoteId).toBe(quoteId);
-        expect(quote.status).toBe('Quoted');
-        expect(quote.premium).toBeGreaterThan(0);
-    });
+    const body = await response.json();
+    expect(body.quotes).toHaveLength(3);
 
-    test('should return quotes in different statuses', async ({ request }) => {
-        // Create draft quote
-        const draftResponse = await request.post('/api/quotes/start', {
-            data: {
-                customerId,
-                structureCoverageLimit: 200000,
-                structureDeductible: 1000,
-                contentsCoverageLimit: 50000,
-                contentsDeductible: 500,
-                termMonths: 12,
-                effectiveDate: new Date(Date.now() + 86400000).toISOString(),
-                propertyZipCode: '60601'
-            }
-        });
+    const statuses = body.quotes.map((q: { status: string }) => q.status).sort();
+    expect(statuses).toEqual(['Accepted', 'Draft', 'Quoted']);
 
-        expect(draftResponse.status()).toBe(201);
+    const ids = body.quotes.map((q: { quoteId: string }) => q.quoteId);
+    expect(ids).toContain(draftId);
+    expect(ids).toContain(quotedId);
+    expect(ids).toContain(acceptedId);
+  });
 
-        // Create and quote another
-        const quotedResponse = await request.post('/api/quotes/start', {
-            data: {
-                customerId,
-                structureCoverageLimit: 250000,
-                structureDeductible: 2000,
-                contentsCoverageLimit: 75000,
-                contentsDeductible: 1000,
-                termMonths: 12,
-                effectiveDate: new Date(Date.now() + 86400000).toISOString(),
-                propertyZipCode: '60601'
-            }
-        });
+  test('does not return quotes belonging to other customers', async ({ request }) => {
+    const customerId = crypto.randomUUID();
+    const otherCustomerId = crypto.randomUUID();
 
-        expect(quotedResponse.status()).toBe(201);
+    const quoteId = await createDraftQuote(request, customerId);
+    await createDraftQuote(request, otherCustomerId);
 
-        const quotedResult = await quotedResponse.json();
+    const response = await request.get(`/api/customers/${customerId}/quotes`);
 
-        const uwQuotedResponse = await request.post(`/api/quotes/${quotedResult.quoteId}/submit-underwriting`, {
-            data: {
-                priorClaimsCount: 0,
-                propertyAgeYears: 10,
-                creditTier: 'Excellent'
-            }
-        });
+    expect(response.status()).toBe(200);
 
-        expect(uwQuotedResponse.status()).toBe(200);
-
-        // Create, quote, and accept another
-        const acceptedResponse = await request.post('/api/quotes/start', {
-            data: {
-                customerId,
-                structureCoverageLimit: 300000,
-                structureDeductible: 2500,
-                contentsCoverageLimit: 100000,
-                contentsDeductible: 1500,
-                termMonths: 12,
-                effectiveDate: new Date(Date.now() + 86400000).toISOString(),
-                propertyZipCode: '60601'
-            }
-        });
-
-        expect(acceptedResponse.status()).toBe(201);
-
-        const acceptedResult = await acceptedResponse.json();
-
-        const uwAcceptedResponse = await request.post(`/api/quotes/${acceptedResult.quoteId}/submit-underwriting`, {
-            data: {
-                priorClaimsCount: 0,
-                propertyAgeYears: 10,
-                creditTier: 'Excellent'
-            }
-        });
-
-        expect(uwAcceptedResponse.status()).toBe(200);
-
-        const acceptResponse = await request.post(`/api/quotes/${acceptedResult.quoteId}/accept`);
-
-        expect(acceptResponse.status()).toBe(200);
-
-        const response = await request.get(`/api/customers/${customerId}/quotes`);
-
-        expect(response.status()).toBe(200);
-
-        const result = await response.json();
-        expect(result.quotes).toHaveLength(3);
-
-        const statuses = result.quotes.map((q: any) => q.status).sort();
-        expect(statuses).toEqual(['Accepted', 'Draft', 'Quoted']);
-    });
-
-    test('should not return quotes from other customers', async ({ request }) => {
-        // Create quote for this customer
-        const response1 = await request.post('/api/quotes/start', {
-            data: {
-                customerId,
-                structureCoverageLimit: 200000,
-                structureDeductible: 1000,
-                contentsCoverageLimit: 50000,
-                contentsDeductible: 500,
-                termMonths: 12,
-                effectiveDate: new Date(Date.now() + 86400000).toISOString(),
-                propertyZipCode: '60601'
-            }
-        });
-
-        expect(response1.status()).toBe(201);
-
-        const quote1 = await response1.json();
-
-        // Create quote for different customer
-        const otherCustomerId = crypto.randomUUID();
-        const response2 = await request.post('/api/quotes/start', {
-            data: {
-                customerId: otherCustomerId,
-                structureCoverageLimit: 200000,
-                structureDeductible: 1000,
-                contentsCoverageLimit: 50000,
-                contentsDeductible: 500,
-                termMonths: 12,
-                effectiveDate: new Date(Date.now() + 86400000).toISOString(),
-                propertyZipCode: '60601'
-            }
-        });
-
-        expect(response2.status()).toBe(201);
-
-        const response = await request.get(`/api/customers/${customerId}/quotes`);
-
-        expect(response.status()).toBe(200);
-
-        const result = await response.json();
-        expect(result.customerId).toBe(customerId);
-        expect(result.quotes).toHaveLength(1);
-        expect(result.quotes[0].quoteId).toBe(quote1.quoteId);
-    });
+    const body = await response.json();
+    expect(body.customerId).toBe(customerId);
+    expect(body.quotes).toHaveLength(1);
+    expect(body.quotes[0].quoteId).toBe(quoteId);
+  });
 });
