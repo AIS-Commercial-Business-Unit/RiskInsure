@@ -289,4 +289,71 @@ public class ExecutionHistoryController : ControllerBase
             return StatusCode(500, new { error = "An error occurred while retrieving execution metrics" });
         }
     }
+
+    [HttpGet("processedfiles")]
+    [ProducesResponseType(typeof(List<ProcessedFileResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetProcessedFiles(
+        Guid configurationId,
+        [FromQuery] int pageSize = 50,
+        [FromQuery] string? fileName = null,
+        [FromQuery] Guid? executionId = null,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var clientId = GetClientIdFromClaims();
+
+            var configuration = await _configurationService.GetByIdAsync(
+                clientId,
+                configurationId,
+                cancellationToken);
+
+            if (configuration == null)
+            {
+                return NotFound(new { error = "Configuration not found" });
+            }
+
+            if (pageSize < 1 || pageSize > 200)
+            {
+                return BadRequest(new { error = "Page size must be between 1 and 200" });
+            }
+
+            var processedRecords = await _executionHistoryService.GetProcessedFileRecordsAsync(
+                clientId,
+                configurationId,
+                pageSize,
+                fileName,
+                executionId,
+                cancellationToken);
+
+            var response = processedRecords.Select(record => new ProcessedFileResponse
+            {
+                Id = record.Id,
+                DiscoveredFileId = record.DiscoveredFileId,
+                ExecutionId = record.ExecutionId,
+                FileName = record.Filename,
+                FileUrl = record.FileUrl,
+                Protocol = record.Protocol,
+                DownloadedSizeBytes = record.DownloadedSizeBytes,
+                ChecksumAlgorithm = record.ChecksumAlgorithm,
+                ChecksumHex = record.ChecksumHex,
+                ProcessedAt = record.ProcessedAt
+            }).ToList();
+
+            return Ok(response);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            _logger.LogWarning(ex, "Unauthorized access attempt");
+            return Unauthorized(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving processed files for configuration {ConfigurationId}", configurationId);
+            return StatusCode(500, new { error = "An error occurred while retrieving processed files" });
+        }
+    }
 }

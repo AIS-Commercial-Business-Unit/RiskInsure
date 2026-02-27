@@ -2,6 +2,7 @@ import { APIRequestContext, expect } from '@playwright/test';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 import { createHmac } from 'node:crypto';
+import { BlobServiceClient } from '@azure/storage-blob';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as fs from 'node:fs/promises';
@@ -29,6 +30,12 @@ export interface FileRetrievalConfig {
   httpsHostBaseUrl: string;
   httpContainerBaseUrl: string;
   httpsContainerBaseUrl: string;
+
+  azuriteContainerName: string;
+  azuriteStorageAccountName: string;
+  azuriteBlobContainerName: string;
+  azuriteHostConnectionString: string;
+  azuriteContainerConnectionString: string;
 }
 
 export interface CreatedConfiguration {
@@ -58,6 +65,16 @@ export function getFileRetrievalConfig(): FileRetrievalConfig {
     // The Container URLs can be used by something running in a container
     httpContainerBaseUrl: process.env.FILE_RETRIEVAL_HTTP_BASE_URL || 'http://file-retrieval-https:80',
     httpsContainerBaseUrl: process.env.FILE_RETRIEVAL_HTTPS_BASE_URL || 'https://file-retrieval-https:443',
+
+    azuriteContainerName: process.env.FILE_RETRIEVAL_AZURITE_CONTAINER || 'file-retrieval-azurite',
+    azuriteStorageAccountName: process.env.FILE_RETRIEVAL_AZURITE_STORAGE_ACCOUNT || 'devstoreaccount1',
+    azuriteBlobContainerName: process.env.FILE_RETRIEVAL_AZURITE_BLOB_CONTAINER || 'e2e-files',
+    azuriteHostConnectionString:
+      process.env.FILE_RETRIEVAL_AZURITE_HOST_CONNECTION_STRING ||
+      'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;',
+    azuriteContainerConnectionString:
+      process.env.FILE_RETRIEVAL_AZURITE_CONTAINER_CONNECTION_STRING ||
+      'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://file-retrieval-azurite:10000/devstoreaccount1;',
   };
 }
 
@@ -101,6 +118,19 @@ export async function seedFileToHttpsContainer(fileName: string, fileContent: st
   const filePath = path.join(testDataDir, fileName);
   await fs.writeFile(filePath, fileContent, 'utf8');
   return filePath;
+}
+
+export async function seedFileToAzuriteBlob(
+  config: FileRetrievalConfig,
+  blobName: string,
+  fileContent: string
+): Promise<void> {
+  const blobServiceClient = BlobServiceClient.fromConnectionString(config.azuriteHostConnectionString);
+  const containerClient = blobServiceClient.getContainerClient(config.azuriteBlobContainerName);
+  await containerClient.createIfNotExists();
+
+  const blobClient = containerClient.getBlockBlobClient(blobName);
+  await blobClient.upload(fileContent, Buffer.byteLength(fileContent));
 }
 
 export async function createFtpConfigurationInCosmos(
@@ -195,12 +225,53 @@ export async function createHttpsConfigurationInCosmos(
 
   const bodyText = await response.text();
   expect(response.status(), `createHttpsConfigurationInCosmos failed. Body: ${bodyText}`).toBe(202);
-console.log("Create configuration status: " + response.status());
-console.log("Create configuration response: " + bodyText);
 
   const parsed = JSON.parse(bodyText) as CreatedConfiguration;
   expect(parsed.id).toBeTruthy();
-console.log("Created configuration ID: " + parsed.id);
+
+  return parsed;
+}
+
+export async function createAzureBlobConfigurationInCosmos(
+  request: APIRequestContext,
+  config: FileRetrievalConfig,
+  fileName: string,
+  clientId: string
+): Promise<CreatedConfiguration> {
+  const token = config.bearerToken || createJwtToken(config.jwtSecret, config.jwtIssuer, config.jwtAudience, clientId);
+
+  const response = await request.post(`${config.apiBaseUrl}/api/v1/configuration`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+    },
+    data: {
+      name: 'Playwright E2E Scheduled Azure Blob Check',
+      description: 'Playwright scheduled Azurite blob retrieval E2E',
+      protocol: 'AzureBlob',
+      protocolSettings: {
+        StorageAccountName: config.azuriteStorageAccountName,
+        ContainerName: config.azuriteBlobContainerName,
+        AuthenticationType: 'ConnectionString',
+        ConnectionStringKeyVaultSecret: config.azuriteContainerConnectionString,
+      },
+      filePathPattern: '/',
+      filenamePattern: fileName,
+      fileExtension: 'txt',
+      schedule: {
+        cronExpression: '*/5 * * * * *',
+        timezone: 'UTC',
+        description: 'Every 5 seconds',
+      }
+    },
+  });
+
+  const bodyText = await response.text();
+  expect(response.status(), `createAzureBlobConfigurationInCosmos failed. Body: ${bodyText}`).toBe(202);
+
+  const parsed = JSON.parse(bodyText) as CreatedConfiguration;
+  expect(parsed.id).toBeTruthy();
 
   return parsed;
 }
@@ -210,6 +281,62 @@ export async function waitForFileFound(
   config: FileRetrievalConfig,
   configurationId: string,
   clientId: string,
+  timeoutMs = 120000,
+  pollIntervalMs = 5000
+): Promise<string> {
+  const token = config.bearerToken || createJwtToken(config.jwtSecret, config.jwtIssuer, config.jwtAudience, clientId);
+
+  await waitForConfigurationAvailable(
+    request,
+    config,
+    configurationId,
+    token,
+    Math.min(timeoutMs, 60000),
+    pollIntervalMs
+  );
+
+  const deadline = Date.now() + timeoutMs;
+  let lastBody = '';
+
+  while (Date.now() < deadline) {
+    const response = await request.get(
+      `${config.apiBaseUrl}/api/v1/configuration/${configurationId}/executionhistory?pageSize=50`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/json',
+        },
+      }
+    );
+
+    lastBody = await response.text();
+
+    if (response.status() === 200) {
+      const payload = JSON.parse(lastBody) as {
+        executions?: Array<{ id?: string; filesFound?: number }>;
+      };
+
+      const matchingExecution = (payload.executions || []).find((e) => (e.filesFound || 0) > 0 && !!e.id);
+      if (matchingExecution?.id) {
+        return matchingExecution.id;
+      }
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+  }
+
+  throw new Error(
+    `File was not found within ${timeoutMs}ms for configuration ${configurationId}. Last payload: ${lastBody}`
+  );
+}
+
+export async function waitForProcessedFileRecord(
+  request: APIRequestContext,
+  config: FileRetrievalConfig,
+  configurationId: string,
+  clientId: string,
+  expectedFileName?: string,
+  executionId?: string,
   timeoutMs = 120000,
   pollIntervalMs = 5000
 ): Promise<void> {
@@ -227,10 +354,16 @@ export async function waitForFileFound(
   const deadline = Date.now() + timeoutMs;
   let lastBody = '';
 
-  console.log(`Waiting for file to be found for configuration ${configurationId}...`);
+  console.log(`Waiting for persisted processed file record for configuration ${configurationId}...`);
   while (Date.now() < deadline) {
+    const encodedFileName = expectedFileName ? encodeURIComponent(expectedFileName) : null;
+    const encodedExecutionId = executionId ? encodeURIComponent(executionId) : null;
+    const processedFilesUrl = encodedFileName
+      ? `${config.apiBaseUrl}/api/v1/configuration/${configurationId}/executionhistory/processedfiles?pageSize=50&fileName=${encodedFileName}${encodedExecutionId ? `&executionId=${encodedExecutionId}` : ''}`
+      : `${config.apiBaseUrl}/api/v1/configuration/${configurationId}/executionhistory/processedfiles?pageSize=50${encodedExecutionId ? `&executionId=${encodedExecutionId}` : ''}`;
+
     const response = await request.get(
-      `${config.apiBaseUrl}/api/v1/configuration/${configurationId}/executionhistory?pageSize=50`,
+      processedFilesUrl,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -242,12 +375,19 @@ export async function waitForFileFound(
     lastBody = await response.text();
 
     if (response.status() === 200) {
-      const payload = JSON.parse(lastBody) as {
-        executions?: Array<{ filesFound?: number }>;
-      };
+      const payload = JSON.parse(lastBody) as Array<{
+        fileName?: string;
+        checksumAlgorithm?: string;
+        checksumHex?: string;
+      }>;
 
-      const found = (payload.executions || []).some((e) => (e.filesFound || 0) > 0);
-      if (found) {
+      const processedFileRecordObserved = (payload || []).some((record) => {
+        const hasChecksum = !!record.checksumAlgorithm && !!record.checksumHex;
+        const fileMatches = !expectedFileName || record.fileName === expectedFileName;
+        return hasChecksum && fileMatches;
+      });
+
+      if (processedFileRecordObserved) {
         return;
       }
     }
@@ -256,7 +396,7 @@ export async function waitForFileFound(
   }
 
   throw new Error(
-    `File was not found within ${timeoutMs}ms for configuration ${configurationId}. Last payload: ${lastBody}`
+    `Processed file record was not observed within ${timeoutMs}ms for configuration ${configurationId}. Last payload: ${lastBody}`
   );
 }
 

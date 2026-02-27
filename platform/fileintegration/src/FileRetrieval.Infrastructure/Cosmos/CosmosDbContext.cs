@@ -20,10 +20,12 @@ public class CosmosDbContext
     public Container ConfigurationsContainer { get; private set; } = null!;
     public Container ExecutionsContainer { get; private set; } = null!;
     public Container DiscoveredFilesContainer { get; private set; } = null!;
+    public Container ProcessedFilesContainer { get; private set; } = null!;
 
     private const string configsContainerName = "file-retrieval-configurations";
     private const string executionsContainerName = "file-retrieval-executions";
     private const string discoveredFilesContainerName = "file-retrieval-discovered-files";
+    private const string processedFilesContainerName = "file-retrieval-processed-files";
 
     public CosmosDbContext(
         CosmosClient cosmosClient,
@@ -48,11 +50,13 @@ public class CosmosDbContext
         await EnsureDbAndContainerAsync(configsContainerName, "/clientId", cancellationToken);
         await EnsureDbAndContainerAsync(executionsContainerName, "/clientId", cancellationToken);
         await EnsureDbAndContainerAsync(discoveredFilesContainerName, "/clientId", cancellationToken);
+        await EnsureDbAndContainerAsync(processedFilesContainerName, "/clientId", cancellationToken);
 
         // Get container references
         ConfigurationsContainer = Database.GetContainer(configsContainerName);
         ExecutionsContainer = Database.GetContainer(executionsContainerName);
         DiscoveredFilesContainer = Database.GetContainer(discoveredFilesContainerName);
+        ProcessedFilesContainer = Database.GetContainer(processedFilesContainerName);
 
         _logger.LogInformation("Cosmos DB context initialized successfully");
     }

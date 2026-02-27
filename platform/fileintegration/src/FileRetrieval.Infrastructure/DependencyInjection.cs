@@ -61,11 +61,13 @@ public static class DependencyInjection
         services.AddScoped<IFileRetrievalConfigurationRepository, FileRetrievalConfigurationRepository>();
         services.AddScoped<IFileRetrievalExecutionRepository, FileRetrievalExecutionRepository>();
         services.AddScoped<IDiscoveredFileRepository, DiscoveredFileRepository>();
+        services.AddScoped<IProcessedFileRecordRepository, ProcessedFileRecordRepository>();
 
         // Application services (scoped)
         services.AddScoped<ConfigurationService>();
         services.AddScoped<ExecutionHistoryService>();
         services.AddScoped<FileCheckService>();
+        services.AddScoped<DiscoveredFileContentDownloadService>();
         services.AddScoped<ProtocolAdapterFactory>();
 
         // Stateless utility/metrics services (singletons)
