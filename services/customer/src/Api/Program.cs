@@ -7,6 +7,7 @@ using Scalar.AspNetCore;
 using Serilog;
 using Serilog.Sinks.ApplicationInsights.TelemetryConverters;
 using Microsoft.ApplicationInsights.Extensibility;
+using Azure.Monitor.OpenTelemetry.Exporter;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,6 +26,15 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
 
 // Application Insights telemetry (auto-reads APPLICATIONINSIGHTS_CONNECTION_STRING env var)
 builder.Services.AddApplicationInsightsTelemetry();
+
+// OpenTelemetry: export NServiceBus traces and metrics to Azure Monitor
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracing => tracing
+        .AddSource("NServiceBus.Core")
+        .AddAzureMonitorTraceExporter())
+    .WithMetrics(metrics => metrics
+        .AddMeter("NServiceBus.Core")
+        .AddAzureMonitorMetricExporter());
 
 // NServiceBus configuration (send-only endpoint)
 builder.Host.NServiceBusEnvironmentConfiguration("RiskInsure.Customer.Api",

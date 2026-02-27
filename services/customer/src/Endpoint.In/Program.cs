@@ -2,6 +2,7 @@ using RiskInsure.Customer.Infrastructure;
 using Serilog;
 using Serilog.Sinks.ApplicationInsights.TelemetryConverters;
 using Microsoft.ApplicationInsights.Extensibility;
+using Azure.Monitor.OpenTelemetry.Exporter;
 
 var builder = Host.CreateDefaultBuilder(args);
 
@@ -22,6 +23,15 @@ builder.UseSerilog((context, services, configuration) => configuration
 builder.ConfigureServices((context, services) =>
 {
     services.AddApplicationInsightsTelemetryWorkerService();
+
+    // OpenTelemetry: export NServiceBus traces and metrics to Azure Monitor
+    services.AddOpenTelemetry()
+        .WithTracing(tracing => tracing
+            .AddSource("NServiceBus.Core")
+            .AddAzureMonitorTraceExporter())
+        .WithMetrics(metrics => metrics
+            .AddMeter("NServiceBus.Core")
+            .AddAzureMonitorMetricExporter());
 });
 
 // NServiceBus configuration

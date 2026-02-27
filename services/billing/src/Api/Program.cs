@@ -8,6 +8,7 @@ using Scalar.AspNetCore;
 using Serilog;
 using Serilog.Sinks.ApplicationInsights.TelemetryConverters;
 using Microsoft.ApplicationInsights.Extensibility;
+using Azure.Monitor.OpenTelemetry.Exporter;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -30,6 +31,15 @@ try
 
     // Application Insights telemetry (auto-reads APPLICATIONINSIGHTS_CONNECTION_STRING env var)
     builder.Services.AddApplicationInsightsTelemetry();
+
+    // OpenTelemetry: export NServiceBus traces and metrics to Azure Monitor
+    builder.Services.AddOpenTelemetry()
+        .WithTracing(tracing => tracing
+            .AddSource("NServiceBus.Core")
+            .AddAzureMonitorTraceExporter())
+        .WithMetrics(metrics => metrics
+            .AddMeter("NServiceBus.Core")
+            .AddAzureMonitorMetricExporter());
 
     // Add controllers with JSON options for enum string conversion
     builder.Services.AddControllers()
