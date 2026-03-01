@@ -80,6 +80,15 @@ resource "azurerm_container_app" "ratingandunderwriting_api" {
         secret_name = "servicebus-connection-string"
       }
 
+      env {
+        name  = "APPLICATIONINSIGHTS_CONNECTION_STRING"
+        value = data.terraform_remote_state.foundation.outputs.application_insights_connection_string
+      }
+      env {
+        name = "Messaging__MessageBroker"
+        value = "AzureServiceBus"
+      }
+
     }
   }
 
@@ -173,6 +182,15 @@ resource "azurerm_container_app" "ratingandunderwriting_endpoint" {
       env {
         name        = "ConnectionStrings__ServiceBus"
         secret_name = "servicebus-connection-string"
+      }
+
+      env {
+        name  = "APPLICATIONINSIGHTS_CONNECTION_STRING"
+        value = data.terraform_remote_state.foundation.outputs.application_insights_connection_string
+      }
+      env {
+        name = "Messaging__MessageBroker"
+        value = "AzureServiceBus"
       }
 
     }
