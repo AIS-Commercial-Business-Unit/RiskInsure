@@ -5,7 +5,7 @@ test.describe('Accept Quote', () => {
   
   let quoteId: string;
 
-  test.beforeEach(async ({ request }) => {
+  test('initial test for accept-quotes tests', async ({ request }) => {
     // Start quote
     const startResponse = await request.post('/api/quotes/start', {
       data: {
@@ -19,18 +19,22 @@ test.describe('Accept Quote', () => {
         propertyZipCode: '60601'
       }
     });
-    
+
+    expect(startResponse.status()).toBe(201);
+
     const startResult = await startResponse.json();
     quoteId = startResult.quoteId;
 
     // Submit underwriting to get to Quoted status
-    await request.post(`/api/quotes/${quoteId}/submit-underwriting`, {
+    const uwResponse = await request.post(`/api/quotes/${quoteId}/submit-underwriting`, {
       data: {
         priorClaimsCount: 0,
         propertyAgeYears: 10,
         creditTier: 'Excellent'
       }
     });
+
+    expect(uwResponse.status()).toBe(200);
   });
 
   test('should accept quoted quote successfully', async ({ request }) => {
