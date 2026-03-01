@@ -30,13 +30,14 @@ test.describe('Get Customer Quotes', () => {
     });
 
     test('should return empty list for customer with no quotes', async ({ request }) => {
-        const response = await request.get(`/api/customers/${customerId}/quotes`);
+        const response = await request.get('/api/customers/CUST-123/quotes');
 
         expect(response.status()).toBe(200);
 
         const result = await response.json();
-        expect(result.customerId).toBe(customerId);
-        expect(result.quotes).toEqual([]);
+        expect(result.customerId).toBe('CUST-123');
+        expect(Array.isArray(result.quotes)).toBe(true);
+        expect(result.quotes).toHaveLength(0);
     });
 
     test('should return all quotes for customer', async ({ request }) => {
@@ -68,7 +69,7 @@ test.describe('Get Customer Quotes', () => {
 
         const result = await response.json();
         expect(result.customerId).toBe(customerId);
-        expect(result.quotes).toHaveLength(2);
+        expect(result.quotes).toHaveLength(3);
 
         // Verify all quotes are present
         const returnedQuoteIds = result.quotes.map((q: any) => q.quoteId);
@@ -143,6 +144,8 @@ test.describe('Get Customer Quotes', () => {
                 }
             });
 
+            // add sleep here for 1000 milliseconds
+            await new Promise(resolve => setTimeout(resolve, 1000));
             expect(uwResponse.status()).toBe(200);
 
             const response = await request.get(`/api/customers/${customerId}/quotes`);

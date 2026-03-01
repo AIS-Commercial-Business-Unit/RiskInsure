@@ -3,26 +3,51 @@ import { test, expect } from '@playwright/test';
 test.describe('Submit Underwriting', () => {
   // NOTE: Tests require quote in Draft status - create quote in beforeEach
   
+  let customerId: string;
   let quoteId: string;
 
-  test.beforeAll('Decline excessive claims quote', async ({ request }) => {
-    const response = await request.post('/api/quotes/start', {
-      data: {
-        customerId: crypto.randomUUID(),
-        structureCoverageLimit: 200000,
-        structureDeductible: 1000,
-        contentsCoverageLimit: 50000,
-        contentsDeductible: 500,
-        termMonths: 12,
-        effectiveDate: new Date(Date.now() + 86400000).toISOString(),
-        propertyZipCode: '60601'
-      }
+  test.beforeAll(async ({ request }) => {
+        customerId = crypto.randomUUID();
+
+        // Create a quote for testing
+        const response = await request.post('/api/quotes/start', {
+            data: {
+                customerId,
+                structureCoverageLimit: 200000,
+                structureDeductible: 1000,
+                contentsCoverageLimit: 50000,
+                contentsDeductible: 500,
+                termMonths: 12,
+                effectiveDate: new Date(Date.now() + 86400000).toISOString(),
+                propertyZipCode: '60601'
+            }
+        });
+
+        expect(response.status()).toBe(201);
+
+        const result = await response.json();
+        expect(result).toHaveProperty('quoteId');
+        quoteId = result.quoteId;
     });
+
+  // test('Decline excessive coverage quote', async ({ request }) => {
+  //   const response = await request.post('/api/quotes/start', {
+  //     data: {
+  //       customerId: customerId,
+  //       structureCoverageLimit: 2000000,
+  //       structureDeductible: 1000,
+  //       contentsCoverageLimit: 50000,
+  //       contentsDeductible: 500,
+  //       termMonths: 12,
+  //       effectiveDate: new Date(Date.now() + 86400000).toISOString(),
+  //       propertyZipCode: '60601'
+  //     }
+  //   });
     
-    expect(response.status()).toBe(201);
-    const result = await response.json();
-    quoteId = result.quoteId;
-  });
+  //   expect(response.status()).toBe(400);
+  //   const result = await response.json();
+  //   quoteId = result.quoteId;
+  // });
 
   // test('should approve Class A underwriting', async ({ request }) => {
   //   const response = await request.post(`/api/quotes/${quoteId}/submit-underwriting`, {
@@ -41,21 +66,21 @@ test.describe('Submit Underwriting', () => {
   //   expect(result.premium).toBeGreaterThan(0);
   // });
 
-  // test('should approve Class B underwriting', async ({ request }) => {
-  //   const response = await request.post(`/api/quotes/${quoteId}/submit-underwriting`, {
-  //     data: {
-  //       priorClaimsCount: 1,
-  //       propertyAgeYears: 25,
-  //       creditTier: 'Good'
-  //     }
-  //   });
+  test('should approve Class B underwriting', async ({ request }) => {
+    const response = await request.post(`/api/quotes/${quoteId}/submit-underwriting`, {
+      data: {
+        priorClaimsCount: 1,
+        propertyAgeYears: 25,
+        creditTier: 'Good'
+      }
+    });
 
-  //   expect(response.status()).toBe(200);
+    expect(response.status()).toBe(200);
 
-  //   const result = await response.json();
-  //   expect(result.status).toBe('Quoted');
-  //   expect(result.underwritingClass).toBe('B');
-  // });
+    const result = await response.json();
+    expect(result.status).toBe('Quoted');
+    expect(result.underwritingClass).toBe('B');
+  });
 
   test('should decline excessive claims', async ({ request }) => {
     const response = await request.post(`/api/quotes/${quoteId}/submit-underwriting`, {

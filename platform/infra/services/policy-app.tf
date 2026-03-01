@@ -85,6 +85,11 @@ resource "azurerm_container_app" "policy_api" {
         value = data.terraform_remote_state.foundation.outputs.application_insights_connection_string
       }
 
+      env {
+        name = "Messaging__MessageBroker"
+        value = "AzureServiceBus"
+      }
+
     }
   }
 
@@ -184,7 +189,12 @@ resource "azurerm_container_app" "policy_endpoint" {
         name  = "APPLICATIONINSIGHTS_CONNECTION_STRING"
         value = data.terraform_remote_state.foundation.outputs.application_insights_connection_string
       }
- 
+
+      env {
+        name = "Messaging__MessageBroker"
+        value = "AzureServiceBus"
+      }
+
     }
 
   }
