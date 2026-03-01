@@ -96,14 +96,14 @@ jobs:
         working-directory: ${{ matrix.unit_tests_path }}
 
       - name: Upload Unit Test Results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: unit-test-results-${{ matrix.service }}
           path: ${{ matrix.unit_tests_path }}/TestResults/**/*.trx
 
       - name: Upload Code Coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: code-coverage-${{ matrix.service }}
@@ -203,7 +203,7 @@ jobs:
           CI: true
 
       - name: Upload Integration Test Results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: integration-test-results-${{ matrix.service }}
@@ -211,7 +211,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Upload Playwright Report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: playwright-report-${{ matrix.service }}
@@ -276,7 +276,7 @@ jobs:
             CI: true
 
         - name: Upload E2E Test Results
-          uses: actions/upload-artifact@v4
+          uses: actions/upload-artifact@v7
           if: always()
           with:
             name: e2e-test-results
@@ -284,7 +284,7 @@ jobs:
             if-no-files-found: warn
 
         - name: Upload E2E Playwright Report
-          uses: actions/upload-artifact@v4
+          uses: actions/upload-artifact@v7
           if: always()
           with:
             name: e2e-playwright-report
