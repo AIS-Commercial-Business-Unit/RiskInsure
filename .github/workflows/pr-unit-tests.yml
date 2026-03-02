@@ -23,11 +23,6 @@ on:
 env:
   DOTNET_VERSION: '10.0.x'
 
-permissions:
-  contents: read
-  pull-requests: write
-  checks: write  # Allow publishing test results
-
 jobs:
   unit-tests:
     name: 'Unit Tests: ${{ matrix.service }}'
@@ -91,7 +86,7 @@ jobs:
           name: code-coverage-${{ matrix.service }}
           path: ${{ matrix.path }}/TestResults/**/coverage.cobertura.xml
           if-no-files-found: warn
-  
+
   test-summary:
     name: 'Test Summary'
     runs-on: ubuntu-latest
@@ -108,7 +103,6 @@ jobs:
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
           files: ./artifacts/**/*.trx
           check_name: 'Unit Test Results'
           comment_mode: always
