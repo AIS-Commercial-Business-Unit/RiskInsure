@@ -108,6 +108,7 @@ jobs:
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
         with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           files: ./artifacts/**/*.trx
           check_name: 'Unit Test Results'
           comment_mode: always
