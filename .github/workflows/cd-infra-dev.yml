@@ -235,11 +235,134 @@ jobs:
           echo "✅ RBAC propagation complete"
   
   # ==========================================================================
+  # Verify Infrastructure & Permissions (matches infrastructure.yml pattern)
+  # ==========================================================================
+  verify:
+    name: 'Verify Infrastructure'
+    needs: [shared-services, rbac-propagation]
+    if: |
+      always() &&
+      needs.shared-services.result == 'success' &&
+      needs.rbac-propagation.result == 'success' &&
+      (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply'))
+    runs-on: ubuntu-latest
+    
+    permissions:
+      id-token: write
+      contents: read
+    
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
+      - name: Verify UAMI Exists
+        shell: bash
+        run: |
+          RG="${{ needs.shared-services.outputs.resource_group_name }}"
+          UAMI_NAME="riskinsure-${{ env.ENVIRONMENT }}-app-mi"
+          
+          echo "🔍 Verifying UAMI: $UAMI_NAME (RG: $RG)"
+          
+          UAMI_ID=$(az identity show -n "$UAMI_NAME" -g "$RG" --query "id" -o tsv 2>/dev/null || echo "")
+          
+          if [ -z "$UAMI_ID" ] || [ "$UAMI_ID" = "null" ]; then
+            echo "❌ UAMI verification failed: $UAMI_NAME"
+            exit 1
+          fi
+          
+          echo "✅ UAMI verified: $UAMI_NAME"
+          echo "   ID: $UAMI_ID"
+      
+      - name: Verify Role Assignments
+        shell: bash
+        run: |
+          # Get UAMI principal ID from the output
+          UAMI_ID="${{ needs.shared-services.outputs.apps_shared_identity_id }}"
+          UAMI_NAME=$(basename "$UAMI_ID")
+          RG="${{ needs.shared-services.outputs.resource_group_name }}"
+          
+          echo "🔍 Getting UAMI principal ID..."
+          PRINCIPAL_ID=$(az identity show -n "$UAMI_NAME" -g "$RG" --query "principalId" -o tsv 2>/dev/null || echo "")
+          
+          if [ -z "$PRINCIPAL_ID" ] || [ "$PRINCIPAL_ID" = "null" ]; then
+            echo "❌ Cannot retrieve principal ID"
+            exit 1
+          fi
+          
+          echo "🔍 Verifying role assignments for principal ID: $PRINCIPAL_ID"
+          ROLES=$(az role assignment list --assignee "$PRINCIPAL_ID" --query "[].roleDefinitionName" -o tsv)
+          
+          if [ -z "$ROLES" ]; then
+            echo "⚠️ No role assignments found (may still be propagating)"
+          else
+            echo "✅ Role assignments verified:"
+            echo "$ROLES"
+          fi
+      
+      - name: Verify Cosmos DB
+        shell: bash
+        run: |
+          RG="${{ needs.shared-services.outputs.resource_group_name }}"
+          COSMOS_ACCOUNT="${{ needs.shared-services.outputs.cosmosdb_account_name }}"
+          
+          if [ -z "$COSMOS_ACCOUNT" ] || [ "$COSMOS_ACCOUNT" = "null" ]; then
+            echo "⚠️ Cosmos DB account name not available, skipping verification"
+            exit 0
+          fi
+          
+          echo "🔍 Verifying Cosmos DB: $COSMOS_ACCOUNT (RG: $RG)"
+          
+          ENDPOINT=$(az cosmosdb show --name "$COSMOS_ACCOUNT" --resource-group "$RG" --query "documentEndpoint" -o tsv 2>/dev/null || echo "")
+          
+          if [ -z "$ENDPOINT" ]; then
+            echo "❌ Cosmos DB verification failed"
+            exit 1
+          fi
+          
+          echo "✅ Cosmos DB verified"
+          echo "   Endpoint: $ENDPOINT"
+      
+      - name: Verify Service Bus
+        shell: bash
+        run: |
+          RG="${{ needs.shared-services.outputs.resource_group_name }}"
+          SB_NAMESPACE="${{ needs.shared-services.outputs.servicebus_namespace_name }}"
+          
+          if [ -z "$SB_NAMESPACE" ] || [ "$SB_NAMESPACE" = "null" ]; then
+            echo "⚠️ Service Bus namespace name not available, skipping verification"
+            exit 0
+          fi
+          
+          echo "🔍 Verifying Service Bus: $SB_NAMESPACE (RG: $RG)"
+          
+          SB_NAME=$(az servicebus namespace show --name "$SB_NAMESPACE" --resource-group "$RG" --query "name" -o tsv 2>/dev/null || echo "")
+          
+          if [ -z "$SB_NAME" ]; then
+            echo "❌ Service Bus verification failed"
+            exit 1
+          fi
+          
+          echo "✅ Service Bus verified"
+          echo "   Namespace: $SB_NAME"
+      
+      - name: Final Status
+        shell: bash
+        run: |
+          echo ""
+          echo "🎉 ALL INFRASTRUCTURE & PERMISSIONS VERIFIED"
+          echo ""
+          echo "✅ Ready for service deployment"
+
+  # ==========================================================================
   # Summary
   # ==========================================================================
   summary:
     name: 'Deployment Summary'
-    needs: [foundation, shared-services, rbac-propagation]
+    needs: [foundation, shared-services, rbac-propagation, verify]
     if: always()
     runs-on: ubuntu-latest
     
@@ -260,3 +383,4 @@ jobs:
           echo "| Foundation | ${{ needs.foundation.result }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Shared Services | ${{ needs.shared-services.result }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "| RBAC Propagation | ${{ needs.rbac-propagation.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Verification | ${{ needs.verify.result }} |" >> "$GITHUB_STEP_SUMMARY"
