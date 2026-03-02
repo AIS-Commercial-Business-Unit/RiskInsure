@@ -129,6 +129,19 @@ Same as Quick Feature, but use `spec-template.md` for more detailed requirements
 
 ## Key RiskInsure Patterns (Enforced by Templates)
 
+### Container Runtime + Logging Package Compatibility (Required)
+
+Choose logging packages based on host type so generated Docker runtime images are correct:
+
+- **HTTP API hosts (`src/Api`)**:
+   - Package set: `Serilog.AspNetCore` (+ sinks/settings as needed)
+   - Runtime image: `mcr.microsoft.com/dotnet/aspnet:10.0`
+- **Worker/Message hosts (`src/Endpoint.In`)**:
+   - Package set: `Serilog.Extensions.Hosting` + `Serilog.Settings.Configuration` (+ sinks)
+   - Runtime image: `mcr.microsoft.com/dotnet/runtime:10.0`
+
+**Do not mix** `Serilog.AspNetCore` with `dotnet/runtime` images. If `Serilog.AspNetCore` is present, use `dotnet/aspnet`.
+
 ### Message Metadata (Required)
 All commands/events MUST include:
 ```csharp
