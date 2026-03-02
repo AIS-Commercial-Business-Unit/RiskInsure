@@ -240,36 +240,75 @@ jobs:
         run: |
           az acr login --name ${{ needs.verify-infrastructure.outputs.acr_name }}
       
-      - name: Build and Push Docker Image
+      - name: Map Service Names
+        id: map
         shell: bash
         run: |
           SERVICE="${{ matrix.service }}"
-          IMAGE_TAG="${{ env.REGISTRY }}/$SERVICE:${{ github.sha }}"
-          IMAGE_TAG_LATEST="${{ env.REGISTRY }}/$SERVICE:latest"
           
-          echo "🏗️ Building $SERVICE..."
+          # Map service names to directory structure and image names (match build-and-deploy.yml)
+          case "$SERVICE" in
+            ratingunderwriting)
+              SERVICE_DIR="services/ratingandunderwriting"
+              IMAGE_NAME="ratingandunderwriting"
+              ;;
+            fundstransfermgt)
+              SERVICE_DIR="services/fundstransfermgt"
+              IMAGE_NAME="fundstransfermgt"
+              ;;
+            billing|customer|policy)
+              SERVICE_DIR="services/$SERVICE"
+              IMAGE_NAME="$SERVICE"
+              ;;
+            *)
+              echo "❌ Unknown service: $SERVICE"
+              exit 1
+              ;;
+          esac
           
-          # Find Dockerfile
-          if [ -f "services/$SERVICE/src/Dockerfile" ]; then
-            DOCKERFILE="services/$SERVICE/src/Dockerfile"
-          elif [ -f "services/$SERVICE/Dockerfile" ]; then
-            DOCKERFILE="services/$SERVICE/Dockerfile"
-          else
-            echo "❌ Dockerfile not found for $SERVICE"
-            exit 1
-          fi
+          echo "service_dir=$SERVICE_DIR" >> "$GITHUB_OUTPUT"
+          echo "image_name=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
+          echo "✅ Service: $SERVICE → Dir: $SERVICE_DIR, Image: $IMAGE_NAME"
+      
+      - name: Build and Push API Image
+        shell: bash
+        run: |
+          SERVICE="${{ matrix.service }}"
+          SERVICE_DIR="${{ steps.map.outputs.service_dir }}"
+          IMAGE_NAME="${{ steps.map.outputs.image_name }}"
+          IMAGE_TAG="${{ env.REGISTRY }}/${IMAGE_NAME}-api:${{ github.sha }}"
           
-          # Build and push
+          echo "🔨 Building API image: $IMAGE_TAG"
+          echo "   Dockerfile: $SERVICE_DIR/src/Api/Dockerfile"
+          
           docker build \
-            -f "$DOCKERFILE" \
             -t "$IMAGE_TAG" \
-            -t "$IMAGE_TAG_LATEST" \
-            "services/$SERVICE/src" || "services/$SERVICE"
+            -f "$SERVICE_DIR/src/Api/Dockerfile" \
+            --build-arg SERVICE_NAME=$SERVICE \
+            .
           
           docker push "$IMAGE_TAG"
-          docker push "$IMAGE_TAG_LATEST"
+          echo "✅ API image pushed: $IMAGE_TAG"
+      
+      - name: Build and Push Endpoint Image
+        shell: bash
+        run: |
+          SERVICE="${{ matrix.service }}"
+          SERVICE_DIR="${{ steps.map.outputs.service_dir }}"
+          IMAGE_NAME="${{ steps.map.outputs.image_name }}"
+          IMAGE_TAG="${{ env.REGISTRY }}/${IMAGE_NAME}-endpoint:${{ github.sha }}"
           
-          echo "✅ Pushed $IMAGE_TAG"
+          echo "🔨 Building Endpoint image: $IMAGE_TAG"
+          echo "   Dockerfile: $SERVICE_DIR/src/Endpoint.In/Dockerfile"
+          
+          docker build \
+            -t "$IMAGE_TAG" \
+            -f "$SERVICE_DIR/src/Endpoint.In/Dockerfile" \
+            --build-arg SERVICE_NAME=$SERVICE \
+            .
+          
+          docker push "$IMAGE_TAG"
+          echo "✅ Endpoint image pushed: $IMAGE_TAG"
 
   # ==========================================================================
   # Deploy Container Apps

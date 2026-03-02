@@ -146,79 +146,149 @@ jobs:
         run: |
           az acr login --name ${{ steps.acr.outputs.acr_name }}
       
+      - name: Map Service Names
+        id: map
+        shell: bash
+        run: |
+          SERVICE="${{ matrix.service }}"
+          
+          # Map service names to directory structure and image names (match build-and-deploy.yml)
+          case "$SERVICE" in
+            ratingunderwriting)
+              SERVICE_DIR="services/ratingandunderwriting"
+              IMAGE_NAME="ratingandunderwriting"
+              ;;
+            fundstransfermgt)
+              SERVICE_DIR="services/fundstransfermgt"
+              IMAGE_NAME="fundstransfermgt"
+              ;;
+            billing|customer|policy)
+              SERVICE_DIR="services/$SERVICE"
+              IMAGE_NAME="$SERVICE"
+              ;;
+            *)
+              echo "❌ Unknown service: $SERVICE"
+              exit 1
+              ;;
+          esac
+          
+          echo "service_dir=$SERVICE_DIR" >> "$GITHUB_OUTPUT"
+          echo "image_name=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
+          echo "✅ Service: $SERVICE → Dir: $SERVICE_DIR, Image: $IMAGE_NAME"
+      
       - name: Restore Dependencies
-        working-directory: services/${{ matrix.service }}/src
+        working-directory: ${{ steps.map.outputs.service_dir }}/src
         run: dotnet restore
       
       - name: Build Solution
-        working-directory: services/${{ matrix.service }}/src
+        working-directory: ${{ steps.map.outputs.service_dir }}/src
         run: dotnet build --no-restore --configuration Release
       
-      - name: Build Docker Image
+      - name: Set Image Tags
+        id: tags
+        shell: bash
+        run: |
+          IMAGE_NAME="${{ steps.map.outputs.image_name }}"
+          SHORT_SHA="${GITHUB_SHA:0:7}"
+          
+          # API Image Tags
+          echo "API_IMAGE_SHA=${{ env.REGISTRY }}/${IMAGE_NAME}-api:${{ github.sha }}" >> "$GITHUB_ENV"
+          echo "API_IMAGE_SHORT=${{ env.REGISTRY }}/${IMAGE_NAME}-api:$SHORT_SHA" >> "$GITHUB_ENV"
+          echo "API_IMAGE_LATEST=${{ env.REGISTRY }}/${IMAGE_NAME}-api:latest" >> "$GITHUB_ENV"
+          
+          # Endpoint Image Tags
+          echo "ENDPOINT_IMAGE_SHA=${{ env.REGISTRY }}/${IMAGE_NAME}-endpoint:${{ github.sha }}" >> "$GITHUB_ENV"
+          echo "ENDPOINT_IMAGE_SHORT=${{ env.REGISTRY }}/${IMAGE_NAME}-endpoint:$SHORT_SHA" >> "$GITHUB_ENV"
+          echo "ENDPOINT_IMAGE_LATEST=${{ env.REGISTRY }}/${IMAGE_NAME}-endpoint:latest" >> "$GITHUB_ENV"
+          
+          echo "✅ Image tags configured"
+      
+      - name: Build API Image
         shell: bash
         run: |
           SERVICE="${{ matrix.service }}"
-          IMAGE_BASE="${{ env.REGISTRY }}/$SERVICE"
-          IMAGE_SHA="$IMAGE_BASE:${{ github.sha }}"
-          IMAGE_SHORT="$IMAGE_BASE:${GITHUB_SHA:0:7}"
-          IMAGE_LATEST="$IMAGE_BASE:latest"
+          SERVICE_DIR="${{ steps.map.outputs.service_dir }}"
           
-          echo "🏗️ Building $SERVICE..."
+          echo "🔨 Building API image..."
+          echo "   Dockerfile: $SERVICE_DIR/src/Api/Dockerfile"
           
-          # Find Dockerfile
-          if [ -f "services/$SERVICE/src/Dockerfile" ]; then
-            DOCKERFILE="services/$SERVICE/src/Dockerfile"
-            CONTEXT="services/$SERVICE/src"
-          elif [ -f "services/$SERVICE/Dockerfile" ]; then
-            DOCKERFILE="services/$SERVICE/Dockerfile"
-            CONTEXT="services/$SERVICE"
-          else
-            echo "❌ Dockerfile not found for $SERVICE"
-            exit 1
-          fi
-          
-          echo "📄 Dockerfile: $DOCKERFILE"
-          echo "📁 Context: $CONTEXT"
-          
-          # Build with multiple tags
           docker build \
-            -f "$DOCKERFILE" \
-            -t "$IMAGE_SHA" \
-            -t "$IMAGE_SHORT" \
-            -t "$IMAGE_LATEST" \
-            "$CONTEXT"
+            -f "$SERVICE_DIR/src/Api/Dockerfile" \
+            -t "${{ env.API_IMAGE_SHA }}" \
+            -t "${{ env.API_IMAGE_SHORT }}" \
+            -t "${{ env.API_IMAGE_LATEST }}" \
+            --build-arg SERVICE_NAME=$SERVICE \
+            .
           
-          echo "✅ Build complete"
-          echo "IMAGE_SHA=$IMAGE_SHA" >> "$GITHUB_ENV"
-          echo "IMAGE_SHORT=$IMAGE_SHORT" >> "$GITHUB_ENV"
-          echo "IMAGE_LATEST=$IMAGE_LATEST" >> "$GITHUB_ENV"
+          echo "✅ API image built"
       
-      - name: Add Custom Tag (Optional)
+      - name: Build Endpoint Image
+        shell: bash
+        run: |
+          SERVICE="${{ matrix.service }}"
+          SERVICE_DIR="${{ steps.map.outputs.service_dir }}"
+          
+          echo "🔨 Building Endpoint image..."
+          echo "   Dockerfile: $SERVICE_DIR/src/Endpoint.In/Dockerfile"
+          
+          docker build \
+            -f "$SERVICE_DIR/src/Endpoint.In/Dockerfile" \
+            -t "${{ env.ENDPOINT_IMAGE_SHA }}" \
+            -t "${{ env.ENDPOINT_IMAGE_SHORT }}" \
+            -t "${{ env.ENDPOINT_IMAGE_LATEST }}" \
+            --build-arg SERVICE_NAME=$SERVICE \
+            .
+          
+          echo "✅ Endpoint image built"
+      
+      - name: Add Custom Tags (Optional)
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.tag != ''
         shell: bash
         run: |
-          SERVICE="${{ matrix.service }}"
-          IMAGE_CUSTOM="${{ env.REGISTRY }}/$SERVICE:${{ github.event.inputs.tag }}"
-          docker tag "${{ env.IMAGE_SHA }}" "$IMAGE_CUSTOM"
-          echo "IMAGE_CUSTOM=$IMAGE_CUSTOM" >> "$GITHUB_ENV"
+          IMAGE_NAME="${{ steps.map.outputs.image_name }}"
+          CUSTOM_TAG="${{ github.event.inputs.tag }}"
+          
+          API_IMAGE_CUSTOM="${{ env.REGISTRY }}/${IMAGE_NAME}-api:$CUSTOM_TAG"
+          ENDPOINT_IMAGE_CUSTOM="${{ env.REGISTRY }}/${IMAGE_NAME}-endpoint:$CUSTOM_TAG"
+          
+          docker tag "${{ env.API_IMAGE_SHA }}" "$API_IMAGE_CUSTOM"
+          docker tag "${{ env.ENDPOINT_IMAGE_SHA }}" "$ENDPOINT_IMAGE_CUSTOM"
+          
+          echo "API_IMAGE_CUSTOM=$API_IMAGE_CUSTOM" >> "$GITHUB_ENV"
+          echo "ENDPOINT_IMAGE_CUSTOM=$ENDPOINT_IMAGE_CUSTOM" >> "$GITHUB_ENV"
       
       - name: Push Images to ACR
         shell: bash
         run: |
-          echo "📤 Pushing images to ACR..."
+          echo "📤 Pushing API images to ACR..."
+          docker push "${{ env.API_IMAGE_SHA }}"
+          echo "✅ Pushed: ${{ env.API_IMAGE_SHA }}"
           
-          docker push "${{ env.IMAGE_SHA }}"
-          echo "✅ Pushed: ${{ env.IMAGE_SHA }}"
+          docker push "${{ env.API_IMAGE_SHORT }}"
+          echo "✅ Pushed: ${{ env.API_IMAGE_SHORT }}"
           
-          docker push "${{ env.IMAGE_SHORT }}"
-          echo "✅ Pushed: ${{ env.IMAGE_SHORT }}"
+          docker push "${{ env.API_IMAGE_LATEST }}"
+          echo "✅ Pushed: ${{ env.API_IMAGE_LATEST }}"
           
-          docker push "${{ env.IMAGE_LATEST }}"
-          echo "✅ Pushed: ${{ env.IMAGE_LATEST }}"
+          if [[ -n "${{ env.API_IMAGE_CUSTOM }}" ]]; then
+            docker push "${{ env.API_IMAGE_CUSTOM }}"
+            echo "✅ Pushed: ${{ env.API_IMAGE_CUSTOM }}"
+          fi
           
-          if [[ -n "${{ env.IMAGE_CUSTOM }}" ]]; then
-            docker push "${{ env.IMAGE_CUSTOM }}"
-            echo "✅ Pushed: ${{ env.IMAGE_CUSTOM }}"
+          echo ""
+          echo "📤 Pushing Endpoint images to ACR..."
+          docker push "${{ env.ENDPOINT_IMAGE_SHA }}"
+          echo "✅ Pushed: ${{ env.ENDPOINT_IMAGE_SHA }}"
+          
+          docker push "${{ env.ENDPOINT_IMAGE_SHORT }}"
+          echo "✅ Pushed: ${{ env.ENDPOINT_IMAGE_SHORT }}"
+          
+          docker push "${{ env.ENDPOINT_IMAGE_LATEST }}"
+          echo "✅ Pushed: ${{ env.ENDPOINT_IMAGE_LATEST }}"
+          
+          if [[ -n "${{ env.ENDPOINT_IMAGE_CUSTOM }}" ]]; then
+            docker push "${{ env.ENDPOINT_IMAGE_CUSTOM }}"
+            echo "✅ Pushed: ${{ env.ENDPOINT_IMAGE_CUSTOM }}"
           fi
       
       - name: Image Manifest
@@ -226,20 +296,33 @@ jobs:
         run: |
           echo "### 📦 ${{ matrix.service }} Images" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "#### API Images" >> "$GITHUB_STEP_SUMMARY"
           echo "| Tag | Image |" >> "$GITHUB_STEP_SUMMARY"
           echo "|-----|-------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Full SHA | \`${{ env.IMAGE_SHA }}\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Short SHA | \`${{ env.IMAGE_SHORT }}\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Latest | \`${{ env.IMAGE_LATEST }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Full SHA | \`${{ env.API_IMAGE_SHA }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Short SHA | \`${{ env.API_IMAGE_SHORT }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Latest | \`${{ env.API_IMAGE_LATEST }}\` |" >> "$GITHUB_STEP_SUMMARY"
           
-          if [[ -n "${{ env.IMAGE_CUSTOM }}" ]]; then
-            echo "| Custom | \`${{ env.IMAGE_CUSTOM }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          if [[ -n "${{ env.API_IMAGE_CUSTOM }}" ]]; then
+            echo "| Custom | \`${{ env.API_IMAGE_CUSTOM }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "#### Endpoint Images" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Tag | Image |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-----|-------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Full SHA | \`${{ env.ENDPOINT_IMAGE_SHA }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Short SHA | \`${{ env.ENDPOINT_IMAGE_SHORT }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Latest | \`${{ env.ENDPOINT_IMAGE_LATEST }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          
+          if [[ -n "${{ env.ENDPOINT_IMAGE_CUSTOM }}" ]]; then
+            echo "| Custom | \`${{ env.ENDPOINT_IMAGE_CUSTOM }}\` |" >> "$GITHUB_STEP_SUMMARY"
           fi
       
-      - name: Generate SBOM (Software Bill of Materials)
+      - name: Generate SBOM for API Image
         uses: anchore/sbom-action@v0
         with:
-          image: ${{ env.IMAGE_SHA }}
+          image: ${{ env.API_IMAGE_SHA }}
           format: spdx-json
           output-file: sbom-${{ matrix.service }}.spdx.json
       
@@ -289,33 +372,87 @@ jobs:
         run: |
           az acr login --name ${{ steps.acr.outputs.acr_name }}
       
-      - name: Pull Image
+      - name: Map Service Names
+        id: map
         shell: bash
         run: |
-          IMAGE="${{ env.REGISTRY }}/${{ matrix.service }}:${{ github.sha }}"
+          SERVICE="${{ matrix.service }}"
+          
+          # Map service names (match build job)
+          case "$SERVICE" in
+            ratingunderwriting)
+              IMAGE_NAME="ratingandunderwriting"
+              ;;
+            fundstransfermgt)
+              IMAGE_NAME="fundstransfermgt"
+              ;;
+            billing|customer|policy)
+              IMAGE_NAME="$SERVICE"
+              ;;
+            *)
+              echo "❌ Unknown service: $SERVICE"
+              exit 1
+              ;;
+          esac
+          
+          echo "image_name=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
+      
+      - name: Pull API Image
+        shell: bash
+        run: |
+          IMAGE="${{ env.REGISTRY }}/${{ steps.map.outputs.image_name }}-api:${{ github.sha }}"
           docker pull "$IMAGE"
       
-      - name: Run Trivy Vulnerability Scanner
+      - name: Pull Endpoint Image
+        shell: bash
+        run: |
+          IMAGE="${{ env.REGISTRY }}/${{ steps.map.outputs.image_name }}-endpoint:${{ github.sha }}"
+          docker pull "$IMAGE"
+      
+      - name: Run Trivy Scan on API Image
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: '${{ env.REGISTRY }}/${{ matrix.service }}:${{ github.sha }}'
+          image-ref: '${{ env.REGISTRY }}/${{ steps.map.outputs.image_name }}-api:${{ github.sha }}'
           format: 'sarif'
-          output: 'trivy-results-${{ matrix.service }}.sarif'
+          output: 'trivy-results-${{ matrix.service }}-api.sarif'
           severity: 'CRITICAL,HIGH'
       
-      - name: Upload Trivy Results to GitHub Security
+      - name: Run Trivy Scan on Endpoint Image
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: '${{ env.REGISTRY }}/${{ steps.map.outputs.image_name }}-endpoint:${{ github.sha }}'
+          format: 'sarif'
+          output: 'trivy-results-${{ matrix.service }}-endpoint.sarif'
+          severity: 'CRITICAL,HIGH'
+      
+      - name: Upload API Trivy Results to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
-          sarif_file: 'trivy-results-${{ matrix.service }}.sarif'
-          category: 'container-${{ matrix.service }}'
+          sarif_file: 'trivy-results-${{ matrix.service }}-api.sarif'
+          category: 'container-${{ matrix.service }}-api'
       
-      - name: Upload Trivy Results
+      - name: Upload Endpoint Trivy Results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results-${{ matrix.service }}-endpoint.sarif'
+          category: 'container-${{ matrix.service }}-endpoint'
+      
+      - name: Upload API Trivy Results
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: trivy-results-${{ matrix.service }}
-          path: trivy-results-${{ matrix.service }}.sarif
+          name: trivy-results-${{ matrix.service }}-api
+          path: trivy-results-${{ matrix.service }}-api.sarif
+          retention-days: 30
+      
+      - name: Upload Endpoint Trivy Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trivy-results-${{ matrix.service }}-endpoint
+          path: trivy-results-${{ matrix.service }}-endpoint.sarif
           retention-days: 30
 
   # ==========================================================================
