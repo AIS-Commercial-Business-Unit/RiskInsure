@@ -14,7 +14,7 @@ on:
       - main
     paths:
       - 'services/**'
-      - '.github/workflows/new/ci-build-services.yml'
+      - '.github/workflows/ci-build-services.yml'
   workflow_dispatch:
     inputs:
       services:

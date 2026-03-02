@@ -14,7 +14,7 @@ on:
       - main
     paths:
       - 'services/**'
-      - '.github/workflows/new/cd-services-dev.yml'
+      - '.github/workflows/cd-services-dev.yml'
   workflow_run:
     workflows: ['CD: Infrastructure Dev']
     types:
