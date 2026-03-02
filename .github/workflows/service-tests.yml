@@ -138,7 +138,7 @@ jobs:
           path: code-coverage-results.md
 
   integration-tests:
-    name: Integration Tests (${{ matrix.service }})
+    name: Integration Tests
     runs-on: ubuntu-latest
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     environment: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || 'dev' }}
