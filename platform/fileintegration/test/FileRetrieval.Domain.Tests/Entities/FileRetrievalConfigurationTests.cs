@@ -74,10 +74,6 @@ public class FileRetrievalConfigurationTests
             FilenamePattern = "data-{yyyy}-{mm}-{dd}",
             FileExtension = "csv",
             Schedule = new ScheduleDefinition("0 0 * * *", "UTC"),
-            EventsToPublish = new List<EventDefinition>
-            {
-                new EventDefinition("FileDiscovered", new Dictionary<string, object>())
-            },
             IsActive = true,
             CreatedAt = DateTimeOffset.UtcNow,
             CreatedBy = "test-user",

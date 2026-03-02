@@ -18,6 +18,8 @@ namespace RiskInsure.FileRetrieval.Infrastructure.Scheduling;
 /// </summary>
 public class SchedulerHostedService : BackgroundService
 {
+    private const string ExecuteFileCheckDestination = "FileRetrieval.Worker";
+
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ScheduleEvaluator _scheduleEvaluator;
     private readonly IMessageSession _messageSession;
@@ -269,11 +271,15 @@ public class SchedulerHostedService : BackgroundService
             ScheduledExecutionTime = scheduledTime
         };
 
-        await _messageSession.Send(command, cancellationToken);
+        var sendOptions = new SendOptions();
+        sendOptions.SetDestination(ExecuteFileCheckDestination);
+
+        await _messageSession.Send(command, sendOptions, cancellationToken);
 
         _logger.LogDebug(
-            "ExecuteFileCheck command sent for configuration {ConfigurationId}",
-            configuration.Id);
+            "ExecuteFileCheck command sent for configuration {ConfigurationId} to endpoint {Destination}",
+            configuration.Id,
+            ExecuteFileCheckDestination);
     }
 
     public override Task StartAsync(CancellationToken cancellationToken)

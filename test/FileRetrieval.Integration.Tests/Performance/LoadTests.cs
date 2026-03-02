@@ -299,15 +299,6 @@ public class LoadTests
                 Timezone = "UTC",
                 Description = "Daily at 8 AM"
             },
-            EventsToPublish = new List<EventDefinition>
-            {
-                new EventDefinition
-                {
-                    EventType = "FileDiscovered",
-                    EventData = null
-                }
-            },
-            CommandsToSend = new List<CommandDefinition>(),
             IsActive = true,
             CreatedAt = DateTimeOffset.UtcNow,
             CreatedBy = "test-user",

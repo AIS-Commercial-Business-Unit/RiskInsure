@@ -32,9 +32,10 @@ public class ScheduleEvaluator
             var baseTime = fromTime ?? DateTimeOffset.UtcNow;
 
             // Parse cron expression using NCrontab
+            var includeSeconds = IncludesSeconds(schedule.CronExpression);
             var cronSchedule = CrontabSchedule.Parse(schedule.CronExpression, new CrontabSchedule.ParseOptions
             {
-                IncludingSeconds = false // Standard 5-field cron (minute, hour, day, month, day-of-week)
+                IncludingSeconds = includeSeconds
             });
 
             // Get timezone info
@@ -86,9 +87,10 @@ public class ScheduleEvaluator
 
         try
         {
+            var includeSeconds = IncludesSeconds(cronExpression);
             CrontabSchedule.Parse(cronExpression, new CrontabSchedule.ParseOptions
             {
-                IncludingSeconds = false
+                IncludingSeconds = includeSeconds
             });
             return true;
         }
@@ -96,6 +98,18 @@ public class ScheduleEvaluator
         {
             return false;
         }
+    }
+
+    private static bool IncludesSeconds(string cronExpression)
+    {
+        var parts = cronExpression.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        return parts.Length switch
+        {
+            5 => false,
+            6 => true,
+            _ => throw new ArgumentException("Cron expression must contain 5 or 6 fields", nameof(cronExpression))
+        };
     }
 
     /// <summary>

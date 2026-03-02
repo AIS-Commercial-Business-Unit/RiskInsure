@@ -26,19 +26,29 @@ public static class DependencyInjection
         // Cosmos DB Client (singleton)
         services.AddSingleton<CosmosClient>(sp =>
         {
-            var cosmosEndpoint = configuration["CosmosDb:EndpointUri"]
-                ?? throw new InvalidOperationException("CosmosDb:EndpointUri configuration is missing");
+            var connectionString = configuration.GetConnectionString("CosmosDb") ??
+                                throw new InvalidOperationException("CosmosDb connection string is required");
 
-            return new CosmosClient(
-                cosmosEndpoint,
-                new Azure.Identity.DefaultAzureCredential(),
-                new CosmosClientOptions
+            // Configure CosmosClient to use System.Text.Json serialization
+            var cosmosClientOptions = new CosmosClientOptions
+            {
+                ConnectionMode = ConnectionMode.Direct,
+                Serializer = new CosmosSystemTextJsonSerializer(new System.Text.Json.JsonSerializerOptions
                 {
-                    SerializerOptions = new CosmosSerializationOptions
+                    PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+                    DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+                    Converters =
                     {
-                        PropertyNamingPolicy = CosmosPropertyNamingPolicy.CamelCase
+                        new ProtocolSettingsJsonConverter(),
+                        new System.Text.Json.Serialization.JsonStringEnumConverter()
                     }
-                });
+                }),
+                RequestTimeout = TimeSpan.FromSeconds(10),
+                MaxRetryAttemptsOnRateLimitedRequests = 3,
+                MaxRetryWaitTimeOnRateLimitedRequests = TimeSpan.FromSeconds(5)
+            };
+
+            return new CosmosClient(connectionString, cosmosClientOptions);
         });
 
         // Cosmos DB Context (singleton)
@@ -51,11 +61,13 @@ public static class DependencyInjection
         services.AddScoped<IFileRetrievalConfigurationRepository, FileRetrievalConfigurationRepository>();
         services.AddScoped<IFileRetrievalExecutionRepository, FileRetrievalExecutionRepository>();
         services.AddScoped<IDiscoveredFileRepository, DiscoveredFileRepository>();
+        services.AddScoped<IProcessedFileRecordRepository, ProcessedFileRecordRepository>();
 
         // Application services (scoped)
         services.AddScoped<ConfigurationService>();
         services.AddScoped<ExecutionHistoryService>();
         services.AddScoped<FileCheckService>();
+        services.AddScoped<DiscoveredFileContentDownloadService>();
         services.AddScoped<ProtocolAdapterFactory>();
 
         // Stateless utility/metrics services (singletons)
@@ -84,28 +96,5 @@ public static class DependencyInjection
         services.AddSingleton<ScheduleEvaluator>();
 
         return services;
-    }
-}
-
-/// <summary>
-/// Background service to initialize Cosmos DB context on startup
-/// </summary>
-internal class CosmosDbInitializer : Microsoft.Extensions.Hosting.IHostedService
-{
-    private readonly CosmosDbContext _context;
-
-    public CosmosDbInitializer(CosmosDbContext context)
-    {
-        _context = context;
-    }
-
-    public async Task StartAsync(CancellationToken cancellationToken)
-    {
-        await _context.InitializeAsync(cancellationToken);
-    }
-
-    public Task StopAsync(CancellationToken cancellationToken)
-    {
-        return Task.CompletedTask;
     }
 }

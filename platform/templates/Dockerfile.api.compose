@@ -39,11 +39,20 @@ EXPOSE 8080
 # Set ASP.NET Core to listen on port 8080
 ENV ASPNETCORE_URLS=http://+:8080
 
-COPY --chmod=+x "entrypoint.sh" "/entrypoint.sh"
+ENV SSL_SERVER_DOMAIN_1=cosmos.domain
+ENV SSL_SERVER_PORT_1=8081
+ENV SSL_TEST_PATH_1=/_explorer/emulator.pem
+
+ARG SSL_SERVER_DOMAIN_2
+ENV SSL_SERVER_DOMAIN_2=${SSL_SERVER_DOMAIN_2}    
+ARG SSL_SERVER_PORT_2
+ENV SSL_SERVER_PORT_2=${SSL_SERVER_PORT_2}
+ARG SSL_TEST_PATH_2
+ENV SSL_TEST_PATH_2=${SSL_TEST_PATH_2}
 
 ARG ASSEMBLY_NAME
-
-ENV COSMOS_DOMAIN=cosmos.domain
-ENV COSMOS_PORT=8081
+# Default Assembly name to 'Api.dll' if not provided as ARG
 ENV ASSEMBLY_NAME_TO_RUN=${ASSEMBLY_NAME:-Api.dll}
+
+COPY --chmod=+x "entrypoint-add-ssl-cert.sh" "/entrypoint.sh"
 ENTRYPOINT ["/entrypoint.sh"]

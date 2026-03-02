@@ -17,6 +17,10 @@
 - [List specific rules/invariants from domain docs that apply, e.g., "FileRun state machine rules", "Invoice cancellation rules"]
 - [If none, state "General platform patterns only"]
 
+**Executable Host Profiles (mandatory)**:
+- **Api host**: [Yes/No] → If Yes: use `Serilog.AspNetCore` and `mcr.microsoft.com/dotnet/aspnet:10.0`
+- **Endpoint.In host**: [Yes/No] → If Yes: use `Serilog.Extensions.Hosting` + `Serilog.Settings.Configuration` and `mcr.microsoft.com/dotnet/runtime:10.0`
+
 ## User Scenarios & Testing *(mandatory)*
 
 <!--

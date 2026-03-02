@@ -50,6 +50,28 @@
 **Constraints**: [e.g., Idempotent handlers, thin message handlers, atomic state transitions]  
 **Scale/Scope**: [e.g., 10K messages/hour, 100 concurrent users]
 
+### Host Profile & Docker Runtime Decision ⚠️ REQUIRED
+
+> **YOU MUST CHOOSE HOST TYPE FOR EACH EXECUTABLE PROJECT** (`src/Api` and/or `src/Endpoint.In`) before implementation.
+
+#### Host Type Matrix (enforced)
+
+- **HTTP API host** (`src/Api/Program.cs`)
+  - Logging packages: `Serilog.AspNetCore` (+ sinks/settings as needed)
+  - Docker runtime base: `mcr.microsoft.com/dotnet/aspnet:10.0`
+- **NServiceBus worker host** (`src/Endpoint.In/Program.cs`)
+  - Logging packages: `Serilog.Extensions.Hosting` + `Serilog.Settings.Configuration` (+ sinks)
+  - Docker runtime base: `mcr.microsoft.com/dotnet/runtime:10.0`
+
+**Compatibility rule**: `Serilog.AspNetCore` requires ASP.NET shared framework and therefore MUST NOT be paired with `dotnet/runtime` image.
+
+**DECISION**:
+- `Api` host profile: [API | N/A]
+- `Endpoint.In` host profile: [Worker | N/A]
+- `Api` Docker runtime base: [aspnet:10.0 | N/A]
+- `Endpoint.In` Docker runtime base: [runtime:10.0 | N/A]
+- Logging package set chosen per host: [list actual package references]
+
 ## Constitution Check (RiskInsure Principles)
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
@@ -67,6 +89,7 @@
 - [ ] **VII. Thin Message Handlers** - Handlers delegate to domain services/managers, no business logic in handlers
 - [ ] **VIII. Test Coverage Requirements** - Domain 90%+, Application 80%+ (unit + integration)
 - [ ] **IX. Technology Constraints** - Follows approved stack (.NET 10, NServiceBus 9.x, approved persistence)
+- [ ] **X. Host/Runtime Compatibility** - Logging package choice matches Docker runtime base for each executable host
 
 ### Violations Requiring Justification
 

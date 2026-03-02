@@ -375,70 +375,60 @@ public class FileCheckService
                 // Save discovered file (enforces unique key constraint for idempotency)
                 await _discoveredFileRepository.CreateAsync(discoveredFile, cancellationToken);
 
-                // T086: Publish FileDiscovered events
-                foreach (var eventDef in configuration.EventsToPublish)
+                // T086: Publish FileDiscovered event
+                var fileDiscoveredEvent = new FileDiscovered
                 {
-                    var fileDiscoveredEvent = new FileDiscovered
-                    {
-                        MessageId = Guid.NewGuid(),
-                        CorrelationId = correlationId, // T093: Correlation ID propagation
-                        OccurredUtc = DateTimeOffset.UtcNow,
-                        IdempotencyKey = $"{configuration.ClientId}:{configuration.Id}:{fileInfo.FileUrl}:{discoveryDate}",
-                        ClientId = configuration.ClientId,
-                        ConfigurationId = configuration.Id,
-                        ExecutionId = executionId,
-                        DiscoveredFileId = discoveredFile.Id,
-                        FileUrl = fileInfo.FileUrl,
-                        Filename = fileInfo.Filename,
-                        FileSize = fileInfo.FileSize,
-                        LastModified = fileInfo.LastModified,
-                        DiscoveredAt = fileInfo.DiscoveredAt,
-                        ConfigurationName = configuration.Name,
-                        Protocol = configuration.ProtocolSettings.ProtocolType.ToString(),
-                        EventData = eventDef.EventData ?? new Dictionary<string, object>()
-                    };
+                    MessageId = Guid.NewGuid(),
+                    CorrelationId = correlationId, // T093: Correlation ID propagation
+                    OccurredUtc = DateTimeOffset.UtcNow,
+                    IdempotencyKey = $"{configuration.ClientId}:{configuration.Id}:{fileInfo.FileUrl}:{discoveryDate}",
+                    ClientId = configuration.ClientId,
+                    ConfigurationId = configuration.Id,
+                    ExecutionId = executionId,
+                    DiscoveredFileId = discoveredFile.Id,
+                    FileUrl = fileInfo.FileUrl,
+                    Filename = fileInfo.Filename,
+                    FileSize = fileInfo.FileSize,
+                    LastModified = fileInfo.LastModified,
+                    DiscoveredAt = fileInfo.DiscoveredAt,
+                    ConfigurationName = configuration.Name,
+                    Protocol = configuration.ProtocolSettings.ProtocolType.ToString()
+                };
 
-                    await messageContext.Publish(fileDiscoveredEvent);
+                await messageContext.Publish(fileDiscoveredEvent);
 
-                    _logger.LogInformation(
-                        "Published FileDiscovered event for {Filename} (EventType: {EventType}, IdempotencyKey: {IdempotencyKey})",
-                        fileInfo.Filename,
-                        eventDef.EventType,
-                        fileDiscoveredEvent.IdempotencyKey);
-                }
+                _logger.LogInformation(
+                    "Published FileDiscovered event for {Filename} (IdempotencyKey: {IdempotencyKey})",
+                    fileInfo.Filename,
+                    fileDiscoveredEvent.IdempotencyKey);
 
-                // T088: Send ProcessDiscoveredFile commands
-                foreach (var commandDef in configuration.CommandsToSend ?? new List<Domain.ValueObjects.CommandDefinition>())
+
+                // T088: Send ProcessDiscoveredFile command
+                var processFileCommand = new ProcessDiscoveredFile
                 {
-                    var processFileCommand = new ProcessDiscoveredFile
-                    {
-                        MessageId = Guid.NewGuid(),
-                        CorrelationId = correlationId, // T093: Correlation ID propagation
-                        OccurredUtc = DateTimeOffset.UtcNow,
-                        IdempotencyKey = $"{configuration.ClientId}:{configuration.Id}:{fileInfo.FileUrl}:{discoveryDate}:cmd",
-                        ClientId = configuration.ClientId,
-                        ConfigurationId = configuration.Id,
-                        ExecutionId = executionId,
-                        DiscoveredFileId = discoveredFile.Id,
-                        FileUrl = fileInfo.FileUrl,
-                        Filename = fileInfo.Filename,
-                        FileSize = fileInfo.FileSize,
-                        LastModified = fileInfo.LastModified,
-                        DiscoveredAt = DateTimeOffset.UtcNow,
-                        ConfigurationName = configuration.Name,
-                        Protocol = configuration.ProtocolSettings.ProtocolType.ToString(),
-                        CommandData = commandDef.CommandData ?? new Dictionary<string, object>()
-                    };
+                    MessageId = Guid.NewGuid(),
+                    CorrelationId = correlationId, // T093: Correlation ID propagation
+                    OccurredUtc = DateTimeOffset.UtcNow,
+                    IdempotencyKey = $"{configuration.ClientId}:{configuration.Id}:{fileInfo.FileUrl}:{discoveryDate}:cmd",
+                    ClientId = configuration.ClientId,
+                    ConfigurationId = configuration.Id,
+                    ExecutionId = executionId,
+                    DiscoveredFileId = discoveredFile.Id,
+                    FileUrl = fileInfo.FileUrl,
+                    Filename = fileInfo.Filename,
+                    FileSize = fileInfo.FileSize,
+                    LastModified = fileInfo.LastModified,
+                    DiscoveredAt = DateTimeOffset.UtcNow,
+                    ConfigurationName = configuration.Name,
+                    Protocol = configuration.ProtocolSettings.ProtocolType.ToString()
+                };
 
-                    await messageContext.Send(processFileCommand);
+                await messageContext.Send(processFileCommand);
 
-                    _logger.LogInformation(
-                        "Sent ProcessDiscoveredFile command for {Filename} to {TargetEndpoint} (CommandType: {CommandType}, IdempotencyKey: {IdempotencyKey})",
-                        fileInfo.Filename,
-                        commandDef.TargetEndpoint,
-                        commandDef.CommandType,
-                        processFileCommand.IdempotencyKey);
-                }
+                _logger.LogInformation(
+                    "Sent ProcessDiscoveredFile command for {Filename} (IdempotencyKey: {IdempotencyKey})",
+                    fileInfo.Filename,
+                    processFileCommand.IdempotencyKey);
 
                 // Update discovered file status
                 discoveredFile.Status = DiscoveryStatus.EventPublished;

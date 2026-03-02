@@ -349,6 +349,62 @@ After successful local testing:
 3. **Deploy to Azure**: Follow `docs/deployment.md`
 4. **Monitor in production**: Set up Application Insights dashboards (see `docs/monitoring.md`)
 
+## Run Scheduled FTP E2E Test
+
+The test `ConfigurationScheduledFtpE2ETests` performs this full flow:
+- Seeds a sample file into the running `ftp-server` container
+- Calls `POST /api/v1/configuration` to create an FTP configuration scheduled every 5 seconds
+- Polls `GET /api/v1/configuration/{configurationId}/executionhistory` every 5 seconds
+- Passes when `filesFound > 0`, fails after 2 minutes
+
+### Prerequisites
+
+1. Start fileintegration containers (including `ftp-server`, `fileretrieval-api`, and `fileretrieval-worker`):
+
+```powershell
+cd platform/fileintegration
+docker compose up -d
+```
+
+2. Ensure the FTP password secret name configured in the test exists in the Key Vault used by FileRetrieval runtime.
+  - Default secret name used by the test: `test-ftp-password`
+  - This secret value should match FTP password in compose: `testpass`
+
+### Environment Variables (PowerShell)
+
+```powershell
+$env:FILE_RETRIEVAL_API_BASE_URL = "http://localhost:7090"
+$env:FILE_RETRIEVAL_JWT_SECRET = "REPLACE_WITH_SECRET_KEY_AT_LEAST_32_CHARS_LONG_FOR_PRODUCTION"
+$env:FILE_RETRIEVAL_JWT_ISSUER = "https://riskinsure.com"
+$env:FILE_RETRIEVAL_JWT_AUDIENCE = "file-retrieval-api"
+$env:FILE_RETRIEVAL_FTP_PASSWORD_SECRET_NAME = "test-ftp-password"
+```
+
+### Run only this E2E test
+
+```powershell
+dotnet test .\test\FileRetrieval.Integration.Tests\FileRetrieval.Integration.Tests.csproj --filter "FullyQualifiedName~ConfigurationScheduledFtpE2ETests"
+```
+
+### Troubleshooting (Scheduled FTP E2E)
+
+- `Configuration creation accepted but no files found`:
+  - Confirm Key Vault secret exists and matches FTP password (`testpass`).
+  - Confirm `FILE_RETRIEVAL_FTP_PASSWORD_SECRET_NAME` points to that secret.
+- `FTP setup step fails`:
+  - Verify container is running:
+
+```powershell
+docker inspect -f "{{.State.Running}}" file-retrieval-ftp
+```
+
+  - Ensure compose stack is up:
+
+```powershell
+cd platform/fileintegration
+docker compose ps
+```
+
 ## Additional Resources
 
 - **Specification**: `../../specs/001-file-retrieval-config/spec.md`

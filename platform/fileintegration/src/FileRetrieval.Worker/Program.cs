@@ -49,7 +49,7 @@ var host = Host.CreateDefaultBuilder(args)
             // Configure message routing
             routing.RouteToEndpoint(
                 typeof(FileRetrieval.Contracts.Commands.ProcessDiscoveredFile),
-                "WorkflowOrchestrator"
+                "FileRetrieval.Worker"
             );
         })
     .Build();
