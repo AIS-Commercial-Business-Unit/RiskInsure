@@ -61,7 +61,7 @@
     <PackageVersion Include="AspNetCore.HealthChecks.CosmosDb" Version="9.0.0" />
     <PackageVersion Include="AspNetCore.HealthChecks.UI.Client" Version="9.0.0" />
     <!-- Application Insights -->
-    <PackageVersion Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.22.0" />
+    <PackageVersion Include="Microsoft.ApplicationInsights.AspNetCore" Version="3.0.0" />
     <PackageVersion Include="Microsoft.ApplicationInsights.WorkerService" Version="2.22.0" />
     <PackageVersion Include="Microsoft.ApplicationInsights.NLogTarget" Version="2.22.0" />
     <!-- OpenTelemetry (NServiceBus traces + metrics → Azure Monitor) -->
