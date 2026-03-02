@@ -189,9 +189,9 @@ jobs:
             "$CONTEXT"
           
           echo "✅ Build complete"
-          echo "image_sha=$IMAGE_SHA" >> "$GITHUB_ENV"
-          echo "image_short=$IMAGE_SHORT" >> "$GITHUB_ENV"
-          echo "image_latest=$IMAGE_LATEST" >> "$GITHUB_ENV"
+          echo "IMAGE_SHA=$IMAGE_SHA" >> "$GITHUB_ENV"
+          echo "IMAGE_SHORT=$IMAGE_SHORT" >> "$GITHUB_ENV"
+          echo "IMAGE_LATEST=$IMAGE_LATEST" >> "$GITHUB_ENV"
       
       - name: Add Custom Tag (Optional)
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.tag != ''
@@ -199,26 +199,26 @@ jobs:
         run: |
           SERVICE="${{ matrix.service }}"
           IMAGE_CUSTOM="${{ env.REGISTRY }}/$SERVICE:${{ github.event.inputs.tag }}"
-          docker tag "${{ env.image_sha }}" "$IMAGE_CUSTOM"
-          echo "image_custom=$IMAGE_CUSTOM" >> "$GITHUB_ENV"
+          docker tag "${{ env.IMAGE_SHA }}" "$IMAGE_CUSTOM"
+          echo "IMAGE_CUSTOM=$IMAGE_CUSTOM" >> "$GITHUB_ENV"
       
       - name: Push Images to ACR
         shell: bash
         run: |
           echo "📤 Pushing images to ACR..."
           
-          docker push "${{ env.image_sha }}"
-          echo "✅ Pushed: ${{ env.image_sha }}"
+          docker push "${{ env.IMAGE_SHA }}"
+          echo "✅ Pushed: ${{ env.IMAGE_SHA }}"
           
-          docker push "${{ env.image_short }}"
-          echo "✅ Pushed: ${{ env.image_short }}"
+          docker push "${{ env.IMAGE_SHORT }}"
+          echo "✅ Pushed: ${{ env.IMAGE_SHORT }}"
           
-          docker push "${{ env.image_latest }}"
-          echo "✅ Pushed: ${{ env.image_latest }}"
+          docker push "${{ env.IMAGE_LATEST }}"
+          echo "✅ Pushed: ${{ env.IMAGE_LATEST }}"
           
-          if [[ -n "${{ env.image_custom }}" ]]; then
-            docker push "${{ env.image_custom }}"
-            echo "✅ Pushed: ${{ env.image_custom }}"
+          if [[ -n "${{ env.IMAGE_CUSTOM }}" ]]; then
+            docker push "${{ env.IMAGE_CUSTOM }}"
+            echo "✅ Pushed: ${{ env.IMAGE_CUSTOM }}"
           fi
       
       - name: Image Manifest
@@ -228,18 +228,18 @@ jobs:
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "| Tag | Image |" >> "$GITHUB_STEP_SUMMARY"
           echo "|-----|-------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Full SHA | \`${{ env.image_sha }}\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Short SHA | \`${{ env.image_short }}\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Latest | \`${{ env.image_latest }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Full SHA | \`${{ env.IMAGE_SHA }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Short SHA | \`${{ env.IMAGE_SHORT }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Latest | \`${{ env.IMAGE_LATEST }}\` |" >> "$GITHUB_STEP_SUMMARY"
           
-          if [[ -n "${{ env.image_custom }}" ]]; then
-            echo "| Custom | \`${{ env.image_custom }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          if [[ -n "${{ env.IMAGE_CUSTOM }}" ]]; then
+            echo "| Custom | \`${{ env.IMAGE_CUSTOM }}\` |" >> "$GITHUB_STEP_SUMMARY"
           fi
       
       - name: Generate SBOM (Software Bill of Materials)
         uses: anchore/sbom-action@v0
         with:
-          image: ${{ env.image_sha }}
+          image: ${{ env.IMAGE_SHA }}
           format: spdx-json
           output-file: sbom-${{ matrix.service }}.spdx.json
       
