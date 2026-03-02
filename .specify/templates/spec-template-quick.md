@@ -19,6 +19,10 @@
 **Project Structure**: [copilot-instructions/project-structure.md](../../copilot-instructions/project-structure.md)  
 **Messaging Patterns**: [copilot-instructions/messaging-patterns.md](../../copilot-instructions/messaging-patterns.md)
 
+**Executable Host Profiles (required when applicable)**:
+- **Api host present?** [Yes/No] → `Serilog.AspNetCore` + `mcr.microsoft.com/dotnet/aspnet:10.0`
+- **Endpoint.In host present?** [Yes/No] → `Serilog.Extensions.Hosting` + `Serilog.Settings.Configuration` + `mcr.microsoft.com/dotnet/runtime:10.0`
+
 ---
 
 ## What's New (The Delta)

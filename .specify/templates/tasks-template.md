@@ -85,6 +85,9 @@ RiskInsure foundational tasks (adjust based on your feature):
 - [ ] T010 Configure NServiceBus in `services/<domain>/src/Infrastructure/NServiceBusConfigurationExtensions.cs`
 - [ ] T011 Configure appsettings templates in `services/<domain>/src/{Api,Endpoint.In}/appsettings.Development.json.template`
 - [ ] T012 Configure structured logging and correlation fields in `services/<domain>/src/{Api,Endpoint.In}/Program.cs`
+- [ ] T012a Configure host-appropriate Serilog packages in `services/<domain>/src/{Api,Endpoint.In}/*.csproj` (`Serilog.AspNetCore` for Api; `Serilog.Extensions.Hosting` + `Serilog.Settings.Configuration` for Endpoint.In)
+- [ ] T012b Configure Docker runtime base images in `services/<domain>/src/{Api,Endpoint.In}/Dockerfile` (`aspnet:10.0` for Api; `runtime:10.0` for Endpoint.In)
+- [ ] T012c Validate package/runtime compatibility by building executable projects and images (fail fast on framework mismatch)
 
 **Checkpoint**: Foundation ready - user story implementation can now begin in parallel
 
