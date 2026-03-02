@@ -5,6 +5,7 @@ import { InputBox } from './InputBox';
 export function ChatWindow({
   isOpen,
   isExpanded,
+  isSidebarOpen,
   showMenuButton,
   onClose,
   onExpand,
@@ -18,8 +19,14 @@ export function ChatWindow({
 }) {
   if (!isOpen) return null;
 
+  const windowClasses = [
+    'chat-window',
+    isExpanded ? 'expanded' : '',
+    isExpanded && isSidebarOpen ? 'sidebar-open' : '',
+  ].filter(Boolean).join(' ');
+
   return (
-    <div className={`chat-window ${isExpanded ? 'expanded' : ''}`}>
+    <div className={windowClasses}>
       <div className="chat-header">
         {showMenuButton && (
           <button

@@ -33,6 +33,18 @@ export function useChatWidget() {
     }
   }, [isExpanded]);
 
+  // Hide page scrollbar when expanded, show when collapsed
+  useEffect(() => {
+    if (isExpanded) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isExpanded]);
+
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     if (messageListRef.current) {

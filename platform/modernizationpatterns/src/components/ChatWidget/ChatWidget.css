@@ -61,7 +61,6 @@
   z-index: 10010;
   display: flex;
   flex-direction: column;
-  animation: slideInLeft 0.3s ease;
 }
 
 @keyframes slideInLeft {
@@ -373,7 +372,7 @@
   bottom: 24px;
   right: 24px;
   z-index: 9999;
-  width: 420px;
+  width: 500px;
   max-width: calc(100vw - 32px);
   height: 600px;
   max-height: calc(100vh - 32px);
@@ -401,6 +400,14 @@
   z-index: 10000;
   animation: expandFullscreen 0.3s ease;
   pointer-events: auto;
+  overflow: hidden;
+}
+
+/* Side-by-side layout when sidebar is open in expanded mode */
+.chat-window.expanded.sidebar-open {
+  left: 280px;
+  width: calc(100vw - 280px);
+  animation: none;
 }
 
 @keyframes expandFullscreen {
@@ -461,10 +468,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: 14px 16px;
   border-bottom: 1px solid var(--bg-alt);
   background: var(--accent);
-  gap: 8px;
+  gap: 12px;
+  border-radius: 15px 15px 0 0;
 }
 
 .chat-menu-btn {
@@ -497,6 +505,7 @@
   display: flex;
   gap: 12px;
   flex: 1;
+  align-items: center;
 }
 
 .chat-icon {
@@ -764,12 +773,12 @@
 .chat-input-wrapper {
   display: flex;
   gap: 8px;
-  align-items: flex-end;
+  align-items: stretch;
 }
 
 /* Input Field */
 .chat-input-field {
-  padding: 12px 12px;
+  padding: 14px 14px;
   border: 1px solid var(--bg-alt);
   border-radius: 8px;
   font-family: inherit;
@@ -779,6 +788,7 @@
   resize: none;
   transition: all 0.2s ease;
   min-height: 56px;
+  height: 56px;
   flex: 1;
   line-height: 1.5;
 }

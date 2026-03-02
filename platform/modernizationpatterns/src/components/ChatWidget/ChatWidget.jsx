@@ -51,8 +51,8 @@ export function ChatWidget() {
           conversations={conversations}
           currentConversationId={conversationId}
           onNewChat={() => {
-            createConversation();
             setIsOpen(true);
+            setTimeout(() => createConversation(), 0);
           }}
           onSelectConversation={selectConversation}
           onDeleteConversation={deleteConversation}
@@ -68,6 +68,7 @@ export function ChatWidget() {
         <ChatWindow
           isOpen={isOpen}
           isExpanded={isExpanded}
+          isSidebarOpen={isSidebarOpen}
           showMenuButton={!isSidebarOpen}
           onClose={toggleWindow}
           onExpand={toggleExpand}
