@@ -307,6 +307,7 @@ jobs:
       - name: Publish Test Summary
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
+        continue-on-error: true
         with:
           files: |
             ./artifacts/**/*.trx
