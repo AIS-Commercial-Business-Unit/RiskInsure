@@ -155,7 +155,8 @@ public class ChatController : ControllerBase
                     UserId = request.UserId,
                     CreatedAt = DateTimeOffset.UtcNow,
                     UpdatedAt = DateTimeOffset.UtcNow,
-                    Status = "active"
+                    Status = "active",
+                    Messages = new List<Message>()
                 };
             }
 
@@ -192,7 +193,7 @@ public class ChatController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in chat streaming");
-            Response.StatusCode = 500;
+            // Cannot set StatusCode after streaming starts; just log and send error event
             await WriteSseEvent("error", $"Server error: {ex.Message}");
         }
     }
@@ -302,33 +303,22 @@ public class ChatController : ControllerBase
     private string BuildSystemPrompt(List<SearchResultItem> patterns)
     {
         var sb = new StringBuilder();
-        sb.Append("You are a knowledgeable assistant helping users understand RiskInsure patterns and best practices.\n\n");
+        sb.Append("You are a concise assistant helping users understand RiskInsure patterns.\n\n");
 
         if (patterns.Count > 0)
         {
-            sb.Append("Here are relevant reference patterns from the knowledge base:\n\n");
-
+            sb.Append("REFERENCE MATERIAL (stay faithful to this content, don't paraphrase):\n\n");
             foreach (var pattern in patterns.Take(3))
             {
-                sb.Append($"## {pattern.Title}\n");
-                sb.Append($"Category: {pattern.Category}\n");
-                sb.Append($"Content: {pattern.Content[..Math.Min(200, pattern.Content.Length)]}...\n\n");
+                sb.Append($"{pattern.Title}:\n{pattern.Content}\n\n");
             }
-
-            sb.Append("Use these patterns as context when answering the user's question.\n");
-            sb.Append("Always cite which pattern(s) you're referencing.\n\n");
-        }
-        else
-        {
-            sb.Append("No specific patterns found in the knowledge base.\n");
-            sb.Append("Provide a helpful response based on general knowledge.\n\n");
         }
 
-        sb.Append("Instructions:\n");
-        sb.Append("- Be concise and focused\n");
-        sb.Append("- Reference specific patterns when applicable\n");
-        sb.Append("- Provide actionable guidance\n");
-        sb.Append("- If unsure, acknowledge uncertainty\n");
+        sb.Append("INSTRUCTIONS:\n");
+        sb.Append("1. Answer using information directly from the reference material above\n");
+        sb.Append("2. Keep answer to 2-3 sentences max\n");
+        sb.Append("3. Quote or closely follow the source content - do NOT paraphrase\n");
+        sb.Append("4. Be direct and practical\n");
 
         return sb.ToString();
     }

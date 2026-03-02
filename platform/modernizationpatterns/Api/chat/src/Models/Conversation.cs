@@ -29,10 +29,10 @@ public class Conversation
 public class Message
 {
     [JsonPropertyName("role")]
-    public required string Role { get; set; } // "user" or "assistant"
+    public string Role { get; set; } = string.Empty;
 
     [JsonPropertyName("content")]
-    public required string Content { get; set; }
+    public string Content { get; set; } = string.Empty;
 
     [JsonPropertyName("timestamp")]
     public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.UtcNow;

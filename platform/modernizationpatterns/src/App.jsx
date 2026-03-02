@@ -2,21 +2,23 @@ import { BrowserRouter, Route, Routes, Link, useLocation } from 'react-router-do
 import Home from './routes/Home.jsx';
 import Pattern from './routes/Pattern.jsx';
 import Evaluation from './routes/Evaluation.jsx';
+import { ChatWidget } from './components/ChatWidget/ChatWidget.jsx';
+import './components/ChatWidget/ChatWidget.css';
 import { getCategories, getPatterns } from './data/patternsRepository.js';
 
 function Navigation() {
   const location = useLocation();
-  
+
   return (
     <nav className="main-nav">
-      <Link 
-        to="/" 
+      <Link
+        to="/"
         className={`nav-link ${location.pathname === '/' ? 'active' : ''}`}
       >
         Patterns
       </Link>
-      <Link 
-        to="/evaluation" 
+      <Link
+        to="/evaluation"
         className={`nav-link ${location.pathname === '/evaluation' ? 'active' : ''}`}
       >
         Platform Evaluation
@@ -48,6 +50,8 @@ export default function App() {
         <footer className="site-footer">
           <p>Built for clarity, intent, and practical decisions.</p>
         </footer>
+
+        <ChatWidget />
       </div>
     </BrowserRouter>
   );

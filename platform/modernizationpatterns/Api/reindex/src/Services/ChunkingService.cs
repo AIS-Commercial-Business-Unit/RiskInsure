@@ -34,6 +34,7 @@ public class ChunkingService : IChunkingService
     public List<PatternChunk> ChunkPattern(string patternJson, string patternSlug)
     {
         var chunks = new List<PatternChunk>();
+        int chunkIndex = 0;
 
         try
         {
@@ -75,10 +76,55 @@ public class ChunkingService : IChunkingService
                 Category = category,
                 ChunkType = "overview",
                 Content = overviewBuilder.ToString().Trim(),
-                ChunkIndex = 0
+                ChunkIndex = chunkIndex++
             });
 
-            // --- Chunk 2: Implementation details (technologies + gotchas) ---
+            // --- Chunk 2: Starter Diagram (if exists) ---
+            if (root.TryGetProperty("starterDiagram", out var diagram))
+            {
+                var diagramBuilder = new StringBuilder();
+                diagramBuilder.AppendLine($"# {title} — Starter Diagram");
+                diagramBuilder.AppendLine($"Category: {category}");
+                diagramBuilder.AppendLine();
+
+                if (diagram.TryGetProperty("title", out var diagramTitle))
+                {
+                    diagramBuilder.AppendLine($"## Diagram Title: {diagramTitle.GetString()}");
+                }
+
+                if (diagram.TryGetProperty("description", out var diagramDesc))
+                {
+                    diagramBuilder.AppendLine();
+                    diagramBuilder.AppendLine($"## Description");
+                    diagramBuilder.AppendLine(diagramDesc.GetString());
+                }
+
+                if (diagram.TryGetProperty("nodes", out var nodes) && nodes.ValueKind == JsonValueKind.Array)
+                {
+                    diagramBuilder.AppendLine();
+                    diagramBuilder.AppendLine("## Key Components/Nodes");
+                    foreach (var node in nodes.EnumerateArray())
+                    {
+                        if (node.ValueKind == JsonValueKind.String)
+                        {
+                            diagramBuilder.AppendLine($"- {node.GetString()}");
+                        }
+                    }
+                }
+
+                chunks.Add(new PatternChunk
+                {
+                    Id = $"{patternSlug}_diagram",
+                    PatternSlug = patternSlug,
+                    Title = title,
+                    Category = category,
+                    ChunkType = "diagram",
+                    Content = diagramBuilder.ToString().Trim(),
+                    ChunkIndex = chunkIndex++
+                });
+            }
+
+            // --- Chunk 3: Implementation details (technologies + gotchas) ---
             var implBuilder = new StringBuilder();
             implBuilder.AppendLine($"# {title} — Implementation Details");
             implBuilder.AppendLine($"Category: {category}");
@@ -102,7 +148,7 @@ public class ChunkingService : IChunkingService
             }
 
             var implContent = implBuilder.ToString().Trim();
-            if (implContent.Split('\n').Length > 4) // Only add if there's meaningful content beyond headers
+            if (implContent.Split('\n').Length > 4)
             {
                 chunks.Add(new PatternChunk
                 {
@@ -112,51 +158,107 @@ public class ChunkingService : IChunkingService
                     Category = category,
                     ChunkType = "implementation",
                     Content = implContent,
-                    ChunkIndex = 1
+                    ChunkIndex = chunkIndex++
                 });
             }
 
-            // --- Chunk 3: Complexity + real-world example ---
+            // --- Chunk 4: Complexity Assessment ---
             var complexityBuilder = new StringBuilder();
-            complexityBuilder.AppendLine($"# {title} — Complexity & Real-World Example");
+            complexityBuilder.AppendLine($"# {title} — Complexity Assessment");
             complexityBuilder.AppendLine($"Category: {category}");
             complexityBuilder.AppendLine();
 
             if (root.TryGetProperty("complexity", out var complexity))
             {
-                complexityBuilder.AppendLine("## Complexity Assessment");
                 AppendField(complexityBuilder, complexity, "level", "Level");
                 AppendField(complexityBuilder, complexity, "rationale", "Rationale");
                 AppendField(complexityBuilder, complexity, "teamImpact", "Team Impact");
                 AppendField(complexityBuilder, complexity, "skillDemand", "Skill Demand");
                 AppendField(complexityBuilder, complexity, "operationalDemand", "Operational Demand");
                 AppendField(complexityBuilder, complexity, "toolingDemand", "Tooling Demand");
+
+                var complexityContent = complexityBuilder.ToString().Trim();
+                if (complexityContent.Split('\n').Length > 2)
+                {
+                    chunks.Add(new PatternChunk
+                    {
+                        Id = $"{patternSlug}_complexity",
+                        PatternSlug = patternSlug,
+                        Title = title,
+                        Category = category,
+                        ChunkType = "complexity",
+                        Content = complexityContent,
+                        ChunkIndex = chunkIndex++
+                    });
+                }
             }
 
+            // --- Chunk 5: Real-World Example ---
             if (root.TryGetProperty("realWorldExample", out var example))
             {
-                complexityBuilder.AppendLine();
-                complexityBuilder.AppendLine("## Real-World Example");
-                AppendField(complexityBuilder, example, "context", "Context");
-                AppendField(complexityBuilder, example, "approach", "Approach");
-                AppendField(complexityBuilder, example, "outcome", "Outcome");
-            }
+                var exampleBuilder = new StringBuilder();
+                exampleBuilder.AppendLine($"# {title} — Real-World Example");
+                exampleBuilder.AppendLine($"Category: {category}");
+                exampleBuilder.AppendLine();
 
-            AppendStringArray(complexityBuilder, root, "relatedPatterns", "Related Patterns");
-            AppendStringArray(complexityBuilder, root, "tags", "Tags");
+                AppendField(exampleBuilder, example, "context", "Context");
+                AppendField(exampleBuilder, example, "approach", "Approach");
+                AppendField(exampleBuilder, example, "outcome", "Outcome");
 
-            var complexityContent = complexityBuilder.ToString().Trim();
-            if (complexityContent.Split('\n').Length > 4)
-            {
                 chunks.Add(new PatternChunk
                 {
-                    Id = $"{patternSlug}_complexity",
+                    Id = $"{patternSlug}_example",
                     PatternSlug = patternSlug,
                     Title = title,
                     Category = category,
-                    ChunkType = "complexity",
-                    Content = complexityContent,
-                    ChunkIndex = 2
+                    ChunkType = "example",
+                    Content = exampleBuilder.ToString().Trim(),
+                    ChunkIndex = chunkIndex++
+                });
+            }
+
+            // --- Chunk 6: Related Information (related patterns + further reading) ---
+            var relatedBuilder = new StringBuilder();
+            relatedBuilder.AppendLine($"# {title} — Related Information");
+            relatedBuilder.AppendLine($"Category: {category}");
+            relatedBuilder.AppendLine();
+
+            AppendStringArray(relatedBuilder, root, "relatedPatterns", "Related Patterns");
+            AppendStringArray(relatedBuilder, root, "tags", "Tags");
+
+            if (root.TryGetProperty("furtherReading", out var furtherReading) && furtherReading.ValueKind == JsonValueKind.Array)
+            {
+                relatedBuilder.AppendLine();
+                relatedBuilder.AppendLine("## Further Reading");
+                foreach (var readingItem in furtherReading.EnumerateArray())
+                {
+                    if (readingItem.TryGetProperty("title", out var readingTitle))
+                    {
+                        relatedBuilder.Append($"- **{readingTitle.GetString()}**");
+                        if (readingItem.TryGetProperty("link", out var readingLink))
+                        {
+                            relatedBuilder.AppendLine($": {readingLink.GetString()}");
+                        }
+                        else
+                        {
+                            relatedBuilder.AppendLine();
+                        }
+                    }
+                }
+            }
+
+            var relatedContent = relatedBuilder.ToString().Trim();
+            if (relatedContent.Split('\n').Length > 2)
+            {
+                chunks.Add(new PatternChunk
+                {
+                    Id = $"{patternSlug}_related",
+                    PatternSlug = patternSlug,
+                    Title = title,
+                    Category = category,
+                    ChunkType = "related",
+                    Content = relatedContent,
+                    ChunkIndex = chunkIndex++
                 });
             }
 
@@ -178,7 +280,7 @@ public class ChunkingService : IChunkingService
                             Category = category,
                             ChunkType = "guidance",
                             Content = $"# {title} — Detailed Guidance (Part {i + 1})\nCategory: {category}\n\n{guidanceChunks[i]}",
-                            ChunkIndex = 10 + i
+                            ChunkIndex = 100 + i
                         });
                     }
                 }

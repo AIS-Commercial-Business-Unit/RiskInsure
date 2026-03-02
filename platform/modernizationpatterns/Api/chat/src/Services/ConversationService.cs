@@ -1,8 +1,46 @@
 namespace RiskInsure.Modernization.Chat.Services;
 
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Logging;
 using RiskInsure.Modernization.Chat.Models;
+
+/// <summary>
+/// Custom Cosmos serializer using System.Text.Json (required because models use [JsonPropertyName] attributes)
+/// </summary>
+public class CosmosSystemTextJsonSerializer : CosmosSerializer
+{
+    private readonly JsonSerializerOptions _options;
+
+    public CosmosSystemTextJsonSerializer()
+    {
+        _options = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+            WriteIndented = false
+        };
+    }
+
+    public override T FromStream<T>(Stream stream)
+    {
+        if (stream.CanSeek && stream.Length == 0)
+            return default!;
+
+        using var reader = new StreamReader(stream);
+        var json = reader.ReadToEnd();
+        return JsonSerializer.Deserialize<T>(json, _options)!;
+    }
+
+    public override Stream ToStream<T>(T input)
+    {
+        var stream = new MemoryStream();
+        JsonSerializer.Serialize(stream, input, _options);
+        stream.Position = 0;
+        return stream;
+    }
+}
 
 public interface IConversationService
 {
@@ -34,6 +72,9 @@ public class ConversationService : IConversationService
         CosmosClient client;
         try
         {
+            // Custom serializer for System.Text.Json compatibility
+            var serializer = new CosmosSystemTextJsonSerializer();
+
             // If using local emulator, configure SSL bypass
             if (connectionString.Contains("localhost:8081", StringComparison.OrdinalIgnoreCase))
             {
@@ -47,28 +88,33 @@ public class ConversationService : IConversationService
                         };
                         return new HttpClient(handler);
                     },
-                    ConnectionMode = ConnectionMode.Gateway
+                    ConnectionMode = ConnectionMode.Gateway,
+                    Serializer = serializer
                 };
 
                 client = new CosmosClient(connectionString, clientOptions);
-                _logger.LogInformation("Using Cosmos DB emulator with SSL validation bypass");
+                _logger.LogInformation("Using Cosmos DB emulator with SSL validation bypass and System.Text.Json serializer");
             }
             else
             {
-                client = new CosmosClient(connectionString);
-                _logger.LogInformation("Using Cosmos DB service");
+                var clientOptions = new CosmosClientOptions
+                {
+                    Serializer = serializer
+                };
+                client = new CosmosClient(connectionString, clientOptions);
+                _logger.LogInformation("Using Cosmos DB service with System.Text.Json serializer");
             }
 
             // Ensure database and container exist (idempotent)
             try
             {
                 _logger.LogInformation("Attempting to create/verify database {DatabaseName}", databaseName);
-                
-                // Wrap with timeout to prevent blocking if emulator is offline
+
+                // Wrap with timeout to prevent blocking (increased to 15s for Azure)
                 var createDbTask = client.CreateDatabaseIfNotExistsAsync(databaseName);
-                if (!createDbTask.Wait(TimeSpan.FromSeconds(5)))
+                if (!createDbTask.Wait(TimeSpan.FromSeconds(15)))
                 {
-                    throw new TimeoutException("Cosmos DB database creation timed out after 5 seconds");
+                    throw new TimeoutException("Cosmos DB database creation timed out after 15 seconds");
                 }
 
                 var dbResponse = createDbTask.Result;
@@ -82,10 +128,10 @@ public class ConversationService : IConversationService
                     Id = containerName,
                     PartitionKeyPath = "/userId"
                 });
-                
-                if (!createContainerTask.Wait(TimeSpan.FromSeconds(5)))
+
+                if (!createContainerTask.Wait(TimeSpan.FromSeconds(15)))
                 {
-                    throw new TimeoutException("Cosmos DB container creation timed out after 5 seconds");
+                    throw new TimeoutException("Cosmos DB container creation timed out after 15 seconds");
                 }
 
                 createContainerTask.Wait();
