@@ -170,13 +170,15 @@ jobs:
           echo "✅ ACR: $ACR_NAME"
           echo "acr_name=$ACR_NAME" >> "$GITHUB_OUTPUT"
           
-          # Verify UAMI
-          UAMI_ID=$(az identity list --resource-group "$RG" --query "[?contains(name, 'shared')].id" -o tsv)
-          if [ -z "$UAMI_ID" ]; then
-            echo "❌ User-Assigned Managed Identity not found"
+          # Verify UAMI (using exact naming convention from Terraform)
+          UAMI_NAME="riskinsure-${ENVIRONMENT}-app-mi"
+          UAMI_ID=$(az identity show -n "$UAMI_NAME" -g "$RG" --query "id" -o tsv 2>/dev/null || echo "")
+          if [ -z "$UAMI_ID" ] || [ "$UAMI_ID" = "null" ]; then
+            echo "❌ User-Assigned Managed Identity not found: $UAMI_NAME"
+            echo "❌ Searched in: $RG"
             exit 1
           fi
-          echo "✅ UAMI: $UAMI_ID"
+          echo "✅ UAMI: $UAMI_NAME ($UAMI_ID)"
           echo "uami_id=$UAMI_ID" >> "$GITHUB_OUTPUT"
           
           # Verify Service Bus
