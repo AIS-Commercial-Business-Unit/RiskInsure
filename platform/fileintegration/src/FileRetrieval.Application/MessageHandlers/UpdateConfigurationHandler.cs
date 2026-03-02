@@ -67,14 +67,6 @@ public class UpdateConfigurationHandler : IHandleMessages<UpdateConfiguration>
                 throw new ArgumentException($"Invalid protocol type: {message.Protocol}", nameof(message.Protocol));
             }
 
-            // Validate at least one event definition exists
-            if (message.EventsToPublish == null || !message.EventsToPublish.Any())
-            {
-                throw new ArgumentException(
-                    "At least one event definition is required",
-                    nameof(message.EventsToPublish));
-            }
-
             // Update entity properties
             existing.Name = message.Name;
             existing.Description = message.Description;
@@ -87,13 +79,6 @@ public class UpdateConfigurationHandler : IHandleMessages<UpdateConfiguration>
                 message.Schedule.CronExpression,
                 message.Schedule.Timezone ?? "UTC",
                 message.Schedule.Description);
-            existing.EventsToPublish = message.EventsToPublish.Select(e => new EventDefinition(
-                e.EventType,
-                e.EventData ?? new Dictionary<string, object>())).ToList();
-            existing.CommandsToSend = message.CommandsToSend?.Select(c => new CommandDefinition(
-                c.CommandType,
-                c.TargetEndpoint,
-                c.CommandData ?? new Dictionary<string, object>())).ToList() ?? new List<CommandDefinition>();
             existing.LastModifiedBy = message.LastModifiedBy;
             existing.ETag = message.ETag; // T106: ETag for optimistic concurrency
 

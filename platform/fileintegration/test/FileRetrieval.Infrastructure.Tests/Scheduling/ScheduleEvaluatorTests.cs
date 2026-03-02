@@ -88,8 +88,29 @@ public class ScheduleEvaluatorAdvancedTests
         // Arrange & Act & Assert
         _evaluator.IsValidCronExpression("0 9 * * *").Should().BeTrue();
         _evaluator.IsValidCronExpression("*/5 * * * *").Should().BeTrue();
+        _evaluator.IsValidCronExpression("*/5 * * * * *").Should().BeTrue();
         _evaluator.IsValidCronExpression("0 0 * * 0").Should().BeTrue(); // Sundays at midnight
         _evaluator.IsValidCronExpression("0 */4 * * *").Should().BeTrue(); // Every 4 hours
+    }
+
+    [Fact]
+    public void GetNextExecutionTime_WithSecondsCron_ShouldBeWithinFiveSeconds()
+    {
+        // Arrange
+        var schedule = new ScheduleDefinition(
+            cronExpression: "*/5 * * * * *", // Every 5 seconds
+            timezone: "UTC"
+        );
+        var fromTime = DateTimeOffset.UtcNow;
+
+        // Act
+        var nextExecution = _evaluator.GetNextExecutionTime(schedule, fromTime);
+
+        // Assert
+        nextExecution.Should().NotBeNull();
+        var timeDiff = nextExecution!.Value - fromTime;
+        timeDiff.TotalSeconds.Should().BeGreaterThan(0);
+        timeDiff.TotalSeconds.Should().BeLessThanOrEqualTo(5);
     }
 
     [Fact]

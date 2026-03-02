@@ -1,30 +1,26 @@
 using NServiceBus;
 
-namespace FileRetrieval.Contracts.Commands;
+namespace FileRetrieval.Contracts.Events;
 
 /// <summary>
-/// Command sent to the workflow orchestration platform to process a discovered file.
-/// Sent by FileCheckService when a file matching a configuration is found.
+/// Event published after a discovered file has been processed in memory for downstream processing.
 /// </summary>
-public record ProcessDiscoveredFile : ICommand
+public record DiscoveredFileProcessed : IEvent
 {
     public Guid MessageId { get; init; }
     public required string CorrelationId { get; init; }
     public DateTimeOffset OccurredUtc { get; init; }
     public required string IdempotencyKey { get; init; }
-    
-    // File details
+
     public required string ClientId { get; init; }
     public Guid ConfigurationId { get; init; }
     public Guid ExecutionId { get; init; }
     public Guid DiscoveredFileId { get; init; }
     public required string FileUrl { get; init; }
     public required string Filename { get; init; }
-    public long? FileSize { get; init; }
-    public DateTimeOffset? LastModified { get; init; }
-    public DateTimeOffset DiscoveredAt { get; init; }
-    
-    // Configuration metadata
-    public required string ConfigurationName { get; init; }
     public required string Protocol { get; init; }
+
+    public long DownloadedSizeBytes { get; init; }
+    public required string ChecksumAlgorithm { get; init; }
+    public required string ChecksumHex { get; init; }
 }

@@ -256,8 +256,11 @@ public class AzureBlobProtocolAdapter : IProtocolAdapter
     /// </summary>
     private async Task<string> GetSecretAsync(string secretName, CancellationToken cancellationToken)
     {
-        var secret = await _keyVaultClient.GetSecretAsync(secretName, cancellationToken: cancellationToken);
-        return secret.Value.Value;
+        return secretName;
+
+        // Todo: Implement proper secret retrieval with error handling and caching            
+        // var secret = await _keyVaultClient.GetSecretAsync(secretName, cancellationToken: cancellationToken);
+        // return secret.Value.Value;
     }
 
     /// <summary>
