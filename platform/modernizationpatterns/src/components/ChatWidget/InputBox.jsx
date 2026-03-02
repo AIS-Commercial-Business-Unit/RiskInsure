@@ -1,10 +1,9 @@
-import { Send, Trash2 } from 'lucide-react';
+import { Send } from 'lucide-react';
 
 export function InputBox({
   inputValue,
   setInputValue,
   onSend,
-  onClear,
   isLoading,
 }) {
   const handleKeyDown = (e) => {
@@ -22,30 +21,23 @@ export function InputBox({
 
   return (
     <div className="chat-input-section">
-      <textarea
-        value={inputValue}
-        onChange={(e) => setInputValue(e.target.value)}
-        onKeyDown={handleKeyDown}
-        placeholder="Ask about patterns, CQRS, saga, events..."
-        className="chat-input-field"
-        rows="2"
-        disabled={isLoading}
-      />
-      <div className="chat-input-actions">
+      <div className="chat-input-wrapper">
+        <textarea
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Ask about patterns, CQRS, saga, events..."
+          className="chat-input-field"
+          rows="2"
+          disabled={isLoading}
+        />
         <button
           onClick={handleSend}
           disabled={!inputValue.trim() || isLoading}
-          className="chat-btn chat-btn-send"
-          title="Send message (Shift+Enter)"
+          className="chat-btn chat-btn-send-inline"
+          title="Send (Enter)"
         >
-          <Send size={18} />
-        </button>
-        <button
-          onClick={onClear}
-          className="chat-btn chat-btn-clear"
-          title="Clear chat history"
-        >
-          <Trash2 size={18} />
+          <Send size={28} />
         </button>
       </div>
     </div>

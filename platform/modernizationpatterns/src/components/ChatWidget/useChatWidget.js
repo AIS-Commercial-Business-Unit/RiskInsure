@@ -4,18 +4,34 @@ const API_BASE = 'http://localhost:5000/api/chat';
 
 export function useChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [conversationId, setConversationId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [userId, setUserId] = useState(null);
+  const [conversations, setConversations] = useState([]);
+  const [theme, setThemeState] = useState('light');
   const messageListRef = useRef(null);
 
-  // Initialize with user ID
+  // Initialize with user ID and load theme
   useEffect(() => {
     const uid = `user-${Date.now()}`;
     setUserId(uid);
+
+    // Load theme from localStorage
+    const savedTheme = localStorage.getItem('chat-theme') || 'light';
+    setThemeState(savedTheme);
+    document.documentElement.setAttribute('data-theme', savedTheme);
   }, []);
+
+  // Auto-open sidebar when expanding to fullscreen
+  useEffect(() => {
+    if (isExpanded) {
+      setIsSidebarOpen(true);
+    }
+  }, [isExpanded]);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -32,6 +48,15 @@ export function useChatWidget() {
         method: 'POST',
       });
       const data = await response.json();
+
+      // Add to conversations list
+      const newConv = {
+        id: data.conversationId,
+        createdAt: new Date().toISOString(),
+        messages: [],
+      };
+      setConversations((prev) => [newConv, ...prev]);
+
       setConversationId(data.conversationId);
       setMessages([]);
       return data.conversationId;
@@ -216,22 +241,68 @@ export function useChatWidget() {
     });
   }, [conversationId, createConversation]);
 
+  // Toggle expand
+  const toggleExpand = useCallback(() => {
+    setIsExpanded((prev) => !prev);
+  }, []);
+
+  // Select conversation
+  const selectConversation = useCallback((convId) => {
+    setConversationId(convId);
+    loadConversation(convId);
+  }, [loadConversation]);
+
+  // Toggle theme
+  const toggleTheme = useCallback(() => {
+    setThemeState((prev) => {
+      const newTheme = prev === 'light' ? 'dark' : 'light';
+      localStorage.setItem('chat-theme', newTheme);
+      document.documentElement.setAttribute('data-theme', newTheme);
+      return newTheme;
+    });
+  }, []);
+
+  // Toggle sidebar
+  const toggleSidebar = useCallback(() => {
+    setIsSidebarOpen((prev) => !prev);
+  }, []);
+
+  // Delete conversation
+  const deleteConversation = useCallback((convId) => {
+    setConversations((prev) => prev.filter((conv) => conv.id !== convId));
+
+    // If deleted conversation is current, start a new one
+    if (conversationId === convId) {
+      setConversationId(null);
+      setMessages([]);
+      setInputValue('');
+    }
+  }, [conversationId]);
+
   return {
     // State
     isOpen,
+    isExpanded,
+    isSidebarOpen,
     conversationId,
     messages,
     inputValue,
     isLoading,
     messageListRef,
+    conversations,
+    theme,
 
     // Actions
     toggleWindow,
+    toggleExpand,
+    toggleSidebar,
     setInputValue,
     sendMessage,
-    clearChat,
+    deleteConversation,
     createConversation,
     loadConversation,
+    selectConversation,
+    toggleTheme,
     setIsOpen,
   };
 }

@@ -42,7 +42,7 @@ export function MessageList({ messages, isLoading, messageListRef }) {
       {isLoading && messages.length > 0 && messages[messages.length - 1]?.role === 'user' && (
         <div className="chat-message chat-message-assistant">
           <div className="chat-message-content">
-            <span className="chat-typing">🤖 Thinking</span>
+            <span className="chat-typing">🤖 Loading</span>
             <span className="chat-cursor">▌</span>
           </div>
         </div>

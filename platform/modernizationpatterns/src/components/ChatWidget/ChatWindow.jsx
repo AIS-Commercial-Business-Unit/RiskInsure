@@ -1,23 +1,36 @@
-import { X } from 'lucide-react';
+import { X, Maximize2, Minimize2, Menu } from 'lucide-react';
 import { MessageList } from './MessageList';
 import { InputBox } from './InputBox';
 
 export function ChatWindow({
   isOpen,
+  isExpanded,
+  showMenuButton,
   onClose,
+  onExpand,
+  onToggleSidebar,
   messages,
   inputValue,
   setInputValue,
   onSend,
-  onClear,
   isLoading,
   messageListRef,
 }) {
   if (!isOpen) return null;
 
   return (
-    <div className="chat-window">
+    <div className={`chat-window ${isExpanded ? 'expanded' : ''}`}>
       <div className="chat-header">
+        {showMenuButton && (
+          <button
+            onClick={onToggleSidebar}
+            className="chat-menu-btn"
+            title="Toggle conversation history"
+            aria-label="Menu"
+          >
+            <Menu size={20} />
+          </button>
+        )}
         <div className="chat-header-title">
           <span className="chat-icon">📘</span>
           <div>
@@ -25,14 +38,24 @@ export function ChatWindow({
             <p>Ask about architecture & migration patterns</p>
           </div>
         </div>
-        <button
-          onClick={onClose}
-          className="chat-close-btn"
-          title="Close chat (Esc)"
-          aria-label="Close"
-        >
-          <X size={20} />
-        </button>
+        <div className="chat-header-buttons">
+          <button
+            onClick={onExpand}
+            className="chat-expand-btn"
+            title={isExpanded ? 'Exit fullscreen' : 'Fullscreen'}
+            aria-label={isExpanded ? 'Exit fullscreen' : 'Fullscreen'}
+          >
+            {isExpanded ? <Minimize2 size={20} /> : <Maximize2 size={20} />}
+          </button>
+          <button
+            onClick={onClose}
+            className="chat-close-btn"
+            title="Close chat (Esc)"
+            aria-label="Close"
+          >
+            <X size={20} />
+          </button>
+        </div>
       </div>
 
       <MessageList
@@ -45,7 +68,6 @@ export function ChatWindow({
         inputValue={inputValue}
         setInputValue={setInputValue}
         onSend={onSend}
-        onClear={onClear}
         isLoading={isLoading}
       />
     </div>
