@@ -12,9 +12,10 @@ on:
     branches:
       - main
       - Dev
+      - feature/new-workflow-structure  # Allow testing on feature branch
     paths:
       - 'platform/infra/**'
-      - '.github/workflows/new/pr-terraform-validate.yml'
+      - '.github/workflows/pr-terraform-validate.yml'
 
 env:
   TERRAFORM_VERSION: '1.11.4'
