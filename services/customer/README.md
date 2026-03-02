@@ -6,6 +6,8 @@ Complete implementation of the Customer bounded context for RiskInsure.
 
 The Customer domain manages customer identity and contact information, providing CRUD operations for customer data and supporting GDPR compliance.
 
+> **Testing Note**: This change validates PR workflow triggers on feature branch.
+
 ## Architecture
 
 - **API Layer** (Port 7075): HTTP endpoints for customer operations
