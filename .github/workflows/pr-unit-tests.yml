@@ -12,10 +12,11 @@ on:
     branches:
       - main
       - Dev
+      - feature/new-workflow-structure  # Allow testing on feature branch
     paths:
       - 'services/**'
       - 'platform/RiskInsure.PublicContracts/**'
-      - '.github/workflows/new/pr-unit-tests.yml'
+      - '.github/workflows/pr-unit-tests.yml'
       - 'Directory.Build.props'
       - 'Directory.Packages.props'
 
