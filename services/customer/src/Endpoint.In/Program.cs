@@ -11,27 +11,38 @@ Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
     .CreateBootstrapLogger();
 
-builder.UseSerilog((context, services, configuration) => configuration
-    .ReadFrom.Configuration(context.Configuration)
-    .Enrich.FromLogContext()
-    .WriteTo.Console()
-    .WriteTo.ApplicationInsights(
-        services.GetRequiredService<TelemetryConfiguration>(),
-        TelemetryConverter.Traces));
+builder.UseSerilog((context, services, configuration) =>
+{
+    configuration
+        .ReadFrom.Configuration(context.Configuration)
+        .Enrich.FromLogContext()
+        .WriteTo.Console();
+
+    var appInsightsConnectionString = context.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
+    if (!string.IsNullOrWhiteSpace(appInsightsConnectionString))
+    {
+        configuration.WriteTo.ApplicationInsights(
+            services.GetRequiredService<TelemetryConfiguration>(),
+            TelemetryConverter.Traces);
+    }
+});
 
 // Application Insights telemetry (auto-reads APPLICATIONINSIGHTS_CONNECTION_STRING env var)
 builder.ConfigureServices((context, services) =>
 {
-    services.AddApplicationInsightsTelemetryWorkerService();
+    var appInsightsConnectionString = context.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
+    if (!string.IsNullOrWhiteSpace(appInsightsConnectionString))
+    {
+        services.AddApplicationInsightsTelemetryWorkerService();
 
-    // OpenTelemetry: export NServiceBus traces and metrics to Azure Monitor
-    services.AddOpenTelemetry()
-        .WithTracing(tracing => tracing
-            .AddSource("NServiceBus.Core")
-            .AddAzureMonitorTraceExporter())
-        .WithMetrics(metrics => metrics
-            .AddMeter("NServiceBus.Core")
-            .AddAzureMonitorMetricExporter());
+        services.AddOpenTelemetry()
+            .WithTracing(tracing => tracing
+                .AddSource("NServiceBus.Core")
+                .AddAzureMonitorTraceExporter())
+            .WithMetrics(metrics => metrics
+                .AddMeter("NServiceBus.Core")
+                .AddAzureMonitorMetricExporter());
+    }
 });
 
 // NServiceBus configuration
