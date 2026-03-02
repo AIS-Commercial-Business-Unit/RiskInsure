@@ -87,23 +87,27 @@ jobs:
           path: ${{ matrix.path }}/TestResults/**/coverage.cobertura.xml
           if-no-files-found: warn
 
-  test-summary:
-    name: 'Test Summary'
-    runs-on: ubuntu-latest
-    needs: unit-tests
-    # Only run on PRs to main/Dev (feature branches have permission restrictions)
-    if: always() && (github.base_ref == 'main' || github.base_ref == 'Dev')
-    
-    steps:
-      - name: Download All Test Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: ./artifacts
-      
-      - name: Publish Test Summary
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        if: always()
-        with:
-          files: ./artifacts/**/*.trx
-          check_name: 'Unit Test Results'
-          comment_mode: always
+  # Note: Test summary publishing temporarily disabled due to GitHub permissions
+  # restrictions on PRs to non-default branches. All test results are still 
+  # available as workflow artifacts. This will be re-enabled once workflows are
+  # merged to main and PRs target the main branch.
+  #
+  # test-summary:
+  #   name: 'Test Summary'
+  #   runs-on: ubuntu-latest
+  #   needs: unit-tests
+  #   if: always() && (github.base_ref == 'main' || github.base_ref == 'Dev')
+  #   
+  #   steps:
+  #     - name: Download All Test Artifacts
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         path: ./artifacts
+  #     
+  #     - name: Publish Test Summary
+  #       uses: EnricoMi/publish-unit-test-result-action@v2
+  #       if: always()
+  #       with:
+  #         files: ./artifacts/**/*.trx
+  #         check_name: 'Unit Test Results'
+  #         comment_mode: always
