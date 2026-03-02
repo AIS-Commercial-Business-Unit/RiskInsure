@@ -58,16 +58,6 @@ public class ConfigurationResponse
     public required ScheduleDefinitionDto Schedule { get; set; }
 
     /// <summary>
-    /// Events to publish when files are found
-    /// </summary>
-    public required List<EventDefinitionDto> EventsToPublish { get; set; }
-
-    /// <summary>
-    /// Commands to send when files are found
-    /// </summary>
-    public List<CommandDefinitionDto> CommandsToSend { get; set; } = [];
-
-    /// <summary>
     /// Whether configuration is active
     /// </summary>
     public bool IsActive { get; set; }

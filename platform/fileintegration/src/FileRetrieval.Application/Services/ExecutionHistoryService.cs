@@ -13,16 +13,41 @@ public class ExecutionHistoryService
 {
     private readonly IFileRetrievalExecutionRepository _executionRepository;
     private readonly IDiscoveredFileRepository _discoveredFileRepository;
+    private readonly IProcessedFileRecordRepository _processedRecordRepository;
     private readonly ILogger<ExecutionHistoryService> _logger;
 
     public ExecutionHistoryService(
         IFileRetrievalExecutionRepository executionRepository,
         IDiscoveredFileRepository discoveredFileRepository,
+        IProcessedFileRecordRepository processedRecordRepository,
         ILogger<ExecutionHistoryService> logger)
     {
         _executionRepository = executionRepository;
         _discoveredFileRepository = discoveredFileRepository;
+        _processedRecordRepository = processedRecordRepository;
         _logger = logger;
+    }
+
+    public async Task<IReadOnlyList<ProcessedFileRecord>> GetProcessedFileRecordsAsync(
+        string clientId,
+        Guid configurationId,
+        int pageSize = 50,
+        string? fileName = null,
+        Guid? executionId = null,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogDebug(
+            "Getting processed file records for configuration {ConfigurationId}, client {ClientId}",
+            configurationId,
+            clientId);
+
+        return await _processedRecordRepository.GetByConfigurationAsync(
+            clientId,
+            configurationId,
+            pageSize,
+            fileName,
+            executionId,
+            cancellationToken);
     }
 
     /// <summary>

@@ -23,7 +23,7 @@ test-data/
 
 1. Start the HTTPS test server with Docker Compose:
    ```bash
-   docker-compose up -d https-server
+   docker-compose up -d file-retrieval-https
    ```
 
 2. Access test files at:

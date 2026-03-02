@@ -269,11 +269,21 @@ public class HttpsProtocolAdapter : IProtocolAdapter
     {
         if (_cachedSecret == null)
         {
-            var secret = await _keyVaultClient.GetSecretAsync(
-                _settings.PasswordOrTokenKeyVaultSecret,
-                cancellationToken: cancellationToken);
-            _cachedSecret = secret.Value.Value;
+            _cachedSecret = _settings.PasswordOrTokenKeyVaultSecret;
+
+            // Todo: Implement proper secret retrieval with error handling and caching            
+            //     var secret = await _keyVaultClient.GetSecretAsync(
+            //         _settings.PasswordOrTokenKeyVaultSecret,
+            //         cancellationToken: cancellationToken);
+            // _cachedSecret = secret.Value.Value;
         }
+
+        if (string.IsNullOrWhiteSpace(_cachedSecret))
+        {
+            throw new InvalidOperationException(
+                "Could not retrieve secret for HttpsProtocolAdapter from PasswordOrTokenKeyVaultSecret.  PasswordOrTokenKeyVaultSecret must be configured for this authentication type.");
+        }
+
         return _cachedSecret;
     }
 

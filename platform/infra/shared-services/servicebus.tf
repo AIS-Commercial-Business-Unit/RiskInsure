@@ -60,12 +60,18 @@ locals {
     "particular.servicecontrol.staging",
     "servicecontrol.throughputdata",
 
-    # RiskInsure Application Endpoints
+    # RiskInsure Application Endpoints (NServiceBus message processors)
     "RiskInsure.Billing.Endpoint",
     "RiskInsure.Customer.Endpoint",
     "RiskInsure.FundTransferMgt.Endpoint",
     "RiskInsure.Policy.Endpoint",
     "RiskInsure.RatingAndUnderwriting.Endpoint",
+
+    # RiskInsure API Send-Only Endpoints (for publishing events from APIs)
+    # Note: NServiceBus normalizes these to lowercase in Azure Service Bus
+    "riskinsure.billing.api",
+    "riskinsure.customer.api",
+    "riskinsure.ratingandunderwriting.api",
 
     # Add new endpoint queues here:
     # "RiskInsure.NewService.Endpoint",
