@@ -1,6 +1,7 @@
 using System.Configuration;
 using Azure.Identity;
 using Microsoft.Azure.Cosmos;
+using Azure.Messaging.ServiceBus;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using NServiceBus.Features;
@@ -66,8 +67,15 @@ public static class NServiceBusConfigurationExtensions
                 // Terraform) to manage these resources explicitly.  But since the Azure ServiceBus
                 // emulator does not support installers, we only turn this on when we're 
                 // not using the Service Bus Emulator.
-                Console.WriteLine("[NServiceBus]: Enabling installers");
-                endpointConfiguration.EnableInstallers();
+                if (string.Equals(messageBroker, "AzureServiceBus", StringComparison.OrdinalIgnoreCase))
+                {
+                    Console.WriteLine("[NServiceBus]: Skipping installers for Azure Service Bus transport");
+                }
+                else
+                {
+                    Console.WriteLine("[NServiceBus]: Enabling installers");
+                    endpointConfiguration.EnableInstallers();
+                }
             }
 
             // Allow per-endpoint customization
@@ -97,6 +105,28 @@ public static class NServiceBusConfigurationExtensions
         Console.WriteLine($"[NServiceBus]: using Service Bus connection string");
         
         var transport = new AzureServiceBusTransport(serviceBusConnectionString, TopicTopology.Default);
+
+        var useWebSockets = configuration.GetValue<bool?>("Messaging:AzureServiceBus:UseWebSockets") ?? true;
+        if (useWebSockets)
+        {
+            transport.UseWebSockets = true;
+            Console.WriteLine("[NServiceBus]: Azure Service Bus transport configured to use AMQP over WebSockets");
+        }
+
+        var tryTimeoutSeconds = configuration.GetValue<int?>("Messaging:AzureServiceBus:TryTimeoutSeconds") ?? 10;
+        var maxRetries = configuration.GetValue<int?>("Messaging:AzureServiceBus:MaxRetries") ?? 2;
+
+        transport.RetryPolicyOptions = new ServiceBusRetryOptions
+        {
+            Mode = ServiceBusRetryMode.Exponential,
+            TryTimeout = TimeSpan.FromSeconds(tryTimeoutSeconds),
+            MaxRetries = maxRetries,
+            Delay = TimeSpan.FromMilliseconds(200),
+            MaxDelay = TimeSpan.FromSeconds(2)
+        };
+
+        Console.WriteLine($"[NServiceBus]: Azure Service Bus retry policy configured (TryTimeout={tryTimeoutSeconds}s, MaxRetries={maxRetries})");
+
         var transportExtensions = endpointConfiguration.UseTransport(transport);
         return transportExtensions;
     }
