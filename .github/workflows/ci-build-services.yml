@@ -191,15 +191,13 @@ jobs:
           IMAGE_NAME="${{ steps.map.outputs.image_name }}"
           SHORT_SHA="${GITHUB_SHA:0:7}"
           
-          # API Image Tags
-          echo "API_IMAGE_SHA=${{ env.REGISTRY }}/${IMAGE_NAME}-api:${{ github.sha }}" >> "$GITHUB_ENV"
-          echo "API_IMAGE_SHORT=${{ env.REGISTRY }}/${IMAGE_NAME}-api:$SHORT_SHA" >> "$GITHUB_ENV"
-          echo "API_IMAGE_LATEST=${{ env.REGISTRY }}/${IMAGE_NAME}-api:latest" >> "$GITHUB_ENV"
-          
-          # Endpoint Image Tags
-          echo "ENDPOINT_IMAGE_SHA=${{ env.REGISTRY }}/${IMAGE_NAME}-endpoint:${{ github.sha }}" >> "$GITHUB_ENV"
-          echo "ENDPOINT_IMAGE_SHORT=${{ env.REGISTRY }}/${IMAGE_NAME}-endpoint:$SHORT_SHA" >> "$GITHUB_ENV"
-          echo "ENDPOINT_IMAGE_LATEST=${{ env.REGISTRY }}/${IMAGE_NAME}-endpoint:latest" >> "$GITHUB_ENV"
+          # Set as outputs for use in subsequent steps
+          echo "api_image_sha=${{ env.REGISTRY }}/${IMAGE_NAME}-api:${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          echo "api_image_short=${{ env.REGISTRY }}/${IMAGE_NAME}-api:$SHORT_SHA" >> "$GITHUB_OUTPUT"
+          echo "api_image_latest=${{ env.REGISTRY }}/${IMAGE_NAME}-api:latest" >> "$GITHUB_OUTPUT"
+          echo "endpoint_image_sha=${{ env.REGISTRY }}/${IMAGE_NAME}-endpoint:${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          echo "endpoint_image_short=${{ env.REGISTRY }}/${IMAGE_NAME}-endpoint:$SHORT_SHA" >> "$GITHUB_OUTPUT"
+          echo "endpoint_image_latest=${{ env.REGISTRY }}/${IMAGE_NAME}-endpoint:latest" >> "$GITHUB_OUTPUT"
           
           echo "✅ Image tags configured"
       
@@ -214,9 +212,9 @@ jobs:
           
           docker build \
             -f "$SERVICE_DIR/src/Api/Dockerfile" \
-            -t "${{ env.API_IMAGE_SHA }}" \
-            -t "${{ env.API_IMAGE_SHORT }}" \
-            -t "${{ env.API_IMAGE_LATEST }}" \
+            -t "${{ steps.tags.outputs.api_image_sha }}" \
+            -t "${{ steps.tags.outputs.api_image_short }}" \
+            -t "${{ steps.tags.outputs.api_image_latest }}" \
             --build-arg SERVICE_NAME=$SERVICE \
             .
           
@@ -233,15 +231,16 @@ jobs:
           
           docker build \
             -f "$SERVICE_DIR/src/Endpoint.In/Dockerfile" \
-            -t "${{ env.ENDPOINT_IMAGE_SHA }}" \
-            -t "${{ env.ENDPOINT_IMAGE_SHORT }}" \
-            -t "${{ env.ENDPOINT_IMAGE_LATEST }}" \
+            -t "${{ steps.tags.outputs.endpoint_image_sha }}" \
+            -t "${{ steps.tags.outputs.endpoint_image_short }}" \
+            -t "${{ steps.tags.outputs.endpoint_image_latest }}" \
             --build-arg SERVICE_NAME=$SERVICE \
             .
           
           echo "✅ Endpoint image built"
       
       - name: Add Custom Tags (Optional)
+        id: custom_tags
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.tag != ''
         shell: bash
         run: |
@@ -251,44 +250,44 @@ jobs:
           API_IMAGE_CUSTOM="${{ env.REGISTRY }}/${IMAGE_NAME}-api:$CUSTOM_TAG"
           ENDPOINT_IMAGE_CUSTOM="${{ env.REGISTRY }}/${IMAGE_NAME}-endpoint:$CUSTOM_TAG"
           
-          docker tag "${{ env.API_IMAGE_SHA }}" "$API_IMAGE_CUSTOM"
-          docker tag "${{ env.ENDPOINT_IMAGE_SHA }}" "$ENDPOINT_IMAGE_CUSTOM"
+          docker tag "${{ steps.tags.outputs.api_image_sha }}" "$API_IMAGE_CUSTOM"
+          docker tag "${{ steps.tags.outputs.endpoint_image_sha }}" "$ENDPOINT_IMAGE_CUSTOM"
           
-          echo "API_IMAGE_CUSTOM=$API_IMAGE_CUSTOM" >> "$GITHUB_ENV"
-          echo "ENDPOINT_IMAGE_CUSTOM=$ENDPOINT_IMAGE_CUSTOM" >> "$GITHUB_ENV"
+          echo "api_image_custom=$API_IMAGE_CUSTOM" >> "$GITHUB_OUTPUT"
+          echo "endpoint_image_custom=$ENDPOINT_IMAGE_CUSTOM" >> "$GITHUB_OUTPUT"
       
       - name: Push Images to ACR
         shell: bash
         run: |
           echo "📤 Pushing API images to ACR..."
-          docker push "${{ env.API_IMAGE_SHA }}"
-          echo "✅ Pushed: ${{ env.API_IMAGE_SHA }}"
+          docker push "${{ steps.tags.outputs.api_image_sha }}"
+          echo "✅ Pushed: ${{ steps.tags.outputs.api_image_sha }}"
           
-          docker push "${{ env.API_IMAGE_SHORT }}"
-          echo "✅ Pushed: ${{ env.API_IMAGE_SHORT }}"
+          docker push "${{ steps.tags.outputs.api_image_short }}"
+          echo "✅ Pushed: ${{ steps.tags.outputs.api_image_short }}"
           
-          docker push "${{ env.API_IMAGE_LATEST }}"
-          echo "✅ Pushed: ${{ env.API_IMAGE_LATEST }}"
+          docker push "${{ steps.tags.outputs.api_image_latest }}"
+          echo "✅ Pushed: ${{ steps.tags.outputs.api_image_latest }}"
           
-          if [[ -n "${{ env.API_IMAGE_CUSTOM }}" ]]; then
-            docker push "${{ env.API_IMAGE_CUSTOM }}"
-            echo "✅ Pushed: ${{ env.API_IMAGE_CUSTOM }}"
+          if [[ -n "${{ steps.custom_tags.outputs.api_image_custom }}" ]]; then
+            docker push "${{ steps.custom_tags.outputs.api_image_custom }}"
+            echo "✅ Pushed: ${{ steps.custom_tags.outputs.api_image_custom }}"
           fi
           
           echo ""
           echo "📤 Pushing Endpoint images to ACR..."
-          docker push "${{ env.ENDPOINT_IMAGE_SHA }}"
-          echo "✅ Pushed: ${{ env.ENDPOINT_IMAGE_SHA }}"
+          docker push "${{ steps.tags.outputs.endpoint_image_sha }}"
+          echo "✅ Pushed: ${{ steps.tags.outputs.endpoint_image_sha }}"
           
-          docker push "${{ env.ENDPOINT_IMAGE_SHORT }}"
-          echo "✅ Pushed: ${{ env.ENDPOINT_IMAGE_SHORT }}"
+          docker push "${{ steps.tags.outputs.endpoint_image_short }}"
+          echo "✅ Pushed: ${{ steps.tags.outputs.endpoint_image_short }}"
           
-          docker push "${{ env.ENDPOINT_IMAGE_LATEST }}"
-          echo "✅ Pushed: ${{ env.ENDPOINT_IMAGE_LATEST }}"
+          docker push "${{ steps.tags.outputs.endpoint_image_latest }}"
+          echo "✅ Pushed: ${{ steps.tags.outputs.endpoint_image_latest }}"
           
-          if [[ -n "${{ env.ENDPOINT_IMAGE_CUSTOM }}" ]]; then
-            docker push "${{ env.ENDPOINT_IMAGE_CUSTOM }}"
-            echo "✅ Pushed: ${{ env.ENDPOINT_IMAGE_CUSTOM }}"
+          if [[ -n "${{ steps.custom_tags.outputs.endpoint_image_custom }}" ]]; then
+            docker push "${{ steps.custom_tags.outputs.endpoint_image_custom }}"
+            echo "✅ Pushed: ${{ steps.custom_tags.outputs.endpoint_image_custom }}"
           fi
       
       - name: Image Manifest
@@ -299,30 +298,30 @@ jobs:
           echo "#### API Images" >> "$GITHUB_STEP_SUMMARY"
           echo "| Tag | Image |" >> "$GITHUB_STEP_SUMMARY"
           echo "|-----|-------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Full SHA | \`${{ env.API_IMAGE_SHA }}\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Short SHA | \`${{ env.API_IMAGE_SHORT }}\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Latest | \`${{ env.API_IMAGE_LATEST }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Full SHA | \`${{ steps.tags.outputs.api_image_sha }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Short SHA | \`${{ steps.tags.outputs.api_image_short }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Latest | \`${{ steps.tags.outputs.api_image_latest }}\` |" >> "$GITHUB_STEP_SUMMARY"
           
-          if [[ -n "${{ env.API_IMAGE_CUSTOM }}" ]]; then
-            echo "| Custom | \`${{ env.API_IMAGE_CUSTOM }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          if [[ -n "${{ steps.custom_tags.outputs.api_image_custom }}" ]]; then
+            echo "| Custom | \`${{ steps.custom_tags.outputs.api_image_custom }}\` |" >> "$GITHUB_STEP_SUMMARY"
           fi
           
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "#### Endpoint Images" >> "$GITHUB_STEP_SUMMARY"
           echo "| Tag | Image |" >> "$GITHUB_STEP_SUMMARY"
           echo "|-----|-------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Full SHA | \`${{ env.ENDPOINT_IMAGE_SHA }}\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Short SHA | \`${{ env.ENDPOINT_IMAGE_SHORT }}\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Latest | \`${{ env.ENDPOINT_IMAGE_LATEST }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Full SHA | \`${{ steps.tags.outputs.endpoint_image_sha }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Short SHA | \`${{ steps.tags.outputs.endpoint_image_short }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Latest | \`${{ steps.tags.outputs.endpoint_image_latest }}\` |" >> "$GITHUB_STEP_SUMMARY"
           
-          if [[ -n "${{ env.ENDPOINT_IMAGE_CUSTOM }}" ]]; then
-            echo "| Custom | \`${{ env.ENDPOINT_IMAGE_CUSTOM }}\` |" >> "$GITHUB_STEP_SUMMARY"
+          if [[ -n "${{ steps.custom_tags.outputs.endpoint_image_custom }}" ]]; then
+            echo "| Custom | \`${{ steps.custom_tags.outputs.endpoint_image_custom }}\` |" >> "$GITHUB_STEP_SUMMARY"
           fi
       
       - name: Generate SBOM for API Image
         uses: anchore/sbom-action@v0
         with:
-          image: ${{ env.API_IMAGE_SHA }}
+          image: ${{ steps.tags.outputs.api_image_sha }}
           format: spdx-json
           output-file: sbom-${{ matrix.service }}.spdx.json
       

@@ -237,28 +237,43 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       
       - name: ACR Login
+        shell: bash
         run: |
-          az acr login --name ${{ needs.verify-infrastructure.outputs.acr_name }}
+          ACR_NAME="${{ needs.verify-infrastructure.outputs.acr_name }}"
+          echo "🔐 Logging into ACR: $ACR_NAME"
+          az acr login --name "$ACR_NAME"
       
-      - name: Map Service Names
-        id: map
+      - name: Determine service path and project prefix
+        id: paths
         shell: bash
         run: |
           SERVICE="${{ matrix.service }}"
           
-          # Map service names to directory structure and image names (match build-and-deploy.yml)
           case "$SERVICE" in
-            ratingunderwriting)
-              SERVICE_DIR="services/ratingandunderwriting"
-              IMAGE_NAME="ratingandunderwriting"
+            billing)
+              SERVICE_DIR="services/billing"
+              PROJECT_PREFIX="RiskInsure.Billing"
+              IMAGE_NAME="billing"
+              ;;
+            customer)
+              SERVICE_DIR="services/customer"
+              PROJECT_PREFIX="RiskInsure.Customer"
+              IMAGE_NAME="customer"
               ;;
             fundstransfermgt)
               SERVICE_DIR="services/fundstransfermgt"
+              PROJECT_PREFIX="RiskInsure.FundsTransferMgt"
               IMAGE_NAME="fundstransfermgt"
               ;;
-            billing|customer|policy)
-              SERVICE_DIR="services/$SERVICE"
-              IMAGE_NAME="$SERVICE"
+            policy)
+              SERVICE_DIR="services/policy"
+              PROJECT_PREFIX="RiskInsure.Policy"
+              IMAGE_NAME="policy"
+              ;;
+            ratingunderwriting)
+              SERVICE_DIR="services/ratingandunderwriting"
+              PROJECT_PREFIX="RiskInsure.RatingAndUnderwriting"
+              IMAGE_NAME="ratingandunderwriting"
               ;;
             *)
               echo "❌ Unknown service: $SERVICE"
@@ -267,48 +282,53 @@ jobs:
           esac
           
           echo "service_dir=$SERVICE_DIR" >> "$GITHUB_OUTPUT"
+          echo "project_prefix=$PROJECT_PREFIX" >> "$GITHUB_OUTPUT"
           echo "image_name=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
-          echo "✅ Service: $SERVICE → Dir: $SERVICE_DIR, Image: $IMAGE_NAME"
+          echo "✅ Mapped $SERVICE → $SERVICE_DIR ($PROJECT_PREFIX)"
       
-      - name: Build and Push API Image
+      - name: Build API Image
         shell: bash
         run: |
           SERVICE="${{ matrix.service }}"
-          SERVICE_DIR="${{ steps.map.outputs.service_dir }}"
-          IMAGE_NAME="${{ steps.map.outputs.image_name }}"
-          IMAGE_TAG="${{ env.REGISTRY }}/${IMAGE_NAME}-api:${{ github.sha }}"
+          SERVICE_DIR="${{ steps.paths.outputs.service_dir }}"
+          PROJECT_PREFIX="${{ steps.paths.outputs.project_prefix }}"
+          IMAGE_NAME="${{ steps.paths.outputs.image_name }}"
+          ACR_SERVER="${{ env.REGISTRY }}"
+          IMAGE_TAG="${{ github.sha }}"
           
-          echo "🔨 Building API image: $IMAGE_TAG"
+          API_IMAGE="$ACR_SERVER/$IMAGE_NAME-api:$IMAGE_TAG"
+          
+          echo "🔨 Building API image: $API_IMAGE"
           echo "   Dockerfile: $SERVICE_DIR/src/Api/Dockerfile"
           
           docker build \
-            -t "$IMAGE_TAG" \
+            -t "$API_IMAGE" \
             -f "$SERVICE_DIR/src/Api/Dockerfile" \
             --build-arg SERVICE_NAME=$SERVICE \
             .
           
-          docker push "$IMAGE_TAG"
-          echo "✅ API image pushed: $IMAGE_TAG"
+          docker push "$API_IMAGE"
+          echo "✅ API image pushed: $API_IMAGE"
       
-      - name: Build and Push Endpoint Image
+      - name: Build Endpoint.In Image
         shell: bash
         run: |
           SERVICE="${{ matrix.service }}"
-          SERVICE_DIR="${{ steps.map.outputs.service_dir }}"
-          IMAGE_NAME="${{ steps.map.outputs.image_name }}"
-          IMAGE_TAG="${{ env.REGISTRY }}/${IMAGE_NAME}-endpoint:${{ github.sha }}"
+          SERVICE_DIR="${{ steps.paths.outputs.service_dir }}"
+          PROJECT_PREFIX="${{ steps.paths.outputs.project_prefix }}"
+          IMAGE_NAME="${{ steps.paths.outputs.image_name }}"
+          ACR_SERVER="${{ env.REGISTRY }}"
+          IMAGE_TAG="${{ github.sha }}"
           
-          echo "🔨 Building Endpoint image: $IMAGE_TAG"
+          ENDPOINT_IMAGE="$ACR_SERVER/$IMAGE_NAME-endpoint:$IMAGE_TAG"
+          
+          echo "🔨 Building Endpoint.In image: $ENDPOINT_IMAGE"
           echo "   Dockerfile: $SERVICE_DIR/src/Endpoint.In/Dockerfile"
-          
-          docker build \
-            -t "$IMAGE_TAG" \
-            -f "$SERVICE_DIR/src/Endpoint.In/Dockerfile" \
-            --build-arg SERVICE_NAME=$SERVICE \
+          --build-arg SERVICE_NAME=$SERVICE \
             .
           
-          docker push "$IMAGE_TAG"
-          echo "✅ Endpoint image pushed: $IMAGE_TAG"
+          docker push "$ENDPOINT_IMAGE"
+          echo "✅ Endpoint.In image pushed: $ENDPOINT_IMAGE"
 
   # ==========================================================================
   # Deploy Container Apps
@@ -352,44 +372,55 @@ jobs:
           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       
-      - name: Map Service to Terraform Resource
-        id: tf_map
+      - name: Terraform Validate
+        run: terraform validate
+      
+      - name: Build Terraform Targets
+        id: targets
         shell: bash
         run: |
-          SERVICE="${{ matrix.service }}"
+          SERVICES='${{ needs.determine-services.outputs.services }}'
+          TARGETS=""
           
-          # Map service names to Terraform resource names (underscores, handle ratingunderwriting)
-          case "$SERVICE" in
-            ratingunderwriting)
-              TF_SERVICE="ratingandunderwriting"
-              ;;
-            *)
-              TF_SERVICE="$SERVICE"
-              ;;
-          esac
+          echo "📦 Building Terraform targets for services: $SERVICES"
           
-          echo "tf_service=$TF_SERVICE" >> "$GITHUB_OUTPUT"
-          echo "✅ Service: $SERVICE → Terraform: $TF_SERVICE"
+          for service in $(echo "$SERVICES" | jq -r '.[]'); do
+            # Map service names to Terraform resource names
+            case "$service" in
+              ratingunderwriting)
+                tf_service_name="ratingandunderwriting"
+                ;;
+              *)
+                tf_service_name="$service"
+                ;;
+            esac
+            
+            echo "  - $service → azurerm_container_app.${tf_service_name}_api"
+            echo "  - $service → azurerm_container_app.${tf_service_name}_endpoint"
+            
+            TARGETS="$TARGETS -target=azurerm_container_app.${tf_service_name}_api"
+            TARGETS="$TARGETS -target=azurerm_container_app.${tf_service_name}_endpoint"
+          done
+          
+          echo "targets=$TARGETS" >> "$GITHUB_OUTPUT"
+          echo "✅ Terraform targets: $TARGETS"
       
-      - name: Deploy Container Apps (API + Endpoint)
+      - name: Terraform Plan
         run: |
-          SERVICE="${{ matrix.service }}"
-          TF_SERVICE="${{ steps.tf_map.outputs.tf_service }}"
-          IMAGE_TAG="${{ github.sha }}"
-          
-          echo "🚀 Deploying $SERVICE to dev..."
-          echo "   Terraform resources: ${TF_SERVICE}_api, ${TF_SERVICE}_endpoint"
-          echo "   Image tag: $IMAGE_TAG"
-          
-          terraform apply \
-            -target="azurerm_container_app.${TF_SERVICE}_api" \
-            -target="azurerm_container_app.${TF_SERVICE}_endpoint" \
-            -var="environment=dev" \
-            -var="image_tag=$IMAGE_TAG" \
-            -auto-approve \
+          terraform plan \
+            -var="environment=${{ env.ENVIRONMENT }}" \
+            -var="image_tag=${{ github.sha }}" \
+            ${{ steps.targets.outputs.targets }} \
+            -out=tfplan \
             -input=false
-          
-          echo "✅ Deployed $SERVICE (API + Endpoint)"
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
+      - name: Terraform Apply
+        run: terraform apply -auto-approve tfplan
         env:
           ARM_USE_OIDC: true
           ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
@@ -422,31 +453,34 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       
-      - name: Map Service Names
-        id: map
+      - name: Determine Container App Names
+        id: app_names
         shell: bash
         run: |
           SERVICE="${{ matrix.service }}"
+          RG="${{ needs.verify-infrastructure.outputs.resource_group }}"
           
-          # Map service names to container app names (match Terraform)
           case "$SERVICE" in
             ratingunderwriting)
-              IMAGE_NAME="ratingandunderwriting"
+              API_APP_NAME="ratingandunderwriting-api"
+              ENDPOINT_APP_NAME="ratingandunderwriting-endpoint"
               ;;
             *)
-              IMAGE_NAME="$SERVICE"
+              API_APP_NAME="${SERVICE}-api"
+              ENDPOINT_APP_NAME="${SERVICE}-endpoint"
               ;;
           esac
           
-          echo "image_name=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
-          echo "✅ Service: $SERVICE → Container Apps: ${IMAGE_NAME}-api, ${IMAGE_NAME}-endpoint"
+          echo "api_app_name=$API_APP_NAME" >> "$GITHUB_OUTPUT"
+          echo "endpoint_app_name=$ENDPOINT_APP_NAME" >> "$GITHUB_OUTPUT"
+          echo "resource_group=$RG" >> "$GITHUB_OUTPUT"
+          echo "✅ Container Apps: $API_APP_NAME, $ENDPOINT_APP_NAME"
       
       - name: Check API Container App
         shell: bash
         run: |
-          RG="${{ needs.verify-infrastructure.outputs.resource_group }}"
-          IMAGE_NAME="${{ steps.map.outputs.image_name }}"
-          APP_NAME="$IMAGE_NAME-api"
+          RG="${{ steps.app_names.outputs.resource_group }}"
+          APP_NAME="${{ steps.app_names.outputs.api_app_name }}"
           
           echo "🔍 Checking API: $APP_NAME (RG: $RG)"
           
@@ -464,12 +498,11 @@ jobs:
             echo "⚠️ $APP_NAME status: $STATUS"
           fi
       
-      - name: Check Endpoint Container App
+      - name: Check Endpoint.In Container App
         shell: bash
         run: |
-          RG="${{ needs.verify-infrastructure.outputs.resource_group }}"
-          IMAGE_NAME="${{ steps.map.outputs.image_name }}"
-          APP_NAME="$IMAGE_NAME-endpoint"
+          RG="${{ steps.app_names.outputs.resource_group }}"
+          APP_NAME="${{ steps.app_names.outputs.endpoint_app_name }}"
           
           echo "🔍 Checking Endpoint: $APP_NAME (RG: $RG)"
           
@@ -487,12 +520,11 @@ jobs:
             echo "⚠️ $APP_NAME status: $STATUS"
           fi
       
-      - name: Get Container App URLs
+      - name: Get Container App URL
         shell: bash
         run: |
-          RG="${{ needs.verify-infrastructure.outputs.resource_group }}"
-          IMAGE_NAME="${{ steps.map.outputs.image_name }}"
-          APP_NAME="$IMAGE_NAME-api"
+          RG="${{ steps.app_names.outputs.resource_group }}"
+          APP_NAME="${{ steps.app_names.outputs.api_app_name }}"
           
           FQDN=$(az containerapp show \
             --name "$APP_NAME" \

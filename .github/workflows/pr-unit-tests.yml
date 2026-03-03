@@ -17,6 +17,7 @@ on:
       - '.github/workflows/pr-unit-tests.yml'
       - 'Directory.Build.props'
       - 'Directory.Packages.props'
+  workflow_dispatch:
 
 permissions:
   contents: read
