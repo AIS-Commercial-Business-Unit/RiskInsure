@@ -7,10 +7,14 @@ using Serilog;
 using Serilog.Sinks.ApplicationInsights.TelemetryConverters;
 using Microsoft.ApplicationInsights.Extensibility;
 using Azure.Monitor.OpenTelemetry.Exporter;
+using Azure.Core.Diagnostics;
+using System.Diagnostics.Tracing;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
     .CreateBootstrapLogger();
+
+AzureEventSourceListener? azureEventSourceListener = null;
 
 try
 {
@@ -86,6 +90,41 @@ try
         })
         .Build();
 
+    var configuration = host.Services.GetRequiredService<IConfiguration>();
+    var enableAzureSdkEventSourceVerbose =
+        configuration.GetValue<bool>("Telemetry:EnableAzureSdkEventSourceVerbose");
+
+    if (enableAzureSdkEventSourceVerbose)
+    {
+        var azureSdkLogger = host.Services
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger("AzureSdkEventSource");
+
+        azureEventSourceListener = new AzureEventSourceListener(
+            (eventArgs, message) =>
+            {
+                var source = eventArgs.EventSource?.Name ?? "AzureSDK";
+
+                if (eventArgs.Level >= EventLevel.Warning)
+                {
+                    azureSdkLogger.LogWarning(
+                        "[AzureSDK:{Source}] {Message}",
+                        source,
+                        message);
+                }
+                else
+                {
+                    azureSdkLogger.LogInformation(
+                        "[AzureSDK:{Source}] {Message}",
+                        source,
+                        message);
+                }
+            },
+            EventLevel.Verbose);
+
+        azureSdkLogger.LogWarning("Azure SDK verbose EventSource logging is enabled.");
+    }
+
     await host.RunAsync();
 }
 catch (Exception ex)
@@ -95,5 +134,6 @@ catch (Exception ex)
 }
 finally
 {
+    azureEventSourceListener?.Dispose();
     await Log.CloseAndFlushAsync();
 }

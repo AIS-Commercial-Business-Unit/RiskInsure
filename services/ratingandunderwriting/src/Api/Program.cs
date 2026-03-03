@@ -9,10 +9,15 @@ using Scalar.AspNetCore;
 using Serilog.Sinks.ApplicationInsights.TelemetryConverters;
 using Microsoft.ApplicationInsights.Extensibility;
 using Azure.Monitor.OpenTelemetry.Exporter;
+using Azure.Core.Diagnostics;
+using System.Diagnostics.Tracing;
 
 var builder = WebApplication.CreateBuilder(args);
 var appInsightsConnectionString = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
 var enableApplicationInsights = !string.IsNullOrWhiteSpace(appInsightsConnectionString);
+var enableAzureSdkEventSourceVerbose =
+    builder.Configuration.GetValue<bool>("Telemetry:EnableAzureSdkEventSourceVerbose");
+AzureEventSourceListener? azureEventSourceListener = null;
 
 // Serilog bootstrap logger (replaced by full config once host is built)
 Log.Logger = new LoggerConfiguration()
@@ -96,6 +101,37 @@ builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
+if (enableAzureSdkEventSourceVerbose)
+{
+    var azureSdkLogger = app.Services
+        .GetRequiredService<ILoggerFactory>()
+        .CreateLogger("AzureSdkEventSource");
+
+    azureEventSourceListener = new AzureEventSourceListener(
+        (eventArgs, message) =>
+        {
+            var source = eventArgs.EventSource?.Name ?? "AzureSDK";
+
+            if (eventArgs.Level >= EventLevel.Warning)
+            {
+                azureSdkLogger.LogWarning(
+                    "[AzureSDK:{Source}] {Message}",
+                    source,
+                    message);
+            }
+            else
+            {
+                azureSdkLogger.LogInformation(
+                    "[AzureSDK:{Source}] {Message}",
+                    source,
+                    message);
+            }
+        },
+        EventLevel.Verbose);
+
+    azureSdkLogger.LogWarning("Azure SDK verbose EventSource logging is enabled.");
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -108,3 +144,4 @@ app.MapControllers();
 app.MapHealthChecks("/health");
 
 app.Run();
+azureEventSourceListener?.Dispose();
