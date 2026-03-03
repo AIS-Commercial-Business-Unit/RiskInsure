@@ -79,7 +79,7 @@ jobs:
             echo "ready=false" >> "$GITHUB_OUTPUT"
             exit 1
           fi
-          echo "servicebus_namespace=$SB_NAMESPACE" >> "$GITHUB_OUTPUT"
+          echo "servicebus_namespace=$SB_NAMESPACE"
           
           # Check endpoint queues only
           REQUIRED_QUEUES=(
@@ -106,7 +106,7 @@ jobs:
             echo "ready=false" >> "$GITHUB_OUTPUT"
             exit 1
           fi
-          echo "cosmosdb_account=$COSMOS_ACCOUNT" >> "$GITHUB_OUTPUT"
+          echo "cosmosdb_account=$COSMOS_ACCOUNT"
           
           # Check Container Apps are running
           SERVICES=("billing" "customer" "fundstransfermgt" "policy" "ratingandunderwriting")
