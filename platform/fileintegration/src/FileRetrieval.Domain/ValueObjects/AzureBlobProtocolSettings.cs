@@ -7,9 +7,20 @@ namespace RiskInsure.FileRetrieval.Domain.ValueObjects;
 /// </summary>
 public sealed class AzureBlobProtocolSettings : ProtocolSettings
 {
+    public override ProtocolType ProtocolType => ProtocolType.AzureBlob;
+
     public string StorageAccountName { get; init; }
     public string ContainerName { get; init; }
     public AzureAuthType AuthenticationType { get; init; }
+
+    /// <summary>
+    /// In order for this property to be encrypted, it has to reside
+    /// at the root of the JSON being sent to Cosmos. The JsonPath 
+    /// attribute causes this to be serialized/deserialized at a 
+    /// specific location in the JSON document, using the provided path, 
+    /// rather than as a nested property.
+    /// </summary>
+    [JsonPath(CosmosEncryptionConfiguration.AzureBlobSecretPath)]
     public string? ConnectionString { get; init; }
     public string? SasToken { get; init; }
     public string? BlobPrefix { get; init; }
@@ -21,7 +32,6 @@ public sealed class AzureBlobProtocolSettings : ProtocolSettings
         string? connectionString = null,
         string? SasToken = null,
         string? blobPrefix = null)
-        : base(ProtocolType.AzureBlob)
     {
         if (string.IsNullOrWhiteSpace(storageAccountName))
             throw new ArgumentException("StorageAccountName cannot be empty", nameof(storageAccountName));

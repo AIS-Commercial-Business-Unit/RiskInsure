@@ -233,8 +233,8 @@ public class CosmosEncryptionIntegrationTests : IAsyncLifetime
         var httpsSettings = new HttpsProtocolSettings(
             baseUrl: "https://api.example.com",
             authenticationType: AuthType.BearerToken,
-            usernameOrApiKey: null,
-            passwordOrToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+            username: null,
+            passwordOrTokenOrApiKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
             connectionTimeout: TimeSpan.FromSeconds(30),
             followRedirects: true,
             maxRedirects: 3
@@ -267,7 +267,7 @@ public class CosmosEncryptionIntegrationTests : IAsyncLifetime
         response.Resource.ProtocolSettings.Should().BeOfType<HttpsProtocolSettings>();
 
         var httpsRetrieved = response.Resource.ProtocolSettings as HttpsProtocolSettings;
-        httpsRetrieved?.PasswordOrToken.Should().Be("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...");
+        httpsRetrieved?.PasswordOrTokenOrApiKey.Should().Be("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...");
 
         _logger.LogInformation("✓ HTTPS protocol settings with token encryption stored successfully");
     }
@@ -423,7 +423,7 @@ public class CosmosEncryptionIntegrationTests : IAsyncLifetime
         var azureConfig = results[2].Resource;
 
         (ftpConfig.ProtocolSettings as FtpProtocolSettings)?.Password.Should().Be("pass1");
-        (httpsConfig.ProtocolSettings as HttpsProtocolSettings)?.PasswordOrToken.Should().Be("token1");
+        (httpsConfig.ProtocolSettings as HttpsProtocolSettings)?.PasswordOrTokenOrApiKey.Should().Be("token1");
         azureConfig.ProtocolSettings.Should().BeOfType<AzureBlobProtocolSettings>();
 
         _logger.LogInformation("✓ Multiple configurations with different protocols stored with encryption successfully");
@@ -443,9 +443,9 @@ public class CosmosEncryptionIntegrationTests : IAsyncLifetime
 
         // Assert
         metadata.EncryptionPaths.Should().Contain(path =>
-            path == "/protocolSettings/password" ||
-            path == "/protocolSettings/passwordOrToken" ||
-            path == "/protocolSettings/connectionString"
+            path == CosmosEncryptionConfiguration.FtpPasswordPath ||
+            path == CosmosEncryptionConfiguration.HttpsPasswordOrTokenPath ||
+            path == CosmosEncryptionConfiguration.AzureBlobConnectionStringPath
         );
 
         _logger.LogInformation("✓ Encryption configuration correctly identifies sensitive paths");

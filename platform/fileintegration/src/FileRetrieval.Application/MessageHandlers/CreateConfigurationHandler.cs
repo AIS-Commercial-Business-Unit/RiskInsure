@@ -165,8 +165,8 @@ public class CreateConfigurationHandler : IHandleMessages<CreateConfiguration>
         return new HttpsProtocolSettings(
             baseUrl: GetRequiredString(settings, "BaseUrl"),
             authenticationType: authType,
-            usernameOrApiKey: GetString(settings, "UsernameOrApiKey"),
-            passwordOrToken: GetString(settings, "PasswordOrToken"),
+            username: GetString(settings, "Username"),
+            passwordOrTokenOrApiKey: GetString(settings, "PasswordOrTokenOrApiKey") ,
             connectionTimeout: TimeSpan.FromSeconds(GetInt(settings, "ConnectionTimeoutSeconds", 30)),
             followRedirects: GetBool(settings, "FollowRedirects", true),
             maxRedirects: GetInt(settings, "MaxRedirects", 3)

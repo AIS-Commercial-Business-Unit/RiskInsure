@@ -97,28 +97,28 @@ public class DiscoveredFileContentDownloadService
         switch (settings.AuthenticationType)
         {
             case AuthType.UsernamePassword:
-                if (!string.IsNullOrWhiteSpace(settings.UsernameOrApiKey) &&
-                    !string.IsNullOrWhiteSpace(settings.PasswordOrToken))
+                if (!string.IsNullOrWhiteSpace(settings.Username) &&
+                    !string.IsNullOrWhiteSpace(settings.PasswordOrTokenOrApiKey))
                 {
                     var credentials = Convert.ToBase64String(
-                        System.Text.Encoding.ASCII.GetBytes($"{settings.UsernameOrApiKey}:{settings.PasswordOrToken}"));
+                        System.Text.Encoding.ASCII.GetBytes($"{settings.Username}:{settings.PasswordOrTokenOrApiKey}"));
                     httpClient.DefaultRequestHeaders.Authorization =
                         new AuthenticationHeaderValue("Basic", credentials);
                 }
                 break;
 
             case AuthType.BearerToken:
-                if (!string.IsNullOrWhiteSpace(settings.PasswordOrToken))
+                if (!string.IsNullOrWhiteSpace(settings.PasswordOrTokenOrApiKey))
                 {
                     httpClient.DefaultRequestHeaders.Authorization =
-                        new AuthenticationHeaderValue("Bearer", settings.PasswordOrToken);
+                        new AuthenticationHeaderValue("Bearer", settings.PasswordOrTokenOrApiKey);
                 }
                 break;
 
             case AuthType.ApiKey:
-                if (!string.IsNullOrWhiteSpace(settings.UsernameOrApiKey))
+                if (!string.IsNullOrWhiteSpace(settings.PasswordOrTokenOrApiKey))
                 {
-                    httpClient.DefaultRequestHeaders.Add("X-API-Key", settings.UsernameOrApiKey);
+                    httpClient.DefaultRequestHeaders.Add("X-API-Key", settings.PasswordOrTokenOrApiKey);
                 }
                 break;
 

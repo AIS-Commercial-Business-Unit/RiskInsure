@@ -224,30 +224,30 @@ public class HttpsProtocolAdapter : IProtocolAdapter
         switch (_settings.AuthenticationType)
         {
             case AuthType.UsernamePassword:
-                if (!string.IsNullOrWhiteSpace(_settings.UsernameOrApiKey) &&
-                    !string.IsNullOrWhiteSpace(_settings.PasswordOrToken))
+                if (!string.IsNullOrWhiteSpace(_settings.Username) &&
+                    !string.IsNullOrWhiteSpace(_settings.PasswordOrTokenOrApiKey))
                 {
                     var credentials = Convert.ToBase64String(
-                        System.Text.Encoding.ASCII.GetBytes($"{_settings.UsernameOrApiKey}:{_settings.PasswordOrToken}"));
+                        System.Text.Encoding.ASCII.GetBytes($"{_settings.Username}:{_settings.PasswordOrTokenOrApiKey}"));
                     httpClient.DefaultRequestHeaders.Authorization = 
                         new AuthenticationHeaderValue("Basic", credentials);
                 }
                 break;
 
             case AuthType.BearerToken:
-                if (!string.IsNullOrWhiteSpace(_settings.PasswordOrToken))
+                if (!string.IsNullOrWhiteSpace(_settings.PasswordOrTokenOrApiKey))
                 {
-                    var token = _settings.PasswordOrToken;
+                    var token = _settings.PasswordOrTokenOrApiKey;
                     httpClient.DefaultRequestHeaders.Authorization = 
                         new AuthenticationHeaderValue("Bearer", token);
                 }
                 break;
 
             case AuthType.ApiKey:
-                if (!string.IsNullOrWhiteSpace(_settings.UsernameOrApiKey))
+                if (!string.IsNullOrWhiteSpace(_settings.PasswordOrTokenOrApiKey))
                 {
                     // Add API key to header (common patterns: X-API-Key, api-key, apikey)
-                    httpClient.DefaultRequestHeaders.Add("X-API-Key", _settings.UsernameOrApiKey);
+                    httpClient.DefaultRequestHeaders.Add("X-API-Key", _settings.PasswordOrTokenOrApiKey);
                 }
                 break;
 

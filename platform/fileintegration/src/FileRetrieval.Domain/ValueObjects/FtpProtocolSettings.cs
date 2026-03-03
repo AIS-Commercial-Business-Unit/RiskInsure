@@ -8,9 +8,18 @@ namespace RiskInsure.FileRetrieval.Domain.ValueObjects;
 /// </summary>
 public sealed class FtpProtocolSettings : ProtocolSettings
 {
+    public override ProtocolType ProtocolType => ProtocolType.FTP;
+
     public string Server { get; init; }
     public int Port { get; init; }
     public string Username { get; init; }
+
+    /// In order for this property to be encrypted, it has to reside
+    /// at the root of the JSON being sent to Cosmos. The JsonPath 
+    /// attribute causes this to be serialized/deserialized at a 
+    /// specific location in the JSON document, using the provided path, 
+    /// rather than as a nested property.
+    [JsonPath(CosmosEncryptionConfiguration.FtpSecretPath)]
     public string Password { get; init; }
     public bool UseTls { get; init; }
     public bool UsePassiveMode { get; init; }
@@ -25,7 +34,6 @@ public sealed class FtpProtocolSettings : ProtocolSettings
         bool useTls = true,
         bool usePassiveMode = true,
         TimeSpan connectionTimeout = default)
-        : base(ProtocolType.FTP)
     {
         if (string.IsNullOrWhiteSpace(server))
             throw new ArgumentException("Server cannot be empty", nameof(server));

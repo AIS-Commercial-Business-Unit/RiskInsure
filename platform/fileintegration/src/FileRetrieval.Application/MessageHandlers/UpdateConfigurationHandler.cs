@@ -195,8 +195,8 @@ public class UpdateConfigurationHandler : IHandleMessages<UpdateConfiguration>
         return new HttpsProtocolSettings(
             baseUrl: settings["BaseUrl"].ToString()!,
             authenticationType: authType,
-            usernameOrApiKey: settings.GetValueOrDefault("UsernameOrApiKey")?.ToString(),
-            passwordOrToken: settings.GetValueOrDefault("PasswordOrToken")?.ToString(),
+            username: GetString(settings, "Username"),
+            passwordOrTokenOrApiKey: GetString(settings, "PasswordOrTokenOrApiKey"),
             connectionTimeout: TimeSpan.FromSeconds(Convert.ToInt32(settings.GetValueOrDefault("ConnectionTimeoutSeconds", 30))),
             followRedirects: Convert.ToBoolean(settings.GetValueOrDefault("FollowRedirects", true)),
             maxRedirects: Convert.ToInt32(settings.GetValueOrDefault("MaxRedirects", 5)));

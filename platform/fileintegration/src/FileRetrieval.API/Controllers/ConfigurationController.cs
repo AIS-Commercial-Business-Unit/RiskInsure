@@ -693,10 +693,10 @@ public class ConfigurationController : ControllerBase
             case HttpsProtocolSettings https:
                 sanitized["BaseUrl"] = https.BaseUrl;
                 sanitized["AuthenticationType"] = https.AuthenticationType.ToString();
-                sanitized["UsernameOrApiKey"] = https.UsernameOrApiKey ?? string.Empty;
-                if (!string.IsNullOrWhiteSpace(https.PasswordOrToken))
+                sanitized["Username"] = https.Username ?? string.Empty;
+                if (!string.IsNullOrWhiteSpace(https.PasswordOrTokenOrApiKey))
                 {
-                    sanitized["PasswordOrToken"] = "[REDACTED]";
+                    sanitized["PasswordOrTokenOrApiKey"] = "[REDACTED]";
                 }
                 sanitized["ConnectionTimeoutSeconds"] = (int)https.ConnectionTimeout.TotalSeconds;
                 sanitized["FollowRedirects"] = https.FollowRedirects;
