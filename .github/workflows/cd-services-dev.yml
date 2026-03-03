@@ -456,16 +456,8 @@ jobs:
           SERVICE="${{ matrix.service }}"
           RG="${{ needs.verify-infrastructure.outputs.resource_group }}"
           
-          case "$SERVICE" in
-            ratingandunderwriting)
-              API_APP_NAME="riskinsure-ratingandunderwriting-api"
-              ENDPOINT_APP_NAME="riskinsure-ratingandunderwriting-endpoint"
-              ;;
-            *)
-              API_APP_NAME="riskinsure-${SERVICE}-api"
-              ENDPOINT_APP_NAME="riskinsure-${SERVICE}-endpoint"
-              ;;
-          esac
+          API_APP_NAME="${SERVICE}-api"
+          ENDPOINT_APP_NAME="${SERVICE}-endpoint"
           
           echo "api_app_name=$API_APP_NAME" >> "$GITHUB_OUTPUT"
           echo "endpoint_app_name=$ENDPOINT_APP_NAME" >> "$GITHUB_OUTPUT"
