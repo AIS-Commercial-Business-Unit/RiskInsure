@@ -32,8 +32,29 @@ try
     app.UseSerilogRequestLogging();
     app.MapControllers();
 
-    // Health check endpoint
+    // Health check endpoints for Container Apps probes
     app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "reindex" }));
+    app.MapGet("/health/ready", (IServiceProvider sp) =>
+    {
+        // Check if critical services are available
+        try
+        {
+            var embedding = sp.GetService<IEmbeddingService>();
+            var indexing = sp.GetService<IIndexingService>();
+
+            if (embedding == null || indexing == null)
+            {
+                return Results.Problem("Required services not available", statusCode: 503);
+            }
+
+            return Results.Ok(new { status = "ready", services = new[] { "embedding", "indexing" } });
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Readiness check failed");
+            return Results.Problem("Service not ready", statusCode: 503);
+        }
+    });
 
     await app.RunAsync();
 }

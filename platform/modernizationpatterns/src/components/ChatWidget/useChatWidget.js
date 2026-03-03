@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 
-const API_BASE = 'http://localhost:5000/api/chat';
+const API_BASE = 'http://localhost:7071/api/chat';
 
 export function useChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
@@ -20,10 +20,9 @@ export function useChatWidget() {
     const uid = `user-${Date.now()}`;
     setUserId(uid);
 
-    // Load theme from localStorage
+    // Load theme from localStorage (but don't apply to DOM yet, wait for component mount)
     const savedTheme = localStorage.getItem('chat-theme') || 'light';
     setThemeState(savedTheme);
-    document.documentElement.setAttribute('data-theme', savedTheme);
   }, []);
 
   // Auto-open sidebar when expanding to fullscreen
@@ -51,6 +50,16 @@ export function useChatWidget() {
       messageListRef.current.scrollTop = messageListRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // Sync theme state with DOM container (only ChatWidget, not whole page)
+  useEffect(() => {
+    // Apply theme only to the chat widget container, not the whole page
+    const container = document.querySelector('.chat-widget-container');
+    if (container) {
+      container.setAttribute('data-theme', theme);
+      console.log(`🎨 ChatWidget theme updated: ${theme}`);
+    }
+  }, [theme]);
 
   // Create new conversation
   const createConversation = useCallback(async () => {
@@ -268,8 +277,15 @@ export function useChatWidget() {
   const toggleTheme = useCallback(() => {
     setThemeState((prev) => {
       const newTheme = prev === 'light' ? 'dark' : 'light';
+      console.log(`🎨 Toggling theme: ${prev} → ${newTheme}`);
       localStorage.setItem('chat-theme', newTheme);
-      document.documentElement.setAttribute('data-theme', newTheme);
+      // Apply theme only to ChatWidget container, not entire page
+      const container = document.querySelector('.chat-widget-container');
+      if (container) {
+        container.setAttribute('data-theme', newTheme);
+        // Force style recalculation
+        void container.offsetHeight;
+      }
       return newTheme;
     });
   }, []);

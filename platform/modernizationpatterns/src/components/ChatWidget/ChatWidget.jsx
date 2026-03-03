@@ -45,7 +45,7 @@ export function ChatWidget() {
   }, [isOpen, isExpanded, setIsOpen, toggleExpand]);
 
   return (
-    <div className={`chat-widget-container theme-${theme}`}>
+    <div className={`chat-widget-container theme-${theme}`} data-theme={theme}>
       {isSidebarOpen && isOpen && (
         <Sidebar
           conversations={conversations}

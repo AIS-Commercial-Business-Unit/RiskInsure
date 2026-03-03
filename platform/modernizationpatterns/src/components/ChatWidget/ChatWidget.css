@@ -2,8 +2,11 @@
    ChatWidget Styles - Using CSS Variables
    ========================================= */
 
-/* Theme Variables */
-:root {
+/* Theme Variables - Scoped to ChatWidget only */
+.chat-widget-container {
+  display: flex;
+  height: 100%;
+  /* Default: Light theme */
   --accent: #0a5fb4;
   --accent-deep: #003d8f;
   --accent-soft: #e0f2fe;
@@ -14,9 +17,13 @@
   --ink-soft: #6b7280;
   --strategic-bg: #f0f9ff;
   --strategic-text: #1e40af;
+
+  background: var(--bg);
+  color: var(--ink);
 }
 
-[data-theme='dark'] {
+/* Dark theme - only affects ChatWidget */
+.chat-widget-container[data-theme='dark'] {
   --accent: #0ea5e9;
   --accent-deep: #0284c7;
   --accent-soft: #1e3a8a;
@@ -27,11 +34,6 @@
   --ink-soft: #d1d5db;
   --strategic-bg: #1e3a8a;
   --strategic-text: #93c5fd;
-}
-
-.chat-widget-container {
-  display: flex;
-  height: 100%;
 }
 
 .chat-widget-container.theme-light {

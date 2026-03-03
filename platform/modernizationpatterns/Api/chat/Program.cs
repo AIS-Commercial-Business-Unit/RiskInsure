@@ -1,11 +1,14 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.ApplicationInsights.Extensibility;
 using RiskInsure.Modernization.Chat.Services;
 using Serilog;
+using Serilog.Events;
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
     .WriteTo.Console()
-    .CreateLogger();
+    .CreateBootstrapLogger();
 
 try
 {
@@ -13,8 +16,33 @@ try
 
     var builder = WebApplication.CreateBuilder(args);
 
-    // Serilog
-    builder.Host.UseSerilog();
+    // Application Insights (when connection string is available in production)
+    var appInsightsConnectionString = builder.Configuration["ApplicationInsights:ConnectionString"];
+    if (!string.IsNullOrEmpty(appInsightsConnectionString))
+    {
+        builder.Services.AddApplicationInsightsTelemetry(options =>
+        {
+            options.ConnectionString = appInsightsConnectionString;
+        });
+    }
+
+    // Serilog with Application Insights sink
+    builder.Host.UseSerilog((context, services, configuration) =>
+    {
+        configuration
+            .MinimumLevel.Information()
+            .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+            .ReadFrom.Configuration(context.Configuration)
+            .Enrich.FromLogContext()
+            .WriteTo.Console();
+
+        // Write to Application Insights if configured
+        var telemetryConfig = services.GetService<TelemetryConfiguration>();
+        if (telemetryConfig != null)
+        {
+            configuration.WriteTo.ApplicationInsights(telemetryConfig, TelemetryConverter.Traces);
+        }
+    });
 
     // Controllers & OpenAPI
     builder.Services.AddControllers();
@@ -42,6 +70,30 @@ try
     app.UseSerilogRequestLogging();
     app.UseCors("AllowSWA");
     app.MapControllers();
+
+    // Health check endpoints for Container Apps probes
+    app.MapGet("/health", () => Results.Ok(new { status = "healthy", service = "chat-api" }));
+    app.MapGet("/health/ready", (IServiceProvider sp) =>
+    {
+        // Check if critical services are available
+        try
+        {
+            var openAi = sp.GetService<IOpenAiService>();
+            var search = sp.GetService<ISearchService>();
+
+            if (openAi == null || search == null)
+            {
+                return Results.Problem("Required services not available", statusCode: 503);
+            }
+
+            return Results.Ok(new { status = "ready", services = new[] { "openai", "search" } });
+        }
+        catch (Exception ex)
+        {
+            Log.Warning(ex, "Readiness check failed");
+            return Results.Problem("Service not ready", statusCode: 503);
+        }
+    });
 
     await app.RunAsync();
 }
