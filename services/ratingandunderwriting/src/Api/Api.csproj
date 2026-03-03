@@ -9,6 +9,12 @@
     <PackageReference Include="Scalar.AspNetCore" />
     <PackageReference Include="Serilog.AspNetCore" />
     <PackageReference Include="Serilog.Sinks.Console" />
+    <PackageReference Include="Serilog.Sinks.ApplicationInsights" />
+    <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" />
+    
+    <!-- OpenTelemetry (NServiceBus traces + metrics → Azure Monitor) -->
+    <PackageReference Include="Azure.Monitor.OpenTelemetry.AspNetCore" />
+    <PackageReference Include="Azure.Monitor.OpenTelemetry.Exporter" />
     <PackageReference Include="NServiceBus" />
     <PackageReference Include="NServiceBus.Transport.AzureServiceBus" />
     <PackageReference Include="NServiceBus.Extensions.Hosting" />

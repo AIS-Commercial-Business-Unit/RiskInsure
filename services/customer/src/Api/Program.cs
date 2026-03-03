@@ -5,17 +5,36 @@ using RiskInsure.Customer.Domain.Validation;
 using RiskInsure.Customer.Infrastructure;
 using Scalar.AspNetCore;
 using Serilog;
+using Serilog.Sinks.ApplicationInsights.TelemetryConverters;
+using Microsoft.ApplicationInsights.Extensibility;
+using Azure.Monitor.OpenTelemetry.Exporter;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure Serilog
+// Configure Serilog with Application Insights sink
 Log.Logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(builder.Configuration)
+    .WriteTo.Console()
+    .CreateBootstrapLogger();
+
+builder.Host.UseSerilog((context, services, configuration) => configuration
+    .ReadFrom.Configuration(context.Configuration)
     .Enrich.FromLogContext()
     .WriteTo.Console()
-    .CreateLogger();
+    .WriteTo.ApplicationInsights(
+        services.GetRequiredService<TelemetryConfiguration>(),
+        TelemetryConverter.Traces));
 
-builder.Host.UseSerilog();
+// Application Insights telemetry (auto-reads APPLICATIONINSIGHTS_CONNECTION_STRING env var)
+builder.Services.AddApplicationInsightsTelemetry();
+
+// OpenTelemetry: export NServiceBus traces and metrics to Azure Monitor
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracing => tracing
+        .AddSource("NServiceBus.Core")
+        .AddAzureMonitorTraceExporter())
+    .WithMetrics(metrics => metrics
+        .AddMeter("NServiceBus.Core")
+        .AddAzureMonitorMetricExporter());
 
 // NServiceBus configuration (send-only endpoint)
 builder.Host.NServiceBusEnvironmentConfiguration("RiskInsure.Customer.Api",

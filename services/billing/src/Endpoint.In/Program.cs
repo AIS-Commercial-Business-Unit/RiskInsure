@@ -6,17 +6,26 @@ using RiskInsure.Billing.Domain.Managers;
 using RiskInsure.Billing.Domain.Services.BillingDb;
 using Serilog;
 using RiskInsure.Billing.Infrastructure;
+using Serilog.Sinks.ApplicationInsights.TelemetryConverters;
+using Microsoft.ApplicationInsights.Extensibility;
+using Azure.Monitor.OpenTelemetry.Exporter;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
-    .CreateLogger();
+    .CreateBootstrapLogger();
 
 try
 {
     Log.Information("Starting Billing Endpoint.In");
 
     var host = Host.CreateDefaultBuilder(args)
-        .UseSerilog()
+        .UseSerilog((context, services, configuration) => configuration
+            .ReadFrom.Configuration(context.Configuration)
+            .Enrich.FromLogContext()
+            .WriteTo.Console()
+            .WriteTo.ApplicationInsights(
+                services.GetRequiredService<TelemetryConfiguration>(),
+                TelemetryConverter.Traces))
         .NServiceBusEnvironmentConfiguration("RiskInsure.Billing.Endpoint",
         (config, endpoint, routing) =>
         {
@@ -25,6 +34,18 @@ try
         })
         .ConfigureServices((context, services) =>
         {
+            // Application Insights telemetry (auto-reads APPLICATIONINSIGHTS_CONNECTION_STRING env var)
+            services.AddApplicationInsightsTelemetryWorkerService();
+
+            // OpenTelemetry: export NServiceBus traces and metrics to Azure Monitor
+            services.AddOpenTelemetry()
+                .WithTracing(tracing => tracing
+                    .AddSource("NServiceBus.Core")
+                    .AddAzureMonitorTraceExporter())
+                .WithMetrics(metrics => metrics
+                    .AddMeter("NServiceBus.Core")
+                    .AddAzureMonitorMetricExporter());
+
             // Register Cosmos DB container for billing data (not sagas - sagas configured in NServiceBus persistence)
             var cosmosConnectionString = context.Configuration.GetConnectionString("CosmosDb")
                 ?? throw new InvalidOperationException("CosmosDb connection string not configured");

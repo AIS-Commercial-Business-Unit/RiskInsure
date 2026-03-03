@@ -19,10 +19,12 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
-      - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${MESSAGING_CONNECTION_STRING}
+      - ConnectionStrings__ServiceBus=${MESSAGING_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__BillingContainerName=Billing
-      - Messaging__MessageBroker=RabbitMQ
+      - Messaging__MessageBroker=${MESSAGE_BROKER}
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
     networks:
       - riskinsure
     depends_on:
@@ -42,10 +44,12 @@ services:
     environment:
       - DOTNET_ENVIRONMENT=Development
       - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
-      - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${MESSAGING_CONNECTION_STRING}
+      - ConnectionStrings__ServiceBus=${MESSAGING_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__BillingContainerName=Billing
-      - Messaging__MessageBroker=RabbitMQ
+      - Messaging__MessageBroker=${MESSAGE_BROKER}
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
     depends_on:
       cosmos-emulator:
         condition: service_healthy
@@ -71,10 +75,12 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
-      - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${MESSAGING_CONNECTION_STRING}
+      - ConnectionStrings__ServiceBus=${MESSAGING_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=customer
-      - Messaging__MessageBroker=RabbitMQ
+      - Messaging__MessageBroker=${MESSAGE_BROKER}
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
     networks:
       - riskinsure
     depends_on:
@@ -94,10 +100,12 @@ services:
     environment:
       - DOTNET_ENVIRONMENT=Development
       - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
-      - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${MESSAGING_CONNECTION_STRING}
+      - ConnectionStrings__ServiceBus=${MESSAGING_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=customer
-      - Messaging__MessageBroker=RabbitMQ
+      - Messaging__MessageBroker=${MESSAGE_BROKER}
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
     depends_on:
       cosmos-emulator:
         condition: service_healthy
@@ -123,10 +131,12 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
-      - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${MESSAGING_CONNECTION_STRING}
+      - ConnectionStrings__ServiceBus=${MESSAGING_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=fundstransfermgt
-      - Messaging__MessageBroker=RabbitMQ
+      - Messaging__MessageBroker=${MESSAGE_BROKER}
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
     networks:
       - riskinsure
     depends_on:
@@ -146,10 +156,12 @@ services:
     environment:
       - DOTNET_ENVIRONMENT=Development
       - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
-      - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${MESSAGING_CONNECTION_STRING}
+      - ConnectionStrings__ServiceBus=${MESSAGING_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=fundstransfermgt
-      - Messaging__MessageBroker=RabbitMQ
+      - Messaging__MessageBroker=${MESSAGE_BROKER}
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
     depends_on:
       cosmos-emulator:
         condition: service_healthy
@@ -175,10 +187,12 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
-      - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${MESSAGING_CONNECTION_STRING}
+      - ConnectionStrings__ServiceBus=${MESSAGING_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=policy
-      - Messaging__MessageBroker=RabbitMQ
+      - Messaging__MessageBroker=${MESSAGE_BROKER}
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
     networks:
       - riskinsure
     depends_on:
@@ -198,10 +212,12 @@ services:
     environment:
       - DOTNET_ENVIRONMENT=Development
       - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
-      - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${MESSAGING_CONNECTION_STRING}
+      - ConnectionStrings__ServiceBus=${MESSAGING_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=policy
-      - Messaging__MessageBroker=RabbitMQ
+      - Messaging__MessageBroker=${MESSAGE_BROKER}
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
     depends_on:
       cosmos-emulator:
         condition: service_healthy
@@ -227,10 +243,12 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
-      - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${MESSAGING_CONNECTION_STRING}
+      - ConnectionStrings__ServiceBus=${MESSAGING_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=ratingunderwriting
-      - Messaging__MessageBroker=RabbitMQ
+      - Messaging__MessageBroker=${MESSAGE_BROKER}
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
     networks:
       - riskinsure
     depends_on:
@@ -250,10 +268,12 @@ services:
     environment:
       - DOTNET_ENVIRONMENT=Development
       - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
-      - ConnectionStrings__RabbitMQ=${RABBITMQ_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${MESSAGING_CONNECTION_STRING}
+      - ConnectionStrings__ServiceBus=${MESSAGING_CONNECTION_STRING}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=ratingunderwriting
-      - Messaging__MessageBroker=RabbitMQ
+      - Messaging__MessageBroker=${MESSAGE_BROKER}
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
     depends_on:
       cosmos-emulator:
         condition: service_healthy

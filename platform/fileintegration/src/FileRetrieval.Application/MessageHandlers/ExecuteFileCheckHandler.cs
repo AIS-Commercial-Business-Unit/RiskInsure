@@ -135,7 +135,7 @@ public class ExecuteFileCheckHandler : IHandleMessages<ExecuteFileCheck>
                 }
 
                 // Publish FileCheckCompleted event (T089)
-                await context.Publish(new   FileCheckCompleted
+                await context.Publish(new FileCheckCompleted
                 {
                     MessageId = Guid.NewGuid(),
                     CorrelationId = message.CorrelationId,

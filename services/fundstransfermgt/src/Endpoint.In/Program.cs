@@ -4,6 +4,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Serilog;
+using Serilog.Sinks.ApplicationInsights.TelemetryConverters;
+using Microsoft.ApplicationInsights.Extensibility;
+using Azure.Monitor.OpenTelemetry.Exporter;
 using RiskInsure.FundTransferMgt.Domain.Managers;
 using RiskInsure.FundTransferMgt.Domain.Repositories;
 using RiskInsure.FundTransferMgt.Domain.Services;
@@ -11,12 +14,18 @@ using RiskInsure.FundTransferMgt.Infrastructure;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
-    .CreateLogger();
+    .CreateBootstrapLogger();
 
 try
 {
     var host = Host.CreateDefaultBuilder(args)
-        .UseSerilog()
+        .UseSerilog((context, services, configuration) => configuration
+            .ReadFrom.Configuration(context.Configuration)
+            .Enrich.FromLogContext()
+            .WriteTo.Console()
+            .WriteTo.ApplicationInsights(
+                services.GetRequiredService<TelemetryConfiguration>(),
+                TelemetryConverter.Traces))
         .NServiceBusEnvironmentConfiguration("RiskInsure.FundTransferMgt.Endpoint",
         (config, endpoint, routing) =>
         {
@@ -25,6 +34,18 @@ try
         })
         .ConfigureServices((context, services) =>
         {
+            // Application Insights telemetry (auto-reads APPLICATIONINSIGHTS_CONNECTION_STRING env var)
+            services.AddApplicationInsightsTelemetryWorkerService();
+
+            // OpenTelemetry: export NServiceBus traces and metrics to Azure Monitor
+            services.AddOpenTelemetry()
+                .WithTracing(tracing => tracing
+                    .AddSource("NServiceBus.Core")
+                    .AddAzureMonitorTraceExporter())
+                .WithMetrics(metrics => metrics
+                    .AddMeter("NServiceBus.Core")
+                    .AddAzureMonitorMetricExporter());
+
             var cosmosConnectionString = context.Configuration.GetConnectionString("CosmosDb");
             if (string.IsNullOrEmpty(cosmosConnectionString))
             {

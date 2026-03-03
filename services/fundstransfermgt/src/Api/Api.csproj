@@ -20,6 +20,14 @@
     <!-- Logging -->
     <PackageReference Include="Serilog.AspNetCore" />
     <PackageReference Include="Serilog.Sinks.Console" />
+    <PackageReference Include="Serilog.Sinks.ApplicationInsights" />
+    
+    <!-- Application Insights -->
+    <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" />
+    
+    <!-- OpenTelemetry (NServiceBus traces + metrics → Azure Monitor) -->
+    <PackageReference Include="Azure.Monitor.OpenTelemetry.AspNetCore" />
+    <PackageReference Include="Azure.Monitor.OpenTelemetry.Exporter" />
     
     <!-- Project references -->
     <ProjectReference Include="..\Domain\Domain.csproj" />

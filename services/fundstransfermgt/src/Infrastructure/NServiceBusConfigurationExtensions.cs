@@ -124,6 +124,9 @@ public static class NServiceBusConfigurationExtensions
     private static EndpointConfiguration ApplySharedEndpointConfiguration(
         this EndpointConfiguration endpointConfiguration)
     {
+        // Enable OpenTelemetry instrumentation for NServiceBus traces and metrics
+        endpointConfiguration.EnableOpenTelemetry();
+
         // Serialization
         endpointConfiguration.UseSerialization<SystemJsonSerializer>();
 
@@ -178,8 +181,6 @@ public static class NServiceBusConfigurationExtensions
             throw new InvalidOperationException(
                 "CosmosDb endpoint missing. Add ConnectionStrings:CosmosDb to configuration");
         }
-
-        Console.WriteLine($"[NServiceBus]: using Cosmos DB connection string: {cosmosConnectionString}");
 
         var persistence = endpointConfiguration.UsePersistence<CosmosPersistence>();
         persistence.CosmosClient(new CosmosClient(cosmosConnectionString));

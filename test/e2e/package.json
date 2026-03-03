@@ -18,6 +18,7 @@
   "author": "RiskInsure Team",
   "license": "UNLICENSED",
   "devDependencies": {
+    "@azure/storage-blob": "^12.27.0",
     "@playwright/test": "^1.41.0",
     "@types/node": "^20.11.0",
     "dotenv": "^17.3.1"

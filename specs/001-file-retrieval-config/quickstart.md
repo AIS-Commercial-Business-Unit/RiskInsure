@@ -708,7 +708,7 @@ info: FileCheckService[0]
 **Setup Test File**:
 ```bash
 # Start HTTPS test server
-docker-compose up -d https-server
+docker-compose up -d file-retrieval-https
 
 # Place test file
 echo "test,data" > test-data/transactions/2025/01/test_20250124.csv

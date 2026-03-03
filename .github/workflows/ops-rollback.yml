@@ -1,0 +1,338 @@
+name: 'OPS: Rollback Service'
+
+# ============================================================================
+# Purpose: Emergency rollback to previous working container image
+# Triggers: Manual only (workflow_dispatch)
+# Duration: ~5 minutes
+# Use Case: Critical production issues requiring immediate rollback
+# ============================================================================
+
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Service to rollback'
+        type: choice
+        required: true
+        options:
+          - billing
+          - customer
+          - fundstransfermgt
+          - policy
+          - ratingandunderwriting
+      environment:
+        description: 'Environment to rollback'
+        type: choice
+        required: true
+        default: 'dev'
+        options:
+          - dev
+          - staging
+          - prod
+      commit_sha:
+        description: 'Commit SHA to rollback to (leave empty for previous deployment)'
+        type: string
+        required: false
+      confirm:
+        description: 'Type "ROLLBACK" to confirm'
+        type: string
+        required: true
+
+env:
+  TERRAFORM_VERSION: '1.11.4'
+  REGISTRY: 'riskinsureacr.azurecr.io'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  # ==========================================================================
+  # Validate Rollback Request
+  # ==========================================================================
+  validate:
+    name: 'Validate Rollback'
+    runs-on: ubuntu-latest
+    
+    outputs:
+      approved: ${{ steps.validate.outputs.approved }}
+      target_image: ${{ steps.validate.outputs.target_image }}
+      current_image: ${{ steps.validate.outputs.current_image }}
+    
+    steps:
+      - name: Validate Confirmation
+        id: validate
+        shell: bash
+        run: |
+          if [[ "${{ github.event.inputs.confirm }}" != "ROLLBACK" ]]; then
+            echo "❌ Rollback not confirmed. Please type 'ROLLBACK' to proceed."
+            exit 1
+          fi
+          
+          if [[ "${{ github.event.inputs.environment }}" == "prod" ]]; then
+            echo "⚠️ WARNING: Production rollback requested!"
+            echo "⚠️ Service: ${{ github.event.inputs.service }}"
+            echo "⚠️ Requester: @${{ github.actor }}"
+          fi
+          
+          echo "approved=true" >> "$GITHUB_OUTPUT"
+      
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
+      - name: Get Current and Target Images
+        id: images
+        shell: bash
+        run: |
+          SERVICE="${{ github.event.inputs.service }}"
+          ENV="${{ github.event.inputs.environment }}"
+          RG="CAIS-010-RiskInsure"
+          APP_NAME="riskinsure-$SERVICE-app"
+          
+          # Get current image
+          CURRENT_IMAGE=$(az containerapp show \
+            --resource-group "$RG" \
+            --name "$APP_NAME" \
+            --query "properties.template.containers[0].image" \
+            -o tsv)
+          
+          echo "📦 Current Image: $CURRENT_IMAGE"
+          echo "current_image=$CURRENT_IMAGE" >> "$GITHUB_OUTPUT"
+          
+          # Determine target image
+          if [[ -n "${{ github.event.inputs.commit_sha }}" ]]; then
+            TARGET_IMAGE="${{ env.REGISTRY }}/$SERVICE:${{ github.event.inputs.commit_sha }}"
+          else
+            # Get previous commit SHA from Azure (stored in revision labels)
+            PREVIOUS_SHA=$(az containerapp revision list \
+              --resource-group "$RG" \
+              --name "$APP_NAME" \
+              --query "[1].properties.template.revisionSuffix" \
+              -o tsv | grep -oE '[a-f0-9]{7,40}')
+            
+            if [[ -z "$PREVIOUS_SHA" ]]; then
+              echo "❌ No previous revision found. Please specify commit_sha manually."
+              exit 1
+            fi
+            
+            TARGET_IMAGE="${{ env.REGISTRY }}/$SERVICE:$PREVIOUS_SHA"
+          fi
+          
+          echo "🎯 Target Image: $TARGET_IMAGE"
+          echo "target_image=$TARGET_IMAGE" >> "$GITHUB_OUTPUT"
+          
+          # Verify target image exists in ACR
+          ACR_NAME=$(echo "${{ env.REGISTRY }}" | cut -d'.' -f1)
+          IMAGE_TAG=$(echo "$TARGET_IMAGE" | cut -d':' -f2)
+          
+          if ! az acr repository show-tags \
+            --name "$ACR_NAME" \
+            --repository "$SERVICE" \
+            --query "[?@=='$IMAGE_TAG']" \
+            -o tsv | grep -q "$IMAGE_TAG"; then
+            echo "❌ Target image $TARGET_IMAGE not found in ACR"
+            exit 1
+          fi
+          
+          echo "✅ Target image verified in ACR"
+
+  # ==========================================================================
+  # Execute Rollback
+  # ==========================================================================
+  rollback:
+    name: 'Rollback ${{ github.event.inputs.service }}'
+    needs: validate
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    
+    permissions:
+      id-token: write
+      contents: read
+    
+    defaults:
+      run:
+        shell: bash
+        working-directory: platform/infra/services
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+      
+      - name: Terraform Init
+        run: terraform init -input=false
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
+      - name: Execute Rollback
+        run: |
+          SERVICE="${{ github.event.inputs.service }}"
+          TARGET_IMAGE="${{ needs.validate.outputs.target_image }}"
+          ENV="${{ github.event.inputs.environment }}"
+          
+          echo "🔄 Rolling back $SERVICE to $TARGET_IMAGE..."
+          
+          terraform apply \
+            -target="azurerm_container_app.$SERVICE" \
+            -var="environment=$ENV" \
+            -var="${SERVICE}_image=$TARGET_IMAGE" \
+            -auto-approve \
+            -input=false
+          
+          echo "✅ Rollback applied"
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
+      - name: Verify Rollback
+        shell: bash
+        run: |
+          SERVICE="${{ github.event.inputs.service }}"
+          ENV="${{ github.event.inputs.environment }}"
+          RG="CAIS-010-RiskInsure"
+          APP_NAME="riskinsure-$SERVICE-app"
+          TARGET_IMAGE="${{ needs.validate.outputs.target_image }}"
+          
+          echo "⏳ Waiting 30 seconds for container to start..."
+          sleep 30
+          
+          # Check new image
+          NEW_IMAGE=$(az containerapp show \
+            --resource-group "$RG" \
+            --name "$APP_NAME" \
+            --query "properties.template.containers[0].image" \
+            -o tsv)
+          
+          if [[ "$NEW_IMAGE" != "$TARGET_IMAGE" ]]; then
+            echo "❌ Rollback verification failed"
+            echo "Expected: $TARGET_IMAGE"
+            echo "Got: $NEW_IMAGE"
+            exit 1
+          fi
+          
+          # Check running status
+          STATUS=$(az containerapp show \
+            --resource-group "$RG" \
+            --name "$APP_NAME" \
+            --query "properties.runningStatus" \
+            -o tsv)
+          
+          if [[ "$STATUS" != "Running" ]]; then
+            echo "⚠️ Container status: $STATUS"
+            echo "Please check logs for errors"
+            exit 1
+          fi
+          
+          echo "✅ Rollback verified successfully"
+          echo "🎉 Service is running with image: $NEW_IMAGE"
+
+  # ==========================================================================
+  # Health Check
+  # ==========================================================================
+  health-check:
+    name: 'Health Check'
+    needs: rollback
+    runs-on: ubuntu-latest
+    
+    permissions:
+      id-token: write
+      contents: read
+    
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
+      - name: Get Service URL
+        id: url
+        shell: bash
+        run: |
+          SERVICE="${{ github.event.inputs.service }}"
+          RG="CAIS-010-RiskInsure"
+          
+          FQDN=$(az containerapp show --resource-group "$RG" --name "riskinsure-$SERVICE-app" --query "properties.configuration.ingress.fqdn" -o tsv)
+          echo "service_url=https://$FQDN" >> "$GITHUB_OUTPUT"
+      
+      - name: Test Health Endpoint
+        shell: bash
+        run: |
+          SERVICE_URL="${{ steps.url.outputs.service_url }}"
+          
+          echo "🏥 Checking health endpoint: $SERVICE_URL/health"
+          
+          MAX_RETRIES=5
+          RETRY_COUNT=0
+          
+          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$SERVICE_URL/health" || echo "000")
+            
+            if [[ "$HTTP_CODE" == "200" ]]; then
+              echo "✅ Health check passed (HTTP $HTTP_CODE)"
+              exit 0
+            fi
+            
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            echo "⏳ Retry $RETRY_COUNT/$MAX_RETRIES (HTTP $HTTP_CODE)"
+            sleep 10
+          done
+          
+          echo "⚠️ Health check did not pass after $MAX_RETRIES attempts"
+          echo "This may be normal if the service doesn't have a /health endpoint"
+          exit 0
+
+  # ==========================================================================
+  # Summary
+  # ==========================================================================
+  summary:
+    name: 'Rollback Summary'
+    needs: [validate, rollback, health-check]
+    if: always()
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Generate Summary
+        shell: bash
+        run: |
+          echo "# 🔄 Rollback Executed" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Service:** \`${{ github.event.inputs.service }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Environment:** \`${{ github.event.inputs.environment }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Executed by:** @${{ github.actor }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Time:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "## 📦 Image Details" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Previous Image:** \`${{ needs.validate.outputs.current_image }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Rolled Back To:** \`${{ needs.validate.outputs.target_image }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "## 📋 Execution Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Step | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|------|--------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Validation | ${{ needs.validate.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Rollback | ${{ needs.rollback.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Health Check | ${{ needs.health-check.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          
+          if [[ "${{ needs.rollback.result }}" == "success" ]]; then
+            echo "✅ Rollback completed successfully" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "❌ Rollback failed. Please investigate and consider manual intervention." >> "$GITHUB_STEP_SUMMARY"
+          fi

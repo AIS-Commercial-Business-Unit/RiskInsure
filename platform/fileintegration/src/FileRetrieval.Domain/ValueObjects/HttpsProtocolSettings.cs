@@ -1,4 +1,5 @@
 using RiskInsure.FileRetrieval.Domain.Enums;
+using System.Text.Json.Serialization;
 
 namespace RiskInsure.FileRetrieval.Domain.ValueObjects;
 
@@ -15,12 +16,13 @@ public sealed class HttpsProtocolSettings : ProtocolSettings
     public bool FollowRedirects { get; init; }
     public int MaxRedirects { get; init; }
 
+    [JsonConstructor]
     public HttpsProtocolSettings(
         string baseUrl,
         AuthType authenticationType,
         string? usernameOrApiKey = null,
         string? passwordOrTokenKeyVaultSecret = null,
-        TimeSpan? connectionTimeout = null,
+        TimeSpan connectionTimeout = default,
         bool followRedirects = true,
         int maxRedirects = 3)
         : base(ProtocolType.HTTPS)
@@ -42,7 +44,7 @@ public sealed class HttpsProtocolSettings : ProtocolSettings
         AuthenticationType = authenticationType;
         UsernameOrApiKey = usernameOrApiKey;
         PasswordOrTokenKeyVaultSecret = passwordOrTokenKeyVaultSecret;
-        ConnectionTimeout = connectionTimeout ?? TimeSpan.FromSeconds(30);
+        ConnectionTimeout = connectionTimeout == default ? TimeSpan.FromSeconds(30) : connectionTimeout;
         FollowRedirects = followRedirects;
         MaxRedirects = maxRedirects;
 

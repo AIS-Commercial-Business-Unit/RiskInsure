@@ -1,0 +1,142 @@
+name: 'PR: Terraform Validate'
+
+# ============================================================================
+# Purpose: Validate Terraform changes on Pull Requests
+# Triggers: PR to main/Dev with infrastructure changes
+# Duration: ~3 minutes
+# Blocks Merge: Yes (required check)
+# ============================================================================
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'platform/infra/**'
+      - '.github/workflows/pr-terraform-validate.yml'
+
+env:
+  TERRAFORM_VERSION: '1.11.4'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  terraform-validate:
+    name: 'Validate: ${{ matrix.layer }}'
+    runs-on: ubuntu-latest
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        layer:
+          - foundation
+          - shared-services
+    
+    defaults:
+      run:
+        shell: bash
+        working-directory: platform/infra/${{ matrix.layer }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+      
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
+      - name: Terraform Format Check
+        id: fmt
+        run: terraform fmt -check -recursive
+        continue-on-error: true
+      
+      - name: Terraform Init
+        id: init
+        run: terraform init -input=false
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate -no-color
+      
+      - name: Terraform Plan
+        id: plan
+        run: |
+          terraform plan \
+            -var="environment=dev" \
+            -input=false \
+            -no-color \
+            -out=tfplan
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        continue-on-error: true
+      
+      - name: Show Plan
+        id: show
+        run: terraform show -no-color tfplan > plan.txt
+        continue-on-error: true
+      
+      - name: Post Plan to PR
+        uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
+        with:
+          script: |
+            const fs = require('fs');
+            const layer = '${{ matrix.layer }}';
+            
+            let planOutput = 'Plan not available';
+            try {
+              planOutput = fs.readFileSync('platform/infra/' + layer + '/plan.txt', 'utf8');
+              // Truncate if too long
+              if (planOutput.length > 60000) {
+                planOutput = planOutput.substring(0, 60000) + '\n\n... (truncated)';
+              }
+            } catch (error) {
+              planOutput = 'Error reading plan: ' + error.message;
+            }
+            
+            const output = `## Terraform Plan: \`${layer}\`
+            
+            #### Format Check 🖌️\`${{ steps.fmt.outcome }}\`
+            #### Initialization ⚙️\`${{ steps.init.outcome }}\`
+            #### Validation 🤖\`${{ steps.validate.outcome }}\`
+            #### Plan 📖\`${{ steps.plan.outcome }}\`
+            
+            <details><summary>Show Plan</summary>
+            
+            \`\`\`terraform
+            ${planOutput}
+            \`\`\`
+            
+            </details>
+            
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Workflow: \`${{ github.workflow }}\`*`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            });
+      
+      - name: Fail if Plan Failed
+        if: steps.plan.outcome == 'failure'
+        run: exit 1
