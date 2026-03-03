@@ -79,7 +79,7 @@ jobs:
             echo "ready=false" >> "$GITHUB_OUTPUT"
             exit 1
           fi
-          echo "servicebus_namespace=$SB_NAMESPACE" >> "$GITHUB_OUTPUT"
+          echo "servicebus_namespace=$SB_NAMESPACE"
           
           # Check endpoint queues only
           REQUIRED_QUEUES=(
@@ -106,26 +106,31 @@ jobs:
             echo "ready=false" >> "$GITHUB_OUTPUT"
             exit 1
           fi
-          echo "cosmosdb_account=$COSMOS_ACCOUNT" >> "$GITHUB_OUTPUT"
+          echo "cosmosdb_account=$COSMOS_ACCOUNT"
           
           # Check Container Apps are running
           SERVICES=("billing" "customer" "fundstransfermgt" "policy" "ratingandunderwriting")
           for service in "${SERVICES[@]}"; do
-            API_STATUS=$(az containerapp show --resource-group "$RG" --name "riskinsure-$service-api" --query "properties.runningStatus" -o tsv 2>/dev/null || echo "NotFound")
-            ENDPOINT_STATUS=$(az containerapp show --resource-group "$RG" --name "riskinsure-$service-endpoint" --query "properties.runningStatus" -o tsv 2>/dev/null || echo "NotFound")
+            API_NAME="$service-api"
+            ENDPOINT_NAME="$service-endpoint"
+            
+            API_STATUS=$(az containerapp show --resource-group "$RG" --name "$API_NAME" --query "properties.runningStatus" -o tsv 2>/dev/null || echo "NotFound")
+            ENDPOINT_STATUS=$(az containerapp show --resource-group "$RG" --name "$ENDPOINT_NAME" --query "properties.runningStatus" -o tsv 2>/dev/null || echo "NotFound")
             
             if [[ "$API_STATUS" != "Running" ]]; then
-              echo "⚠️ Container app $service-api status: $API_STATUS"
+              echo "❌ Container app $API_NAME status: $API_STATUS"
               echo "ready=false" >> "$GITHUB_OUTPUT"
               exit 1
             fi
+            
             if [[ "$ENDPOINT_STATUS" != "Running" ]]; then
-              echo "⚠️ Container app $service-endpoint status: $ENDPOINT_STATUS"
+              echo "❌ Container app $ENDPOINT_NAME status: $ENDPOINT_STATUS"
               echo "ready=false" >> "$GITHUB_OUTPUT"
               exit 1
             fi
-            echo "✅ Container App API: $service ($API_STATUS)"
-            echo "✅ Container App Endpoint: $service ($ENDPOINT_STATUS)"
+            
+            echo "✅ Container App API: $API_NAME ($API_STATUS)"
+            echo "✅ Container App Endpoint: $ENDPOINT_NAME ($ENDPOINT_STATUS)"
           done
           
           echo ""
@@ -138,6 +143,7 @@ jobs:
   determine-services:
     name: 'Determine Test Scope'
     needs: verify-infrastructure
+    if: ${{ needs.verify-infrastructure.outputs.ready == 'true' }}
     runs-on: ubuntu-latest
     outputs:
       services: ${{ steps.determine.outputs.services }}
@@ -214,7 +220,7 @@ jobs:
           SERVICE="${{ matrix.service }}"
           RG="CAIS-010-RiskInsure"
           
-          FQDN=$(az containerapp show --resource-group "$RG" --name "riskinsure-$SERVICE-api" --query "properties.configuration.ingress.fqdn" -o tsv)
+          FQDN=$(az containerapp show --resource-group "$RG" --name "$SERVICE-api" --query "properties.configuration.ingress.fqdn" -o tsv)
           SERVICE_URL="https://$FQDN"
           
           echo "service_url=$SERVICE_URL" >> "$GITHUB_OUTPUT"

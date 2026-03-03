@@ -59,35 +59,46 @@ jobs:
         id: determine
         shell: bash
         run: |
+          ALL_SERVICES='["billing","customer","fundstransfermgt","policy","ratingandunderwriting"]'
+          
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             if [[ "${{ github.event.inputs.services }}" == "all" ]]; then
-              echo "services=[\"billing\",\"customer\",\"fundstransfermgt\",\"policy\",\"ratingandunderwriting\"]" >> "$GITHUB_OUTPUT"
+              echo "services=$ALL_SERVICES" >> "$GITHUB_OUTPUT"
               echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
             else
               services_input="${{ github.event.inputs.services }}"
-              services_json=$(echo "$services_input" | jq -R -s -c 'split(",") | map(gsub("^\\s+|\\s+$";""))')
+              services_json=$(echo "$services_input" | jq -R -s -c 'split(",") | map(gsub("^\\s+|\\s+$";"")) | map(select(length > 0))')
               echo "services=$services_json" >> "$GITHUB_OUTPUT"
               echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
             fi
+            exit 0
+          fi
+          
+          # Check if workflow file changed - build all services
+          if git diff --name-only HEAD~1 HEAD | grep -q '^\.github/workflows/ci-build-services\.yml$'; then
+            echo "Workflow file changed - building all services"
+            echo "services=$ALL_SERVICES" >> "$GITHUB_OUTPUT"
+            echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          
+          # Detect changed services from git diff
+          changed_services=()
+          
+          for service in billing customer fundstransfermgt policy ratingandunderwriting; do
+            if git diff --name-only HEAD~1 HEAD | grep -q "^services/$service/"; then
+              changed_services+=("\"$service\"")
+            fi
+          done
+          
+          if [ ${#changed_services[@]} -eq 0 ]; then
+            echo "No service changes detected"
+            echo "services=[]" >> "$GITHUB_OUTPUT"
+            echo "matrix_empty=true" >> "$GITHUB_OUTPUT"
           else
-            # Detect changed services from git diff
-            changed_services=()
-            
-            for service in billing customer fundstransfermgt policy ratingandunderwriting; do
-              if git diff --name-only HEAD~1 HEAD | grep -q "^services/$service/"; then
-                changed_services+=("\"$service\"")
-              fi
-            done
-            
-            if [ ${#changed_services[@]} -eq 0 ]; then
-              echo "No service changes detected"
-              echo "services=[]" >> "$GITHUB_OUTPUT"
-              echo "matrix_empty=true" >> "$GITHUB_OUTPUT"
-            else
-              services_json="[$(IFS=,; echo "${changed_services[*]}")]"
-              echo "services=$services_json" >> "$GITHUB_OUTPUT"
-              echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
-            fi
+            services_json="[$(IFS=,; echo "${changed_services[*]}")]"
+            echo "services=$services_json" >> "$GITHUB_OUTPUT"
+            echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
           fi
       
       - name: Summary
