@@ -270,7 +270,7 @@ jobs:
               PROJECT_PREFIX="RiskInsure.Policy"
               IMAGE_NAME="policy"
               ;;
-            ratingunderwriting)
+            ratingandunderwriting)
               SERVICE_DIR="services/ratingandunderwriting"
               PROJECT_PREFIX="RiskInsure.RatingAndUnderwriting"
               IMAGE_NAME="ratingandunderwriting"
@@ -324,7 +324,11 @@ jobs:
           
           echo "🔨 Building Endpoint.In image: $ENDPOINT_IMAGE"
           echo "   Dockerfile: $SERVICE_DIR/src/Endpoint.In/Dockerfile"
-          --build-arg SERVICE_NAME=$SERVICE \
+          
+          docker build \
+            -t "$ENDPOINT_IMAGE" \
+            -f "$SERVICE_DIR/src/Endpoint.In/Dockerfile" \
+            --build-arg SERVICE_NAME=$SERVICE \
             .
           
           docker push "$ENDPOINT_IMAGE"
@@ -387,7 +391,7 @@ jobs:
           for service in $(echo "$SERVICES" | jq -r '.[]'); do
             # Map service names to Terraform resource names
             case "$service" in
-              ratingunderwriting)
+              ratingandunderwriting)
                 tf_service_name="ratingandunderwriting"
                 ;;
               *)
@@ -461,7 +465,7 @@ jobs:
           RG="${{ needs.verify-infrastructure.outputs.resource_group }}"
           
           case "$SERVICE" in
-            ratingunderwriting)
+            ratingandunderwriting)
               API_APP_NAME="ratingandunderwriting-api"
               ENDPOINT_APP_NAME="ratingandunderwriting-endpoint"
               ;;

@@ -154,7 +154,7 @@ jobs:
           
           # Map service names to directory structure and image names (match build-and-deploy.yml)
           case "$SERVICE" in
-            ratingunderwriting)
+            ratingandunderwriting)
               SERVICE_DIR="services/ratingandunderwriting"
               IMAGE_NAME="ratingandunderwriting"
               ;;
@@ -379,7 +379,7 @@ jobs:
           
           # Map service names (match build job)
           case "$SERVICE" in
-            ratingunderwriting)
+            ratingandunderwriting)
               IMAGE_NAME="ratingandunderwriting"
               ;;
             fundstransfermgt)

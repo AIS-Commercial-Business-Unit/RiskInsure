@@ -47,7 +47,6 @@ jobs:
   verify-infrastructure:
     name: 'Verify Infrastructure Ready'
     runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.environment || 'dev' }}
     
     permissions:
       id-token: write
@@ -164,7 +163,6 @@ jobs:
     name: 'Integration: ${{ matrix.service }}'
     needs: [verify-infrastructure, determine-services]
     runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.environment || 'dev' }}
     
     permissions:
       id-token: write
