@@ -1,5 +1,6 @@
 namespace RiskInsure.Modernization.Chat.Controllers;
 
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using RiskInsure.Modernization.Chat.Models;
 using RiskInsure.Modernization.Chat.Services;
@@ -13,17 +14,21 @@ public class ChatController : ControllerBase
     private readonly ISearchService _searchService;
     private readonly IConversationService _conversationService;
     private readonly ILogger<ChatController> _logger;
+    private readonly IWebHostEnvironment _webHostEnvironment;
+    private string? _systemPromptTemplate;
 
     public ChatController(
         IOpenAiService openAiService,
         ISearchService searchService,
         IConversationService conversationService,
-        ILogger<ChatController> logger)
+        ILogger<ChatController> logger,
+        IWebHostEnvironment webHostEnvironment)
     {
         _openAiService = openAiService;
         _searchService = searchService;
         _conversationService = conversationService;
         _logger = logger;
+        _webHostEnvironment = webHostEnvironment;
     }
 
     /// <summary>Stream chat response using RAG (Retrieval-Augmented Generation)</summary>
@@ -302,25 +307,45 @@ public class ChatController : ControllerBase
 
     private string BuildSystemPrompt(List<SearchResultItem> patterns)
     {
-        var sb = new StringBuilder();
-        sb.Append("You are a concise assistant helping users understand RiskInsure patterns.\n\n");
-
-        if (patterns.Count > 0)
+        // Load prompt template from file (cache after first load)
+        if (_systemPromptTemplate == null)
         {
-            sb.Append("REFERENCE MATERIAL (stay faithful to this content, don't paraphrase):\n\n");
-            foreach (var pattern in patterns.Take(3))
+            try
             {
-                sb.Append($"{pattern.Title}:\n{pattern.Content}\n\n");
+                var promptPath = Path.Combine(
+                    _webHostEnvironment.ContentRootPath,
+                    "src", "prompts", "system-prompt.txt");
+
+                if (System.IO.File.Exists(promptPath))
+                {
+                    _systemPromptTemplate = System.IO.File.ReadAllText(promptPath);
+                    _logger.LogDebug("Loaded system prompt template from {PromptPath}", promptPath);
+                }
+                else
+                {
+                    _logger.LogWarning("Prompt file not found at {PromptPath}, using fallback", promptPath);
+                    _systemPromptTemplate = "You are a concise assistant helping users understand RiskInsure patterns.\n\n{REFERENCE_MATERIAL}\n\nProvide direct, practical answers.";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading prompt template, using fallback");
+                _systemPromptTemplate = "You are a concise assistant helping users understand RiskInsure patterns.\n\n{REFERENCE_MATERIAL}\n\nProvide direct, practical answers.";
             }
         }
 
-        sb.Append("INSTRUCTIONS:\n");
-        sb.Append("1. Answer using information directly from the reference material above\n");
-        sb.Append("2. Keep answer to 2-3 sentences max\n");
-        sb.Append("3. Quote or closely follow the source content - do NOT paraphrase\n");
-        sb.Append("4. Be direct and practical\n");
+        // Build reference material section
+        var referenceMaterialSb = new StringBuilder();
+        if (patterns.Count > 0)
+        {
+            foreach (var pattern in patterns.Take(3))
+            {
+                referenceMaterialSb.Append($"{pattern.Title}:\n{pattern.Content}\n\n");
+            }
+        }
 
-        return sb.ToString();
+        // Replace placeholder with actual reference material
+        return _systemPromptTemplate.Replace("{REFERENCE_MATERIAL}", referenceMaterialSb.ToString().TrimEnd());
     }
 
     private static IEnumerable<string> ChunkedString(string text, int chunkSize)
