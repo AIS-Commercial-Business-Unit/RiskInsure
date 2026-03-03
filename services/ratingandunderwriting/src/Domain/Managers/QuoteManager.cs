@@ -7,9 +7,13 @@ using NServiceBus;
 using Repositories;
 using RiskInsure.PublicContracts.Events;
 using Services;
+using System.Diagnostics;
 
 public class QuoteManager : IQuoteManager
 {
+    private static readonly ActivitySource ActivitySource = new("RiskInsure.RatingAndUnderwriting.Publishing");
+    private static readonly TimeSpan SlowPublishThreshold = TimeSpan.FromSeconds(2);
+
     private readonly IQuoteRepository _repository;
     private readonly IUnderwritingEngine _underwritingEngine;
     private readonly IRatingEngine _ratingEngine;
@@ -56,7 +60,7 @@ public class QuoteManager : IQuoteManager
 
         var created = await _repository.CreateAsync(quote);
 
-        await _messageSession.Publish(new QuoteStarted(
+        var quoteStarted = new QuoteStarted(
             MessageId: Guid.NewGuid(),
             OccurredUtc: DateTimeOffset.UtcNow,
             QuoteId: created.QuoteId,
@@ -68,7 +72,12 @@ public class QuoteManager : IQuoteManager
             TermMonths: created.TermMonths,
             EffectiveDate: created.EffectiveDate,
             IdempotencyKey: $"QuoteStarted-{created.QuoteId}"
-        ));
+        );
+
+        await PublishWithDiagnosticsAsync(
+            quoteStarted,
+            quoteStarted.QuoteId,
+            quoteStarted.IdempotencyKey);
 
         _logger.LogInformation(
             "Quote {QuoteId} started for customer {CustomerId}",
@@ -102,7 +111,7 @@ public class QuoteManager : IQuoteManager
         quote.ZipCode = zipCode;
 
         // Publish underwriting submitted event
-        await _messageSession.Publish(new UnderwritingSubmitted(
+        var underwritingSubmitted = new UnderwritingSubmitted(
             MessageId: Guid.NewGuid(),
             OccurredUtc: DateTimeOffset.UtcNow,
             QuoteId: quote.QuoteId,
@@ -112,7 +121,12 @@ public class QuoteManager : IQuoteManager
             UnderwritingClass: result.UnderwritingClass,
             DeclineReason: result.DeclineReason,
             IdempotencyKey: $"UnderwritingSubmitted-{quote.QuoteId}"
-        ));
+        );
+
+        await PublishWithDiagnosticsAsync(
+            underwritingSubmitted,
+            underwritingSubmitted.QuoteId,
+            underwritingSubmitted.IdempotencyKey);
 
         if (!result.IsApproved)
         {
@@ -120,13 +134,18 @@ public class QuoteManager : IQuoteManager
             quote.DeclineReason = result.DeclineReason;
             await _repository.UpdateAsync(quote);
 
-            await _messageSession.Publish(new QuoteDeclined(
+            var quoteDeclined = new QuoteDeclined(
                 MessageId: Guid.NewGuid(),
                 OccurredUtc: DateTimeOffset.UtcNow,
                 QuoteId: quote.QuoteId,
                 DeclineReason: result.DeclineReason!,
                 IdempotencyKey: $"QuoteDeclined-{quote.QuoteId}"
-            ));
+            );
+
+            await PublishWithDiagnosticsAsync(
+                quoteDeclined,
+                quoteDeclined.QuoteId,
+                quoteDeclined.IdempotencyKey);
 
             _logger.LogWarning(
                 "Quote {QuoteId} declined: {DeclineReason}",
@@ -149,7 +168,7 @@ public class QuoteManager : IQuoteManager
 
         var updated = await _repository.UpdateAsync(quote);
 
-        await _messageSession.Publish(new QuoteCalculated(
+        var quoteCalculated = new QuoteCalculated(
             MessageId: Guid.NewGuid(),
             OccurredUtc: DateTimeOffset.UtcNow,
             QuoteId: updated.QuoteId,
@@ -160,7 +179,12 @@ public class QuoteManager : IQuoteManager
             AgeFactor: updated.AgeFactor!.Value,
             TerritoryFactor: updated.TerritoryFactor!.Value,
             IdempotencyKey: $"QuoteCalculated-{updated.QuoteId}"
-        ));
+        );
+
+        await PublishWithDiagnosticsAsync(
+            quoteCalculated,
+            quoteCalculated.QuoteId,
+            quoteCalculated.IdempotencyKey);
 
         _logger.LogInformation(
             "Quote {QuoteId} approved with class {Class} and premium {Premium}",
@@ -202,7 +226,7 @@ public class QuoteManager : IQuoteManager
             updated.QuoteId, updated.CustomerId);
 
         // Publish QuoteAccepted event (triggers policy creation in Policy domain)
-        await _messageSession.Publish(new QuoteAccepted(
+        var quoteAccepted = new QuoteAccepted(
             MessageId: Guid.NewGuid(),
             OccurredUtc: DateTimeOffset.UtcNow,
             QuoteId: updated.QuoteId,
@@ -215,7 +239,12 @@ public class QuoteManager : IQuoteManager
             EffectiveDate: updated.EffectiveDate,
             Premium: updated.Premium!.Value, // Guaranteed non-null by validation above
             IdempotencyKey: $"QuoteAccepted-{updated.QuoteId}"
-        ));
+        );
+
+        await PublishWithDiagnosticsAsync(
+            quoteAccepted,
+            quoteAccepted.QuoteId,
+            quoteAccepted.IdempotencyKey);
 
         _logger.LogInformation(
             "QuoteAccepted event published for Quote {QuoteId}",
@@ -261,5 +290,71 @@ public class QuoteManager : IQuoteManager
         _logger.LogInformation(
             "Expired {Count} quotes",
             expirableQuotes.Count);
+    }
+
+    private async Task PublishWithDiagnosticsAsync<TEvent>(
+        TEvent @event,
+        string quoteId,
+        string idempotencyKey)
+        where TEvent : class
+    {
+        var eventName = typeof(TEvent).Name;
+        var startedUtc = DateTimeOffset.UtcNow;
+        var stopwatch = Stopwatch.StartNew();
+
+        using var activity = ActivitySource.StartActivity("messaging.publish", ActivityKind.Producer);
+        activity?.SetTag("messaging.system", "nservicebus");
+        activity?.SetTag("messaging.operation", "publish");
+        activity?.SetTag("messaging.destination_kind", "topic");
+        activity?.SetTag("messaging.message.type", eventName);
+        activity?.SetTag("quote.id", quoteId);
+        activity?.SetTag("message.idempotency_key", idempotencyKey);
+
+        try
+        {
+            await _messageSession.Publish(@event);
+            stopwatch.Stop();
+
+            activity?.SetTag("publish.elapsed.ms", stopwatch.ElapsedMilliseconds);
+
+            if (stopwatch.Elapsed > SlowPublishThreshold)
+            {
+                _logger.LogWarning(
+                    "Slow event publish detected. Event {EventName} for Quote {QuoteId} took {ElapsedMs}ms (threshold {ThresholdMs}ms). IdempotencyKey {IdempotencyKey}. StartedUtc {StartedUtc}",
+                    eventName,
+                    quoteId,
+                    stopwatch.ElapsedMilliseconds,
+                    SlowPublishThreshold.TotalMilliseconds,
+                    idempotencyKey,
+                    startedUtc);
+            }
+            else
+            {
+                _logger.LogInformation(
+                    "Event {EventName} published for Quote {QuoteId} in {ElapsedMs}ms. IdempotencyKey {IdempotencyKey}. StartedUtc {StartedUtc}",
+                    eventName,
+                    quoteId,
+                    stopwatch.ElapsedMilliseconds,
+                    idempotencyKey,
+                    startedUtc);
+            }
+        }
+        catch (Exception ex)
+        {
+            stopwatch.Stop();
+            activity?.SetTag("publish.elapsed.ms", stopwatch.ElapsedMilliseconds);
+            activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
+
+            _logger.LogError(
+                ex,
+                "Event publish failed. Event {EventName} for Quote {QuoteId} failed after {ElapsedMs}ms. IdempotencyKey {IdempotencyKey}. StartedUtc {StartedUtc}",
+                eventName,
+                quoteId,
+                stopwatch.ElapsedMilliseconds,
+                idempotencyKey,
+                startedUtc);
+
+            throw;
+        }
     }
 }
