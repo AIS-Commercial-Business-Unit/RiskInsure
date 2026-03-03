@@ -15,6 +15,15 @@ var host = Host.CreateDefaultBuilder(args)
         options.ValidateScopes = isDevelopment;
         options.ValidateOnBuild = isDevelopment;
     })
+    .ConfigureLogging(logging =>
+    {
+        logging.ClearProviders();
+        logging.AddSimpleConsole(options =>
+        {
+            options.SingleLine = true;
+            options.TimestampFormat = "yyyy-MM-dd HH:mm:ss ";
+        });
+    })
     .ConfigureServices((context, services) =>
     {
         // T143: Add Application Insights for distributed tracing

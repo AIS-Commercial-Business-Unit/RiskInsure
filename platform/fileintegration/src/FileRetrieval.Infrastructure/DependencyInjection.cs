@@ -51,6 +51,9 @@ public static class DependencyInjection
             return new CosmosClient(connectionString, cosmosClientOptions);
         });
 
+        // Cosmos DB Encryption Configuration (singleton)
+        services.AddSingleton<CosmosEncryptionConfiguration>();
+
         // Cosmos DB Context (singleton)
         services.AddSingleton<CosmosDbContext>();
 

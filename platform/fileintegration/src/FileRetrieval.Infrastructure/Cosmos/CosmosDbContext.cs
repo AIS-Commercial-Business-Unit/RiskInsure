@@ -6,13 +6,14 @@ namespace RiskInsure.FileRetrieval.Infrastructure.Cosmos;
 
 /// <summary>
 /// T034: Cosmos DB context for file retrieval service.
-/// Provides container initialization and client management.
+/// Provides container initialization and client management with Always Encrypted support.
 /// </summary>
 public class CosmosDbContext
 {
     private readonly CosmosClient _cosmosClient;
     private readonly string _databaseName;
     private readonly ILogger<CosmosDbContext> _logger;
+    private readonly CosmosEncryptionConfiguration _encryptionConfig;
     private readonly SemaphoreSlim InitializationLock = new SemaphoreSlim(1, 1);
     private bool _databaseInitialized = false;
 
@@ -30,15 +31,17 @@ public class CosmosDbContext
     public CosmosDbContext(
         CosmosClient cosmosClient,
         IConfiguration configuration,
-        ILogger<CosmosDbContext> logger)
+        ILogger<CosmosDbContext> logger,
+        CosmosEncryptionConfiguration encryptionConfig)
     {
         _cosmosClient = cosmosClient;
         _databaseName = configuration["CosmosDb:DatabaseName"] ?? "RiskInsure";
         _logger = logger;
+        _encryptionConfig = encryptionConfig;
     }
 
     /// <summary>
-    /// Initialize database and containers
+    /// Initialize database and containers with encryption policies
     /// </summary>
     public async Task InitializeAsync(CancellationToken cancellationToken = default)
     {
@@ -47,10 +50,44 @@ public class CosmosDbContext
         // Get database reference
         Database = _cosmosClient.GetDatabase(_databaseName);
 
-        await EnsureDbAndContainerAsync(configsContainerName, "/clientId", cancellationToken);
-        await EnsureDbAndContainerAsync(executionsContainerName, "/clientId", cancellationToken);
-        await EnsureDbAndContainerAsync(discoveredFilesContainerName, "/clientId", cancellationToken);
-        await EnsureDbAndContainerAsync(processedFilesContainerName, "/clientId", cancellationToken);
+        // Initialize encryption configuration (validates Key Vault access)
+        // This may fail if Key Vault is misconfigured, but we allow graceful degradation
+        try
+        {
+            await _encryptionConfig.InitializeEncryptionAsync();
+            _logger.LogInformation("✓ Encryption configuration initialized successfully");
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogError(
+                "Encryption configuration failed (service will continue without encryption): {ErrorMessage}. " +
+                "Verify Key Vault URI and credentials are properly configured in appsettings.encryption.json",
+                ex.Message);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error during encryption initialization");
+            throw;  // Fatal errors still crash startup
+        }
+
+        EncryptionPolicyMetadata? encryptionMetadata = null;
+        try
+        {
+            encryptionMetadata = _encryptionConfig.GetEncryptionPolicyMetadata();
+            _logger.LogInformation(
+                "Encryption configured for {PathCount} sensitive properties: {Paths}",
+                encryptionMetadata.EncryptionPaths.Count,
+                string.Join(", ", encryptionMetadata.EncryptionPaths));
+        }
+        catch (InvalidOperationException)
+        {
+            _logger.LogInformation("Encryption metadata unavailable - configuration container will be created without encryption policy");
+        }
+
+        await EnsureDbAndContainerAsync(configsContainerName, "/clientId", encryptionMetadata, cancellationToken);
+        await EnsureDbAndContainerAsync(executionsContainerName, "/clientId", null, cancellationToken);
+        await EnsureDbAndContainerAsync(discoveredFilesContainerName, "/clientId", null, cancellationToken);
+        await EnsureDbAndContainerAsync(processedFilesContainerName, "/clientId", null, cancellationToken);
 
         // Get container references
         ConfigurationsContainer = Database.GetContainer(configsContainerName);
@@ -64,6 +101,7 @@ public class CosmosDbContext
     private async Task EnsureDbAndContainerAsync(
         string containerName,
         string partitionKeyPath,
+        EncryptionPolicyMetadata? encryptionMetadata,
         CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(containerName);
@@ -90,6 +128,11 @@ public class CosmosDbContext
                 DefaultTimeToLive = -1
             };
 
+            if (encryptionMetadata != null)
+            {
+                TryApplyEncryptionPolicy(containerProperties, encryptionMetadata, containerName);
+            }
+
             await database.CreateContainerIfNotExistsAsync(
                 containerProperties,
                 cancellationToken: cancellationToken);
@@ -97,6 +140,40 @@ public class CosmosDbContext
         finally
         {
             InitializationLock.Release();
+        }
+    }
+
+    private void TryApplyEncryptionPolicy(
+        ContainerProperties containerProperties,
+        EncryptionPolicyMetadata encryptionMetadata,
+        string containerName)
+    {
+        try
+        {
+            containerProperties.ClientEncryptionPolicy = new ClientEncryptionPolicy
+            {
+                IncludedPaths = encryptionMetadata.EncryptionPaths
+                    .Select(path => new ClientEncryptionIncludedPath
+                    {
+                        Path = path,
+                        ClientEncryptionKeyId = encryptionMetadata.DataEncryptionKeyId,
+                        EncryptionType = "Deterministic",
+                        EncryptionAlgorithm = "AEAD_AES_256_CBC_HMAC_SHA256"
+                    })
+                    .ToList()
+            };
+
+            _logger.LogInformation(
+                "Applied encryption policy to container {ContainerName} for {PathCount} paths",
+                containerName,
+                encryptionMetadata.EncryptionPaths.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(
+                ex,
+                "Failed to apply encryption policy to container {ContainerName}; proceeding without encryption policy",
+                containerName);
         }
     }
 }
