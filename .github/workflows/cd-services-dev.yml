@@ -122,7 +122,6 @@ jobs:
     needs: determine-services
     if: needs.determine-services.outputs.matrix_empty == 'false'
     runs-on: ubuntu-latest
-    environment: dev
     
     permissions:
       id-token: write
@@ -209,7 +208,6 @@ jobs:
     needs: [determine-services, verify-infrastructure]
     if: needs.determine-services.outputs.matrix_empty == 'false'
     runs-on: ubuntu-latest
-    environment: dev
     
     permissions:
       id-token: write
@@ -342,7 +340,6 @@ jobs:
     needs: [determine-services, verify-infrastructure, build-images]
     if: needs.determine-services.outputs.matrix_empty == 'false'
     runs-on: ubuntu-latest
-    environment: dev
     
     permissions:
       id-token: write
