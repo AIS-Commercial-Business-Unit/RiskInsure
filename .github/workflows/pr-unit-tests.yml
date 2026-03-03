@@ -11,8 +11,6 @@ on:
   pull_request:
     branches:
       - main
-      - Dev
-      - feature/new-workflow-structure  # Allow testing on feature branch
     paths:
       - 'services/**'
       - 'platform/RiskInsure.PublicContracts/**'

@@ -85,6 +85,11 @@ resource "azurerm_container_app" "fundstransfermgt_api" {
         value = data.terraform_remote_state.foundation.outputs.application_insights_connection_string
       }
 
+      env {
+        name  = "Messaging__MessageBroker"
+        value = "AzureServiceBus"
+      }
+
     }
   }
 
@@ -178,6 +183,11 @@ resource "azurerm_container_app" "fundstransfermgt_endpoint" {
       env {
         name        = "ConnectionStrings__ServiceBus"
         secret_name = "servicebus-connection-string"
+      }
+
+      env {
+        name  = "Messaging__MessageBroker"
+        value = "AzureServiceBus"
       }
 
       env {
