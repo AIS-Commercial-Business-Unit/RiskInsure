@@ -20,6 +20,10 @@ on:
       - 'Directory.Build.props'
       - 'Directory.Packages.props'
 
+permissions:
+  contents: read
+  id-token: write
+
 env:
   DOTNET_VERSION: '10.0.x'
 
