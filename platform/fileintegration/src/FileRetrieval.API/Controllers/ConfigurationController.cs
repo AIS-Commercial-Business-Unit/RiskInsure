@@ -684,7 +684,7 @@ public class ConfigurationController : ControllerBase
                 sanitized["Server"] = ftp.Server;
                 sanitized["Port"] = ftp.Port;
                 sanitized["Username"] = ftp.Username;
-                sanitized["PasswordKeyVaultSecret"] = "[REDACTED]";
+                sanitized["Password"] = "[REDACTED]";
                 sanitized["UseTls"] = ftp.UseTls;
                 sanitized["UsePassiveMode"] = ftp.UsePassiveMode;
                 sanitized["ConnectionTimeoutSeconds"] = (int)ftp.ConnectionTimeout.TotalSeconds;
@@ -694,9 +694,9 @@ public class ConfigurationController : ControllerBase
                 sanitized["BaseUrl"] = https.BaseUrl;
                 sanitized["AuthenticationType"] = https.AuthenticationType.ToString();
                 sanitized["UsernameOrApiKey"] = https.UsernameOrApiKey ?? string.Empty;
-                if (!string.IsNullOrWhiteSpace(https.PasswordOrTokenKeyVaultSecret))
+                if (!string.IsNullOrWhiteSpace(https.PasswordOrToken))
                 {
-                    sanitized["PasswordOrTokenKeyVaultSecret"] = "[REDACTED]";
+                    sanitized["PasswordOrToken"] = "[REDACTED]";
                 }
                 sanitized["ConnectionTimeoutSeconds"] = (int)https.ConnectionTimeout.TotalSeconds;
                 sanitized["FollowRedirects"] = https.FollowRedirects;
@@ -707,13 +707,13 @@ public class ConfigurationController : ControllerBase
                 sanitized["StorageAccountName"] = azure.StorageAccountName;
                 sanitized["ContainerName"] = azure.ContainerName;
                 sanitized["AuthenticationType"] = azure.AuthenticationType.ToString();
-                if (!string.IsNullOrWhiteSpace(azure.ConnectionStringKeyVaultSecret))
+                if (!string.IsNullOrWhiteSpace(azure.ConnectionString))
                 {
-                    sanitized["ConnectionStringKeyVaultSecret"] = "[REDACTED]";
+                    sanitized["ConnectionString"] = "[REDACTED]";
                 }
-                if (!string.IsNullOrWhiteSpace(azure.SasTokenKeyVaultSecret))
+                if (!string.IsNullOrWhiteSpace(azure.SasToken))
                 {
-                    sanitized["SasTokenKeyVaultSecret"] = "[REDACTED]";
+                    sanitized["SasToken"] = "[REDACTED]";
                 }
                 break;
         }

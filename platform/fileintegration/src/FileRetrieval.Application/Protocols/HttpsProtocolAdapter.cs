@@ -18,7 +18,6 @@ public class HttpsProtocolAdapter : IProtocolAdapter
     private readonly SecretClient _keyVaultClient;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<HttpsProtocolAdapter> _logger;
-    private string? _cachedSecret;
 
     public string ProtocolType => "HTTPS";
 
@@ -226,20 +225,19 @@ public class HttpsProtocolAdapter : IProtocolAdapter
         {
             case AuthType.UsernamePassword:
                 if (!string.IsNullOrWhiteSpace(_settings.UsernameOrApiKey) &&
-                    !string.IsNullOrWhiteSpace(_settings.PasswordOrTokenKeyVaultSecret))
+                    !string.IsNullOrWhiteSpace(_settings.PasswordOrToken))
                 {
-                    var password = await GetSecretAsync(cancellationToken);
                     var credentials = Convert.ToBase64String(
-                        System.Text.Encoding.ASCII.GetBytes($"{_settings.UsernameOrApiKey}:{password}"));
+                        System.Text.Encoding.ASCII.GetBytes($"{_settings.UsernameOrApiKey}:{_settings.PasswordOrToken}"));
                     httpClient.DefaultRequestHeaders.Authorization = 
                         new AuthenticationHeaderValue("Basic", credentials);
                 }
                 break;
 
             case AuthType.BearerToken:
-                if (!string.IsNullOrWhiteSpace(_settings.PasswordOrTokenKeyVaultSecret))
+                if (!string.IsNullOrWhiteSpace(_settings.PasswordOrToken))
                 {
-                    var token = await GetSecretAsync(cancellationToken);
+                    var token = _settings.PasswordOrToken;
                     httpClient.DefaultRequestHeaders.Authorization = 
                         new AuthenticationHeaderValue("Bearer", token);
                 }
@@ -262,30 +260,7 @@ public class HttpsProtocolAdapter : IProtocolAdapter
         return httpClient;
     }
 
-    /// <summary>
-    /// Retrieves secret from Key Vault with caching.
-    /// </summary>
-    private async Task<string> GetSecretAsync(CancellationToken cancellationToken)
-    {
-        if (_cachedSecret == null)
-        {
-            _cachedSecret = _settings.PasswordOrTokenKeyVaultSecret;
 
-            // Todo: Implement proper secret retrieval with error handling and caching            
-            //     var secret = await _keyVaultClient.GetSecretAsync(
-            //         _settings.PasswordOrTokenKeyVaultSecret,
-            //         cancellationToken: cancellationToken);
-            // _cachedSecret = secret.Value.Value;
-        }
-
-        if (string.IsNullOrWhiteSpace(_cachedSecret))
-        {
-            throw new InvalidOperationException(
-                "Could not retrieve secret for HttpsProtocolAdapter from PasswordOrTokenKeyVaultSecret.  PasswordOrTokenKeyVaultSecret must be configured for this authentication type.");
-        }
-
-        return _cachedSecret;
-    }
 
     /// <summary>
     /// Combines base URL with path, handling trailing/leading slashes.

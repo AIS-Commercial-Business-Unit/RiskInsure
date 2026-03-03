@@ -59,7 +59,7 @@ public class ConfigurationScheduledFtpE2ETests
                 ["Server"] = "file-retrieval-ftp",
                 ["Port"] = 21,
                 ["Username"] = "testuser",
-                ["PasswordKeyVaultSecret"] = ftpPasswordSecretName,
+                ["Password"] = ftpPasswordSecretName,
                 ["UseTls"] = false,
                 ["UsePassiveMode"] = true,
                 ["ConnectionTimeoutSeconds"] = 30

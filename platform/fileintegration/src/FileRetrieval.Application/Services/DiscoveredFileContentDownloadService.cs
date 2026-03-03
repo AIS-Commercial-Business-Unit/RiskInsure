@@ -53,13 +53,12 @@ public class DiscoveredFileContentDownloadService
 
         var fileUri = new Uri(fileUrl, UriKind.Absolute);
         var remotePath = Uri.UnescapeDataString(fileUri.AbsolutePath);
-        var password = settings.PasswordKeyVaultSecret;
+        var password = settings.Password;
 
         using var ftpClient = new AsyncFtpClient(
             settings.Server,
             settings.Username,
-            password,
-            settings.Port);
+            password);
 
         ftpClient.Config.EncryptionMode = settings.UseTls
             ? FtpEncryptionMode.Explicit
@@ -99,20 +98,20 @@ public class DiscoveredFileContentDownloadService
         {
             case AuthType.UsernamePassword:
                 if (!string.IsNullOrWhiteSpace(settings.UsernameOrApiKey) &&
-                    !string.IsNullOrWhiteSpace(settings.PasswordOrTokenKeyVaultSecret))
+                    !string.IsNullOrWhiteSpace(settings.PasswordOrToken))
                 {
                     var credentials = Convert.ToBase64String(
-                        System.Text.Encoding.ASCII.GetBytes($"{settings.UsernameOrApiKey}:{settings.PasswordOrTokenKeyVaultSecret}"));
+                        System.Text.Encoding.ASCII.GetBytes($"{settings.UsernameOrApiKey}:{settings.PasswordOrToken}"));
                     httpClient.DefaultRequestHeaders.Authorization =
                         new AuthenticationHeaderValue("Basic", credentials);
                 }
                 break;
 
             case AuthType.BearerToken:
-                if (!string.IsNullOrWhiteSpace(settings.PasswordOrTokenKeyVaultSecret))
+                if (!string.IsNullOrWhiteSpace(settings.PasswordOrToken))
                 {
                     httpClient.DefaultRequestHeaders.Authorization =
-                        new AuthenticationHeaderValue("Bearer", settings.PasswordOrTokenKeyVaultSecret);
+                        new AuthenticationHeaderValue("Bearer", settings.PasswordOrToken);
                 }
                 break;
 
@@ -159,11 +158,11 @@ public class DiscoveredFileContentDownloadService
         return settings.AuthenticationType switch
         {
             AzureAuthType.ConnectionString => new BlobContainerClient(
-                settings.ConnectionStringKeyVaultSecret ?? throw new InvalidOperationException("ConnectionStringKeyVaultSecret is required for ConnectionString authentication."),
+                settings.ConnectionString ?? throw new InvalidOperationException("ConnectionString is required for ConnectionString authentication."),
                 settings.ContainerName),
 
             AzureAuthType.SasToken => new BlobContainerClient(
-                new Uri($"https://{settings.StorageAccountName}.blob.core.windows.net/{settings.ContainerName}?{(settings.SasTokenKeyVaultSecret ?? throw new InvalidOperationException("SasTokenKeyVaultSecret is required for SasToken authentication.")).TrimStart('?')}")
+                new Uri($"https://{settings.StorageAccountName}.blob.core.windows.net/{settings.ContainerName}?{(settings.SasToken ?? throw new InvalidOperationException("SasToken is required for SasToken authentication.")).TrimStart('?')}")
             ),
 
             AzureAuthType.ManagedIdentity or AzureAuthType.ServicePrincipal => new BlobContainerClient(

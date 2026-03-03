@@ -147,7 +147,7 @@ public class CreateConfigurationHandler : IHandleMessages<CreateConfiguration>
             server: GetRequiredString(settings, "Server"),
             port: GetInt(settings, "Port", 21),
             username: GetRequiredString(settings, "Username"),
-            passwordKeyVaultSecret: GetRequiredString(settings, "PasswordKeyVaultSecret"),
+            password: GetRequiredString(settings, "Password"),
             useTls: GetBool(settings, "UseTls", true),
             usePassiveMode: GetBool(settings, "UsePassiveMode", true),
             connectionTimeout: TimeSpan.FromSeconds(GetInt(settings, "ConnectionTimeoutSeconds", 30))
@@ -166,7 +166,7 @@ public class CreateConfigurationHandler : IHandleMessages<CreateConfiguration>
             baseUrl: GetRequiredString(settings, "BaseUrl"),
             authenticationType: authType,
             usernameOrApiKey: GetString(settings, "UsernameOrApiKey"),
-            passwordOrTokenKeyVaultSecret: GetString(settings, "PasswordOrTokenKeyVaultSecret"),
+            passwordOrToken: GetString(settings, "PasswordOrToken"),
             connectionTimeout: TimeSpan.FromSeconds(GetInt(settings, "ConnectionTimeoutSeconds", 30)),
             followRedirects: GetBool(settings, "FollowRedirects", true),
             maxRedirects: GetInt(settings, "MaxRedirects", 3)
@@ -185,8 +185,8 @@ public class CreateConfigurationHandler : IHandleMessages<CreateConfiguration>
             storageAccountName: GetRequiredString(settings, "StorageAccountName"),
             containerName: GetRequiredString(settings, "ContainerName"),
             authenticationType: authType,
-            connectionStringKeyVaultSecret: GetString(settings, "ConnectionStringKeyVaultSecret"),
-            sasTokenKeyVaultSecret: GetString(settings, "SasTokenKeyVaultSecret"),
+            connectionString: GetString(settings, "ConnectionString"),
+            sasToken: GetString(settings, "SasToken"),
             blobPrefix: GetString(settings, "BlobPrefix")
         );
     }

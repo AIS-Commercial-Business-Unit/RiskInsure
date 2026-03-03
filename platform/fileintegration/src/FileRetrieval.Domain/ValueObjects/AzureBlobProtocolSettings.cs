@@ -10,16 +10,16 @@ public sealed class AzureBlobProtocolSettings : ProtocolSettings
     public string StorageAccountName { get; init; }
     public string ContainerName { get; init; }
     public AzureAuthType AuthenticationType { get; init; }
-    public string? ConnectionStringKeyVaultSecret { get; init; }
-    public string? SasTokenKeyVaultSecret { get; init; }
+    public string? ConnectionString { get; init; }
+    public string? SasToken { get; init; }
     public string? BlobPrefix { get; init; }
 
     public AzureBlobProtocolSettings(
         string storageAccountName,
         string containerName,
         AzureAuthType authenticationType,
-        string? connectionStringKeyVaultSecret = null,
-        string? sasTokenKeyVaultSecret = null,
+        string? connectionString = null,
+        string? SasToken = null,
         string? blobPrefix = null)
         : base(ProtocolType.AzureBlob)
     {
@@ -37,16 +37,16 @@ public sealed class AzureBlobProtocolSettings : ProtocolSettings
             throw new ArgumentException("BlobPrefix cannot exceed 1024 characters", nameof(blobPrefix));
 
         // Validate auth-specific requirements
-        if (authenticationType == AzureAuthType.ConnectionString && string.IsNullOrWhiteSpace(connectionStringKeyVaultSecret))
-            throw new ArgumentException("ConnectionStringKeyVaultSecret is required for ConnectionString authentication", nameof(connectionStringKeyVaultSecret));
-        if (authenticationType == AzureAuthType.SasToken && string.IsNullOrWhiteSpace(sasTokenKeyVaultSecret))
-            throw new ArgumentException("SasTokenKeyVaultSecret is required for SasToken authentication", nameof(sasTokenKeyVaultSecret));
+        if (authenticationType == AzureAuthType.ConnectionString && string.IsNullOrWhiteSpace(connectionString))
+            throw new ArgumentException("ConnectionString is required for ConnectionString authentication", nameof(connectionString));
+        if (authenticationType == AzureAuthType.SasToken && string.IsNullOrWhiteSpace(SasToken))
+            throw new ArgumentException("SasToken is required for SasToken authentication", nameof(SasToken));
 
         StorageAccountName = storageAccountName;
         ContainerName = containerName;
         AuthenticationType = authenticationType;
-        ConnectionStringKeyVaultSecret = connectionStringKeyVaultSecret;
-        SasTokenKeyVaultSecret = sasTokenKeyVaultSecret;
+        ConnectionString = connectionString;
+        SasToken = SasToken;
         BlobPrefix = blobPrefix;
     }
 }

@@ -179,7 +179,7 @@ public class UpdateConfigurationHandler : IHandleMessages<UpdateConfiguration>
             server: settings["Server"].ToString()!,
             port: Convert.ToInt32(settings["Port"]),
             username: settings["Username"].ToString()!,
-            passwordKeyVaultSecret: settings["PasswordKeyVaultSecret"].ToString()!,
+            password: settings["Password"].ToString()!,
             useTls: Convert.ToBoolean(settings["UseTls"]),
             usePassiveMode: Convert.ToBoolean(settings["UsePassiveMode"]),
             connectionTimeout: TimeSpan.FromSeconds(Convert.ToInt32(settings.GetValueOrDefault("ConnectionTimeoutSeconds", 30))));
@@ -196,7 +196,7 @@ public class UpdateConfigurationHandler : IHandleMessages<UpdateConfiguration>
             baseUrl: settings["BaseUrl"].ToString()!,
             authenticationType: authType,
             usernameOrApiKey: settings.GetValueOrDefault("UsernameOrApiKey")?.ToString(),
-            passwordOrTokenKeyVaultSecret: settings.GetValueOrDefault("PasswordOrTokenKeyVaultSecret")?.ToString(),
+            passwordOrToken: settings.GetValueOrDefault("PasswordOrToken")?.ToString(),
             connectionTimeout: TimeSpan.FromSeconds(Convert.ToInt32(settings.GetValueOrDefault("ConnectionTimeoutSeconds", 30))),
             followRedirects: Convert.ToBoolean(settings.GetValueOrDefault("FollowRedirects", true)),
             maxRedirects: Convert.ToInt32(settings.GetValueOrDefault("MaxRedirects", 5)));
@@ -213,7 +213,7 @@ public class UpdateConfigurationHandler : IHandleMessages<UpdateConfiguration>
             storageAccountName: settings["StorageAccountName"].ToString()!,
             containerName: settings["ContainerName"].ToString()!,
             authenticationType: authType,
-            connectionStringKeyVaultSecret: settings.GetValueOrDefault("ConnectionStringKeyVaultSecret")?.ToString(),
-            sasTokenKeyVaultSecret: settings.GetValueOrDefault("SasTokenKeyVaultSecret")?.ToString());
+            connectionString: settings.GetValueOrDefault("ConnectionString")?.ToString(),
+            sasToken: settings.GetValueOrDefault("SasToken")?.ToString());
     }
 }

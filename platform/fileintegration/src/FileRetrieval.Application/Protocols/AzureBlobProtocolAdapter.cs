@@ -4,7 +4,6 @@ using Azure.Identity;
 using RiskInsure.FileRetrieval.Domain.ValueObjects;
 using RiskInsure.FileRetrieval.Domain.Enums;
 using Microsoft.Extensions.Logging;
-using Azure.Security.KeyVault.Secrets;
 
 namespace FileRetrieval.Application.Protocols;
 
@@ -16,7 +15,6 @@ namespace FileRetrieval.Application.Protocols;
 public class AzureBlobProtocolAdapter : IProtocolAdapter
 {
     private readonly AzureBlobProtocolSettings _settings;
-    private readonly SecretClient _keyVaultClient;
     private readonly ILogger<AzureBlobProtocolAdapter> _logger;
     private BlobContainerClient? _containerClient;
 
@@ -24,11 +22,9 @@ public class AzureBlobProtocolAdapter : IProtocolAdapter
 
     public AzureBlobProtocolAdapter(
         AzureBlobProtocolSettings settings,
-        SecretClient keyVaultClient,
         ILogger<AzureBlobProtocolAdapter> logger)
     {
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
-        _keyVaultClient = keyVaultClient ?? throw new ArgumentNullException(nameof(keyVaultClient));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -202,17 +198,13 @@ public class AzureBlobProtocolAdapter : IProtocolAdapter
 
             case AzureAuthType.ConnectionString:
                 // Use connection string from Key Vault
-                if (string.IsNullOrWhiteSpace(_settings.ConnectionStringKeyVaultSecret))
+                if (string.IsNullOrWhiteSpace(_settings.ConnectionString))
                 {
                     throw new InvalidOperationException(
-                        "ConnectionStringKeyVaultSecret is required for ConnectionString authentication");
+                        "ConnectionString is required for ConnectionString authentication");
                 }
 
-                var connectionString = await GetSecretAsync(
-                    _settings.ConnectionStringKeyVaultSecret,
-                    cancellationToken);
-
-                var blobServiceClientWithConnStr = new BlobServiceClient(connectionString);
+                var blobServiceClientWithConnStr = new BlobServiceClient(_settings.ConnectionString);
                 _containerClient = blobServiceClientWithConnStr.GetBlobContainerClient(_settings.ContainerName);
                 
                 _logger.LogDebug(
@@ -223,14 +215,14 @@ public class AzureBlobProtocolAdapter : IProtocolAdapter
 
             case AzureAuthType.SasToken:
                 // Use SAS token from Key Vault
-                if (string.IsNullOrWhiteSpace(_settings.SasTokenKeyVaultSecret))
+                if (string.IsNullOrWhiteSpace(_settings.SasToken))
                 {
                     throw new InvalidOperationException(
-                        "SasTokenKeyVaultSecret is required for SasToken authentication");
+                        "SasToken is required for SasToken authentication");
                 }
 
                 var sasToken = await GetSecretAsync(
-                    _settings.SasTokenKeyVaultSecret,
+                    _settings.SasToken,
                     cancellationToken);
 
                 // Build container URI with SAS token
@@ -251,17 +243,6 @@ public class AzureBlobProtocolAdapter : IProtocolAdapter
         }
     }
 
-    /// <summary>
-    /// Retrieves secret from Key Vault.
-    /// </summary>
-    private async Task<string> GetSecretAsync(string secretName, CancellationToken cancellationToken)
-    {
-        return secretName;
-
-        // Todo: Implement proper secret retrieval with error handling and caching            
-        // var secret = await _keyVaultClient.GetSecretAsync(secretName, cancellationToken: cancellationToken);
-        // return secret.Value.Value;
-    }
 
     /// <summary>
     /// Combines blob prefix from settings with file path pattern.

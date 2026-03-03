@@ -11,7 +11,7 @@ public sealed class FtpProtocolSettings : ProtocolSettings
     public string Server { get; init; }
     public int Port { get; init; }
     public string Username { get; init; }
-    public string PasswordKeyVaultSecret { get; init; }
+    public string Password { get; init; }
     public bool UseTls { get; init; }
     public bool UsePassiveMode { get; init; }
     public TimeSpan ConnectionTimeout { get; init; }
@@ -21,7 +21,7 @@ public sealed class FtpProtocolSettings : ProtocolSettings
         string server,
         int port,
         string username,
-        string passwordKeyVaultSecret,
+        string password,
         bool useTls = true,
         bool usePassiveMode = true,
         TimeSpan connectionTimeout = default)
@@ -37,13 +37,13 @@ public sealed class FtpProtocolSettings : ProtocolSettings
             throw new ArgumentException("Username cannot be empty", nameof(username));
         if (username.Length > 100)
             throw new ArgumentException("Username cannot exceed 100 characters", nameof(username));
-        if (string.IsNullOrWhiteSpace(passwordKeyVaultSecret))
-            throw new ArgumentException("PasswordKeyVaultSecret cannot be empty", nameof(passwordKeyVaultSecret));
+        if (string.IsNullOrWhiteSpace(password))
+            throw new ArgumentException("Password cannot be empty", nameof(password));
 
         Server = server;
         Port = port;
         Username = username;
-        PasswordKeyVaultSecret = passwordKeyVaultSecret;
+        Password = password;
         UseTls = useTls;
         UsePassiveMode = usePassiveMode;
         ConnectionTimeout = connectionTimeout == default ? TimeSpan.FromSeconds(30) : connectionTimeout;

@@ -11,7 +11,7 @@ public sealed class HttpsProtocolSettings : ProtocolSettings
     public string BaseUrl { get; init; }
     public AuthType AuthenticationType { get; init; }
     public string? UsernameOrApiKey { get; init; }
-    public string? PasswordOrTokenKeyVaultSecret { get; init; }
+    public string? PasswordOrToken { get; init; }
     public TimeSpan ConnectionTimeout { get; init; }
     public bool FollowRedirects { get; init; }
     public int MaxRedirects { get; init; }
@@ -21,7 +21,7 @@ public sealed class HttpsProtocolSettings : ProtocolSettings
         string baseUrl,
         AuthType authenticationType,
         string? usernameOrApiKey = null,
-        string? passwordOrTokenKeyVaultSecret = null,
+        string? passwordOrToken = null,
         TimeSpan connectionTimeout = default,
         bool followRedirects = true,
         int maxRedirects = 3)
@@ -35,15 +35,15 @@ public sealed class HttpsProtocolSettings : ProtocolSettings
             throw new ArgumentException("BaseUrl cannot exceed 500 characters", nameof(baseUrl));
         if (usernameOrApiKey?.Length > 200)
             throw new ArgumentException("UsernameOrApiKey cannot exceed 200 characters", nameof(usernameOrApiKey));
-        if (passwordOrTokenKeyVaultSecret?.Length > 200)
-            throw new ArgumentException("PasswordOrTokenKeyVaultSecret cannot exceed 200 characters", nameof(passwordOrTokenKeyVaultSecret));
+        if (passwordOrToken?.Length > 200)
+            throw new ArgumentException("PasswordOrToken cannot exceed 200 characters", nameof(passwordOrToken));
         if (maxRedirects < 0 || maxRedirects > 10)
             throw new ArgumentOutOfRangeException(nameof(maxRedirects), "MaxRedirects must be between 0 and 10");
 
         BaseUrl = baseUrl;
         AuthenticationType = authenticationType;
         UsernameOrApiKey = usernameOrApiKey;
-        PasswordOrTokenKeyVaultSecret = passwordOrTokenKeyVaultSecret;
+        PasswordOrToken = passwordOrToken;
         ConnectionTimeout = connectionTimeout == default ? TimeSpan.FromSeconds(30) : connectionTimeout;
         FollowRedirects = followRedirects;
         MaxRedirects = maxRedirects;
