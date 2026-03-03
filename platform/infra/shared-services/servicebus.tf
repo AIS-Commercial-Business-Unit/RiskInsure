@@ -84,10 +84,36 @@ locals {
     # Legacy/existing topic
     "bundle-1",
 
+    # RiskInsure Billing Domain Events
+    "RiskInsure.Billing.Domain.Contracts.Events.AccountActivated",
+    "RiskInsure.Billing.Domain.Contracts.Events.AccountClosed",
+    "RiskInsure.Billing.Domain.Contracts.Events.AccountSuspended",
+    "RiskInsure.Billing.Domain.Contracts.Events.BillingAccountCreated",
+    "RiskInsure.Billing.Domain.Contracts.Events.BillingCycleUpdated",
+    "RiskInsure.Billing.Domain.Contracts.Events.PremiumOwedUpdated",
+
+    # RiskInsure Customer Domain Events
+    "RiskInsure.Customer.Domain.Contracts.Events.CustomerClosed",
+    "RiskInsure.Customer.Domain.Contracts.Events.CustomerCreated",
+    "RiskInsure.Customer.Domain.Contracts.Events.CustomerInformationUpdated",
+
+    # RiskInsure Policy Domain Events
+    "RiskInsure.Policy.Domain.Contracts.Events.PolicyBound",
+    "RiskInsure.Policy.Domain.Contracts.Events.PolicyCancelled",
+    "RiskInsure.Policy.Domain.Contracts.Events.PolicyIssued",
+    "RiskInsure.Policy.Domain.Contracts.Events.PolicyReinstated",
+
     # RiskInsure Public Contract Events
+    "RiskInsure.PublicContracts.Events.PaymentReceived",
     "RiskInsure.PublicContracts.Events.FundsRefunded",
     "RiskInsure.PublicContracts.Events.FundsSettled",
     "RiskInsure.PublicContracts.Events.QuoteAccepted",
+
+    # RiskInsure RatingAndUnderwriting Domain Events
+    "RiskInsure.RatingAndUnderwriting.Domain.Contracts.Events.QuoteCalculated",
+    "RiskInsure.RatingAndUnderwriting.Domain.Contracts.Events.QuoteDeclined",
+    "RiskInsure.RatingAndUnderwriting.Domain.Contracts.Events.QuoteStarted",
+    "RiskInsure.RatingAndUnderwriting.Domain.Contracts.Events.UnderwritingSubmitted",
 
     # Add new event topics here:
     # "RiskInsure.PublicContracts.Events.PaymentReceived",
