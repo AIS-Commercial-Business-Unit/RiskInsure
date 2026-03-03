@@ -57,7 +57,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       services: ${{ steps.determine.outputs.services }}
-      deploy_all: ${{ steps.determine.outputs.deploy_all }}
+      matrix_empty: ${{ steps.determine.outputs.matrix_empty }}
     
     steps:
       - name: Checkout
@@ -72,18 +72,18 @@ jobs:
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             if [[ "${{ github.event.inputs.services }}" == "all" ]]; then
               echo "services=[\"billing\",\"customer\",\"fundstransfermgt\",\"policy\",\"ratingandunderwriting\"]" >> "$GITHUB_OUTPUT"
-              echo "deploy_all=true" >> "$GITHUB_OUTPUT"
+              echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
             else
               # Convert comma-separated to JSON array
               services_input="${{ github.event.inputs.services }}"
               services_json=$(echo "$services_input" | jq -R -s -c 'split(",") | map(gsub("^\\s+|\\s+$";""))')
               echo "services=$services_json" >> "$GITHUB_OUTPUT"
-              echo "deploy_all=false" >> "$GITHUB_OUTPUT"
+              echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
             fi
           elif [[ "${{ github.event_name }}" == "workflow_run" ]]; then
             # Infrastructure changed, deploy all services
             echo "services=[\"billing\",\"customer\",\"fundstransfermgt\",\"policy\",\"ratingandunderwriting\"]" >> "$GITHUB_OUTPUT"
-            echo "deploy_all=true" >> "$GITHUB_OUTPUT"
+            echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
           else
             # Detect changed services from git diff
             changed_services=()
@@ -97,11 +97,11 @@ jobs:
             if [ ${#changed_services[@]} -eq 0 ]; then
               echo "No service changes detected"
               echo "services=[]" >> "$GITHUB_OUTPUT"
-              echo "deploy_all=false" >> "$GITHUB_OUTPUT"
+              echo "matrix_empty=true" >> "$GITHUB_OUTPUT"
             else
               services_json="[$(IFS=,; echo "${changed_services[*]}")]"
               echo "services=$services_json" >> "$GITHUB_OUTPUT"
-              echo "deploy_all=false" >> "$GITHUB_OUTPUT"
+              echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
             fi
           fi
       
@@ -112,7 +112,6 @@ jobs:
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "**Trigger:** \`${{ github.event_name }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "**Services:** \`${{ steps.determine.outputs.services }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Deploy All:** \`${{ steps.determine.outputs.deploy_all }}\`" >> "$GITHUB_STEP_SUMMARY"
 
   # ==========================================================================
   # CRITICAL: Verify infrastructure exists before deploying services
@@ -121,9 +120,8 @@ jobs:
   verify-infrastructure:
     name: 'Verify Infrastructure'
     needs: determine-services
-    if: needs.determine-services.outputs.services != '[]'
+    if: needs.determine-services.outputs.matrix_empty == 'false'
     runs-on: ubuntu-latest
-    environment: dev
     
     permissions:
       id-token: write
@@ -208,7 +206,7 @@ jobs:
   build-images:
     name: 'Build: ${{ matrix.service }}'
     needs: [determine-services, verify-infrastructure]
-    if: needs.determine-services.outputs.services != '[]'
+    if: needs.determine-services.outputs.matrix_empty == 'false'
     runs-on: ubuntu-latest
     
     permissions:
@@ -338,20 +336,14 @@ jobs:
   # Deploy Container Apps
   # ==========================================================================
   deploy-apps:
-    name: 'Deploy: ${{ matrix.service }}'
+    name: 'Deploy Container Apps'
     needs: [determine-services, verify-infrastructure, build-images]
-    if: needs.determine-services.outputs.services != '[]'
+    if: needs.determine-services.outputs.matrix_empty == 'false'
     runs-on: ubuntu-latest
-    environment: dev
     
     permissions:
       id-token: write
       contents: read
-    
-    strategy:
-      fail-fast: false
-      matrix:
-        service: ${{ fromJson(needs.determine-services.outputs.services) }}
     
     defaults:
       run:
@@ -437,7 +429,7 @@ jobs:
   health-check:
     name: 'Health Check: ${{ matrix.service }}'
     needs: [determine-services, verify-infrastructure, deploy-apps]
-    if: needs.determine-services.outputs.services != '[]'
+    if: needs.determine-services.outputs.matrix_empty == 'false'
     runs-on: ubuntu-latest
     
     permissions:
@@ -466,12 +458,12 @@ jobs:
           
           case "$SERVICE" in
             ratingandunderwriting)
-              API_APP_NAME="ratingandunderwriting-api"
-              ENDPOINT_APP_NAME="ratingandunderwriting-endpoint"
+              API_APP_NAME="riskinsure-ratingandunderwriting-api"
+              ENDPOINT_APP_NAME="riskinsure-ratingandunderwriting-endpoint"
               ;;
             *)
-              API_APP_NAME="${SERVICE}-api"
-              ENDPOINT_APP_NAME="${SERVICE}-endpoint"
+              API_APP_NAME="riskinsure-${SERVICE}-api"
+              ENDPOINT_APP_NAME="riskinsure-${SERVICE}-endpoint"
               ;;
           esac
           
