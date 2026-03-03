@@ -14,6 +14,17 @@ on:
     paths:
       - 'platform/infra/**'
       - '.github/workflows/pr-terraform-validate.yml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        required: true
+        default: 'dev'
+        options:
+          - dev
+          - staging
+          - prod
+
 
 env:
   TERRAFORM_VERSION: '1.11.4'
