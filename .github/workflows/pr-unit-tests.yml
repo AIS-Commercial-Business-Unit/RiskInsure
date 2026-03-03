@@ -21,6 +21,8 @@ on:
 permissions:
   contents: read
   id-token: write
+  checks: write
+  pull-requests: write
 
 env:
   DOTNET_VERSION: '10.0.x'
