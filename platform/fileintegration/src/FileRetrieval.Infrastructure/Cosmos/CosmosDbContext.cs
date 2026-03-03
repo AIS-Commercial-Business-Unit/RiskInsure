@@ -150,18 +150,17 @@ public class CosmosDbContext
     {
         try
         {
-            containerProperties.ClientEncryptionPolicy = new ClientEncryptionPolicy
-            {
-                IncludedPaths = encryptionMetadata.EncryptionPaths
-                    .Select(path => new ClientEncryptionIncludedPath
-                    {
-                        Path = path,
-                        ClientEncryptionKeyId = encryptionMetadata.DataEncryptionKeyId,
-                        EncryptionType = "Deterministic",
-                        EncryptionAlgorithm = "AEAD_AES_256_CBC_HMAC_SHA256"
-                    })
-                    .ToList()
-            };
+            var includedPaths = encryptionMetadata.EncryptionPaths
+                .Select(path => new ClientEncryptionIncludedPath
+                {
+                    Path = path,
+                    ClientEncryptionKeyId = encryptionMetadata.DataEncryptionKeyId,
+                    EncryptionType = "Deterministic",
+                    EncryptionAlgorithm = "AEAD_AES_256_CBC_HMAC_SHA256"
+                })
+                .ToList();
+
+            containerProperties.ClientEncryptionPolicy = new ClientEncryptionPolicy(includedPaths);
 
             _logger.LogInformation(
                 "Applied encryption policy to container {ContainerName} for {PathCount} paths",

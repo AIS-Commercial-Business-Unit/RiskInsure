@@ -130,7 +130,7 @@ All 9 tests compile without errors.
    - **This is EXPECTED** - tests properly skip when DB not available
 
 2. Tests requiring configuration: 2 tests (EncryptionConfiguration tests)
-   - Error: `InvalidOperationException: CosmosDb:Encryption:KeyVaultKeyUri configuration missing`
+  - Error: `InvalidOperationException: CosmosDb:EncryptionKeyName configuration missing`
    - **This is EXPECTED** - tests validate that configuration is required for encryption
 
 3. Test infrastructure initialized: 1 test (EncryptionConfiguration_Initializes_Successfully)
@@ -165,11 +165,11 @@ Create `test/appsettings.test.json`:
   "CosmosDb": {
     "ConnectionString": "AccountEndpoint=https://xxx.documents.azure.com:443/;AccountKey=...;",
     "DatabaseName": "fileintegration",
-    "ContainerName": "configurations"
+    "ContainerName": "configurations",
+    "EncryptionKeyName": "file-retrieval-dek"
   },
-  "CosmosDb:Encryption": {
-    "KeyVaultUri": "https://vault-name.vault.azure.net/",
-    "KeyVaultKeyName": "cosmos-encryption-key"
+  "AzureKeyVault": {
+    "VaultUri": "https://vault-name.vault.azure.net/"
   }
 }
 ```

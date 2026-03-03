@@ -221,20 +221,22 @@ public class AzureBlobProtocolAdapter : IProtocolAdapter
                         "SasToken is required for SasToken authentication");
                 }
 
-                var sasToken = await GetSecretAsync(
-                    _settings.SasToken,
-                    cancellationToken);
+                throw new NotImplementedException();
 
-                // Build container URI with SAS token
-                var containerUriWithSas = new Uri(
-                    $"{blobServiceUri}/{_settings.ContainerName}?{sasToken.TrimStart('?')}");
+                // var sasToken = await GetSecretAsync(
+                //     _settings.SasToken,
+                //     cancellationToken);
 
-                _containerClient = new BlobContainerClient(containerUriWithSas);
+                // // Build container URI with SAS token
+                // var containerUriWithSas = new Uri(
+                //     $"{blobServiceUri}/{_settings.ContainerName}?{sasToken.TrimStart('?')}");
+
+                // _containerClient = new BlobContainerClient(containerUriWithSas);
                 
-                _logger.LogDebug(
-                    "Azure Blob client created with SAS Token for {StorageAccount}/{Container}",
-                    _settings.StorageAccountName,
-                    _settings.ContainerName);
+                // _logger.LogDebug(
+                //     "Azure Blob client created with SAS Token for {StorageAccount}/{Container}",
+                //     _settings.StorageAccountName,
+                //     _settings.ContainerName);
                 break;
 
             default:

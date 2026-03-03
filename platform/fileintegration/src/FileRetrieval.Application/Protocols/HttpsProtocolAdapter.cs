@@ -15,7 +15,6 @@ namespace FileRetrieval.Application.Protocols;
 public class HttpsProtocolAdapter : IProtocolAdapter
 {
     private readonly HttpsProtocolSettings _settings;
-    private readonly SecretClient _keyVaultClient;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<HttpsProtocolAdapter> _logger;
 
@@ -23,12 +22,10 @@ public class HttpsProtocolAdapter : IProtocolAdapter
 
     public HttpsProtocolAdapter(
         HttpsProtocolSettings settings,
-        SecretClient keyVaultClient,
         IHttpClientFactory httpClientFactory,
         ILogger<HttpsProtocolAdapter> logger)
     {
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
-        _keyVaultClient = keyVaultClient ?? throw new ArgumentNullException(nameof(keyVaultClient));
         _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }

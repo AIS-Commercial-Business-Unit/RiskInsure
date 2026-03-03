@@ -8,7 +8,6 @@ using RiskInsure.FileRetrieval.Application.Services;
 using RiskInsure.FileRetrieval.Domain.Repositories;
 using RiskInsure.FileRetrieval.Infrastructure.Configuration;
 using RiskInsure.FileRetrieval.Infrastructure.Cosmos;
-using RiskInsure.FileRetrieval.Infrastructure.KeyVault;
 using RiskInsure.FileRetrieval.Infrastructure.Repositories;
 using RiskInsure.FileRetrieval.Infrastructure.Scheduling;
 
@@ -80,17 +79,19 @@ public static class DependencyInjection
         // HTTP client factory for protocol adapters
         services.AddHttpClient();
 
-        // Azure Key Vault SecretClient (for protocol adapters)
+        // Azure Key Vault SecretClient
+        // This stores secrets in Key Vault and retrieves them.  This secret is
+        // used for encryption operations in Cosmos DB.  CosmosDB encrypts values
+        // used by protocol adapters (FTP/HTTP/BLOB Storage) that are needed 
+        // at runtime to retrieve files, but that we don't want stored in 
+        // plaintext in CosmosDB.
         services.AddSingleton<SecretClient>(_ =>
         {
-            var vaultUri = configuration["AzureKeyVault:VaultUri"]
+            var keyVaultUri = configuration["AzureKeyVault:VaultUri"]
                 ?? throw new InvalidOperationException("AzureKeyVault:VaultUri configuration is missing");
 
-            return new SecretClient(new Uri(vaultUri), new DefaultAzureCredential());
+            return new SecretClient(new Uri(keyVaultUri), new DefaultAzureCredential());
         });
-
-        // Key Vault (singleton)
-        services.AddSingleton<KeyVaultSecretClient>();
 
         // Configuration Options
         services.Configure<SchedulerOptions>(configuration.GetSection(SchedulerOptions.SectionName));

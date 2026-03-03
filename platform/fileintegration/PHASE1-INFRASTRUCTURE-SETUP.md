@@ -30,10 +30,7 @@ Add to appsettings.json or appsettings.{Environment}.json:
   "CosmosDb": {
     "ConnectionString": "AccountEndpoint=...",
     "DatabaseName": "RiskInsure",
-    "Encryption": {
-      "KeyVaultKeyUri": "https://<vault-name>.vault.azure.net/keys/<key-name>/<version>",
-      "DataEncryptionKeyId": "file-retrieval-dek"
-    }
+    "EncryptionKeyName": "file-retrieval-dek"
   },
   "AzureKeyVault": {
     "VaultUri": "https://<vault-name>.vault.azure.net"
@@ -87,8 +84,8 @@ services.AddSingleton<CosmosEncryptionConfiguration>();
 2. **Create Data Encryption Key (DEK)**:
    - Go to Azure Key Vault → Keys → Create/Import
    - Create or import an RSA key (recommended: 3072 or 4096 bit)
-   - Note the key URI (format: `https://<vault>.vault.azure.net/keys/<key-name>/<version>`)
-   - Full key URI required in configuration
+  - Note the key name and key URI for operations and audit purposes
+  - Key name is required in configuration (`CosmosDb:EncryptionKeyName`)
 
 3. **Managed Identity**: Service should have Key Vault access
    - If running locally: Use Azure CLI authentication (`az login`)
@@ -102,10 +99,8 @@ services.AddSingleton<CosmosEncryptionConfiguration>();
 ```json
 {
   "CosmosDb": {
-    "ConnectionString": "..." // Your connection string
-    "Encryption": {
-      "KeyVaultKeyUri": "https://<vault>.vault.azure.net/keys/<key-name>/<version>"
-    }
+    "ConnectionString": "...",
+    "EncryptionKeyName": "file-retrieval-dek"
   }
 }
 ```
@@ -153,7 +148,7 @@ These renamed properties will be automatically encrypted by the policy defined i
 ## Troubleshooting
 
 ### Configuration Missing Error
-**Error**: "CosmosDb:Encryption:KeyVaultKeyUri configuration is required"
+**Error**: "CosmosDb:EncryptionKeyName configuration is required"
 **Solution**: Add configuration key to appsettings
 
 ### Key Vault Authentication Failed

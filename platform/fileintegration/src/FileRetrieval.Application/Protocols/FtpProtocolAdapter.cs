@@ -226,6 +226,5 @@ public class FtpProtocolAdapter : IProtocolAdapter
     {
         _ftpClient?.Dispose();
         _ftpClient = null;
-        _cachedPasswordTask = null;
     }
 }
