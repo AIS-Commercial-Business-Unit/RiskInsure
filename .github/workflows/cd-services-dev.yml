@@ -2,7 +2,7 @@ name: 'CD: Services Dev'
 
 # ============================================================================
 # Purpose: Auto-deploy services to dev after CI builds images
-# Triggers: 
+# Triggers:
 #   - After CI: Build Services completes (deploys changed services only)
 #   - After CD: Infrastructure Dev completes (deploys all services)
 #   - Manual workflow_dispatch (deploy specific services)
@@ -54,7 +54,6 @@ jobs:
       services: ${{ steps.out.outputs.services }}
       matrix_empty: ${{ steps.out.outputs.matrix_empty }}
       image_tag: ${{ steps.out.outputs.image_tag }}
-
 
     steps:
       - name: Checkout
@@ -108,7 +107,8 @@ jobs:
           fi
 
           # CI: Build Services triggered this CD -> deploy only changed services in that CI commit
-          changed_files=$(git diff --name-only "${{ github.event.workflow_run.head_sha }}~1" "${{ github.event.workflow_run.head_sha }}" || true)
+          # Use `git show --name-only` to list files changed in the CI commit reliably
+          changed_files=$(git show --pretty="" --name-only "${{ github.event.workflow_run.head_sha }}" || true)
 
           # If we cannot diff (rare), fall back to all services
           if [[ -z "$changed_files" ]]; then
