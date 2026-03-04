@@ -14,6 +14,7 @@ on:
       - main
     paths:
       - 'services/**'
+      - 'platform/RiskInsure.PublicContracts/**'
       - '.github/workflows/ci-build-services.yml'
   workflow_dispatch:
     inputs:
@@ -27,7 +28,6 @@ on:
         required: false
 
 env:
-  DOTNET_VERSION: '10.0.x'
   REGISTRY: 'riskinsureacr.azurecr.io'
 
 permissions:
@@ -35,8 +35,8 @@ permissions:
   id-token: write
 
 concurrency:
-  group: riskinsure-build-${{ github.sha }}
-  cancel-in-progress: false
+  group: ci-build-services-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   # ==========================================================================
@@ -53,7 +53,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
       
       - name: Determine Changed Services
         id: determine
@@ -74,19 +74,30 @@ jobs:
             exit 0
           fi
           
+          # Capture changed files once
+          changed_files=$(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}")
+          
           # Check if workflow file changed - build all services
-          if git diff --name-only HEAD~1 HEAD | grep -q '^\.github/workflows/ci-build-services\.yml$'; then
+          if echo "$changed_files" | grep -q '^\.github/workflows/ci-build-services\.yml$'; then
             echo "Workflow file changed - building all services"
             echo "services=$ALL_SERVICES" >> "$GITHUB_OUTPUT"
             echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
           
-          # Detect changed services from git diff
+          # Check if shared dependencies changed - build all services
+          if echo "$changed_files" | grep -q '^platform/RiskInsure\.PublicContracts/'; then
+            echo "Shared contracts changed - building all services"
+            echo "services=$ALL_SERVICES" >> "$GITHUB_OUTPUT"
+            echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          
+          # Detect changed services from changed files
           changed_services=()
           
           for service in billing customer fundstransfermgt policy ratingandunderwriting; do
-            if git diff --name-only HEAD~1 HEAD | grep -q "^services/$service/"; then
+            if echo "$changed_files" | grep -q "^services/$service/"; then
               changed_services+=("\"$service\"")
             fi
           done
@@ -135,7 +146,60 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          dotnet-version: '10.0.x'
+      
+      - name: Map Service Names
+        id: map_early
+        shell: bash
+        run: |
+          SERVICE="${{ matrix.service }}"
+          
+          # Map service names to directory structure
+          case "$SERVICE" in
+            ratingandunderwriting)
+              SERVICE_DIR="services/ratingandunderwriting"
+              ;;
+            fundstransfermgt)
+              SERVICE_DIR="services/fundstransfermgt"
+              ;;
+            billing|customer|policy)
+              SERVICE_DIR="services/$SERVICE"
+              ;;
+            *)
+              echo "❌ Unknown service: $SERVICE"
+              exit 1
+              ;;
+          esac
+          
+          echo "service_dir=$SERVICE_DIR" >> "$GITHUB_OUTPUT"
+      
+      - name: Restore Dependencies
+        shell: bash
+        run: |
+          SERVICE_DIR="${{ steps.map_early.outputs.service_dir }}"
+          echo "📦 Restoring dependencies for ${{ matrix.service }}..."
+          
+          # Restore API project
+          dotnet restore "$SERVICE_DIR/src/Api"
+          
+          # Restore Endpoint project
+          dotnet restore "$SERVICE_DIR/src/Endpoint.In"
+          
+          echo "✅ Dependencies restored"
+      
+      - name: Build .NET Projects
+        shell: bash
+        run: |
+          SERVICE_DIR="${{ steps.map_early.outputs.service_dir }}"
+          echo "🔨 Building .NET projects for ${{ matrix.service }}..."
+          
+          # Build API project
+          dotnet build "$SERVICE_DIR/src/Api" --configuration Release --no-restore
+          
+          # Build Endpoint project
+          dotnet build "$SERVICE_DIR/src/Endpoint.In" --configuration Release --no-restore
+          
+          echo "✅ .NET build successful"
       
       - name: Azure Login
         uses: azure/login@v2
@@ -186,14 +250,6 @@ jobs:
           echo "service_dir=$SERVICE_DIR" >> "$GITHUB_OUTPUT"
           echo "image_name=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
           echo "✅ Service: $SERVICE → Dir: $SERVICE_DIR, Image: $IMAGE_NAME"
-      
-      - name: Restore Dependencies
-        working-directory: ${{ steps.map.outputs.service_dir }}/src
-        run: dotnet restore
-      
-      - name: Build Solution
-        working-directory: ${{ steps.map.outputs.service_dir }}/src
-        run: dotnet build --no-restore --configuration Release
       
       - name: Set Image Tags
         id: tags
@@ -349,7 +405,7 @@ jobs:
   scan:
     name: 'Scan: ${{ matrix.service }}'
     needs: [determine-services, build]
-    if: needs.determine-services.outputs.matrix_empty == 'false'
+    if: needs.determine-services.outputs.matrix_empty == 'false' && needs.build.result == 'success'
     runs-on: ubuntu-latest
     
     permissions:
@@ -420,7 +476,7 @@ jobs:
           docker pull "$IMAGE"
       
       - name: Run Trivy Scan on API Image
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: '${{ env.REGISTRY }}/${{ steps.map.outputs.image_name }}-api:${{ github.sha }}'
           format: 'sarif'
@@ -428,7 +484,7 @@ jobs:
           severity: 'CRITICAL,HIGH'
       
       - name: Run Trivy Scan on Endpoint Image
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.28.0
         with:
           image-ref: '${{ env.REGISTRY }}/${{ steps.map.outputs.image_name }}-endpoint:${{ github.sha }}'
           format: 'sarif'
