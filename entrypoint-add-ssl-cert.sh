@@ -16,20 +16,13 @@ import_ssl_cert_and_verify() {
     local server_port="$2"
     local test_path="$3"
 
-    echo -e "${Green}Importing SSL Cert from ${server_name}:${server_port} and verifying secure connection...${Color_Off}"
-#    until [ "$(curl --insecure --silent --connect-timeout 5 -o /dev/null --write-out "%{http_code}" "https://${server_name}:${server_port}${test_path}")" == "200" ]; do
+    echo -e "${Green}Importing SSL Cert from https://${server_name}:${server_port} and verifying secure connection...${Color_Off}"
 
     testUrl="https://${server_name}:${server_port}${test_path}"
 
     until [ "$(curl --insecure --silent --connect-timeout 5 -o /dev/null --write-out "%{http_code}" "$testUrl")" != "000" ]; do
         sleep 5;
-        echo ""
-        echo "CURL TEST START"
-        curl --insecure --connect-timeout 5 "$testUrl"
-        echo ""
-        echo "CURL TEST END"
-        echo ""
-        echo -e "${Yellow}Waiting for a HTTP 200 response from $testUrl...${Color_Off}"
+        echo -e "${Yellow}Waiting for a response from $testUrl...${Color_Off}"
     done;
     echo -e "${Green}Server with SSL certificate is available${Color_Off}"
 
@@ -40,7 +33,7 @@ import_ssl_cert_and_verify() {
     cp "${server_name}.crt" /usr/local/share/ca-certificates/
     update-ca-certificates
 
-    echo -e "${Green}Verifying we can connect securely to Server...${Color_Off}"
+    echo -e "${Green}Verifying we can connect securely to $test_connect_url...${Color_Off}"
     local test_connect_url="https://${server_name}:${server_port}${test_path}"
     local test_connect_content
     test_connect_content=$(mktemp)

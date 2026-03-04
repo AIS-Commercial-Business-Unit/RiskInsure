@@ -86,7 +86,7 @@ services:
             -keyout /certs/emulator.key \
             -out /certs/emulator.crt \
             -subj "/CN=localhost" \
-            -addext "subjectAltName=DNS:localhost,DNS:emulator,DNS:localhost.vault.azure.net"
+            -addext "subjectAltName=DNS:localhost,DNS:keyvault-emulator,DNS:localhost.vault.azure.net"
 
           openssl pkcs12 -export \
             -out /certs/emulator.pfx \
