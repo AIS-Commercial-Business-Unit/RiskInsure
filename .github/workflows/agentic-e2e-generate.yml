@@ -91,10 +91,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if git diff --quiet -- test/e2e/tests/generated test/e2e/generated; then
-            echo "generated_changes=false" >> "$GITHUB_OUTPUT"
-          else
+          if [[ -n "$(git status --porcelain -- test/e2e/tests/generated test/e2e/generated)" ]]; then
             echo "generated_changes=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "generated_changes=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Upload generation artifacts
