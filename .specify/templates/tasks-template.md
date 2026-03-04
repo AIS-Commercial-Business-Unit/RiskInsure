@@ -5,7 +5,7 @@ description: "Task list template for feature implementation"
 
 # Tasks: [FEATURE NAME]
 
-**Input**: Design documents from `/services/<domain>/specs/[###-feature-name]/`
+**Input**: Design documents from `/services/<domain>/docs/specs/[###-feature-name]/`
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
 **Constitution**: [.specify/memory/constitution.md](../../.specify/memory/constitution.md)
 
@@ -78,6 +78,9 @@ RiskInsure foundational tasks (adjust based on your feature):
 
 - [ ] T004 Define command contracts in `services/<domain>/src/Domain/Contracts/Commands/` (C# records with MessageId, OccurredUtc, IdempotencyKey)
 - [ ] T005 Define event contracts in `services/<domain>/src/Domain/Contracts/Events/` (past-tense names + required metadata)
+- [ ] T005a Define workflow correlation identifier contract fields across start/advancing messages (if saga is used)
+- [ ] T005b Define saga data model in `services/<domain>/src/Endpoint.In/Sagas/` with state-only fields (if saga is used)
+- [ ] T005c Define saga correlation mapping in saga class (`ConfigureHowToFindSaga`) (if saga is used)
 - [ ] T006 [P] Create domain DTOs and models in `services/<domain>/src/Domain/{DTOs,Models}/`
 - [ ] T007 [P] Create domain manager interfaces and implementations in `services/<domain>/src/Domain/Managers/`
 - [ ] T008 [P] Create domain services/repository interfaces in `services/<domain>/src/Domain/Services/`
@@ -105,11 +108,14 @@ RiskInsure foundational tasks (adjust based on your feature):
 
 - [ ] T013 [P] [US1] Add unit tests for manager behavior in `services/<domain>/test/Unit.Tests/Managers/[ManagerName]Tests.cs`
 - [ ] T014 [P] [US1] Add integration tests for endpoint flow in `services/<domain>/test/Integration.Tests/tests/[feature].spec.ts`
+- [ ] T014a [P] [US1] Add saga progression tests (start → advance → complete/timeout) in `services/<domain>/test/Unit.Tests/Sagas/[SagaName]Tests.cs` (if saga is used)
+- [ ] T014b [P] [US1] Add duplicate-message replay test for saga idempotency in `services/<domain>/test/Unit.Tests/Sagas/[SagaName]IdempotencyTests.cs` (if saga is used)
 
 ### Implementation for User Story 1
 
 - [ ] T015 [P] [US1] Implement domain manager orchestration in `services/<domain>/src/Domain/Managers/[ManagerName].cs`
 - [ ] T016 [US1] Implement message handler in `services/<domain>/src/Endpoint.In/Handlers/[MessageName]Handler.cs` (thin handler, delegates to manager)
+- [ ] T016a [US1] Implement saga orchestrator in `services/<domain>/src/Endpoint.In/Sagas/[SagaName].cs` (message-driven orchestration only, no direct external I/O)
 - [ ] T017 [US1] Implement API endpoint/controller in `services/<domain>/src/Api/Controllers/[Feature]Controller.cs`
 - [ ] T018 [US1] Add request/response models in `services/<domain>/src/Api/Models/`
 - [ ] T019 [US1] Wire DI registrations in `services/<domain>/src/{Api,Endpoint.In}/Program.cs`

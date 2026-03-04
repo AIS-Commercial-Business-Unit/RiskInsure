@@ -2,7 +2,7 @@
 
 This index lists all feature specifications that affect the **Policy** bounded context.
 
-**Feature specs live in**: `/specs/###-feature-name/` (repo root)  
+**Feature specs live in**: `services/policy/docs/specs/###-feature-name/`  
 **This index provides**: Domain-specific view of features for Policy
 
 ---
@@ -10,7 +10,7 @@ This index lists all feature specifications that affect the **Policy** bounded c
 ## Documentation Philosophy
 
 - **Domain docs** (`services/policy/docs/`) = **Current state** (living documentation of how Policy works today)
-- **Feature specs** (`/specs/###-feature-name/`) = **Change slices** (specific additions/modifications in progress or completed)
+- **Feature specs** (`services/policy/docs/specs/###-feature-name/`) = **Change slices** (specific additions/modifications in progress or completed)
 
 When a feature ships, the domain docs are updated to reflect the new current state. Feature specs remain as historical records of intent and implementation decisions.
 
@@ -20,7 +20,7 @@ When a feature ships, the domain docs are updated to reflect the new current sta
 
 *Features currently being developed that affect Policy*
 
-No active features yet.
+- [001-policy-lifecycle-workflow](./001-policy-lifecycle-workflow/spec.md) - Policy term state-machine workflow saga with tick-based lifecycle progression and renewal handoff.
 
 ---
 
@@ -62,4 +62,4 @@ No recently shipped features yet.
 
 ---
 
-**Last Updated**: 2026-02-16
+**Last Updated**: 2026-03-03

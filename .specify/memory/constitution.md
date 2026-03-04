@@ -1,50 +1,51 @@
 <!--
-Sync Impact Report - Version 1.0.0 (2026-01-03)
+Sync Impact Report - Version 2.1.0 (2026-03-03)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Version Change: Initial → 1.0.0
+Version Change: 2.0.0 → 2.1.0
 
-Constitution Status:
-  ✅ Created - Initial constitution derived from memory files
-  ✅ 10 principles defined from domain patterns and standards
-  ✅ Governance model established
-  ✅ Compliance framework defined
+Modified Principles:
+- II. Data Model Strategy → II. Data Model Strategy (clarified persistence boundaries)
+- VI. Message-Based Integration → VI. Message-Based Integration (metadata + topic declaration clarity)
+- VII. Thin Message Handlers → VII. Thin Message Handlers (strict responsibility boundaries)
+- IX. Technology Constraints → XI. Technology Constraints (renumbered after additions)
 
-Principles Defined:
-  1. Bounded Context Isolation (NEW) - Domain boundaries, database per domain
-  2. Message-Based Integration (NEW) - Event-driven architecture primary
-  3. Eventual Consistency (NEW) - Async operations, no distributed transactions
-  4. Test Coverage Requirements (NEW) - Domain 90%+, application 80%+
-  5. API Async-First (NEW) - 202 Accepted pattern for commands
-  6. Idempotent Operations (NEW) - Retry-safe handlers, duplicate handling
-  7. Repository Pattern (NEW) - Domain defines, infrastructure implements
-  8. Naming Consistency (NEW) - Commands (imperative), events (past tense)
-  9.  Explicit Validation Layers (NEW) - API format validation, domain business rules
+Added Principles:
+- IX. Saga Workflow Orchestration
+
+Removed Principles:
+- None
 
 Templates Requiring Updates:
-  ✅ .specify/memory/*.md - Source files used to derive principles
-  ⚠ .specify/templates/plan-template.md - Verify alignment with principles
-  ⚠ .specify/templates/spec-template.md - Ensure requirements align
-  ⚠ .specify/templates/tasks-template.md - Task types match principles
-  ⚠ .github/prompts/*.md - Update command prompts if needed
+- ✅ .specify/templates/plan-template.md
+- ✅ .specify/templates/spec-template.md
+- ✅ .specify/templates/tasks-template.md
+- ✅ .specify/templates/README.md
+- ✅ .specify/templates/constitution-template.md
 
-Follow-up Actions:
-  □ Review template files for consistency with constitution
-  □ Update command prompts to reference constitution principles
-  □ Establish periodic constitution review cadence
-  □ Train team on constitutional principles
+Runtime/Guidance Docs:
+- ✅ README.md
 
-Next Amendment: TBD (on principle violation or new pattern adoption)
+Command/Agent Guidance Files:
+- ✅ .github/agents/speckit.constitution.agent.md (validated; no outdated agent-name references)
+- ✅ .github/prompts/domain-builder.prompt.md
+
+Follow-up TODOs:
+- None
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+-->
+
 # RiskInsure Architecture Constitution
 
-**Version**: 2.0.0 | **Ratified**: 2026-02-02 | **Last Amended**: 2026-02-02
+**Version**: 2.1.0 | **Ratified**: 2026-02-02 | **Last Amended**: 2026-03-03
 
 ## Purpose
 
-This constitution defines **non-negotiable architectural rules** for all projects within the RiskInsure repository. All code, designs, and decisions MUST align with these principles.
+This constitution defines non-negotiable architectural rules for all projects within the
+RiskInsure repository. All code, designs, and decisions MUST align with these principles.
 
-**Domain-Specific Standards**: See [docs/filerun-processing-standards.md](../docs/filerun-processing-standards.md) for ACH/NACHA file processing domain rules.
+Domain-specific standards MAY extend these rules for a bounded context, but they MUST NOT
+contradict this constitution.
 
 ---
 
@@ -52,243 +53,200 @@ This constitution defines **non-negotiable architectural rules** for all project
 
 ### I. Domain Language Consistency
 
-**The Rule**: Each domain must define and consistently use its own ubiquitous language across all code, documentation, and communication.
+**The Rule**: Each bounded context MUST define and consistently use its own ubiquitous language.
 
 **Requirements**:
-- Document domain terminology in domain-specific standards files (e.g., `docs/*-standards.md`)
-- Use domain terms consistently in code, variable names, types, and messages
-- Prohibit ambiguous or technical jargon when domain terms exist
-- Maintain a glossary of required vs. prohibited terms per domain
+- Domain terminology MUST be documented in domain-specific standards files.
+- Code, contracts, APIs, and documentation MUST use approved domain terms.
+- Ambiguous or conflicting terms MUST be rejected during review.
 
-**Rationale**: Consistent domain language prevents confusion, improves communication between business and technical teams, and aligns code with business concepts.
+**Rationale**: Shared language keeps business intent explicit and reduces translation errors.
 
-**Verification**: Code reviews must reject PRs using prohibited terms or inconsistent terminology.
-
-**Verification**: No database connection strings reference other contexts; no cross-context entity references.
+**Verification**: PR review checks naming in contracts, handlers, managers, and docs.
 
 ---
 
 ### II. Data Model Strategy
 
-**The Rule**: Data model strategy MUST align with the selected persistence technology for the feature (Cosmos DB or PostgreSQL).
+**The Rule**: Each feature MUST explicitly choose and document its persistence strategy.
 
 **Requirements**:
-- **If Cosmos DB is selected**:
-   - Use one container for all document types within a processing domain
-   - Partition key identifies the processing unit (e.g., `/fileRunId`, `/batchId`, `/orderId`)
-   - Document type discriminator field distinguishes entity types
-   - Co-locate related documents within the same partition where possible
-- **If PostgreSQL is selected**:
-   - Use normalized relational schema with explicit keys and constraints
-   - Define transactional boundaries clearly for aggregate/state transitions
-   - Avoid cross-context coupling via shared tables
-- Persistence selection MUST be documented in `spec.md` and `plan.md` with rationale
+- If using Cosmos DB, use a partition strategy aligned to the processing unit.
+- If using PostgreSQL, use normalized schemas and explicit transactional boundaries.
+- Persistence choice and rationale MUST be documented in `spec.md` and `plan.md` before coding.
 
-**Rationale**: Different domains/features have different query and consistency needs. Enforcing a documented, explicit persistence decision preserves architectural intent while enabling fit-for-purpose design.
+**Rationale**: Explicit data strategy prevents accidental coupling and preserves consistency intent.
 
-**Verification**: Feature artifacts contain an explicit persistence decision and corresponding model strategy; implementation matches that strategy.
+**Verification**: Feature artifacts and implementation are checked for strategy alignment.
 
 ---
 
 ### III. Atomic State Transitions
 
-**The Rule**: Aggregate state and derived counts MUST be updated atomically when child entities transition states.
+**The Rule**: Aggregate state and derived counters MUST transition atomically.
 
 **Requirements**:
-- Use optimistic concurrency (ETags) for aggregate updates
-- Retry on ETag mismatch (conflicts)
-- Update counts in same transaction as state change (same partition)
-- Log state transitions with before/after counts
-- Handle all transition scenarios including replays and retries
+- Use optimistic concurrency for conflicting updates.
+- Retry conflicts safely.
+- Keep state transition and aggregate updates in one atomic boundary.
 
-**Rationale**: Prevents lost updates in concurrent scenarios; maintains accurate aggregate state for reporting and completion detection.
+**Rationale**: Atomic transitions prevent drift and race-condition corruption.
 
-**Verification**: All aggregate updates use ETags; count updates are atomic with state changes.
+**Verification**: Tests and code review confirm atomic updates and conflict handling.
 
 ---
 
-### IV. Idempotent Message Handlers
+### IV. Idempotent Message Handling
 
-**The Rule**: All message handlers MUST be idempotent (safe to retry/replay).
+**The Rule**: All message handlers MUST be safe for retry and replay.
 
 **Requirements**:
-- Check for existing state before creating documents
-- Use message-provided identifiers (not auto-generated)
-- Handle duplicate messages gracefully (no errors, just log)
-- Support at-least-once delivery semantics
-- Return early if operation already completed
-- Use outbox pattern for exactly-once processing
+- Check existing state before create/update operations.
+- Use deterministic identifiers from message data where possible.
+- Duplicate deliveries MUST NOT create duplicate side effects.
 
-**Rationale**: Message systems guarantee at-least-once delivery. Non-idempotent handlers create duplicate data and errors on retry.
+**Rationale**: At-least-once delivery is expected in distributed systems.
 
-**Verification**: All handlers check for existing state; retry tests demonstrate idempotency.
+**Verification**: Retry/replay tests and handler-level idempotency checks are required.
 
 ---
 
 ### V. Structured Observability
 
-**The Rule**: All logs and telemetry MUST include relevant correlation identifiers.
+**The Rule**: Logs and telemetry MUST include correlation context required for traceability.
 
 **Requirements**:
-- Include processing run identifier (e.g., `fileRunId`, `batchId`) in all logs
-- Include entity identifier when operating on specific entities
-- Include correlation ID from message context
-- Include operation name for all logged operations
-- Use structured logging (not string concatenation)
+- Include processing-unit identifiers and entity identifiers when applicable.
+- Include message correlation identifiers from NServiceBus context.
+- Use structured logging fields, not concatenated strings.
 
-**Log Levels**:
-- **Information**: State transitions, completion events, normal operations
-- **Warning**: Retries, degraded conditions, non-critical issues
-- **Error**: Failures requiring intervention, exceptions
+**Rationale**: Correlated telemetry is mandatory for production diagnosis in async workflows.
 
-**Rationale**: Correlation IDs enable distributed tracing across services and data operations. Essential for debugging production issues.
-
-**Verification**: All log statements include required correlation fields.
+**Verification**: PR review validates required fields in logging statements.
 
 ---
 
 ### VI. Message-Based Integration
 
-**The Rule**: Components integrate through brokered messages (commands and events) using NServiceBus with RabbitMQ or Azure Service Bus transport.
-
-**Message Types**:
-- **Commands**: Imperative, unicast, directed actions (e.g., `ProcessEntity`)
-- **Events**: Past-tense, broadcast, facts that occurred (e.g., `EntityProcessed`)
+**The Rule**: Cross-component integration MUST use brokered messaging.
 
 **Requirements**:
-- Use `context.Send()` for commands (targeted endpoint)
-- Use `context.Publish()` for events (subscribers)
-- All messages include standard metadata (MessageId, OccurredUtc, correlation fields, IdempotencyKey)
-- Define message contracts as C# records (immutable)
-- Every event published via `context.Publish()` or `IMessageSession.Publish()` MUST have a corresponding topic declared in `platform/infra/shared-services/servicebus.tf` under `locals.topic_names`
+- Commands MUST use `Send`; events MUST use `Publish`.
+- Message contracts MUST include `MessageId`, `OccurredUtc`, and `IdempotencyKey`.
+- Event publication MUST map to declared Service Bus topic infrastructure.
+- Direct cross-service synchronous HTTP for business workflow integration is prohibited.
 
-**Rationale**: Message-based integration maintains loose coupling, enables independent scaling, provides natural retry/error handling.
+**Rationale**: Brokered integration preserves loose coupling and resilience.
 
-**Verification**: No direct service-to-service HTTP calls; all integration through message transport.
-**Verification**: Every published event type resolves to an existing Service Bus topic in `platform/infra/shared-services/servicebus.tf`.
+**Verification**: Integration paths and published event topics are checked in review.
 
 ---
 
 ### VII. Thin Message Handlers
 
-**The Rule**: Message handlers MUST be thin - validate input, delegate to services, publish events.
+**The Rule**: Handlers MUST coordinate flow, not contain domain logic.
 
-**Prohibited in Handlers**:
-- ❌ Business logic implementation
-- ❌ Direct data access (use repositories/services)
-- ❌ Complex transformations
-- ❌ Long-running operations
+**Requirements**:
+- Validate message shape quickly and fail fast.
+- Delegate business behavior to domain managers/services.
+- Publish or send resulting messages.
+- Direct database access from handlers is prohibited.
 
-**Handler Responsibilities**:
-1. Validate message structure (fast-fail)
-2. Call domain service or repository
-3. Publish resulting events
-4. Log outcome
+**Rationale**: Thin handlers are simpler, more testable, and easier to evolve.
 
-**Rationale**: Thin handlers are testable without message infrastructure, enable business logic reuse, and simplify maintenance.
-
-**Verification**: Handlers delegate to services; no business logic in handler classes.
-
----
-
-### VIII. Test Coverage Requirements
-
-**The Rule**: Code MUST meet minimum test coverage thresholds before merging.
-
-**Coverage Targets**:
-- **Domain Layer**: 90%+ coverage (entities, aggregates, value objects)
-- **Application Layer**: 80%+ coverage (services, handlers, commands)
-- **Infrastructure Layer**: Integration tests for repositories and external services
-- **API Layer**: Integration tests for endpoints
-
-**Test Standards**:
-- xUnit framework for all tests
-- AAA pattern (Arrange-Act-Assert)
-- One assertion focus per test
-- Test naming: `MethodName_Scenario_ExpectedBehavior`
-- Prefer fakes over mocks
-- No tests against implementation details
-
-**Rationale**: High test coverage ensures business logic correctness, enables confident refactoring, and catches regressions early.
-
-**Verification**: Code coverage reports in CI; PR gates block merge below thresholds.
-
----
-
-### IX. Technology Constraints
-
-**The Rule**: Use approved technology stack; prohibited technologies are strictly forbidden.
-
-**Approved Stack**:
-- ✅ .NET 10.0
-- ✅ C# 13 with nullable reference types enabled
-- ✅ Azure Cosmos DB
-- ✅ PostgreSQL
-- ✅ RabbitMQ or Azure Service Bus for messaging transport
-- ✅ NServiceBus 9.x+ with Azure Service Bus and RabbitMQ transport
-- ✅ Azure Logic Apps Standard for orchestration workflows
-- ✅ Azure Container Apps for hosting NServiceBus endpoints
-- ✅ xUnit for testing
-
-**Prohibited Technologies**:
-- ❌ Entity Framework Core (use repository pattern with Cosmos SDK)
-- ❌ Distributed transactions (`TransactionScope`)
-- ❌ Azure Functions (use Azure Container Apps)
-- ❌ Kafka (not part of approved messaging stack)
-
-**Rationale**: Standardized stack ensures consistency, leverages team expertise, and prevents anti-patterns.
-
-**Verification**: Project references reviewed in code reviews; prohibited packages blocked.
-
-**Persistence Decision Policy**:
-- The Cosmos DB vs PostgreSQL decision MAY be deferred until feature planning.
-- The decision MUST be explicitly documented in `spec.md` and `plan.md` before implementation begins.
-
----
-
-### X. Naming Conventions
-
-**The Rule**: Naming follows strict conventions that communicate intent.
-
-**Message Naming**:
-- Commands: `Verb` + `Noun` (e.g., `ProcessEntity`, `CreateRecord`)
-- Events: `Noun` + `VerbPastTense` (e.g., `EntityProcessed`, `RecordCreated`)
-
-**Code Naming**:
-- Records/DTOs: `EntityName` (e.g., `FileReceived`, `PaymentReady`)
-- Handlers: `MessageName` + `Handler` (e.g., `FileReceivedHandler`)
-- Services: `FunctionalService` (e.g., `EntityProcessor`)
-- Repositories: `I` + `EntityName` + `Repository` (e.g., `IFileRunRepository`)
-- Avoid abbreviations except common domain terms
-
-**Rationale**: Consistent naming improves readability and communicates intent. Commands sound like actions; events like history.
-
-**Verification**: Code reviews enforce naming standards.
-
-**Verification**: All handlers check for existing state; integration tests verify retry safety.
+**Verification**: Handler classes are reviewed for delegation-only behavior.
 
 ---
 
 ### VIII. Repository Pattern
 
-**The Rule**: All data access goes through repository interfaces defined in Domain, implemented in Infrastructure.
+**The Rule**: Domain-owned repository abstractions MUST isolate persistence concerns.
 
 **Requirements**:
-- Domain defines `IEntityRepository` interfaces
-- Infrastructure provides `EntityRepository` implementations
-- Repositories work with domain entities, not DTOs or documents
-- Mapping between entities and storage documents happens in Infrastructure
-- Application layer depends on repository interfaces only
-- Repositories return domain entities or collections
+- Repository interfaces live in Domain; implementations live in Infrastructure.
+- Mapping between domain models and storage models occurs in Infrastructure.
+- Domain and handler logic MUST use repository abstractions, not storage SDKs directly.
+
+**Rationale**: Persistence isolation preserves domain purity and testability.
+
+**Verification**: Layer dependency checks and project references enforce this rule.
+
+---
+
+### IX. Saga Workflow Orchestration
+
+**The Rule**: Long-running workflows MUST be orchestrated by NServiceBus sagas that are message-driven
+state machines and never direct integration workers.
+
+**Requirements**:
+- A saga MUST define explicit correlation mapping in `ConfigureHowToFindSaga(...)` before use.
+- Correlation identifiers (for example `PolicyId`, `WorkflowId`, `OrderId`) MUST be present in every
+  message that starts or advances the saga.
+- Saga logic MUST be limited to: receive message, evaluate saga state, update saga data,
+  and emit follow-up messages/events.
+- Sagas MUST NOT call external services, files, or databases directly.
+- Saga persistence data MUST contain only workflow state needed for routing/progress decisions.
+- Saga completion MUST be explicit via `MarkAsComplete()` when terminal conditions are reached.
+
+**Rationale**: A saga is a workflow coordinator, not a worker. Keeping orchestration pure avoids tight
+coupling, improves recoverability, and makes retries deterministic.
+
+**Verification**: Code review checks saga classes for correlation mapping, allowed responsibilities,
+and absence of direct I/O dependencies.
+
+---
+
+### X. Test Coverage Requirements
+
+**The Rule**: Minimum test coverage thresholds MUST be met for merge.
+
+**Requirements**:
+- Domain layer coverage target: 90%+.
+- Application/handler coverage target: 80%+.
+- Integration tests MUST cover key message and API flows.
+- Saga tests MUST cover start, progression, timeout/terminal path, and duplicate message handling.
+
+**Rationale**: Coverage gates reduce regressions in asynchronous, stateful workflows.
+
+**Verification**: CI checks and test reports gate pull requests.
+
+---
+
+### XI. Technology Constraints
+
+**The Rule**: Implementations MUST use the approved platform stack.
+
+**Approved Stack**:
+- .NET 10.0, C# latest with nullable reference types
+- NServiceBus 9.x with RabbitMQ and/or Azure Service Bus transport
+- Cosmos DB and/or PostgreSQL (feature decision required)
+- Azure Container Apps for endpoint hosting
+- xUnit for .NET tests and Playwright for API integration tests
 
 **Prohibited**:
-- Direct `CosmosClient` usage outside repositories
-- Entity Framework `DbContext` references in Domain or Application
-- Data access code in handlers or services
+- Entity Framework Core for domain persistence patterns in this repository
+- Distributed transactions across services
+- Kafka as primary messaging transport
 
-**Rationale**: Repository pattern enables testability (mock repositories), maintainability (swap implementations), and clean separation between domain and persistence.
+**Rationale**: Standardization lowers operational risk and design fragmentation.
 
-**Verification**: No data access code outside Infrastructure; handlers use interfaces only.
+**Verification**: Project/package review enforces approved technology use.
+
+---
+
+### XII. Naming Conventions
+
+**The Rule**: Naming MUST communicate intent and message semantics clearly.
+
+**Requirements**:
+- Commands use imperative form (`VerbNoun`).
+- Events use past-tense factual form (`NounVerbPastTense`).
+- Handlers follow `{MessageName}Handler`.
+- Saga data and correlation properties MUST use explicit domain names (no ambiguous abbreviations).
+
+**Rationale**: Intent-revealing names improve maintainability and review accuracy.
+
+**Verification**: Naming is enforced through code review and static checks where available.
 
 ---
 
@@ -296,105 +254,29 @@ This constitution defines **non-negotiable architectural rules** for all project
 
 ### Feature Development Process
 
-1. **Design Phase**:
-   - Identify affected principles from this constitution
-   - Review domain-specific standards if applicable
-   - Design messages (commands/events) first
-   - Document in `docs/` if substantial change
-
-2. **Test Phase**:
-   - Write failing tests before implementation (TDD encouraged)
-   - Ensure tests cover domain logic thoroughly
-
-3. **Implementation Phase**:
-   - Implement message contracts (records)
-   - Add message handlers (thin, delegate to services)
-   - Implement services/repositories
-   - Update workflows if needed
-
-4. **Verification Phase**:
-   - Run all tests (unit + integration)
-   - Verify code coverage meets thresholds
-   - Review against constitutional principles
-   - Ensure naming conventions followed
+1. **Design**:
+   - Identify impacted constitutional principles.
+   - Define commands/events and workflow progression first.
+   - If workflow is long-running, define saga boundaries and correlation fields.
+2. **Test**:
+   - Write failing tests before implementation when feasible.
+   - Include idempotency and saga progression tests for workflow features.
+3. **Implement**:
+   - Implement contracts, managers/services, handlers, and saga orchestration.
+   - Keep handlers and sagas free from direct external I/O integration logic.
+4. **Verify**:
+   - Run unit/integration tests.
+   - Validate constitution compliance before merge.
 
 ### Code Review Requirements
 
-**Every PR MUST verify**:
-- ✅ Principles I-X compliance
-- ✅ Test coverage meets thresholds
-- ✅ Naming conventions followed
-- ✅ No prohibited technologies used
-- ✅ All message handlers are idempotent
-- ✅ Logs include required correlation fields
+Every PR MUST verify:
+- Compliance with Principles I–XII
+- Idempotent handlers and deterministic saga progression
+- Required correlation fields and structured logs
+- Coverage and quality gates
 
-**Reviewers MUST reject PRs that**:
-- Violate any core principle
-- Fall below test coverage thresholds
-- Use prohibited technologies
-- Have non-idempotent handlers
-
-**Hosting**:
-- Docker containers (Linux-based)
-- Azure Container Apps for deployment
-
-**Rationale**: Standardized stack ensures consistency, leverages team expertise, enables code reuse, and simplifies operations.
-
-### Prohibited Technologies
-
-**The following are explicitly prohibited**:
-- ❌ Entity Framework Core (use repository pattern with Cosmos SDK)
-- ❌ Distributed transactions (`TransactionScope` across services)
-- ❌ Synchronous HTTP calls between bounded contexts
-- ❌ Shared databases between bounded contexts
-- ❌ Kafka (not part of the approved messaging transport stack)
-
-**Rationale**: These constraints prevent anti-patterns that conflict with core principles.
-
----
-
-## Development Workflow
-
-### Feature Development Process
-
-1. **Design Phase**:
-   - Document feature in `.specify/specs/` if substantial
-   - Identify affected principles from this constitution
-   - Review domain-specific standards if applicable
-   - Design messages (commands/events) first
-   - Document in `docs/` if substantial change
-
-2. **Test Phase**:
-   - Write failing tests before implementation (TDD encouraged)
-   - Ensure tests cover domain logic thoroughly
-
-3. **Implementation Phase**:
-   - Implement message contracts (records)
-   - Add message handlers (thin, delegate to services)
-   - Implement services/repositories
-   - Update workflows if needed
-
-4. **Verification Phase**:
-   - Run all tests (unit + integration)
-   - Verify code coverage meets thresholds
-   - Review against constitutional principles
-   - Ensure naming conventions followed
-
-### Code Review Requirements
-
-**Every PR MUST verify**:
-- ✅ Principles I-X compliance
-- ✅ Test coverage meets thresholds
-- ✅ Naming conventions followed
-- ✅ No prohibited technologies used
-- ✅ All message handlers are idempotent
-- ✅ Logs include required correlation fields
-
-**Reviewers MUST reject PRs that**:
-- Violate any core principle
-- Fall below test coverage thresholds
-- Use prohibited technologies
-- Have non-idempotent handlers
+Reviewers MUST reject PRs that violate core principles.
 
 ---
 
@@ -402,47 +284,40 @@ This constitution defines **non-negotiable architectural rules** for all project
 
 ### Constitutional Authority
 
-This constitution **supersedes all other practices or guidelines** in this repository. When conflicts arise:
-
-1. This constitution takes precedence
-2. Update conflicting guidance to align
-3. If principle is unworkable, amend constitution (see below)
+This constitution supersedes other project guidance when conflicts arise.
+Conflicting guidance MUST be updated to align with this document.
 
 ### Amendment Process
 
-**When to Amend**:
-- Core principle proves unworkable in practice
-- New architectural pattern adopted
-- Technology constraint changes
-- Principle conflicts discovered
+1. Propose amendment with rationale and impact.
+2. Review with maintainers/architects.
+3. Approve and apply semantic version bump:
+   - **MAJOR**: Breaking principle removal/redefinition
+   - **MINOR**: New principle or materially expanded guidance
+   - **PATCH**: Clarifications with no semantic change
+4. Update dependent templates and guidance docs.
+5. Communicate amendment to the team.
 
-**Amendment Procedure**:
-1. **Propose Amendment**: Document issue, proposed change, rationale, impact
-2. **Team Review**: Discuss with team and architect
-3. **Approval**: Requires architect sign-off
-4. **Version Bump**: 
-   - **MAJOR**: Breaking principle change
-   - **MINOR**: New principle added
-   - **PATCH**: Clarification only
-5. **Update Documents**: Sync related documentation
-6. **Announce**: Communicate changes to team
+### Compliance Review Cadence
+
+- Constitution compliance MUST be checked in every feature plan and PR.
+- A lightweight constitutional review SHOULD occur at least once per quarter.
 
 ### Version History
 
-- **2.0.0** (2026-02-02): Simplified for RiskInsure; removed domain-specific details; made generic across all projects
-- **1.0.0** (2026-01-03): Initial constitution
+- **2.1.0** (2026-03-03): Added Saga Workflow Orchestration principle and synchronized Spec Kit templates.
+- **2.0.0** (2026-02-02): Simplified architecture constitution for cross-domain applicability.
+- **1.0.0** (2026-01-03): Initial constitution.
 
 ---
 
 ## Related Documents
 
-**Domain-Specific Standards**:
-- [docs/filerun-processing-standards.md](../docs/filerun-processing-standards.md) - ACH/NACHA file processing rules
-
-**General Documentation**:
-- [docs/architecture.md](../docs/architecture.md) - System architecture overview
-- [docs/message-contracts.md](../docs/message-contracts.md) - Message contract specifications
-- [.github/copilot-instructions.md](../.github/copilot-instructions.md) - Copilot coding assistant rules
+- [README.md](../../README.md)
+- [copilot-instructions/project-structure.md](../../copilot-instructions/project-structure.md)
+- [copilot-instructions/messaging-patterns.md](../../copilot-instructions/messaging-patterns.md)
+- [copilot-instructions/testing-standards.md](../../copilot-instructions/testing-standards.md)
+- [.specify/templates/plan-template.md](../templates/plan-template.md)
 
 ---
 

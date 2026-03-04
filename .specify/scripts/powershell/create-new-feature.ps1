@@ -20,7 +20,7 @@ if ($Help) {
     Write-Host "  -Json               Output in JSON format"
     Write-Host "  -ShortName <name>   Provide a custom short name (2-4 words) for the branch"
     Write-Host "  -Number N           Specify branch number manually (overrides auto-detection)"
-    Write-Host "  -ServicePath <path> Target service root or specs folder (e.g., services/nsb.sales or services/nsb.sales/specs)"
+    Write-Host "  -ServicePath <path> Target service root or specs folder (e.g., services/nsb.sales or services/nsb.sales/docs/specs)"
     Write-Host "  -Help               Show this help message"
     Write-Host ""
     Write-Host "Examples:"
@@ -167,7 +167,7 @@ function Resolve-SpecsRoot {
         if ($resolvedServicePath -match '[\\/]specs$') {
             return $resolvedServicePath
         }
-        return (Join-Path $resolvedServicePath 'specs')
+        return (Join-Path $resolvedServicePath 'docs/specs')
     }
 
     if ($env:SPECIFY_SPECS_ROOT) {
@@ -179,9 +179,9 @@ function Resolve-SpecsRoot {
 
     if ($env:SPECIFY_SERVICE) {
         if (Test-Path $env:SPECIFY_SERVICE) {
-            return (Resolve-Path (Join-Path $env:SPECIFY_SERVICE 'specs')).Path
+            return (Resolve-Path (Join-Path $env:SPECIFY_SERVICE 'docs/specs')).Path
         }
-        return (Resolve-Path (Join-Path $RepoRoot (Join-Path 'services' (Join-Path $env:SPECIFY_SERVICE 'specs')))).Path
+        return (Resolve-Path (Join-Path $RepoRoot (Join-Path 'services' (Join-Path $env:SPECIFY_SERVICE 'docs/specs')))).Path
     }
 
     return $null

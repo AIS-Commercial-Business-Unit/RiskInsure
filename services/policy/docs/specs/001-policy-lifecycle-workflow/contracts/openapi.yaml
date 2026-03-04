@@ -1,0 +1,191 @@
+openapi: 3.0.3
+info:
+  title: Policy Lifecycle Workflow API
+  version: 0.1.0
+  description: API surface for policy term lifecycle orchestration and status visibility.
+servers:
+  - url: /api
+paths:
+  /policies/{policyId}/lifecycle/terms/{policyTermId}:
+    get:
+      summary: Get lifecycle state for a policy term
+      operationId: getPolicyTermLifecycle
+      parameters:
+        - name: policyId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: policyTermId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Lifecycle state returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyTermLifecycleResponse'
+        '404':
+          description: Policy term lifecycle not found
+  /policies/{policyId}/lifecycle/start:
+    post:
+      summary: Start lifecycle workflow for a policy term
+      operationId: startPolicyLifecycle
+      parameters:
+        - name: policyId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartPolicyLifecycleRequest'
+      responses:
+        '202':
+          description: Lifecycle start accepted
+        '400':
+          description: Invalid request
+  /policies/{policyId}/lifecycle/equity-update:
+    post:
+      summary: Submit billing equity signal for cancellation evaluation
+      operationId: submitPolicyEquitySignal
+      parameters:
+        - name: policyId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyEquitySignalRequest'
+      responses:
+        '202':
+          description: Equity signal accepted
+        '400':
+          description: Invalid request
+components:
+  schemas:
+    StartPolicyLifecycleRequest:
+      type: object
+      required:
+        - policyTermId
+        - effectiveDateUtc
+        - expirationDateUtc
+        - termTicks
+        - milestonePercentages
+      properties:
+        policyTermId:
+          type: string
+        effectiveDateUtc:
+          type: string
+          format: date-time
+        expirationDateUtc:
+          type: string
+          format: date-time
+        termTicks:
+          type: integer
+          minimum: 1
+        milestonePercentages:
+          $ref: '#/components/schemas/MilestonePercentages'
+        cancellationThresholdPercentage:
+          type: number
+          format: decimal
+          default: -20
+        graceWindowPercent:
+          type: number
+          format: decimal
+          default: 10
+    PolicyEquitySignalRequest:
+      type: object
+      required:
+        - policyTermId
+        - equityPercentage
+        - cancellationThresholdPercentage
+      properties:
+        policyTermId:
+          type: string
+        equityPercentage:
+          type: number
+          format: decimal
+        cancellationThresholdPercentage:
+          type: number
+          format: decimal
+        occurredUtc:
+          type: string
+          format: date-time
+    MilestonePercentages:
+      type: object
+      required:
+        - renewalOpenPercent
+        - termEndPercent
+      properties:
+        renewalOpenPercent:
+          type: number
+          format: decimal
+          example: 66
+        renewalReminderPercent:
+          type: number
+          format: decimal
+          nullable: true
+          example: 83
+        termEndPercent:
+          type: number
+          format: decimal
+          example: 100
+    PolicyTermLifecycleResponse:
+      type: object
+      required:
+        - policyId
+        - policyTermId
+        - currentStatus
+        - effectiveDateUtc
+        - expirationDateUtc
+      properties:
+        policyId:
+          type: string
+        policyTermId:
+          type: string
+        currentStatus:
+          type: string
+        statusFlags:
+          type: array
+          items:
+            type: string
+        currentEquityPercentage:
+          type: number
+          format: decimal
+          nullable: true
+        cancellationThresholdPercentage:
+          type: number
+          format: decimal
+          nullable: true
+        pendingCancellationStartedUtc:
+          type: string
+          format: date-time
+          nullable: true
+        graceWindowRecheckUtc:
+          type: string
+          format: date-time
+          nullable: true
+        effectiveDateUtc:
+          type: string
+          format: date-time
+        expirationDateUtc:
+          type: string
+          format: date-time
+        completionStatus:
+          type: string
+          nullable: true
+        completedUtc:
+          type: string
+          format: date-time
+          nullable: true

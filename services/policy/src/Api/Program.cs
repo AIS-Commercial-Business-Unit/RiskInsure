@@ -100,8 +100,10 @@ try
 
     // Register repositories and services
     builder.Services.AddSingleton<IPolicyRepository, PolicyRepository>();
+    builder.Services.AddSingleton<IPolicyLifecycleTermStateRepository, PolicyLifecycleTermStateRepository>();
     builder.Services.AddSingleton<IPolicyNumberGenerator, PolicyNumberGenerator>();
     builder.Services.AddSingleton<IPolicyManager, PolicyManager>();
+    builder.Services.AddSingleton<IPolicyLifecycleManager, PolicyLifecycleManager>();
 
     // Configure NServiceBus (send-only for API)
     builder.Host.NServiceBusEnvironmentConfiguration(

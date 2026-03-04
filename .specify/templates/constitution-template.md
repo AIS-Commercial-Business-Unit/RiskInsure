@@ -35,11 +35,17 @@ Handlers validate → delegate to domain services → publish events. No busines
 - Application services/handlers: 80%+ coverage
 - Integration tests for API endpoints (Playwright)
 
-### IX. Technology Constraints
+### IX. Saga Workflow Orchestration
+Long-running workflows use NServiceBus sagas as message-driven orchestrators with explicit correlation mapping. Sagas maintain state and emit follow-up messages only; they never perform direct external I/O.
+
+### X. Technology Constraints
 - .NET 10.0, C# 13 with nullable reference types
 - NServiceBus 9.x with Azure Service Bus transport
 - Azure Cosmos DB **OR** PostgreSQL (decision required per feature)
 - xUnit for unit tests, Playwright for integration tests
+
+### XI. Naming Conventions
+Commands use imperative names, events use past-tense names, and handlers/saga artifacts use explicit intent-revealing naming.
 
 ## Additional Standards
 
@@ -53,7 +59,7 @@ Handlers validate → delegate to domain services → publish events. No busines
 
 All code, designs, and decisions MUST align with the constitution. Domain-specific standards (in `services/<domain>/docs/domain-specific-standards.md`) extend but cannot contradict core principles.
 
-**Version**: 2.0.0 | **Ratified**: 2026-02-02 | **Last Amended**: 2026-02-02
+**Version**: 2.1.0 | **Ratified**: 2026-02-02 | **Last Amended**: 2026-03-03
 
 ---
 

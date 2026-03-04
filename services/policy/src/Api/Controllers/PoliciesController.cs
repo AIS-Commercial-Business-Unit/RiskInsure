@@ -10,14 +10,98 @@ using RiskInsure.Policy.Domain.Managers;
 public class PoliciesController : ControllerBase
 {
     private readonly IPolicyManager _manager;
+    private readonly IPolicyLifecycleManager _lifecycleManager;
     private readonly ILogger<PoliciesController> _logger;
 
     public PoliciesController(
         IPolicyManager manager,
+        IPolicyLifecycleManager lifecycleManager,
         ILogger<PoliciesController> logger)
     {
         _manager = manager ?? throw new ArgumentNullException(nameof(manager));
+        _lifecycleManager = lifecycleManager ?? throw new ArgumentNullException(nameof(lifecycleManager));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    }
+
+    [HttpPost("{policyId}/lifecycle/start")]
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> StartLifecycle(string policyId, [FromBody] StartPolicyLifecycleRequest request)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        if (request.TermTicks < 1)
+        {
+            return BadRequest(new { error = "InvalidRequest", message = "termTicks must be greater than 0" });
+        }
+
+        var command = new Domain.Contracts.Commands.StartPolicyLifecycle(
+            MessageId: Guid.NewGuid(),
+            OccurredUtc: DateTimeOffset.UtcNow,
+            IdempotencyKey: $"start-lifecycle-{policyId}-{request.PolicyTermId}",
+            PolicyId: policyId,
+            PolicyTermId: request.PolicyTermId,
+            TermTicks: request.TermTicks,
+            EffectiveDate: request.EffectiveDateUtc,
+            ExpirationDate: request.ExpirationDateUtc,
+            RenewalOpenPercent: request.RenewalOpenPercent,
+            RenewalReminderPercent: request.RenewalReminderPercent,
+            TermEndPercent: request.TermEndPercent,
+            CancellationThresholdPercentage: request.CancellationThresholdPercentage,
+            GraceWindowPercent: request.GraceWindowPercent);
+
+        await _lifecycleManager.StartLifecycleAsync(command);
+
+        return Accepted();
+    }
+
+    [HttpGet("{policyId}/lifecycle/terms/{policyTermId}")]
+    [ProducesResponseType(typeof(PolicyTermLifecycleResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetPolicyTermLifecycle(string policyId, string policyTermId)
+    {
+        var state = await _lifecycleManager.GetLifecycleStateAsync(policyTermId);
+        if (state is null || !string.Equals(state.PolicyId, policyId, StringComparison.Ordinal))
+        {
+            return NotFound(new { error = "PolicyTermLifecycleNotFound", message = $"Lifecycle not found for policyTermId {policyTermId}" });
+        }
+
+        return Ok(MapLifecycleState(state));
+    }
+
+    [HttpGet("{policyId}/lifecycle/terms")]
+    [ProducesResponseType(typeof(List<PolicyTermLifecycleResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPolicyLifecycleTerms(string policyId)
+    {
+        var states = await _lifecycleManager.GetLifecycleStatesByPolicyIdAsync(policyId);
+        var response = states.Select(MapLifecycleState).ToList();
+        return Ok(response);
+    }
+
+    [HttpPost("{policyId}/lifecycle/equity-update")]
+    [ProducesResponseType(StatusCodes.Status202Accepted)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> SubmitPolicyEquitySignal(string policyId, [FromBody] PolicyEquitySignalRequest request)
+    {
+        var command = new Domain.Contracts.Commands.ProcessPolicyEquityUpdate(
+            MessageId: Guid.NewGuid(),
+            OccurredUtc: request.OccurredUtc ?? DateTimeOffset.UtcNow,
+            IdempotencyKey: $"equity-update-{policyId}-{request.PolicyTermId}",
+            PolicyId: policyId,
+            PolicyTermId: request.PolicyTermId,
+            EquityPercentage: request.EquityPercentage,
+            CancellationThresholdPercentage: request.CancellationThresholdPercentage);
+
+        var state = await _lifecycleManager.ProcessEquityUpdateAsync(command);
+        if (state is null)
+        {
+            return NotFound(new { error = "PolicyTermLifecycleNotFound", message = $"Lifecycle not found for policyTermId {request.PolicyTermId}" });
+        }
+
+        return Accepted();
     }
 
     [HttpPost("{policyId}/issue")]
@@ -196,5 +280,24 @@ public class PoliciesController : ControllerBase
         {
             return BadRequest(new { error = "ValidationFailed", errors = new { General = new[] { ex.Message } } });
         }
+    }
+
+    private static PolicyTermLifecycleResponse MapLifecycleState(Domain.Models.PolicyLifecycleTermState state)
+    {
+        return new PolicyTermLifecycleResponse
+        {
+            PolicyId = state.PolicyId,
+            PolicyTermId = state.PolicyTermId,
+            CurrentStatus = state.CurrentStatus,
+            StatusFlags = state.StatusFlags,
+            CurrentEquityPercentage = state.CurrentEquityPercentage,
+            CancellationThresholdPercentage = state.CancellationThresholdPercentage,
+            PendingCancellationStartedUtc = state.PendingCancellationStartedUtc,
+            GraceWindowRecheckUtc = state.GraceWindowRecheckUtc,
+            EffectiveDateUtc = state.EffectiveDateUtc,
+            ExpirationDateUtc = state.ExpirationDateUtc,
+            CompletionStatus = state.CompletionStatus,
+            CompletedUtc = state.CompletedUtc
+        };
     }
 }

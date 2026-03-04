@@ -99,9 +99,9 @@ function Get-SpecsRoot {
 
     if ($env:SPECIFY_SERVICE) {
         if (Test-Path $env:SPECIFY_SERVICE) {
-            return (Resolve-Path (Join-Path $env:SPECIFY_SERVICE 'specs')).Path
+            return (Resolve-Path (Join-Path $env:SPECIFY_SERVICE 'docs/specs')).Path
         }
-        return (Resolve-Path (Join-Path $RepoRoot (Join-Path 'services' (Join-Path $env:SPECIFY_SERVICE 'specs')))).Path
+        return (Resolve-Path (Join-Path $RepoRoot (Join-Path 'services' (Join-Path $env:SPECIFY_SERVICE 'docs/specs')))).Path
     }
 
     return (Join-Path $RepoRoot 'specs')
@@ -110,7 +110,36 @@ function Get-SpecsRoot {
 function Get-FeatureDir {
     param([string]$RepoRoot, [string]$Branch)
     $specsRoot = Get-SpecsRoot -RepoRoot $RepoRoot
-    Join-Path $specsRoot $Branch
+    $defaultCandidate = Join-Path $specsRoot $Branch
+    if (Test-Path $defaultCandidate) {
+        return $defaultCandidate
+    }
+
+    $servicesRoot = Join-Path $RepoRoot 'services'
+    if (Test-Path $servicesRoot) {
+        $matches = @()
+        Get-ChildItem -Path $servicesRoot -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+            $docsSpecsCandidate = Join-Path $_.FullName (Join-Path 'docs/specs' $Branch)
+            if (Test-Path $docsSpecsCandidate) {
+                $matches += $docsSpecsCandidate
+            }
+
+            $legacySpecsCandidate = Join-Path $_.FullName (Join-Path 'specs' $Branch)
+            if (Test-Path $legacySpecsCandidate) {
+                $matches += $legacySpecsCandidate
+            }
+        }
+
+        if ($matches.Count -eq 1) {
+            return $matches[0]
+        }
+
+        if ($matches.Count -gt 1) {
+            throw "Multiple feature directories found for branch '$Branch'. Use -SpecPath to disambiguate. Matches: $($matches -join ', ')"
+        }
+    }
+
+    return $defaultCandidate
 }
 
 function Resolve-SpecPath {

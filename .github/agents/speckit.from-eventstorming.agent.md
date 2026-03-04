@@ -120,9 +120,9 @@ And: [Event] is published
 
 ### Step 7: Save Spec
 
-**Default location**: `services/[context-service]/specs/###-[feature-name]/spec.md`
+**Default location**: `services/[context-service]/docs/specs/###-[feature-name]/spec.md`
 
-**Also create**: `services/[context-service]/specs/###-[feature-name]/eventstorming-model.md` (copy of original EventStorming file for versioning)
+**Also create**: `services/[context-service]/docs/specs/###-[feature-name]/eventstorming-model.md` (copy of original EventStorming file for versioning)
 
 **Update**: `services/[context-service]/docs/specs/README.md` to add this feature to "Active Features"
 
@@ -132,8 +132,8 @@ And: [Event] is published
 
 **Output to user**:
 ```
-✅ Spec created: services/[context-service]/specs/###-[feature-name]/spec.md
-✅ EventStorming model archived: services/[context-service]/specs/###-[feature-name]/eventstorming-model.md
+✅ Spec created: services/[context-service]/docs/specs/###-[feature-name]/spec.md
+✅ EventStorming model archived: services/[context-service]/docs/specs/###-[feature-name]/eventstorming-model.md
 ✅ Updated feature index: services/[context-service]/docs/specs/README.md
 
 Next steps:
@@ -170,7 +170,7 @@ Next steps:
 ```markdown
 ## Domain Model Reference
 
-**EventStorming Model**: [`services/sales/.nsb_example/Sales_Systems_single_context_final.md`](../../services/sales/.nsb_example/Sales_Systems_single_context_final.md)
+**EventStorming Model**: `services/<context>/.nsb_example/<Context>_Systems_single_context_final.md`
 
 ### Commands
 

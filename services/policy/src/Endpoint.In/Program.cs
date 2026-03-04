@@ -82,8 +82,10 @@ try
 
         // Register repositories and services
         services.AddSingleton<IPolicyRepository, PolicyRepository>();
+        services.AddSingleton<IPolicyLifecycleTermStateRepository, PolicyLifecycleTermStateRepository>();
         services.AddSingleton<IPolicyNumberGenerator, PolicyNumberGenerator>();
         services.AddSingleton<IPolicyManager, PolicyManager>();
+        services.AddSingleton<IPolicyLifecycleManager, PolicyLifecycleManager>();
     });
 
     // Configure NServiceBus

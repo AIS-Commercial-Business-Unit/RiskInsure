@@ -12,7 +12,7 @@
 #   -RequireTasks       Require tasks.md to exist (for implementation phase)
 #   -IncludeTasks       Include tasks.md in AVAILABLE_DOCS list
 #   -PathsOnly          Only output path variables (no validation)
-#   -SpecPath           Explicit spec path (e.g., services/nsb.sales/specs/001-sales-ordering/spec.md)
+#   -SpecPath           Explicit spec path (e.g., services/nsb.sales/docs/specs/001-sales-ordering/spec.md)
 #   -Help, -h           Show help message
 
 [CmdletBinding()]
@@ -39,7 +39,7 @@ OPTIONS:
   -RequireTasks       Require tasks.md to exist (for implementation phase)
   -IncludeTasks       Include tasks.md in AVAILABLE_DOCS list
   -PathsOnly          Only output path variables (no prerequisite validation)
-    -SpecPath           Explicit spec path (e.g., services/nsb.sales/specs/001-sales-ordering/spec.md)
+    -SpecPath           Explicit spec path (e.g., services/nsb.sales/docs/specs/001-sales-ordering/spec.md)
   -Help, -h           Show this help message
 
 EXAMPLES:

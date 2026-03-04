@@ -101,6 +101,23 @@ public record [EventNamePastTense](
 
 ---
 
+## Workflow/Saga Design (if long-running)
+
+- **Workflow Type**: [Saga | Choreography-only | N/A]
+- **Saga Name**: [e.g., `PolicyLifecycleSaga`]
+- **Start Message**: [Message that creates saga instance]
+- **Advancing Messages**: [Messages/events that move saga state]
+- **Correlation ID Field**: [e.g., `PolicyId`, `WorkflowId`] (required on all saga-driving messages)
+- **Correlation Mapping**: [How `ConfigureHowToFindSaga` maps fields]
+- **Saga State Fields**: [Minimal state-only data required for progression]
+
+**Constraints**:
+- Saga acts as orchestrator only (message in → state update → message out)
+- Saga performs no direct database/file/external service I/O
+- Saga completion condition is explicit (`MarkAsComplete`)
+
+---
+
 ## Data Changes (if applicable)
 
 **Persistence**: [Cosmos DB | PostgreSQL - must choose one]

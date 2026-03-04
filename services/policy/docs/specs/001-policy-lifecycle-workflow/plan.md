@@ -1,13 +1,13 @@
 # Implementation Plan: [FEATURE]
 
 **Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/[FEATURE_SPEC_REL]`
+**Input**: Feature specification from `/services/policy/docs/specs/001-policy-lifecycle-workflow/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Implement a policy-term lifecycle state machine in the Policy bounded context using an NServiceBus saga (`PolicyLifecycleSaga`) that orchestrates time-based lifecycle progression and billing-equity-driven cancellation. Lifecycle milestones are configured as percentages of total term ticks, translated to absolute timestamps at term start, and executed through message-driven transitions. Renewal acceptance completes the current term workflow and emits follow-up events to start a new term workflow instance.
 
 ## Technical Context (RiskInsure Stack)
 
@@ -31,13 +31,13 @@
   - **When to use**: Complex queries, strong relational constraints, reporting/analytics, mature tooling
   - **PostgreSQL Persistence**: NServiceBus.Persistence.Sql with PostgreSQL dialect
 
-**DECISION**: [MUST BE FILLED - state "Cosmos DB" or "PostgreSQL" with brief rationale]  
-**Rationale**: [Why this choice fits the feature's query/consistency/scale needs]
+**DECISION**: Cosmos DB  
+**Rationale**: Existing Policy service persistence and repositories are Cosmos-based with `/policyId` partitioning. Lifecycle state transitions and policy-term state projections are naturally document-centric and partition-local.
 
 ### Project Structure Constraints
 
-**Bounded Context**: [Which service - e.g., Billing, Policy, FileIntegration]  
-**Service Location**: `[SERVICE_ROOT_REL]/`  
+**Bounded Context**: Policy  
+**Service Location**: `services/policy/`  
 **Layer Requirements** (per `copilot-instructions/project-structure.md` and existing service patterns like `services/billing/`):
 - `src/Domain/` - Contracts, DTOs, managers, models, services (business logic + orchestration)
 - `src/Infrastructure/` - Shared infrastructure configuration (Cosmos init, NServiceBus config extensions)
@@ -46,9 +46,9 @@
 - `test/Unit.Tests/` - xUnit unit tests
 - `test/Integration.Tests/` - Playwright/API integration tests (Node.js/npm)
 
-**Performance Goals**: [e.g., Message processing <500ms p95, API responses <200ms p95]  
-**Constraints**: [e.g., Idempotent handlers, thin message handlers, atomic state transitions]  
-**Scale/Scope**: [e.g., 10K messages/hour, 100 concurrent users]
+**Performance Goals**: Message-driven lifecycle transition handling <500ms p95 per message; lifecycle query API <200ms p95 under normal load.  
+**Constraints**: Idempotent handlers/saga progression; thin handlers and saga orchestrator-only behavior; no direct external I/O from saga; atomic policy state updates within partition; percentage-based milestone computation.  
+**Scale/Scope**: Supports variable tick counts per term (e.g., 6/10/24), overlapping consecutive term workflows per policy, and billing equity update event streams.
 
 ### Host Profile & Docker Runtime Decision ⚠️ REQUIRED
 
@@ -66,36 +66,36 @@
 **Compatibility rule**: `Serilog.AspNetCore` requires ASP.NET shared framework and therefore MUST NOT be paired with `dotnet/runtime` image.
 
 **DECISION**:
-- `Api` host profile: [API | N/A]
-- `Endpoint.In` host profile: [Worker | N/A]
-- `Api` Docker runtime base: [aspnet:10.0 | N/A]
-- `Endpoint.In` Docker runtime base: [runtime:10.0 | N/A]
-- Logging package set chosen per host: [list actual package references]
+- `Api` host profile: API
+- `Endpoint.In` host profile: Worker
+- `Api` Docker runtime base: aspnet:10.0
+- `Endpoint.In` Docker runtime base: runtime:10.0
+- Logging package set chosen per host: `Serilog.AspNetCore` (Api), `Serilog.Extensions.Hosting` + `Serilog.Settings.Configuration` (Endpoint.In)
 
 ## Constitution Check (RiskInsure Principles)
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-**Reference**: [.specify/memory/constitution.md]([CONSTITUTION_REL])
+**Reference**: [.specify/memory/constitution.md](../../../../../.specify/memory/constitution.md)
 
 ### Core Principle Compliance
 
-- [ ] **I. Domain Language Consistency** - Uses ubiquitous language from domain docs, no prohibited terms
-- [ ] **II. Data Model Strategy** - Persistence strategy selected and documented (Cosmos partitioning OR PostgreSQL schema)
-- [ ] **III. Atomic State Transitions** - Aggregates updated atomically with ETags (Cosmos) or transactions (PostgreSQL)
-- [ ] **IV. Idempotent Message Handling** - Handlers check existing state before creating/updating, safe to retry
-- [ ] **V. Structured Observability** - All logs include correlation IDs (fileRunId/orderId/customerId + MessageId)
-- [ ] **VI. Message-Based Integration** - Cross-service via Service Bus (no direct HTTP calls)
-- [ ] **VII. Thin Message Handlers** - Handlers delegate to domain services/managers, no business logic in handlers
-- [ ] **VIII. Repository Pattern** - Data access via domain-defined repository interfaces implemented in Infrastructure
-- [ ] **IX. Saga Workflow Orchestration** - Sagas define correlation mapping, keep only workflow state, and perform no direct external I/O
-- [ ] **X. Test Coverage Requirements** - Domain 90%+, Application 80%+ (unit + integration)
-- [ ] **XI. Technology Constraints** - Follows approved stack (.NET 10, NServiceBus 9.x, approved persistence)
-- [ ] **XII. Naming Conventions** - Commands/events/handlers/saga data follow constitutional naming rules
+- [x] **I. Domain Language Consistency** - Uses policy lifecycle domain terms (`Bound`, `Active`, `PendingCancellation`, `PendingRenewal`, `Expired`, `Renewed`)
+- [x] **II. Data Model Strategy** - Cosmos DB chosen and documented with `/policyId` partition-local state transitions
+- [x] **III. Atomic State Transitions** - Saga transition writes and policy projection updates remain partition-local and concurrency-safe
+- [x] **IV. Idempotent Message Handling** - Message metadata and `(PolicyTermId, transition)` dedup strategy defined
+- [x] **V. Structured Observability** - Correlation fields include `PolicyId`, `PolicyTermId`, `MessageId`, operation names
+- [x] **VI. Message-Based Integration** - Billing input and lifecycle outputs are event/message-based
+- [x] **VII. Thin Message Handlers** - Handlers and saga delegate business decisions to domain manager logic
+- [x] **VIII. Repository Pattern** - Existing Policy repository abstraction is retained and extended
+- [x] **IX. Saga Workflow Orchestration** - Saga orchestrates state progression and emits follow-up messages only
+- [x] **X. Test Coverage Requirements** - Unit/saga/integration coverage planned with threshold targets
+- [x] **XI. Technology Constraints** - .NET 10 + NServiceBus 9.x + Cosmos align with approved stack
+- [x] **XII. Naming Conventions** - Command/event/saga naming follows constitutional conventions
 
 ### Platform Compatibility Gate
 
-- [ ] **Host/Runtime Compatibility** - Logging package choice matches Docker runtime base for each executable host
+- [x] **Host/Runtime Compatibility** - Logging package choice matches Docker runtime base for each executable host
 
 ### Violations Requiring Justification
 
@@ -110,7 +110,7 @@
 ### Documentation (this feature)
 
 ```text
-[FEATURE_DIR_REL]/
+services/policy/docs/specs/001-policy-lifecycle-workflow/
 ├── plan.md              # This file (/speckit.plan command output)
 ├── research.md          # Phase 0 output (/speckit.plan command)
 ├── data-model.md        # Phase 1 output (/speckit.plan command)
@@ -121,10 +121,10 @@
 
 ### Source Code (RiskInsure Service Structure)
 
-**Service Root**: `[SERVICE_ROOT_REL]/`
+**Service Root**: `services/policy/`
 
 ```text
-[SERVICE_ROOT_REL]/
+services/policy/
 ├── src/
 │   ├── Api/
 │   │   ├── Controllers/
@@ -167,6 +167,25 @@ platform/RiskInsure.PublicContracts/
 
 **Structure Decision**: MUST be concrete (no placeholders). Confirm exact service path and any cross-service contract paths.
 
+Confirmed concrete paths:
+- Feature artifacts: `services/policy/docs/specs/001-policy-lifecycle-workflow/`
+- Service root: `services/policy/`
+- Cross-service contract candidate path (if needed): `platform/RiskInsure.PublicContracts/Events/`
+
+## Phase 0 Research Summary
+
+- Lifecycle milestone strategy: percentage-based of total ticks (not fixed tick numbers)
+- Renewal progression reference: open renewal workflow at configurable percentage and support optional reminder milestone before term end
+- Billing equity cancellation model: threshold breach enters `PendingCancellation`; final cancel only after grace-window recheck
+- Accepted default values for initial implementation: cancellation threshold `-20%`, grace window `10%` of term ticks
+
+## Phase 1 Design Summary
+
+- Saga correlation key: `PolicyTermId` across start and all advance messages
+- Saga state: term dates, status flags, milestone percentages, equity/cancellation fields, completion metadata
+- New design artifacts created: `research.md`, `data-model.md`, `quickstart.md`, `contracts/openapi.yaml`, `contracts/messaging-contracts.md`
+- Post-design constitution check: PASS (no unresolved principle violations)
+
 ## Complexity Tracking
 
 > **Fill ONLY if Constitution Check has violations that must be justified**
@@ -175,3 +194,4 @@ platform/RiskInsure.PublicContracts/
 |-----------|------------|-------------------------------------|
 | [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
 | [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+

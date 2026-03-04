@@ -128,12 +128,32 @@
 - Internal (this service only): `services/<domain>/src/Domain/Contracts/`
 - Public (cross-service): `platform/RiskInsure.PublicContracts/Events/` or `platform/RiskInsure.PublicContracts/Commands/`
 
+## Workflow/Saga Design *(mandatory for long-running workflows)*
+
+- **Workflow Type**: [Saga | Choreography-only | N/A]
+- **Saga Name**: [e.g., `PolicyLifecycleSaga`]
+- **Start Message**: [Message that creates saga instance]
+- **Advancing Messages**: [Events/messages that move workflow state]
+- **Emitted Messages**: [Events (and commands only if explicitly approved by domain standards)]
+- **Correlation Identifier**: [e.g., `PolicyId`, `WorkflowId`] - MUST be present on start + advancing messages
+- **Correlation Mapping Plan**: [Describe `ConfigureHowToFindSaga` mapping]
+- **Saga Data (State Only)**: [Fields required to track workflow progression]
+
+**Saga Constraints (Constitutional)**:
+- Saga MUST act as orchestrator only: consume messages, update saga state, emit follow-up messages
+- Saga MUST NOT call databases, files, HTTP APIs, or external services directly
+- Saga MUST explicitly define completion/terminal conditions
+
 ## Data Strategy *(if applicable)*
 
 **Partition Key**: [e.g., `/fileRunId`, `/orderId`, `/customerId` - identifies processing unit for single-partition queries]  
 **Document Types**: [e.g., FileRun, PaymentInstruction, ValidationError - types stored in same container]  
 **State Transitions**: [If aggregate state changes, describe: e.g., "FileRun: Pending → Processing → Completed/Failed"]  
 **Idempotency Strategy**: [How duplicate messages are handled - e.g., "Check existing document by ID before creating"]
+
+**Saga Persistence Strategy** *(if Saga selected above)*:
+- [Where saga data is stored and how it is configured]
+- [Which minimal workflow-state fields are persisted]
 
 ## Success Criteria *(mandatory)*
 

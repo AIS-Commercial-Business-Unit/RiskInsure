@@ -14,7 +14,7 @@ $ErrorActionPreference = 'Stop'
 if ($Help) {
     Write-Output "Usage: ./setup-plan.ps1 [-Json] [-SpecPath <path-to-spec>] [-Help]"
     Write-Output "  -Json     Output results in JSON format"
-    Write-Output "  -SpecPath Explicit spec path (e.g., services/nsb.sales/specs/001-sales-ordering/spec.md)"
+    Write-Output "  -SpecPath Explicit spec path (e.g., services/nsb.sales/docs/specs/001-sales-ordering/spec.md)"
     Write-Output "  -Help     Show this help message"
     exit 0
 }
@@ -119,7 +119,9 @@ if (Test-Path $paths.IMPL_PLAN) {
     $featureDirRelNormalized = $featureDirRel.Replace('\', '/')
 
     $serviceRootRel = $null
-    if ($featureDirRelNormalized -match '^(.*?)/specs/[^/]+$') {
+    if ($featureDirRelNormalized -match '^(.*?)/docs/specs/[^/]+$') {
+        $serviceRootRel = $Matches[1]
+    } elseif ($featureDirRelNormalized -match '^(.*?)/specs/[^/]+$') {
         $serviceRootRel = $Matches[1]
     }
     if (-not $serviceRootRel) {

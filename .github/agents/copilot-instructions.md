@@ -3,6 +3,7 @@
 Auto-generated from all feature plans. Last updated: 2026-02-20
 
 ## Active Technologies
+- .NET 10.0, C# 13 (nullable reference types enabled, LangVersion: latest) (001-policy-lifecycle-workflow)
 
 - C# 13 / .NET 10.0 with nullable reference types enabled (001-workflow-orchestration)
 
@@ -22,10 +23,10 @@ tests/
 C# 13 / .NET 10.0 with nullable reference types enabled: Follow standard conventions
 
 ## Recent Changes
+- 001-policy-lifecycle-workflow: Added .NET 10.0, C# 13 (nullable reference types enabled, LangVersion: latest)
 - 001-file-retrieval-config: Added C# 13 / .NET 10.0 with nullable reference types enabled
 - 001-file-retrieval-config: Added C# 13 / .NET 10.0 with nullable reference types enabled
 
-- 001-workflow-orchestration: Added C# 13 / .NET 10.0 with nullable reference types enabled
 
 <!-- MANUAL ADDITIONS START -->
 <!-- MANUAL ADDITIONS END -->

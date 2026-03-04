@@ -6,6 +6,7 @@ Event-driven .NET 10 monorepo using NServiceBus, RabbitMQ transport, Azure Cosmo
 
 This repository implements an **event-driven architecture** with:
 - **NServiceBus 9.x** for message-based integration via RabbitMQ transport
+- **NServiceBus Sagas** for long-running workflow orchestration via correlated messages
 - **Azure Cosmos DB** for single-partition NoSQL persistence
 - **Azure Container Apps** for hosting NServiceBus endpoints with KEDA scaling
 - **Azure Logic Apps Standard** for orchestration workflows
