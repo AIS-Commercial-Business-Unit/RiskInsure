@@ -58,7 +58,7 @@ EXPOSE 8080
 
 # Health check endpoint
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD curl -f http://localhost:8080/api/policy/health || exit 1
+  CMD curl -f http://localhost:8080/health || exit 1
 
 # Set ASP.NET Core to listen on port 8080 (non-root)
 ENV ASPNETCORE_URLS=http://+:8080
