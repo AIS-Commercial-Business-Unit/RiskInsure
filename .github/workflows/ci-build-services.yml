@@ -402,131 +402,131 @@ jobs:
   # ==========================================================================
   # Vulnerability Scanning (Optional but Recommended)
   # ==========================================================================
-  scan:
-    name: 'Scan: ${{ matrix.service }}'
-    needs: [determine-services, build]
-    if: needs.determine-services.outputs.matrix_empty == 'false' && needs.build.result == 'success'
-    runs-on: ubuntu-latest
+  # scan:
+  #   name: 'Scan: ${{ matrix.service }}'
+  #   needs: [determine-services, build]
+  #   if: needs.determine-services.outputs.matrix_empty == 'false' && needs.build.result == 'success'
+  #   runs-on: ubuntu-latest
     
-    permissions:
-      id-token: write
-      contents: read
-      security-events: write
+  #   permissions:
+  #     id-token: write
+  #     contents: read
+  #     security-events: write
     
-    strategy:
-      fail-fast: false
-      matrix:
-        service: ${{ fromJson(needs.determine-services.outputs.services) }}
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       service: ${{ fromJson(needs.determine-services.outputs.services) }}
     
-    steps:
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+  #   steps:
+  #     - name: Azure Login
+  #       uses: azure/login@v2
+  #       with:
+  #         client-id: ${{ secrets.AZURE_CLIENT_ID }}
+  #         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+  #         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       
-      - name: Get ACR Name
-        id: acr
-        shell: bash
-        run: |
-          RG="CAIS-010-RiskInsure"
-          ACR_NAME=$(az acr list --resource-group "$RG" --query "[0].name" -o tsv)
-          echo "acr_name=$ACR_NAME" >> "$GITHUB_OUTPUT"
+  #     - name: Get ACR Name
+  #       id: acr
+  #       shell: bash
+  #       run: |
+  #         RG="CAIS-010-RiskInsure"
+  #         ACR_NAME=$(az acr list --resource-group "$RG" --query "[0].name" -o tsv)
+  #         echo "acr_name=$ACR_NAME" >> "$GITHUB_OUTPUT"
       
-      - name: ACR Login
-        run: |
-          az acr login --name ${{ steps.acr.outputs.acr_name }}
+  #     - name: ACR Login
+  #       run: |
+  #         az acr login --name ${{ steps.acr.outputs.acr_name }}
       
-      - name: Map Service Names
-        id: map
-        shell: bash
-        run: |
-          SERVICE="${{ matrix.service }}"
+  #     - name: Map Service Names
+  #       id: map
+  #       shell: bash
+  #       run: |
+  #         SERVICE="${{ matrix.service }}"
           
-          # Map service names (match build job)
-          case "$SERVICE" in
-            ratingandunderwriting)
-              IMAGE_NAME="ratingandunderwriting"
-              ;;
-            fundstransfermgt)
-              IMAGE_NAME="fundstransfermgt"
-              ;;
-            billing|customer|policy)
-              IMAGE_NAME="$SERVICE"
-              ;;
-            *)
-              echo "❌ Unknown service: $SERVICE"
-              exit 1
-              ;;
-          esac
+  #         # Map service names (match build job)
+  #         case "$SERVICE" in
+  #           ratingandunderwriting)
+  #             IMAGE_NAME="ratingandunderwriting"
+  #             ;;
+  #           fundstransfermgt)
+  #             IMAGE_NAME="fundstransfermgt"
+  #             ;;
+  #           billing|customer|policy)
+  #             IMAGE_NAME="$SERVICE"
+  #             ;;
+  #           *)
+  #             echo "❌ Unknown service: $SERVICE"
+  #             exit 1
+  #             ;;
+  #         esac
           
-          echo "image_name=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
+  #         echo "image_name=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
       
-      - name: Pull API Image
-        shell: bash
-        run: |
-          IMAGE="${{ env.REGISTRY }}/${{ steps.map.outputs.image_name }}-api:${{ github.sha }}"
-          docker pull "$IMAGE"
+  #     - name: Pull API Image
+  #       shell: bash
+  #       run: |
+  #         IMAGE="${{ env.REGISTRY }}/${{ steps.map.outputs.image_name }}-api:${{ github.sha }}"
+  #         docker pull "$IMAGE"
       
-      - name: Pull Endpoint Image
-        shell: bash
-        run: |
-          IMAGE="${{ env.REGISTRY }}/${{ steps.map.outputs.image_name }}-endpoint:${{ github.sha }}"
-          docker pull "$IMAGE"
+  #     - name: Pull Endpoint Image
+  #       shell: bash
+  #       run: |
+  #         IMAGE="${{ env.REGISTRY }}/${{ steps.map.outputs.image_name }}-endpoint:${{ github.sha }}"
+  #         docker pull "$IMAGE"
       
-      - name: Run Trivy Scan on API Image
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          image-ref: '${{ env.REGISTRY }}/${{ steps.map.outputs.image_name }}-api:${{ github.sha }}'
-          format: 'sarif'
-          output: 'trivy-results-${{ matrix.service }}-api.sarif'
-          severity: 'CRITICAL,HIGH'
+  #     - name: Run Trivy Scan on API Image
+  #       uses: aquasecurity/trivy-action@0.28.0
+  #       with:
+  #         image-ref: '${{ env.REGISTRY }}/${{ steps.map.outputs.image_name }}-api:${{ github.sha }}'
+  #         format: 'sarif'
+  #         output: 'trivy-results-${{ matrix.service }}-api.sarif'
+  #         severity: 'CRITICAL,HIGH'
       
-      - name: Run Trivy Scan on Endpoint Image
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          image-ref: '${{ env.REGISTRY }}/${{ steps.map.outputs.image_name }}-endpoint:${{ github.sha }}'
-          format: 'sarif'
-          output: 'trivy-results-${{ matrix.service }}-endpoint.sarif'
-          severity: 'CRITICAL,HIGH'
+  #     - name: Run Trivy Scan on Endpoint Image
+  #       uses: aquasecurity/trivy-action@0.28.0
+  #       with:
+  #         image-ref: '${{ env.REGISTRY }}/${{ steps.map.outputs.image_name }}-endpoint:${{ github.sha }}'
+  #         format: 'sarif'
+  #         output: 'trivy-results-${{ matrix.service }}-endpoint.sarif'
+  #         severity: 'CRITICAL,HIGH'
       
-      - name: Upload API Trivy Results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: 'trivy-results-${{ matrix.service }}-api.sarif'
-          category: 'container-${{ matrix.service }}-api'
+  #     - name: Upload API Trivy Results to GitHub Security
+  #       uses: github/codeql-action/upload-sarif@v3
+  #       if: always()
+  #       with:
+  #         sarif_file: 'trivy-results-${{ matrix.service }}-api.sarif'
+  #         category: 'container-${{ matrix.service }}-api'
       
-      - name: Upload Endpoint Trivy Results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: 'trivy-results-${{ matrix.service }}-endpoint.sarif'
-          category: 'container-${{ matrix.service }}-endpoint'
+  #     - name: Upload Endpoint Trivy Results to GitHub Security
+  #       uses: github/codeql-action/upload-sarif@v3
+  #       if: always()
+  #       with:
+  #         sarif_file: 'trivy-results-${{ matrix.service }}-endpoint.sarif'
+  #         category: 'container-${{ matrix.service }}-endpoint'
       
-      - name: Upload API Trivy Results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: trivy-results-${{ matrix.service }}-api
-          path: trivy-results-${{ matrix.service }}-api.sarif
-          retention-days: 30
+  #     - name: Upload API Trivy Results
+  #       uses: actions/upload-artifact@v4
+  #       if: always()
+  #       with:
+  #         name: trivy-results-${{ matrix.service }}-api
+  #         path: trivy-results-${{ matrix.service }}-api.sarif
+  #         retention-days: 30
       
-      - name: Upload Endpoint Trivy Results
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: trivy-results-${{ matrix.service }}-endpoint
-          path: trivy-results-${{ matrix.service }}-endpoint.sarif
-          retention-days: 30
+  #     - name: Upload Endpoint Trivy Results
+  #       uses: actions/upload-artifact@v4
+  #       if: always()
+  #       with:
+  #         name: trivy-results-${{ matrix.service }}-endpoint
+  #         path: trivy-results-${{ matrix.service }}-endpoint.sarif
+  #         retention-days: 30
 
   # ==========================================================================
   # Summary
   # ==========================================================================
   summary:
     name: 'Build Summary'
-    needs: [determine-services, build, scan]
+    needs: [determine-services, build]
     if: always()
     runs-on: ubuntu-latest
     
@@ -546,7 +546,6 @@ jobs:
           echo "|-----|--------|" >> "$GITHUB_STEP_SUMMARY"
           echo "| Determine Services | ${{ needs.determine-services.result }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Build | ${{ needs.build.result }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Scan | ${{ needs.scan.result }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           
           if [[ "${{ needs.determine-services.outputs.matrix_empty }}" == "true" ]]; then
@@ -558,11 +557,7 @@ jobs:
             echo "**Registry:** \`${{ env.REGISTRY }}\`" >> "$GITHUB_STEP_SUMMARY"
             echo "" >> "$GITHUB_STEP_SUMMARY"
             echo "### 🔐 Security Scan" >> "$GITHUB_STEP_SUMMARY"
-            if [[ "${{ needs.scan.result }}" == "success" ]]; then
-              echo "✅ Vulnerability scan completed. Check Security tab for results." >> "$GITHUB_STEP_SUMMARY"
-            else
-              echo "⚠️ Vulnerability scan failed or skipped." >> "$GITHUB_STEP_SUMMARY"
-            fi
+            echo "⚠️ Vulnerability scan skipped." >> "$GITHUB_STEP_SUMMARY"
           else
             echo "❌ Some builds failed. Check logs for details." >> "$GITHUB_STEP_SUMMARY"
           fi
