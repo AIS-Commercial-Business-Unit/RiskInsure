@@ -1,6 +1,6 @@
 services:
   # ============================================================================
-  # Infrastructure - RabbitMQ and Cosmos DB Emulator
+  # Infrastructure - RabbitMQ, Cosmos DB Emulator, and Key Vault Emulator
   # ============================================================================
 
   rabbitmq:
@@ -50,6 +50,68 @@ services:
       retries: 5
       start_period: 120s
 
+  keyvault-emulator:
+    container_name: keyvault-emulator
+    image: jamesgoulddev/azure-keyvault-emulator:latest
+    # Create a SSL certificate so other docker contains can make API
+    # calls to this docker container using HTTPS and have the certificate 
+    # be trusted
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+
+        if [ ! -f /certs/always-encrypted.crt ] || [ ! -f /certs/always-encrypted.pfx ]; then
+
+          if ! command -v openssl >/dev/null 2>&1; then
+            echo "ERROR: openssl is not available in the keyvault-emulator image."
+            echo "Please provide /certs/emulator.crt and /certs/emulator.pfx or use an image variant with openssl installed."
+            exit 1
+          fi
+
+          echo "Generating self-signed SSL certificate for key vault emulator..."
+
+          openssl req \
+            -x509 \
+            -newkey rsa:4096 \
+            -sha256 \
+            -days 3650 \
+            -nodes \
+            -keyout /certs/emulator.key \
+            -out /certs/emulator.crt \
+            -subj "/CN=localhost" \
+            -addext "subjectAltName=DNS:localhost,DNS:emulator,DNS:localhost.vault.azure.net"
+
+          openssl pkcs12 -export \
+            -out /certs/emulator.pfx \
+            -inkey /certs/emulator.key \
+            -in /certs/emulator.crt \
+            -name "Azure Key Vault Emulator" \
+            -passout pass:emulator
+
+          echo "Key Vault emulator certificates generated."
+        else
+          echo "Key Vault emulator certificates already exist, skipping generation."
+        fi
+
+        exec dotnet AzureKeyVaultEmulator.dll
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:4997 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    ports:
+      - "4997:4997"
+    environment:
+      - Persist=true
+    volumes:
+      - keyvault-certs:/certs
+    networks:
+      - riskinsure
+
+
 
 networks:
   riskinsure:
@@ -57,3 +119,4 @@ networks:
 volumes:
   cosmos-data: {}
   rabbitmq-data: {}
+  keyvault-certs: {}
