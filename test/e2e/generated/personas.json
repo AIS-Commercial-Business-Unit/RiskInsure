@@ -1,0 +1,18 @@
+[
+  {
+    "service": "policy",
+    "sourceDocs": [
+      "services/policy/docs/business/policy-management.md"
+    ],
+    "scenarios": [
+      "api-health-endpoint",
+      "quote-to-policy-binding",
+      "lifecycle-status-visibility"
+    ],
+    "goals": [
+      "Verify policy issuance prerequisites and bound state handoff.",
+      "Verify cancellation and billing refund triggers are visible to APIs.",
+      "Verify customer identity data can be created and retrieved."
+    ]
+  }
+]
