@@ -40,7 +40,7 @@ on:
 
 env:
   TERRAFORM_VERSION: '1.11.4'
-  REGISTRY: 'riskinsureacr.azurecr.io'
+  REGISTRY: 'riskinsuredevacr.azurecr.io'
 
 permissions:
   contents: read
