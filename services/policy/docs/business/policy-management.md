@@ -130,6 +130,7 @@ Lapsed → Reinstated (within 30 days, payment received)
 **Cancellation Request Required Fields**:
 - `CancellationDate`: Requested effective date of cancellation
 - `CancellationReason`: Reason for cancellation (for example: CustomerRequest, NonPayment, Underwriting, Fraud)
+- `PolicyAgeInDays`: Age of the policy at cancellation request time (used for refund and eligibility rules)
 
 **Business Rules**:
 - Minimum 1-day notice for customer cancellations
