@@ -1,0 +1,66 @@
+name: "CI: Agentic E2E Validate"
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_mode:
+        description: "Validation mode"
+        type: choice
+        required: true
+        default: list
+        options:
+          - list
+          - execute
+
+permissions:
+  contents: read
+
+jobs:
+  validate-generated-tests:
+    name: Validate generated Playwright specs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: test/e2e/package-lock.json
+
+      - name: Install dependencies
+        working-directory: test/e2e
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: test/e2e
+        run: npx playwright install --with-deps chromium
+
+      - name: List generated tests
+        if: ${{ inputs.run_mode == 'list' }}
+        working-directory: test/e2e
+        run: npx playwright test tests/generated --list
+
+      - name: Execute generated tests
+        if: ${{ inputs.run_mode == 'execute' }}
+        working-directory: test/e2e
+        env:
+          CUSTOMER_API_URL: ${{ secrets.CUSTOMER_API_URL }}
+          RATING_API_URL: ${{ secrets.RATING_API_URL }}
+          POLICY_API_URL: ${{ secrets.POLICY_API_URL }}
+          BILLING_API_URL: ${{ secrets.BILLING_API_URL }}
+          FUNDS_TRANSFER_API_URL: ${{ secrets.FUNDS_TRANSFER_API_URL }}
+        run: npx playwright test tests/generated --reporter=list
+
+      - name: Upload validation artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agentic-e2e-validation
+          path: |
+            test/e2e/playwright-report/**
+            test/e2e/test-results/**
+            test/e2e/test-results.json

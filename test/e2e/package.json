@@ -8,7 +8,9 @@
     "test:ui": "playwright test --ui",
     "test:headed": "playwright test --headed",
     "test:debug": "playwright test --debug",
-    "test:report": "playwright show-report"
+    "test:report": "playwright show-report",
+    "agent:generate": "node ./agent/generate-e2e-tests.mjs",
+    "agent:plan": "node ./agent/generate-e2e-tests.mjs --mode plan"
   },
   "keywords": [
     "e2e",

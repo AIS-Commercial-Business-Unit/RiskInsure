@@ -1,0 +1,182 @@
+name: "OPS: Agentic E2E Generate"
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - services/*/docs/business/**
+      - services/*/docs/technical/**
+      - test/e2e/agent/**
+      - .github/agents/e2e-test-generation.agent.md
+      - .github/prompts/e2e-*.prompt.md
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  detect-doc-changes:
+    name: Detect requirement doc changes
+    runs-on: ubuntu-latest
+    outputs:
+      changed_files: ${{ steps.detect.outputs.changed_files }}
+      has_changes: ${{ steps.detect.outputs.has_changes }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine changed requirement files
+        id: detect
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            mapfile -t files < <(git ls-files 'services/*/docs/business/*.md' 'services/*/docs/technical/*.md')
+          else
+            mapfile -t files < <(git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" | grep -E '^services/[^/]+/docs/(business|technical)/.*\.md$' || true)
+          fi
+
+          if [[ ${#files[@]} -eq 0 ]]; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+            echo "changed_files=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          {
+            echo "changed_files<<EOF"
+            printf '%s\n' "${files[@]}"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "has_changes=true" >> "$GITHUB_OUTPUT"
+
+  generate-tests:
+    name: Generate E2E tests from docs
+    needs: detect-doc-changes
+    if: ${{ needs.detect-doc-changes.outputs.has_changes == 'true' }}
+    runs-on: ubuntu-latest
+    outputs:
+      generated_changes: ${{ steps.diff.outputs.generated_changes }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: test/e2e/package-lock.json
+
+      - name: Install E2E dependencies
+        working-directory: test/e2e
+        run: npm ci
+
+      - name: Generate tests
+        working-directory: test/e2e
+        env:
+          CHANGED_FILES: ${{ needs.detect-doc-changes.outputs.changed_files }}
+        run: |
+          npm run agent:generate -- --repo-root ../..
+
+      - name: Check for generated changes
+        id: diff
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- test/e2e/tests/generated test/e2e/generated; then
+            echo "generated_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "generated_changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Upload generation artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: agentic-e2e-generated
+          path: |
+            test/e2e/generated/**
+            test/e2e/tests/generated/**
+
+  open-generated-pr:
+    name: Open PR with generated tests
+    needs: [detect-doc-changes, generate-tests]
+    if: ${{ needs.generate-tests.outputs.generated_changes == 'true' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: test/e2e/package-lock.json
+
+      - name: Install E2E dependencies
+        working-directory: test/e2e
+        run: npm ci
+
+      - name: Regenerate tests for commit
+        working-directory: test/e2e
+        env:
+          CHANGED_FILES: ${{ needs.detect-doc-changes.outputs.changed_files }}
+        run: |
+          npm run agent:generate -- --repo-root ../..
+
+      - name: Ensure labels exist
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            const labels = [
+              { name: 'agent:e2e-generation', color: '0052CC', description: 'Automated E2E generation from requirement docs' },
+              { name: 'testing', color: '5319E7', description: 'Testing-related automation output' }
+            ];
+
+            for (const label of labels) {
+              try {
+                await github.rest.issues.getLabel({ owner, repo, name: label.name });
+              } catch (error) {
+                if (error.status === 404) {
+                  await github.rest.issues.createLabel({ owner, repo, ...label });
+                } else {
+                  throw error;
+                }
+              }
+            }
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "test(e2e): regenerate tests from requirement docs"
+          title: "[Agentic E2E] Regenerate tests from requirement docs"
+          body: |
+            ## Agentic E2E Generation
+
+            This PR was auto-generated from requirement doc changes.
+
+            - Source paths: `services/*/docs/business/**`, `services/*/docs/technical/**`
+            - Generated tests: `test/e2e/tests/generated/**`
+            - Plan artifacts: `test/e2e/generated/**`
+
+            Trigger command reference:
+            `@E2ETestPlanner Generate or update E2E tests from changed requirement docs`
+          branch: automation/agentic-e2e-${{ github.run_id }}
+          labels: |
+            agent:e2e-generation
+            testing
+          add-paths: |
+            test/e2e/tests/generated/**
+            test/e2e/generated/**
