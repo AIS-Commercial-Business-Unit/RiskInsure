@@ -16,7 +16,9 @@ on:
       - 'services/**'
       - '.github/workflows/cd-services-dev.yml'
   workflow_run:
-    workflows: ['CD: Infrastructure Dev']
+    workflows: 
+      - 'CD: Infrastructure Dev'
+      - 'CI: Build Services'
     types:
       - completed
     branches:
@@ -27,22 +29,15 @@ on:
         description: 'Services to deploy (comma-separated or "all")'
         required: true
         default: 'all'
-      skip_tests:
-        description: 'Skip pre-deployment checks'
-        type: boolean
-        required: false
-        default: false
 
 env:
   TERRAFORM_VERSION: '1.11.4'
-  DOTNET_VERSION: '10.0.x'
   ENVIRONMENT: 'dev'
   REGISTRY: 'riskinsureacr.azurecr.io'
 
 permissions:
   contents: read
   id-token: write
-  packages: write
 
 concurrency:
   group: riskinsure-services-dev
@@ -54,6 +49,7 @@ jobs:
   # ==========================================================================
   determine-services:
     name: 'Determine Services'
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     outputs:
       services: ${{ steps.determine.outputs.services }}
@@ -63,7 +59,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
       
       - name: Determine Changed Services
         id: determine
@@ -76,7 +72,7 @@ jobs:
             else
               # Convert comma-separated to JSON array
               services_input="${{ github.event.inputs.services }}"
-              services_json=$(echo "$services_input" | jq -R -s -c 'split(",") | map(gsub("^\\s+|\\s+$";""))')
+              services_json=$(echo "$services_input" | jq -R -s -c 'split(",") | map(gsub("^\\s+|\\s+$";"")) | map(select(length > 0))')
               echo "services=$services_json" >> "$GITHUB_OUTPUT"
               echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
             fi
@@ -89,7 +85,7 @@ jobs:
             changed_services=()
             
             for service in billing customer fundstransfermgt policy ratingandunderwriting; do
-              if git diff --name-only HEAD~1 HEAD | grep -q "^services/$service/"; then
+              if git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" | grep -q "^services/$service/"; then
                 changed_services+=("\"$service\"")
               fi
             done
@@ -201,143 +197,11 @@ jobs:
           echo "🎉 All infrastructure resources verified!"
 
   # ==========================================================================
-  # Build and Push Docker Images
-  # ==========================================================================
-  build-images:
-    name: 'Build: ${{ matrix.service }}'
-    needs: [determine-services, verify-infrastructure]
-    if: needs.determine-services.outputs.matrix_empty == 'false'
-    runs-on: ubuntu-latest
-    
-    permissions:
-      id-token: write
-      contents: read
-    
-    strategy:
-      fail-fast: false
-      matrix:
-        service: ${{ fromJson(needs.determine-services.outputs.services) }}
-    
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-      
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      
-      - name: ACR Login
-        shell: bash
-        run: |
-          ACR_NAME="${{ needs.verify-infrastructure.outputs.acr_name }}"
-          echo "🔐 Logging into ACR: $ACR_NAME"
-          az acr login --name "$ACR_NAME"
-      
-      - name: Determine service path and project prefix
-        id: paths
-        shell: bash
-        run: |
-          SERVICE="${{ matrix.service }}"
-          
-          case "$SERVICE" in
-            billing)
-              SERVICE_DIR="services/billing"
-              PROJECT_PREFIX="RiskInsure.Billing"
-              IMAGE_NAME="billing"
-              ;;
-            customer)
-              SERVICE_DIR="services/customer"
-              PROJECT_PREFIX="RiskInsure.Customer"
-              IMAGE_NAME="customer"
-              ;;
-            fundstransfermgt)
-              SERVICE_DIR="services/fundstransfermgt"
-              PROJECT_PREFIX="RiskInsure.FundsTransferMgt"
-              IMAGE_NAME="fundstransfermgt"
-              ;;
-            policy)
-              SERVICE_DIR="services/policy"
-              PROJECT_PREFIX="RiskInsure.Policy"
-              IMAGE_NAME="policy"
-              ;;
-            ratingandunderwriting)
-              SERVICE_DIR="services/ratingandunderwriting"
-              PROJECT_PREFIX="RiskInsure.RatingAndUnderwriting"
-              IMAGE_NAME="ratingandunderwriting"
-              ;;
-            *)
-              echo "❌ Unknown service: $SERVICE"
-              exit 1
-              ;;
-          esac
-          
-          echo "service_dir=$SERVICE_DIR" >> "$GITHUB_OUTPUT"
-          echo "project_prefix=$PROJECT_PREFIX" >> "$GITHUB_OUTPUT"
-          echo "image_name=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
-          echo "✅ Mapped $SERVICE → $SERVICE_DIR ($PROJECT_PREFIX)"
-      
-      - name: Build API Image
-        shell: bash
-        run: |
-          SERVICE="${{ matrix.service }}"
-          SERVICE_DIR="${{ steps.paths.outputs.service_dir }}"
-          PROJECT_PREFIX="${{ steps.paths.outputs.project_prefix }}"
-          IMAGE_NAME="${{ steps.paths.outputs.image_name }}"
-          ACR_SERVER="${{ env.REGISTRY }}"
-          IMAGE_TAG="${{ github.sha }}"
-          
-          API_IMAGE="$ACR_SERVER/$IMAGE_NAME-api:$IMAGE_TAG"
-          
-          echo "🔨 Building API image: $API_IMAGE"
-          echo "   Dockerfile: $SERVICE_DIR/src/Api/Dockerfile"
-          
-          docker build \
-            -t "$API_IMAGE" \
-            -f "$SERVICE_DIR/src/Api/Dockerfile" \
-            --build-arg SERVICE_NAME=$SERVICE \
-            .
-          
-          docker push "$API_IMAGE"
-          echo "✅ API image pushed: $API_IMAGE"
-      
-      - name: Build Endpoint.In Image
-        shell: bash
-        run: |
-          SERVICE="${{ matrix.service }}"
-          SERVICE_DIR="${{ steps.paths.outputs.service_dir }}"
-          PROJECT_PREFIX="${{ steps.paths.outputs.project_prefix }}"
-          IMAGE_NAME="${{ steps.paths.outputs.image_name }}"
-          ACR_SERVER="${{ env.REGISTRY }}"
-          IMAGE_TAG="${{ github.sha }}"
-          
-          ENDPOINT_IMAGE="$ACR_SERVER/$IMAGE_NAME-endpoint:$IMAGE_TAG"
-          
-          echo "🔨 Building Endpoint.In image: $ENDPOINT_IMAGE"
-          echo "   Dockerfile: $SERVICE_DIR/src/Endpoint.In/Dockerfile"
-          
-          docker build \
-            -t "$ENDPOINT_IMAGE" \
-            -f "$SERVICE_DIR/src/Endpoint.In/Dockerfile" \
-            --build-arg SERVICE_NAME=$SERVICE \
-            .
-          
-          docker push "$ENDPOINT_IMAGE"
-          echo "✅ Endpoint.In image pushed: $ENDPOINT_IMAGE"
-
-  # ==========================================================================
   # Deploy Container Apps
   # ==========================================================================
   deploy-apps:
     name: 'Deploy Container Apps'
-    needs: [determine-services, verify-infrastructure, build-images]
+    needs: [determine-services, verify-infrastructure]
     if: needs.determine-services.outputs.matrix_empty == 'false'
     runs-on: ubuntu-latest
     
@@ -480,12 +344,6 @@ jobs:
           
           echo "Status: $STATUS"
           
-          if [ "$STATUS" = "Running" ]; then
-            echo "✅ $APP_NAME is running"
-          else
-            echo "⚠️ $APP_NAME status: $STATUS"
-          fi
-      
       - name: Check Endpoint.In Container App
         shell: bash
         run: |
@@ -501,12 +359,6 @@ jobs:
             -o tsv 2>/dev/null || echo "NotFound")
           
           echo "Status: $STATUS"
-          
-          if [ "$STATUS" = "Running" ]; then
-            echo "✅ $APP_NAME is running"
-          else
-            echo "⚠️ $APP_NAME status: $STATUS"
-          fi
       
       - name: Get Container App URL
         shell: bash
@@ -531,7 +383,7 @@ jobs:
   # ==========================================================================
   summary:
     name: 'Deployment Summary'
-    needs: [determine-services, verify-infrastructure, build-images, deploy-apps, health-check]
+    needs: [determine-services, verify-infrastructure, deploy-apps, health-check]
     if: always()
     runs-on: ubuntu-latest
     
@@ -552,8 +404,8 @@ jobs:
           echo "|------|--------|" >> "$GITHUB_STEP_SUMMARY"
           echo "| Determine Services | ${{ needs.determine-services.result }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Verify Infrastructure | ${{ needs.verify-infrastructure.result }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Build Images | ${{ needs.build-images.result }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Deploy Apps | ${{ needs.deploy-apps.result }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Health Check | ${{ needs.health-check.result }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "**Services:** ${{ needs.determine-services.outputs.services }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Images:** Built by CI workflow, tagged with \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
