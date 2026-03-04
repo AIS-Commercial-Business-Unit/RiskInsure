@@ -3,8 +3,7 @@ name: 'CD: Services Dev'
 # ============================================================================
 # Purpose: Auto-deploy services to dev after CI builds images
 # Triggers:
-#   - After CI: Build Services completes (deploys changed services only)
-#   - After CD: Infrastructure Dev completes (deploys all services)
+#   - After CI: Build Services completes successfully
 #   - Manual workflow_dispatch (deploy specific services)
 # Duration: ~8-12 minutes
 # CRITICAL: Uses workflow_run.head_sha to deploy exact images CI built
@@ -15,7 +14,6 @@ on:
   workflow_run:
     workflows:
       - 'CI: Build Services'
-      - 'CD: Infrastructure Dev'
     types: [ completed ]
     branches: [ main ]
 
@@ -25,6 +23,7 @@ on:
         description: 'Services to deploy (comma-separated or "all")'
         required: true
         default: 'all'
+        type: string
 
 env:
   TERRAFORM_VERSION: '1.11.4'
@@ -95,23 +94,37 @@ jobs:
             exit 0
           fi
 
-          # For workflow_run:
-          # - If it was triggered by CI build, deploy only services changed in that commit (best fit).
-          # - If it was triggered by infra deploy, deploy ALL services (safe).
-          WF_NAME="${{ github.event.workflow_run.name }}"
+          # For workflow_run: decide deploy scope based on the CI commit
 
-          if [[ "$WF_NAME" == "CD: Infrastructure Dev" ]]; then
-            echo "services=$ALL_SERVICES" >> "$GITHUB_OUTPUT"
-            echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          # CI: Build Services triggered this CD -> deploy only changed services in that CI commit
+          # CI: Build Services triggered this CD -> decide deploy scope based on the CI commit
           # Use `git show --name-only` to list files changed in the CI commit reliably
           changed_files=$(git show --pretty="" --name-only "${{ github.event.workflow_run.head_sha }}" || true)
 
           # If we cannot diff (rare), fall back to all services
           if [[ -z "$changed_files" ]]; then
+            echo "services=$ALL_SERVICES" >> "$GITHUB_OUTPUT"
+            echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # workflow change -> deploy all
+          if echo "$changed_files" | grep -q '^\.github/workflows/ci-build-services\.yml$'; then
+            echo "CI workflow file changed -> deploy ALL services"
+            echo "services=$ALL_SERVICES" >> "$GITHUB_OUTPUT"
+            echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if echo "$changed_files" | grep -q '^\.github/workflows/cd-services-dev\.yml$'; then
+            echo "CD workflow file changed -> deploy ALL services"
+            echo "services=$ALL_SERVICES" >> "$GITHUB_OUTPUT"
+            echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # shared contracts change -> deploy all
+          if echo "$changed_files" | grep -q '^platform/RiskInsure\.PublicContracts/'; then
+            echo "Shared contracts changed -> deploy ALL services"
             echo "services=$ALL_SERVICES" >> "$GITHUB_OUTPUT"
             echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
             exit 0
@@ -125,13 +138,20 @@ jobs:
           done
 
           if [[ ${#changed_services[@]} -eq 0 ]]; then
-            # No service folder changed; do not deploy
             echo "services=[]" >> "$GITHUB_OUTPUT"
             echo "matrix_empty=true" >> "$GITHUB_OUTPUT"
           else
             services_json="[$(IFS=,; echo "${changed_services[*]}")]"
             echo "services=$services_json" >> "$GITHUB_OUTPUT"
             echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
+          fi
+
+          # Debug: include changed_files in the step summary for easier troubleshooting
+          if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
+            echo "### Changed files (debug)" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
+            echo "$changed_files" >> "$GITHUB_STEP_SUMMARY"
+            echo '```' >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - name: Summary
