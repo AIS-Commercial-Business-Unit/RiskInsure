@@ -258,6 +258,7 @@ jobs:
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
       
       - name: Verify UAMI Exists
+        id: verify_uami
         shell: bash
         run: |
           RG="${{ needs.shared-services.outputs.resource_group_name }}"
@@ -265,31 +266,21 @@ jobs:
           
           echo "🔍 Verifying UAMI: $UAMI_NAME (RG: $RG)"
           
-          UAMI_ID=$(az identity show -n "$UAMI_NAME" -g "$RG" --query "id" -o tsv 2>/dev/null || echo "")
+          PRINCIPAL_ID=$(az identity show -n "$UAMI_NAME" -g "$RG" --query "principalId" -o tsv 2>/dev/null || echo "")
           
-          if [ -z "$UAMI_ID" ] || [ "$UAMI_ID" = "null" ]; then
+          if [ -z "$PRINCIPAL_ID" ] || [ "$PRINCIPAL_ID" = "null" ]; then
             echo "❌ UAMI verification failed: $UAMI_NAME"
             exit 1
           fi
           
           echo "✅ UAMI verified: $UAMI_NAME"
-          echo "   ID: $UAMI_ID"
+          echo "   Principal ID: $PRINCIPAL_ID"
+          echo "principal_id=$PRINCIPAL_ID" >> "$GITHUB_OUTPUT"
       
       - name: Verify Role Assignments
         shell: bash
         run: |
-          # Get UAMI principal ID from the output
-          UAMI_ID="${{ needs.shared-services.outputs.apps_shared_identity_id }}"
-          UAMI_NAME=$(basename "$UAMI_ID")
-          RG="${{ needs.shared-services.outputs.resource_group_name }}"
-          
-          echo "🔍 Getting UAMI principal ID..."
-          PRINCIPAL_ID=$(az identity show -n "$UAMI_NAME" -g "$RG" --query "principalId" -o tsv 2>/dev/null || echo "")
-          
-          if [ -z "$PRINCIPAL_ID" ] || [ "$PRINCIPAL_ID" = "null" ]; then
-            echo "❌ Cannot retrieve principal ID"
-            exit 1
-          fi
+          PRINCIPAL_ID="${{ steps.verify_uami.outputs.principal_id }}"
           
           echo "🔍 Verifying role assignments for principal ID: $PRINCIPAL_ID"
           ROLES=$(az role assignment list --assignee "$PRINCIPAL_ID" --query "[].roleDefinitionName" -o tsv)
