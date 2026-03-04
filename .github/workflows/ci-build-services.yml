@@ -251,139 +251,62 @@ jobs:
           echo "image_name=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
           echo "✅ Service: $SERVICE → Dir: $SERVICE_DIR, Image: $IMAGE_NAME"
       
-      - name: Set Image Tags
+      - name: Set Image Tags (FULL SHA + LATEST ONLY)
         id: tags
         shell: bash
         run: |
           IMAGE_NAME="${{ steps.map.outputs.image_name }}"
-          SHORT_SHA="${GITHUB_SHA:0:7}"
-          
-          # Set as outputs for use in subsequent steps
-          echo "api_image_sha=${{ env.REGISTRY }}/${IMAGE_NAME}-api:${{ github.sha }}" >> "$GITHUB_OUTPUT"
-          echo "api_image_short=${{ env.REGISTRY }}/${IMAGE_NAME}-api:$SHORT_SHA" >> "$GITHUB_OUTPUT"
+          FULL_SHA="${{ github.sha }}"
+
+          echo "api_image_sha=${{ env.REGISTRY }}/${IMAGE_NAME}-api:$FULL_SHA" >> "$GITHUB_OUTPUT"
           echo "api_image_latest=${{ env.REGISTRY }}/${IMAGE_NAME}-api:latest" >> "$GITHUB_OUTPUT"
-          echo "endpoint_image_sha=${{ env.REGISTRY }}/${IMAGE_NAME}-endpoint:${{ github.sha }}" >> "$GITHUB_OUTPUT"
-          echo "endpoint_image_short=${{ env.REGISTRY }}/${IMAGE_NAME}-endpoint:$SHORT_SHA" >> "$GITHUB_OUTPUT"
+
+          echo "endpoint_image_sha=${{ env.REGISTRY }}/${IMAGE_NAME}-endpoint:$FULL_SHA" >> "$GITHUB_OUTPUT"
           echo "endpoint_image_latest=${{ env.REGISTRY }}/${IMAGE_NAME}-endpoint:latest" >> "$GITHUB_OUTPUT"
-          
-          echo "✅ Image tags configured"
+
+          echo "✅ Using tags: $FULL_SHA and latest"
       
       - name: Build API Image
         shell: bash
         run: |
           SERVICE="${{ matrix.service }}"
           SERVICE_DIR="${{ steps.map.outputs.service_dir }}"
-          
-          echo "🔨 Building API image..."
-          echo "   Dockerfile: $SERVICE_DIR/src/Api/Dockerfile"
-          
+
           docker build \
             -f "$SERVICE_DIR/src/Api/Dockerfile" \
             -t "${{ steps.tags.outputs.api_image_sha }}" \
-            -t "${{ steps.tags.outputs.api_image_short }}" \
             -t "${{ steps.tags.outputs.api_image_latest }}" \
             --build-arg SERVICE_NAME=$SERVICE \
             .
-          
-          echo "✅ API image built"
       
       - name: Build Endpoint Image
         shell: bash
         run: |
           SERVICE="${{ matrix.service }}"
           SERVICE_DIR="${{ steps.map.outputs.service_dir }}"
-          
-          echo "🔨 Building Endpoint image..."
-          echo "   Dockerfile: $SERVICE_DIR/src/Endpoint.In/Dockerfile"
-          
+
           docker build \
             -f "$SERVICE_DIR/src/Endpoint.In/Dockerfile" \
             -t "${{ steps.tags.outputs.endpoint_image_sha }}" \
-            -t "${{ steps.tags.outputs.endpoint_image_short }}" \
             -t "${{ steps.tags.outputs.endpoint_image_latest }}" \
             --build-arg SERVICE_NAME=$SERVICE \
             .
-          
-          echo "✅ Endpoint image built"
       
-      - name: Add Custom Tags (Optional)
-        id: custom_tags
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.tag != ''
+
+      - name: Push Images to ACR (FULL SHA + LATEST)
         shell: bash
         run: |
-          IMAGE_NAME="${{ steps.map.outputs.image_name }}"
-          CUSTOM_TAG="${{ github.event.inputs.tag }}"
-          
-          API_IMAGE_CUSTOM="${{ env.REGISTRY }}/${IMAGE_NAME}-api:$CUSTOM_TAG"
-          ENDPOINT_IMAGE_CUSTOM="${{ env.REGISTRY }}/${IMAGE_NAME}-endpoint:$CUSTOM_TAG"
-          
-          docker tag "${{ steps.tags.outputs.api_image_sha }}" "$API_IMAGE_CUSTOM"
-          docker tag "${{ steps.tags.outputs.endpoint_image_sha }}" "$ENDPOINT_IMAGE_CUSTOM"
-          
-          echo "api_image_custom=$API_IMAGE_CUSTOM" >> "$GITHUB_OUTPUT"
-          echo "endpoint_image_custom=$ENDPOINT_IMAGE_CUSTOM" >> "$GITHUB_OUTPUT"
-      
-      - name: Push Images to ACR
-        shell: bash
-        run: |
-          echo "📤 Pushing API images to ACR..."
           docker push "${{ steps.tags.outputs.api_image_sha }}"
-          echo "✅ Pushed: ${{ steps.tags.outputs.api_image_sha }}"
-          
-          docker push "${{ steps.tags.outputs.api_image_short }}"
-          echo "✅ Pushed: ${{ steps.tags.outputs.api_image_short }}"
-          
           docker push "${{ steps.tags.outputs.api_image_latest }}"
-          echo "✅ Pushed: ${{ steps.tags.outputs.api_image_latest }}"
-          
-          if [[ -n "${{ steps.custom_tags.outputs.api_image_custom }}" ]]; then
-            docker push "${{ steps.custom_tags.outputs.api_image_custom }}"
-            echo "✅ Pushed: ${{ steps.custom_tags.outputs.api_image_custom }}"
-          fi
-          
-          echo ""
-          echo "📤 Pushing Endpoint images to ACR..."
           docker push "${{ steps.tags.outputs.endpoint_image_sha }}"
-          echo "✅ Pushed: ${{ steps.tags.outputs.endpoint_image_sha }}"
-          
-          docker push "${{ steps.tags.outputs.endpoint_image_short }}"
-          echo "✅ Pushed: ${{ steps.tags.outputs.endpoint_image_short }}"
-          
           docker push "${{ steps.tags.outputs.endpoint_image_latest }}"
-          echo "✅ Pushed: ${{ steps.tags.outputs.endpoint_image_latest }}"
-          
-          if [[ -n "${{ steps.custom_tags.outputs.endpoint_image_custom }}" ]]; then
-            docker push "${{ steps.custom_tags.outputs.endpoint_image_custom }}"
-            echo "✅ Pushed: ${{ steps.custom_tags.outputs.endpoint_image_custom }}"
-          fi
       
-      - name: Image Manifest
+      - name: Summary
         shell: bash
         run: |
-          echo "### 📦 ${{ matrix.service }} Images" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "#### API Images" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Tag | Image |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|-----|-------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Full SHA | \`${{ steps.tags.outputs.api_image_sha }}\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Short SHA | \`${{ steps.tags.outputs.api_image_short }}\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Latest | \`${{ steps.tags.outputs.api_image_latest }}\` |" >> "$GITHUB_STEP_SUMMARY"
-          
-          if [[ -n "${{ steps.custom_tags.outputs.api_image_custom }}" ]]; then
-            echo "| Custom | \`${{ steps.custom_tags.outputs.api_image_custom }}\` |" >> "$GITHUB_STEP_SUMMARY"
-          fi
-          
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "#### Endpoint Images" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Tag | Image |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|-----|-------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Full SHA | \`${{ steps.tags.outputs.endpoint_image_sha }}\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Short SHA | \`${{ steps.tags.outputs.endpoint_image_short }}\` |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Latest | \`${{ steps.tags.outputs.endpoint_image_latest }}\` |" >> "$GITHUB_STEP_SUMMARY"
-          
-          if [[ -n "${{ steps.custom_tags.outputs.endpoint_image_custom }}" ]]; then
-            echo "| Custom | \`${{ steps.custom_tags.outputs.endpoint_image_custom }}\` |" >> "$GITHUB_STEP_SUMMARY"
-          fi
+          echo "### ✅ Built & Pushed: ${{ matrix.service }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- API: \`${{ steps.tags.outputs.api_image_sha }}\` and \`${{ steps.tags.outputs.api_image_latest }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Endpoint: \`${{ steps.tags.outputs.endpoint_image_sha }}\` and \`${{ steps.tags.outputs.endpoint_image_latest }}\`" >> "$GITHUB_STEP_SUMMARY"
       
       - name: Generate SBOM for API Image
         uses: anchore/sbom-action@v0
@@ -529,35 +452,12 @@ jobs:
     needs: [determine-services, build]
     if: always()
     runs-on: ubuntu-latest
-    
     steps:
       - name: Generate Summary
         shell: bash
         run: |
-          echo "# 🏗️ Build Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "# 🏗️ CI Build Summary" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "**Commit:** \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Triggered by:** @${{ github.actor }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Event:** \`${{ github.event_name }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "## 📋 Job Status" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Job | Status |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|-----|--------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Determine Services | ${{ needs.determine-services.result }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Build | ${{ needs.build.result }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          
-          if [[ "${{ needs.determine-services.outputs.matrix_empty }}" == "true" ]]; then
-            echo "ℹ️ No services to build (no changes detected)" >> "$GITHUB_STEP_SUMMARY"
-          elif [[ "${{ needs.build.result }}" == "success" ]]; then
-            echo "✅ All images built and pushed successfully" >> "$GITHUB_STEP_SUMMARY"
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "**Services:** ${{ needs.determine-services.outputs.services }}" >> "$GITHUB_STEP_SUMMARY"
-            echo "**Registry:** \`${{ env.REGISTRY }}\`" >> "$GITHUB_STEP_SUMMARY"
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "### 🔐 Security Scan" >> "$GITHUB_STEP_SUMMARY"
-            echo "⚠️ Vulnerability scan skipped." >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "❌ Some builds failed. Check logs for details." >> "$GITHUB_STEP_SUMMARY"
-          fi
+          echo "**Services:** \`${{ needs.determine-services.outputs.services }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Result:** \`${{ needs.build.result }}\`" >> "$GITHUB_STEP_SUMMARY"

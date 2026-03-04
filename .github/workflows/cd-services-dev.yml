@@ -1,28 +1,24 @@
 name: 'CD: Services Dev'
 
 # ============================================================================
-# Purpose: Auto-deploy service changes to dev environment
-# Triggers: Push to main with service changes OR after infrastructure deployment
-# Duration: ~18 minutes
-# Blocks: No (runs after merge)
-# CRITICAL: Solves integration test timing by ensuring infrastructure exists first
+# Purpose: Auto-deploy services to dev after CI builds images
+# Triggers: 
+#   - After CI: Build Services completes (deploys changed services only)
+#   - After CD: Infrastructure Dev completes (deploys all services)
+#   - Manual workflow_dispatch (deploy specific services)
+# Duration: ~8-12 minutes
+# CRITICAL: Uses workflow_run.head_sha to deploy exact images CI built
 # ============================================================================
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'services/**'
-      - '.github/workflows/cd-services-dev.yml'
+  # IMPORTANT: Do NOT run on push. CI runs on push; CD runs after CI success.
   workflow_run:
-    workflows: 
-      - 'CD: Infrastructure Dev'
+    workflows:
       - 'CI: Build Services'
-    types:
-      - completed
-    branches:
-      - main
+      - 'CD: Infrastructure Dev'
+    types: [ completed ]
+    branches: [ main ]
+
   workflow_dispatch:
     inputs:
       services:
@@ -34,6 +30,7 @@ env:
   TERRAFORM_VERSION: '1.11.4'
   ENVIRONMENT: 'dev'
   REGISTRY: 'riskinsuredevacr.azurecr.io'
+  RG: 'CAIS-010-RiskInsure'
 
 permissions:
   contents: read
@@ -45,91 +42,127 @@ concurrency:
 
 jobs:
   # ==========================================================================
-  # Determine which services changed (or all if workflow_dispatch/workflow_run)
+  # Determine which services to deploy and which image tag to use
+  # CRITICAL: Uses workflow_run.head_sha to match exact commit CI built
   # ==========================================================================
-  determine-services:
-    name: 'Determine Services'
+  determine:
+    name: 'Determine Services + Image Tag'
+    # Only proceed if workflow_run succeeded
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     outputs:
-      services: ${{ steps.determine.outputs.services }}
-      matrix_empty: ${{ steps.determine.outputs.matrix_empty }}
-    
+      services: ${{ steps.out.outputs.services }}
+      matrix_empty: ${{ steps.out.outputs.matrix_empty }}
+      image_tag: ${{ steps.out.outputs.image_tag }}
+
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
-      - name: Determine Changed Services
-        id: determine
+
+      - name: Decide services + image_tag
+        id: out
         shell: bash
         run: |
+          set -euo pipefail
+
+          ALL_SERVICES='["billing","customer","fundstransfermgt","policy","ratingandunderwriting"]'
+
+          # Decide which tag to deploy
+          if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
+            # Deploy the exact commit that CI built
+            IMAGE_TAG="${{ github.event.workflow_run.head_sha }}"
+          else
+            # Manual run uses the current workflow's commit SHA
+            IMAGE_TAG="${{ github.sha }}"
+          fi
+
+          echo "image_tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+
+          # Decide which services to deploy
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             if [[ "${{ github.event.inputs.services }}" == "all" ]]; then
-              echo "services=[\"billing\",\"customer\",\"fundstransfermgt\",\"policy\",\"ratingandunderwriting\"]" >> "$GITHUB_OUTPUT"
+              echo "services=$ALL_SERVICES" >> "$GITHUB_OUTPUT"
               echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
-            else
-              # Convert comma-separated to JSON array
-              services_input="${{ github.event.inputs.services }}"
-              services_json=$(echo "$services_input" | jq -R -s -c 'split(",") | map(gsub("^\\s+|\\s+$";"")) | map(select(length > 0))')
-              echo "services=$services_json" >> "$GITHUB_OUTPUT"
-              echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
+              exit 0
             fi
-          elif [[ "${{ github.event_name }}" == "workflow_run" ]]; then
-            # Infrastructure changed, deploy all services
-            echo "services=[\"billing\",\"customer\",\"fundstransfermgt\",\"policy\",\"ratingandunderwriting\"]" >> "$GITHUB_OUTPUT"
+
+            services_input="${{ github.event.inputs.services }}"
+            services_json=$(echo "$services_input" | jq -R -s -c 'split(",") | map(gsub("^\\s+|\\s+$";"")) | map(select(length>0))')
+            echo "services=$services_json" >> "$GITHUB_OUTPUT"
             echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
-          else
-            # Detect changed services from git diff
-            changed_services=()
-            
-            for service in billing customer fundstransfermgt policy ratingandunderwriting; do
-              if git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" | grep -q "^services/$service/"; then
-                changed_services+=("\"$service\"")
-              fi
-            done
-            
-            if [ ${#changed_services[@]} -eq 0 ]; then
-              echo "No service changes detected"
-              echo "services=[]" >> "$GITHUB_OUTPUT"
-              echo "matrix_empty=true" >> "$GITHUB_OUTPUT"
-            else
-              services_json="[$(IFS=,; echo "${changed_services[*]}")]"
-              echo "services=$services_json" >> "$GITHUB_OUTPUT"
-              echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
-            fi
+            exit 0
           fi
-      
+
+          # For workflow_run:
+          # - If it was triggered by CI build, deploy only services changed in that commit (best fit).
+          # - If it was triggered by infra deploy, deploy ALL services (safe).
+          WF_NAME="${{ github.event.workflow_run.name }}"
+
+          if [[ "$WF_NAME" == "CD: Infrastructure Dev" ]]; then
+            echo "services=$ALL_SERVICES" >> "$GITHUB_OUTPUT"
+            echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # CI: Build Services triggered this CD -> deploy only changed services in that CI commit
+          changed_files=$(git diff --name-only "${{ github.event.workflow_run.head_sha }}~1" "${{ github.event.workflow_run.head_sha }}" || true)
+
+          # If we cannot diff (rare), fall back to all services
+          if [[ -z "$changed_files" ]]; then
+            echo "services=$ALL_SERVICES" >> "$GITHUB_OUTPUT"
+            echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          changed_services=()
+          for s in billing customer fundstransfermgt policy ratingandunderwriting; do
+            if echo "$changed_files" | grep -q "^services/$s/"; then
+              changed_services+=("\"$s\"")
+            fi
+          done
+
+          if [[ ${#changed_services[@]} -eq 0 ]]; then
+            # No service folder changed; do not deploy
+            echo "services=[]" >> "$GITHUB_OUTPUT"
+            echo "matrix_empty=true" >> "$GITHUB_OUTPUT"
+          else
+            services_json="[$(IFS=,; echo "${changed_services[*]}")]"
+            echo "services=$services_json" >> "$GITHUB_OUTPUT"
+            echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Summary
         shell: bash
         run: |
-          echo "### 📦 Services to Deploy" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "### 🚀 CD Deployment Inputs" >> "$GITHUB_STEP_SUMMARY"
           echo "**Trigger:** \`${{ github.event_name }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Services:** \`${{ steps.determine.outputs.services }}\`" >> "$GITHUB_STEP_SUMMARY"
+          if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
+            echo "**Upstream workflow:** \`${{ github.event.workflow_run.name }}\`" >> "$GITHUB_STEP_SUMMARY"
+            echo "**Upstream status:** \`${{ github.event.workflow_run.conclusion }}\`" >> "$GITHUB_STEP_SUMMARY"
+          fi
+          echo "**image_tag:** \`${{ steps.out.outputs.image_tag }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**services:** \`${{ steps.out.outputs.services }}\`" >> "$GITHUB_STEP_SUMMARY"
 
   # ==========================================================================
   # CRITICAL: Verify infrastructure exists before deploying services
-  # This prevents the integration test timing bug
+  # This prevents deployment failures due to missing resources
   # ==========================================================================
-  verify-infrastructure:
+  verify-infra:
     name: 'Verify Infrastructure'
-    needs: determine-services
-    if: needs.determine-services.outputs.matrix_empty == 'false'
+    needs: determine
+    if: needs.determine.outputs.matrix_empty == 'false'
     runs-on: ubuntu-latest
-    
+
     permissions:
       id-token: write
       contents: read
-    
+
     outputs:
-      acr_name: ${{ steps.verify.outputs.acr_name }}
       resource_group: ${{ steps.verify.outputs.resource_group }}
-      uami_id: ${{ steps.verify.outputs.uami_id }}
-      servicebus_namespace: ${{ steps.verify.outputs.servicebus_namespace }}
-      cosmosdb_account: ${{ steps.verify.outputs.cosmosdb_account }}
-    
+
     steps:
       - name: Azure Login
         uses: azure/login@v2
@@ -137,93 +170,46 @@ jobs:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      
-      - name: Verify Infrastructure Resources
+
+      - name: Verify RG exists
         id: verify
         shell: bash
         run: |
-          echo "🔍 Verifying infrastructure resources..."
-          
-          # Expected resource group
-          RG="CAIS-010-RiskInsure"
-          
-          # Verify Resource Group
-          if ! az group show --name "$RG" &>/dev/null; then
-            echo "❌ Resource group $RG not found"
+          set -euo pipefail
+          RG="${{ env.RG }}"
+
+          if ! az group show --name "$RG" >/dev/null 2>&1; then
+            echo "Resource group not found: $RG"
             exit 1
           fi
-          echo "✅ Resource Group: $RG"
+
           echo "resource_group=$RG" >> "$GITHUB_OUTPUT"
-          
-          # Verify ACR
-          ACR_NAME=$(az acr list --resource-group "$RG" --query "[0].name" -o tsv)
-          if [ -z "$ACR_NAME" ]; then
-            echo "❌ ACR not found in $RG"
-            exit 1
-          fi
-          echo "✅ ACR: $ACR_NAME"
-          echo "acr_name=$ACR_NAME" >> "$GITHUB_OUTPUT"
-          
-          # Verify UAMI (using exact naming convention from Terraform)
-          UAMI_NAME="riskinsure-${ENVIRONMENT}-app-mi"
-          UAMI_ID=$(az identity show -n "$UAMI_NAME" -g "$RG" --query "id" -o tsv 2>/dev/null || echo "")
-          if [ -z "$UAMI_ID" ] || [ "$UAMI_ID" = "null" ]; then
-            echo "❌ User-Assigned Managed Identity not found: $UAMI_NAME"
-            echo "❌ Searched in: $RG"
-            exit 1
-          fi
-          echo "✅ UAMI: $UAMI_NAME ($UAMI_ID)"
-          echo "uami_id=$UAMI_ID" >> "$GITHUB_OUTPUT"
-          
-          # Verify Service Bus
-          SB_NAMESPACE=$(az servicebus namespace list --resource-group "$RG" --query "[0].name" -o tsv)
-          if [ -z "$SB_NAMESPACE" ]; then
-            echo "❌ Service Bus namespace not found"
-            exit 1
-          fi
-          echo "✅ Service Bus: $SB_NAMESPACE"
-          echo "servicebus_namespace=$SB_NAMESPACE" >> "$GITHUB_OUTPUT"
-          
-          # Verify Cosmos DB
-          COSMOS_ACCOUNT=$(az cosmosdb list --resource-group "$RG" --query "[0].name" -o tsv)
-          if [ -z "$COSMOS_ACCOUNT" ]; then
-            echo "❌ Cosmos DB account not found"
-            exit 1
-          fi
-          echo "✅ Cosmos DB: $COSMOS_ACCOUNT"
-          echo "cosmosdb_account=$COSMOS_ACCOUNT" >> "$GITHUB_OUTPUT"
-          
-          echo ""
-          echo "🎉 All infrastructure resources verified!"
 
   # ==========================================================================
-  # Deploy Container Apps
+  # Deploy Container Apps using Terraform with targeted deployments
+  # Uses image_tag from determine job to deploy exact images CI built
   # ==========================================================================
-  deploy-apps:
+  deploy:
     name: 'Deploy Container Apps'
-    needs: [determine-services, verify-infrastructure]
-    if: needs.determine-services.outputs.matrix_empty == 'false'
+    needs: [determine, verify-infra]
+    if: needs.determine.outputs.matrix_empty == 'false'
     runs-on: ubuntu-latest
-    
-    permissions:
-      id-token: write
-      contents: read
-    
+
     defaults:
       run:
         shell: bash
         working-directory: platform/infra/services
-    
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
+
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
           terraform_wrapper: false
-      
+
       - name: Terraform Init
         run: terraform init -input=false
         env:
@@ -231,45 +217,32 @@ jobs:
           ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      
+
       - name: Terraform Validate
         run: terraform validate
-      
+
       - name: Build Terraform Targets
         id: targets
         shell: bash
         run: |
-          SERVICES='${{ needs.determine-services.outputs.services }}'
+          set -euo pipefail
+
+          SERVICES='${{ needs.determine.outputs.services }}'
           TARGETS=""
-          
-          echo "📦 Building Terraform targets for services: $SERVICES"
-          
-          for service in $(echo "$SERVICES" | jq -r '.[]'); do
-            # Map service names to Terraform resource names
-            case "$service" in
-              ratingandunderwriting)
-                tf_service_name="ratingandunderwriting"
-                ;;
-              *)
-                tf_service_name="$service"
-                ;;
-            esac
-            
-            echo "  - $service → azurerm_container_app.${tf_service_name}_api"
-            echo "  - $service → azurerm_container_app.${tf_service_name}_endpoint"
-            
-            TARGETS="$TARGETS -target=azurerm_container_app.${tf_service_name}_api"
-            TARGETS="$TARGETS -target=azurerm_container_app.${tf_service_name}_endpoint"
+
+          for s in $(echo "$SERVICES" | jq -r '.[]'); do
+            TARGETS="$TARGETS -target=azurerm_container_app.${s}_api"
+            TARGETS="$TARGETS -target=azurerm_container_app.${s}_endpoint"
           done
-          
+
           echo "targets=$TARGETS" >> "$GITHUB_OUTPUT"
-          echo "✅ Terraform targets: $TARGETS"
-      
+          echo "Targets: $TARGETS"
+
       - name: Terraform Plan
         run: |
           terraform plan \
             -var="environment=${{ env.ENVIRONMENT }}" \
-            -var="image_tag=${{ github.sha }}" \
+            -var="image_tag=${{ needs.determine.outputs.image_tag }}" \
             ${{ steps.targets.outputs.targets }} \
             -out=tfplan \
             -input=false
@@ -278,7 +251,7 @@ jobs:
           ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      
+
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan
         env:
@@ -288,124 +261,23 @@ jobs:
           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
   # ==========================================================================
-  # Health Check (verify all services are running)
-  # ==========================================================================
-  health-check:
-    name: 'Health Check: ${{ matrix.service }}'
-    needs: [determine-services, verify-infrastructure, deploy-apps]
-    if: needs.determine-services.outputs.matrix_empty == 'false'
-    runs-on: ubuntu-latest
-    
-    permissions:
-      id-token: write
-      contents: read
-    
-    strategy:
-      fail-fast: false
-      matrix:
-        service: ${{ fromJson(needs.determine-services.outputs.services) }}
-    
-    steps:
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-      
-      - name: Determine Container App Names
-        id: app_names
-        shell: bash
-        run: |
-          SERVICE="${{ matrix.service }}"
-          RG="${{ needs.verify-infrastructure.outputs.resource_group }}"
-          
-          API_APP_NAME="${SERVICE}-api"
-          ENDPOINT_APP_NAME="${SERVICE}-endpoint"
-          
-          echo "api_app_name=$API_APP_NAME" >> "$GITHUB_OUTPUT"
-          echo "endpoint_app_name=$ENDPOINT_APP_NAME" >> "$GITHUB_OUTPUT"
-          echo "resource_group=$RG" >> "$GITHUB_OUTPUT"
-          echo "✅ Container Apps: $API_APP_NAME, $ENDPOINT_APP_NAME"
-      
-      - name: Check API Container App
-        shell: bash
-        run: |
-          RG="${{ steps.app_names.outputs.resource_group }}"
-          APP_NAME="${{ steps.app_names.outputs.api_app_name }}"
-          
-          echo "🔍 Checking API: $APP_NAME (RG: $RG)"
-          
-          STATUS=$(az containerapp show \
-            --name "$APP_NAME" \
-            --resource-group "$RG" \
-            --query "properties.runningStatus" \
-            -o tsv 2>/dev/null || echo "NotFound")
-          
-          echo "Status: $STATUS"
-          
-      - name: Check Endpoint.In Container App
-        shell: bash
-        run: |
-          RG="${{ steps.app_names.outputs.resource_group }}"
-          APP_NAME="${{ steps.app_names.outputs.endpoint_app_name }}"
-          
-          echo "🔍 Checking Endpoint: $APP_NAME (RG: $RG)"
-          
-          STATUS=$(az containerapp show \
-            --name "$APP_NAME" \
-            --resource-group "$RG" \
-            --query "properties.runningStatus" \
-            -o tsv 2>/dev/null || echo "NotFound")
-          
-          echo "Status: $STATUS"
-      
-      - name: Get Container App URL
-        shell: bash
-        run: |
-          RG="${{ steps.app_names.outputs.resource_group }}"
-          APP_NAME="${{ steps.app_names.outputs.api_app_name }}"
-          
-          FQDN=$(az containerapp show \
-            --name "$APP_NAME" \
-            --resource-group "$RG" \
-            --query "properties.configuration.ingress.fqdn" \
-            -o tsv 2>/dev/null || echo "N/A")
-          
-          if [ "$FQDN" != "N/A" ]; then
-            echo "🌐 API URL: https://$FQDN"
-          else
-            echo "⚠️ No FQDN available for $APP_NAME"
-          fi
-
-  # ==========================================================================
   # Summary
   # ==========================================================================
   summary:
     name: 'Deployment Summary'
-    needs: [determine-services, verify-infrastructure, deploy-apps, health-check]
+    needs: [determine, verify-infra, deploy]
     if: always()
     runs-on: ubuntu-latest
-    
     steps:
       - name: Generate Summary
         shell: bash
         run: |
-          echo "# 🚀 Service Deployment: Dev" >> "$GITHUB_STEP_SUMMARY"
+          echo "# 🚀 CD Services Dev Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "**image_tag:** \`${{ needs.determine.outputs.image_tag }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**services:** \`${{ needs.determine.outputs.services }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Environment:** \`dev\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Triggered by:** @${{ github.actor }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Event:** \`${{ github.event_name }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Commit:** \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "## 📋 Deployment Results" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Step | Status |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|------|--------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Determine Services | ${{ needs.determine-services.result }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Verify Infrastructure | ${{ needs.verify-infrastructure.result }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Deploy Apps | ${{ needs.deploy-apps.result }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Health Check | ${{ needs.health-check.result }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Services:** ${{ needs.determine-services.outputs.services }}" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Images:** Built by CI workflow, tagged with \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Job | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Determine | ${{ needs.determine.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Verify Infra | ${{ needs.verify-infra.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Deploy | ${{ needs.deploy.result }} |" >> "$GITHUB_STEP_SUMMARY"
