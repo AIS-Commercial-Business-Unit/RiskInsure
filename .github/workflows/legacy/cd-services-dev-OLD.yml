@@ -1,13 +1,13 @@
 name: 'CD: Services Dev'
 
-# ==============================================================================
+# ============================================================================
 # Purpose: Auto-deploy services to dev after CI builds images
 # Triggers:
 #   - After CI: Build Services completes successfully
 #   - Manual workflow_dispatch (deploy specific services)
 # Duration: ~8-12 minutes
 # CRITICAL: Uses workflow_run.head_sha to deploy exact images CI built
-# ==============================================================================
+# ============================================================================
 
 on:
   # IMPORTANT: Do NOT run on push. CI runs on push; CD runs after CI success.
@@ -40,12 +40,13 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # ==============================================================================
+  # ==========================================================================
   # Determine which services to deploy and which image tag to use
   # CRITICAL: Uses workflow_run.head_sha to match exact commit CI built
-  # ==============================================================================
+  # ==========================================================================
   determine:
     name: 'Determine Services + Image Tag'
+    # Only proceed if workflow_run succeeded
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     outputs:
@@ -67,16 +68,18 @@ jobs:
 
           ALL_SERVICES='["billing","customer","fundstransfermgt","policy","ratingandunderwriting"]'
 
-          # Decide which image tag to deploy
+          # Decide which tag to deploy
           if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
+            # Deploy the exact commit that CI built
             IMAGE_TAG="${{ github.event.workflow_run.head_sha }}"
           else
+            # Manual run uses the current workflow's commit SHA
             IMAGE_TAG="${{ github.sha }}"
           fi
 
           echo "image_tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
 
-          # Manual deployment input handling
+          # Decide which services to deploy
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             if [[ "${{ github.event.inputs.services }}" == "all" ]]; then
               echo "services=$ALL_SERVICES" >> "$GITHUB_OUTPUT"
@@ -91,17 +94,20 @@ jobs:
             exit 0
           fi
 
-          # CI: Build Services triggered this CD -> decide deploy scope based on CI commit
+          # For workflow_run: decide deploy scope based on the CI commit
+
+          # CI: Build Services triggered this CD -> decide deploy scope based on the CI commit
+          # Use `git show --name-only` to list files changed in the CI commit reliably
           changed_files=$(git show --pretty="" --name-only "${{ github.event.workflow_run.head_sha }}" || true)
 
-          # If commit file list cannot be determined, deploy all as safe fallback
+          # If we cannot diff (rare), fall back to all services
           if [[ -z "$changed_files" ]]; then
             echo "services=$ALL_SERVICES" >> "$GITHUB_OUTPUT"
             echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          # Workflow change -> deploy all services
+          # workflow change -> deploy all
           if echo "$changed_files" | grep -q '^\.github/workflows/ci-build-services\.yml$'; then
             echo "CI workflow file changed -> deploy ALL services"
             echo "services=$ALL_SERVICES" >> "$GITHUB_OUTPUT"
@@ -116,7 +122,7 @@ jobs:
             exit 0
           fi
 
-          # Shared contracts change -> deploy all services
+          # shared contracts change -> deploy all
           if echo "$changed_files" | grep -q '^platform/RiskInsure\.PublicContracts/'; then
             echo "Shared contracts changed -> deploy ALL services"
             echo "services=$ALL_SERVICES" >> "$GITHUB_OUTPUT"
@@ -124,7 +130,6 @@ jobs:
             exit 0
           fi
 
-          # Service-level changes -> deploy only changed services
           changed_services=()
           for s in billing customer fundstransfermgt policy ratingandunderwriting; do
             if echo "$changed_files" | grep -q "^services/$s/"; then
@@ -141,7 +146,7 @@ jobs:
             echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
           fi
 
-          # Debug: print changed files for workflow_run troubleshooting
+          # Debug: include changed_files in the step summary for easier troubleshooting
           if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
             echo "### Changed files (debug)" >> "$GITHUB_STEP_SUMMARY"
             echo '```' >> "$GITHUB_STEP_SUMMARY"
@@ -161,10 +166,10 @@ jobs:
           echo "**image_tag:** \`${{ steps.out.outputs.image_tag }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "**services:** \`${{ steps.out.outputs.services }}\`" >> "$GITHUB_STEP_SUMMARY"
 
-  # ==============================================================================
+  # ==========================================================================
   # CRITICAL: Verify infrastructure exists before deploying services
   # This prevents deployment failures due to missing resources
-  # ==============================================================================
+  # ==========================================================================
   verify-infra:
     name: 'Verify Infrastructure'
     needs: determine
@@ -200,10 +205,10 @@ jobs:
 
           echo "resource_group=$RG" >> "$GITHUB_OUTPUT"
 
-  # ==============================================================================
+  # ==========================================================================
   # Deploy Container Apps using Terraform with targeted deployments
   # Uses image_tag from determine job to deploy exact images CI built
-  # ==============================================================================
+  # ==========================================================================
   deploy:
     name: 'Deploy Container Apps'
     needs: [determine, verify-infra]
@@ -275,15 +280,14 @@ jobs:
           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-  # ==============================================================================
+  # ==========================================================================
   # Summary
-  # ==============================================================================
+  # ==========================================================================
   summary:
     name: 'Deployment Summary'
     needs: [determine, verify-infra, deploy]
     if: always()
     runs-on: ubuntu-latest
-
     steps:
       - name: Generate Summary
         shell: bash
