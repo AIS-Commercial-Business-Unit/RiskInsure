@@ -92,27 +92,12 @@ jobs:
           fi
 
           # CI: Build Services triggered this CD -> decide deploy scope based on CI commit
-          #
-          # Use git diff against parent rather than git show so that merge commits
-          # are handled correctly. `git show --name-only` on a merge commit emits a
-          # combined diff that is empty for clean merges, which previously caused the
-          # empty-file fallback to deploy ALL services on every PR merge.
-          COMMIT_SHA="${{ github.event.workflow_run.head_sha }}"
+          changed_files=$(git show --pretty="" --name-only "${{ github.event.workflow_run.head_sha }}" || true)
 
-          if ! git cat-file -e "${COMMIT_SHA}^1" 2>/dev/null; then
-            echo "Cannot resolve parent commit – deploying all services as safe fallback"
+          # If commit file list cannot be determined, deploy all as safe fallback
+          if [[ -z "$changed_files" ]]; then
             echo "services=$ALL_SERVICES" >> "$GITHUB_OUTPUT"
             echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          changed_files=$(git diff --name-only "${COMMIT_SHA}^1" "${COMMIT_SHA}")
-
-          # Nothing changed at all -> nothing to deploy (distinct from the error case above)
-          if [[ -z "$changed_files" ]]; then
-            echo "No files changed – skipping all deployments"
-            echo "services=[]" >> "$GITHUB_OUTPUT"
-            echo "matrix_empty=true" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
