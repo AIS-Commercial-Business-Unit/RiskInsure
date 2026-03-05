@@ -25,7 +25,7 @@ services:
       - Messaging__MessageBroker=${MESSAGE_BROKER}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=file-retrieval
-      - AzureKeyVault__VaultUri=http://keyvault-emulator:4997
+      - AzureKeyVault__VaultUri=https://keyvault-emulator:4997
       - AzureKeyVault__UsingEmulator=true
     depends_on:
       cosmos-emulator:
@@ -56,7 +56,7 @@ services:
       - Messaging__MessageBroker=${MESSAGE_BROKER}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=file-retrieval
-      - AzureKeyVault__VaultUri=http://keyvault-emulator:4997
+      - AzureKeyVault__VaultUri=https://keyvault-emulator:4997
       - AzureKeyVault__UsingEmulator=true
     depends_on:
       cosmos-emulator:
