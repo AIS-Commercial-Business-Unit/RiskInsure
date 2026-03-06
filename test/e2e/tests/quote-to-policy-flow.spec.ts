@@ -3,6 +3,7 @@ import { getTestConfig, validateConfig } from '../config/api-endpoints';
 import { createCustomer } from '../helpers/customer-api';
 import { startQuote, submitUnderwriting, acceptQuote, getQuote } from '../helpers/rating-api';
 import { waitForPolicyCreation } from '../helpers/policy-api';
+import { logDetail, logInfo, logStep, logSuccess } from '../helpers/test-logger';
 
 const config = getTestConfig();
 
@@ -10,7 +11,8 @@ test.describe('Quote to Policy Flow', () => {
   test.beforeAll(() => {
     // Validate configuration before running tests
     validateConfig(config);
-    console.log('E2E Test Configuration:', {
+    logInfo('SETUP', 'E2E Test Configuration');
+    logDetail(JSON.stringify({
       customer: config.apis.customer,
       // rating: config.apis.rating,
       ratingandunderwriting: config.apis.ratingandunderwriting,
@@ -18,7 +20,7 @@ test.describe('Quote to Policy Flow', () => {
       billing: config.apis.billing,
       fundsTransfer: config.apis.fundsTransfer,
       eventualConsistencyTimeout: config.timeouts.eventualConsistency,
-    });
+    }, null, 2));
   });
 
   test('complete quote to policy workflow with Class A approval', async ({ request }) => {
@@ -36,7 +38,7 @@ test.describe('Quote to Policy Flow', () => {
       },
     });
 
-    console.log(`✓ Customer created: ${customer.customerId}`);
+    logSuccess('CLASS A', `Customer created: ${customer.customerId}`);
     expect(customer.customerId).toBeTruthy();
     expect(customer.firstName).toBe('Alice');
     expect(customer.lastName).toBe('Johnson');
@@ -51,7 +53,7 @@ test.describe('Quote to Policy Flow', () => {
       propertyZipCode: '90210', // Zone 1 territory (0.90 factor)
     });
 
-    console.log(`✓ Quote started: ${quote.quoteId}`);
+    logSuccess('CLASS A', `Quote started: ${quote.quoteId}`);
     expect(quote.quoteId).toBeTruthy();
     expect(quote.customerId).toBe(customer.customerId);
     expect(quote.status).toBe('Draft');
@@ -65,7 +67,7 @@ test.describe('Quote to Policy Flow', () => {
     expect(underwritingResponse.status()).toBe(200);
     const underwritingResult = await underwritingResponse.json();
 
-    console.log(`✓ Underwriting submitted: Class ${underwritingResult.underwritingClass}, Premium: $${underwritingResult.premium}`);
+    logSuccess('CLASS A', `Underwriting submitted: Class ${underwritingResult.underwritingClass}, Premium: $${underwritingResult.premium}`);
     expect(underwritingResult.underwritingClass).toBe('A');
     expect(underwritingResult.status).toBe('Quoted');
     expect(underwritingResult.premium).toBeGreaterThan(0);
@@ -79,18 +81,18 @@ test.describe('Quote to Policy Flow', () => {
     // Step 4: Accept Quote (Rating & Underwriting Domain - 7079)
     const acceptResult = await acceptQuote(request, quote.quoteId);
 
-    console.log(`✓ Quote accepted: ${acceptResult.quoteId}`);
+    logSuccess('CLASS A', `Quote accepted: ${acceptResult.quoteId}`);
     expect(acceptResult.status).toBe('Accepted');
     expect(acceptResult.policyCreationInitiated).toBe(true);
     expect(acceptResult.acceptedUtc).toBeTruthy();
 
     // Step 5: Wait for Policy Creation (Policy Domain - 7077)
     // This handles eventual consistency - QuoteAccepted event → PolicyCreated
-    console.log(`⏳ Waiting for policy creation (max ${config.timeouts.eventualConsistency}ms)...`);
+    logInfo('CLASS A', `Waiting for policy creation (max ${config.timeouts.eventualConsistency}ms)`);
     
     const policy = await waitForPolicyCreation(request, customer.customerId);
 
-    console.log(`✓ Policy created: ${policy.policyNumber} (${policy.policyId})`);
+    logSuccess('CLASS A', `Policy created: ${policy.policyNumber} (${policy.policyId})`);
     
     // Step 6: Verify Policy Details Match Quote
     expect(policy.customerId).toBe(customer.customerId);
@@ -102,10 +104,10 @@ test.describe('Quote to Policy Flow', () => {
     expect(policy.contentsDeductible).toBe(quote.contentsDeductible);
     expect(policy.termMonths).toBe(quote.termMonths);
     expect(policy.policyNumber).toMatch(/^KWG-\d{4}-\d{6}$/); // Format: KWG-YYYY-NNNNNN
-    console.log('\n✅ Complete Quote-to-Policy Flow Successful!');
-    console.log(`   Customer: ${customer.firstName} ${customer.lastName} (${customer.customerId})`);
-    console.log(`   Quote: ${quote.quoteId} (Class A, $${underwritingResult.premium})`);
-    console.log(`   Policy: ${policy.policyNumber} (${policy.status})`);
+    logSuccess('CLASS A', 'Complete Quote-to-Policy flow successful');
+    logDetail(`Customer: ${customer.firstName} ${customer.lastName} (${customer.customerId})`);
+    logDetail(`Quote: ${quote.quoteId} (Class A, $${underwritingResult.premium})`);
+    logDetail(`Policy: ${policy.policyNumber} (${policy.status})`);
   });
 
   test('complete quote to policy workflow with Class B approval', async ({ request }) => {
@@ -117,11 +119,11 @@ test.describe('Quote to Policy Flow', () => {
       lastName: 'Smith',
     });
 
-    console.log(`✓ Customer created: ${customer.customerId}`);
+    logSuccess('CLASS B', `Customer created: ${customer.customerId}`);
 
     // Step 2: Start Quote
     const quote = await startQuote(request, customer.customerId);
-    console.log(`✓ Quote started: ${quote.quoteId}`);
+    logSuccess('CLASS B', `Quote started: ${quote.quoteId}`);
 
     // Step 3: Submit Underwriting with Class B criteria
     const underwritingResponse = await submitUnderwriting(request, quote.quoteId, {
@@ -132,26 +134,26 @@ test.describe('Quote to Policy Flow', () => {
     expect(underwritingResponse.status()).toBe(200);
     const underwritingResult = await underwritingResponse.json();
 
-    console.log(`✓ Underwriting submitted: Class ${underwritingResult.underwritingClass}, Premium: $${underwritingResult.premium}`);
+    logSuccess('CLASS B', `Underwriting submitted: Class ${underwritingResult.underwritingClass}, Premium: $${underwritingResult.premium}`);
     expect(underwritingResult.underwritingClass).toBe('B');
     expect(underwritingResult.status).toBe('Quoted');
     expect(underwritingResult.premium).toBeGreaterThan(0);
 
     // Step 4: Accept Quote
     const acceptResult = await acceptQuote(request, quote.quoteId);
-    console.log(`✓ Quote accepted: ${acceptResult.quoteId}`);
+    logSuccess('CLASS B', `Quote accepted: ${acceptResult.quoteId}`);
 
     // Step 5: Wait for Policy Creation
-    console.log(`⏳ Waiting for policy creation...`);
+    logInfo('CLASS B', 'Waiting for policy creation');
     const policy = await waitForPolicyCreation(request, customer.customerId);
-    console.log(`✓ Policy created: ${policy.policyNumber}`);
+    logSuccess('CLASS B', `Policy created: ${policy.policyNumber}`);
 
     // Step 6: Verify
     expect(policy.customerId).toBe(customer.customerId);
     expect(policy.status).toBe('Bound');
     expect(policy.premium).toBe(underwritingResult.premium);
 
-    console.log('\n✅ Class B Quote-to-Policy Flow Successful!');
+    logSuccess('CLASS B', 'Quote-to-Policy flow successful');
   });
 
   test('declined quote does not create policy', async ({ request }) => {
@@ -162,11 +164,11 @@ test.describe('Quote to Policy Flow', () => {
       lastName: 'Brown',
     });
 
-    console.log(`✓ Customer created: ${customer.customerId}`);
+    logSuccess('DECLINE', `Customer created: ${customer.customerId}`);
 
     // Step 2: Start Quote
     const quote = await startQuote(request, customer.customerId);
-    console.log(`✓ Quote started: ${quote.quoteId}`);
+    logSuccess('DECLINE', `Quote started: ${quote.quoteId}`);
 
     // Step 3: Submit Underwriting with decline criteria
     const underwritingResponse = await submitUnderwriting(request, quote.quoteId, {
@@ -177,7 +179,7 @@ test.describe('Quote to Policy Flow', () => {
     expect(underwritingResponse.status()).toBe(422);
     const underwritingResult = await underwritingResponse.json();
 
-    console.log(`✓ Underwriting submitted: ${underwritingResult.status}, Reason: ${underwritingResult.declineReason}`);
+    logSuccess('DECLINE', `Underwriting submitted: ${underwritingResult.status}, Reason: ${underwritingResult.declineReason}`);
     expect(underwritingResult.error).toBe("UnderwritingDeclined");
     expect(underwritingResult.message).toContain('prior claims');
 
@@ -193,6 +195,7 @@ test.describe('Quote to Policy Flow', () => {
 
     expect(policies).toBeNull();
 
-    console.log('\n✅ Declined Quote Does Not Create Policy - As Expected!');
+    logSuccess('DECLINE', 'Declined quote did not create policy (as expected)');
+    logDetail('────────────────────────────────────────────────────────────');
   });
 });

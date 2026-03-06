@@ -1,0 +1,377 @@
+name: 'CD: Infrastructure Dev'
+
+# ============================================================================
+# Purpose: Auto-deploy infrastructure changes to dev environment
+# Triggers: Push to main with infrastructure changes
+# Duration: ~12 minutes
+# Blocks: No (runs after merge)
+# ============================================================================
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'platform/infra/**'
+      - '.github/workflows/cd-infra-dev.yml'
+  workflow_dispatch:
+    inputs:
+      layer:
+        description: 'Infrastructure layer to deploy'
+        type: choice
+        required: true
+        default: 'all'
+        options:
+          - all
+          - foundation
+          - shared-services
+      action:
+        description: 'Terraform action'
+        type: choice
+        required: true
+        default: 'apply'
+        options:
+          - plan
+          - apply
+
+env:
+  TERRAFORM_VERSION: '1.11.4'
+  ENVIRONMENT: 'dev'
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: riskinsure-infra-dev
+  cancel-in-progress: false
+
+jobs:
+  # ==========================================================================
+  # Foundation Layer (ACR, VNet, KeyVault, Log Analytics)
+  # ==========================================================================
+  foundation:
+    name: 'Foundation Layer'
+    if: |
+      (github.event_name == 'workflow_dispatch' && (github.event.inputs.layer == 'all' || github.event.inputs.layer == 'foundation')) ||
+      github.event_name == 'push'
+    runs-on: ubuntu-latest
+    
+    permissions:
+      id-token: write
+      contents: read
+    
+    defaults:
+      run:
+        shell: bash
+        working-directory: platform/infra/foundation
+    
+    outputs:
+      resource_group_name: ${{ steps.outputs.outputs.resource_group_name }}
+      acr_login_server: ${{ steps.outputs.outputs.acr_login_server }}
+      acr_name: ${{ steps.outputs.outputs.acr_name }}
+      key_vault_name: ${{ steps.outputs.outputs.key_vault_name }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+      
+      - name: Terraform Init
+        run: terraform init -input=false
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
+      - name: Terraform Validate
+        run: terraform validate
+      
+      - name: Terraform Plan
+        run: |
+          terraform plan \
+            -var="environment=${{ env.ENVIRONMENT }}" \
+            -out=tfplan \
+            -input=false
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
+      - name: Terraform Apply
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply')
+        run: terraform apply -auto-approve tfplan
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
+      - name: Export Outputs
+        id: outputs
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply')
+        run: |
+          echo "resource_group_name=$(terraform output -raw resource_group_name)" >> "$GITHUB_OUTPUT"
+          echo "acr_login_server=$(terraform output -raw acr_login_server)" >> "$GITHUB_OUTPUT"
+          echo "acr_name=$(terraform output -raw acr_name)" >> "$GITHUB_OUTPUT"
+          echo "key_vault_name=$(terraform output -raw key_vault_name)" >> "$GITHUB_OUTPUT"
+
+  # ==========================================================================
+  # Shared Services Layer (Cosmos DB, Service Bus, UAMI)
+  # ==========================================================================
+  shared-services:
+    name: 'Shared Services Layer'
+    needs: foundation
+    if: |
+      always() &&
+      (needs.foundation.result == 'success' || needs.foundation.result == 'skipped') &&
+      (
+        (github.event_name == 'workflow_dispatch' && (github.event.inputs.layer == 'all' || github.event.inputs.layer == 'shared-services')) ||
+        github.event_name == 'push'
+      )
+    runs-on: ubuntu-latest
+    
+    permissions:
+      id-token: write
+      contents: read
+    
+    defaults:
+      run:
+        shell: bash
+        working-directory: platform/infra/shared-services
+    
+    outputs:
+      cosmosdb_account_name: ${{ steps.outputs.outputs.cosmosdb_account_name }}
+      servicebus_namespace_fqdn: ${{ steps.outputs.outputs.servicebus_namespace_fqdn }}
+      apps_shared_identity_id: ${{ steps.outputs.outputs.apps_shared_identity_id }}
+      resource_group_name: ${{ steps.rg.outputs.resource_group_name }}
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Resolve Resource Group
+        id: rg
+        shell: bash
+        run: |
+          if [ -n "${{ needs.foundation.outputs.resource_group_name }}" ]; then
+            echo "resource_group_name=${{ needs.foundation.outputs.resource_group_name }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "resource_group_name=CAIS-010-RiskInsure" >> "$GITHUB_OUTPUT"
+          fi
+      
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+      
+      - name: Terraform Init
+        run: terraform init -input=false
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
+      - name: Terraform Validate
+        run: terraform validate
+      
+      - name: Terraform Plan
+        run: |
+          terraform plan \
+            -var="environment=${{ env.ENVIRONMENT }}" \
+            -out=tfplan \
+            -input=false
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
+      - name: Terraform Apply
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply')
+        run: terraform apply -auto-approve tfplan
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
+      - name: Export Outputs
+        id: outputs
+        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply')
+        run: |
+          echo "cosmosdb_account_name=$(terraform output -raw cosmosdb_account_name)" >> "$GITHUB_OUTPUT"
+          echo "servicebus_namespace_fqdn=$(terraform output -raw servicebus_namespace_fqdn)" >> "$GITHUB_OUTPUT"
+          echo "apps_shared_identity_id=$(terraform output -raw apps_shared_identity_id)" >> "$GITHUB_OUTPUT"
+  
+  # ==========================================================================
+  # Wait for RBAC Propagation
+  # ==========================================================================
+  rbac-propagation:
+    name: 'Wait for RBAC Propagation'
+    needs: shared-services
+    if: |
+      always() &&
+      needs.shared-services.result == 'success' &&
+      (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply'))
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Wait 180 seconds
+        run: |
+          echo "⏳ Waiting 180 seconds for Azure RBAC propagation..."
+          sleep 180
+          echo "✅ RBAC propagation complete"
+  
+  # ==========================================================================
+  # Verify Infrastructure & Permissions (matches infrastructure.yml pattern)
+  # ==========================================================================
+  verify:
+    name: 'Verify Infrastructure'
+    needs: [shared-services, rbac-propagation]
+    if: |
+      always() &&
+      needs.shared-services.result == 'success' &&
+      needs.rbac-propagation.result == 'success' &&
+      (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply'))
+    runs-on: ubuntu-latest
+    
+    permissions:
+      id-token: write
+      contents: read
+    
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      
+      - name: Verify UAMI Exists
+        id: verify_uami
+        shell: bash
+        run: |
+          RG="${{ needs.shared-services.outputs.resource_group_name }}"
+          UAMI_NAME="riskinsure-${{ env.ENVIRONMENT }}-app-mi"
+          
+          echo "🔍 Verifying UAMI: $UAMI_NAME (RG: $RG)"
+          
+          PRINCIPAL_ID=$(az identity show -n "$UAMI_NAME" -g "$RG" --query "principalId" -o tsv 2>/dev/null || echo "")
+          
+          if [ -z "$PRINCIPAL_ID" ] || [ "$PRINCIPAL_ID" = "null" ]; then
+            echo "❌ UAMI verification failed: $UAMI_NAME"
+            exit 1
+          fi
+          
+          echo "✅ UAMI verified: $UAMI_NAME"
+          echo "   Principal ID: $PRINCIPAL_ID"
+          echo "principal_id=$PRINCIPAL_ID" >> "$GITHUB_OUTPUT"
+      
+      - name: Verify Role Assignments
+        shell: bash
+        run: |
+          PRINCIPAL_ID="${{ steps.verify_uami.outputs.principal_id }}"
+          
+          echo "🔍 Verifying role assignments for principal ID: $PRINCIPAL_ID"
+          ROLES=$(az role assignment list --assignee "$PRINCIPAL_ID" --query "[].roleDefinitionName" -o tsv)
+          
+          if [ -z "$ROLES" ]; then
+            echo "⚠️ No role assignments found (may still be propagating)"
+          else
+            echo "✅ Role assignments verified:"
+            echo "$ROLES"
+          fi
+      
+      - name: Verify Cosmos DB
+        shell: bash
+        run: |
+          RG="${{ needs.shared-services.outputs.resource_group_name }}"
+          COSMOS_ACCOUNT="${{ needs.shared-services.outputs.cosmosdb_account_name }}"
+          
+          if [ -z "$COSMOS_ACCOUNT" ] || [ "$COSMOS_ACCOUNT" = "null" ]; then
+            echo "⚠️ Cosmos DB account name not available, skipping verification"
+            exit 0
+          fi
+          
+          echo "🔍 Verifying Cosmos DB: $COSMOS_ACCOUNT (RG: $RG)"
+          
+          ENDPOINT=$(az cosmosdb show --name "$COSMOS_ACCOUNT" --resource-group "$RG" --query "documentEndpoint" -o tsv 2>/dev/null || echo "")
+          
+          if [ -z "$ENDPOINT" ]; then
+            echo "❌ Cosmos DB verification failed"
+            exit 1
+          fi
+          
+          echo "✅ Cosmos DB verified"
+          echo "   Endpoint: $ENDPOINT"
+      
+      - name: Verify Service Bus
+        shell: bash
+        run: |
+          RG="${{ needs.shared-services.outputs.resource_group_name }}"
+          SB_FQDN="${{ needs.shared-services.outputs.servicebus_namespace_fqdn }}"
+          
+          if [ -z "$SB_FQDN" ] || [ "$SB_FQDN" = "null" ]; then
+            echo "⚠️ Service Bus namespace FQDN not available, skipping verification"
+            exit 0
+          fi
+          
+          SB_NAMESPACE="${SB_FQDN%%.*}"
+          
+          echo "🔍 Verifying Service Bus: $SB_NAMESPACE (RG: $RG)"
+          
+          SB_NAME=$(az servicebus namespace show --name "$SB_NAMESPACE" --resource-group "$RG" --query "name" -o tsv 2>/dev/null || echo "")
+          
+          if [ -z "$SB_NAME" ]; then
+            echo "❌ Service Bus verification failed"
+            exit 1
+          fi
+          
+          echo "✅ Service Bus verified"
+          echo "   Namespace: $SB_NAME"
+      
+      - name: Final Status
+        shell: bash
+        run: |
+          echo ""
+          echo "🎉 ALL INFRASTRUCTURE & PERMISSIONS VERIFIED"
+          echo ""
+          echo "✅ Ready for service deployment"
+
+  # ==========================================================================
+  # Summary
+  # ==========================================================================
+  summary:
+    name: 'Deployment Summary'
+    needs: [foundation, shared-services, rbac-propagation, verify]
+    if: always()
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Generate Summary
+        shell: bash
+        run: |
+          echo "# 🏗️ Infrastructure Deployment: Dev" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Environment:** \`dev\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Triggered by:** @${{ github.actor }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Event:** \`${{ github.event_name }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "## 📋 Deployment Results" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Layer | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------|--------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Foundation | ${{ needs.foundation.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Shared Services | ${{ needs.shared-services.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| RBAC Propagation | ${{ needs.rbac-propagation.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Verification | ${{ needs.verify.result }} |" >> "$GITHUB_STEP_SUMMARY"

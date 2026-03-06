@@ -9,10 +9,13 @@ using Serilog;
 using RiskInsure.Policy.Infrastructure;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Serilog.Sinks.ApplicationInsights.TelemetryConverters;
+using Microsoft.ApplicationInsights.Extensibility;
+using Azure.Monitor.OpenTelemetry.Exporter;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
-    .CreateLogger();
+    .CreateBootstrapLogger();
 
 try
 {
@@ -20,10 +23,38 @@ try
 
     var builder = Host.CreateDefaultBuilder(args);
 
-    builder.UseSerilog();
+    builder.UseSerilog((context, services, configuration) =>
+    {
+        configuration
+            .ReadFrom.Configuration(context.Configuration)
+            .Enrich.FromLogContext()
+            .WriteTo.Console();
+
+        var appInsightsConnectionString = context.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
+        if (!string.IsNullOrWhiteSpace(appInsightsConnectionString))
+        {
+            configuration.WriteTo.ApplicationInsights(
+                services.GetRequiredService<TelemetryConfiguration>(),
+                TelemetryConverter.Traces);
+        }
+    });
 
     builder.ConfigureServices((context, services) =>
     {
+        var appInsightsConnectionString = context.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
+        if (!string.IsNullOrWhiteSpace(appInsightsConnectionString))
+        {
+            services.AddApplicationInsightsTelemetryWorkerService();
+
+            services.AddOpenTelemetry()
+                .WithTracing(tracing => tracing
+                    .AddSource("NServiceBus.Core")
+                    .AddAzureMonitorTraceExporter())
+                .WithMetrics(metrics => metrics
+                    .AddMeter("NServiceBus.Core")
+                    .AddAzureMonitorMetricExporter());
+        }
+
         // Configure Cosmos DB with custom serializer
         var cosmosConnectionString = context.Configuration.GetConnectionString("CosmosDb")
             ?? throw new InvalidOperationException("CosmosDb connection string not configured");
@@ -64,6 +95,7 @@ try
         });
 
     var host = builder.Build();
+
     await host.RunAsync();
 
     return 0;

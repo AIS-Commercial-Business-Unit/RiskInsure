@@ -7,6 +7,7 @@ using FileRetrieval.Contracts.DTOs;
 using RiskInsure.FileRetrieval.Domain.Entities;
 using RiskInsure.FileRetrieval.Domain.Enums;
 using RiskInsure.FileRetrieval.Domain.ValueObjects;
+using System.Text.Json;
 
 namespace RiskInsure.FileRetrieval.Application.MessageHandlers;
 
@@ -74,9 +75,7 @@ public class CreateConfigurationHandler : IHandleMessages<CreateConfiguration>
                 CronExpression = created.Schedule.CronExpression,
                 Timezone = created.Schedule.Timezone,
                 IsActive = created.IsActive,
-                CreatedBy = created.CreatedBy,
-                EventCount = created.EventsToPublish.Count,
-                CommandCount = created.CommandsToSend.Count
+                CreatedBy = created.CreatedBy
             };
 
             await context.Publish(configurationCreatedEvent);
@@ -107,29 +106,11 @@ public class CreateConfigurationHandler : IHandleMessages<CreateConfiguration>
             throw new ArgumentException($"Invalid protocol type: {message.Protocol}", nameof(message.Protocol));
         }
 
-        // T092: Validate that at least one EventDefinition exists
-        if (message.EventsToPublish == null || !message.EventsToPublish.Any())
-        {
-            throw new ArgumentException(
-                "At least one event definition is required. Configuration must specify what events to publish when files are discovered.",
-                nameof(message.EventsToPublish));
-        }
-
         // Map protocol settings based on type
         ProtocolSettings protocolSettings = MapProtocolSettings(message.ProtocolSettings, protocolType);
 
         // Map schedule definition
         var schedule = MapScheduleDefinition(message.Schedule);
-
-        // Map event definitions
-        var events = message.EventsToPublish
-            .Select(MapEventDefinition)
-            .ToList();
-
-        // Map command definitions
-        var commands = (message.CommandsToSend ?? Enumerable.Empty<CommandDefinitionDto>())
-            .Select(MapCommandDefinition)
-            .ToList();
 
         return new FileRetrievalConfiguration
         {
@@ -143,8 +124,6 @@ public class CreateConfigurationHandler : IHandleMessages<CreateConfiguration>
             FilenamePattern = message.FilenamePattern,
             FileExtension = message.FileExtension,
             Schedule = schedule,
-            EventsToPublish = events,
-            CommandsToSend = commands,
             IsActive = true,
             CreatedAt = message.OccurredUtc,
             CreatedBy = message.CreatedBy
@@ -165,51 +144,104 @@ public class CreateConfigurationHandler : IHandleMessages<CreateConfiguration>
     private FtpProtocolSettings MapFtpSettings(Dictionary<string, object> settings)
     {
         return new FtpProtocolSettings(
-            server: settings["Server"].ToString()!,
-            port: Convert.ToInt32(settings["Port"]),
-            username: settings["Username"].ToString()!,
-            passwordKeyVaultSecret: settings["PasswordKeyVaultSecret"].ToString()!,
-            useTls: Convert.ToBoolean(settings.GetValueOrDefault("UseTls", true)),
-            usePassiveMode: Convert.ToBoolean(settings.GetValueOrDefault("UsePassiveMode", true)),
-            connectionTimeout: TimeSpan.FromSeconds(Convert.ToInt32(settings.GetValueOrDefault("ConnectionTimeoutSeconds", 30)))
+            server: GetRequiredString(settings, "Server"),
+            port: GetInt(settings, "Port", 21),
+            username: GetRequiredString(settings, "Username"),
+            passwordKeyVaultSecret: GetRequiredString(settings, "PasswordKeyVaultSecret"),
+            useTls: GetBool(settings, "UseTls", true),
+            usePassiveMode: GetBool(settings, "UsePassiveMode", true),
+            connectionTimeout: TimeSpan.FromSeconds(GetInt(settings, "ConnectionTimeoutSeconds", 30))
         );
     }
 
     private HttpsProtocolSettings MapHttpsSettings(Dictionary<string, object> settings)
     {
-        var authTypeStr = settings.GetValueOrDefault("AuthenticationType", "None").ToString()!;
+        var authTypeStr = GetString(settings, "AuthenticationType") ?? "None";
         if (!Enum.TryParse<AuthType>(authTypeStr, ignoreCase: true, out var authType))
         {
             authType = AuthType.None;
         }
 
         return new HttpsProtocolSettings(
-            baseUrl: settings["BaseUrl"].ToString()!,
+            baseUrl: GetRequiredString(settings, "BaseUrl"),
             authenticationType: authType,
-            usernameOrApiKey: settings.GetValueOrDefault("UsernameOrApiKey")?.ToString(),
-            passwordOrTokenKeyVaultSecret: settings.GetValueOrDefault("PasswordOrTokenKeyVaultSecret")?.ToString(),
-            connectionTimeout: TimeSpan.FromSeconds(Convert.ToInt32(settings.GetValueOrDefault("ConnectionTimeoutSeconds", 30))),
-            followRedirects: Convert.ToBoolean(settings.GetValueOrDefault("FollowRedirects", true)),
-            maxRedirects: Convert.ToInt32(settings.GetValueOrDefault("MaxRedirects", 3))
+            usernameOrApiKey: GetString(settings, "UsernameOrApiKey"),
+            passwordOrTokenKeyVaultSecret: GetString(settings, "PasswordOrTokenKeyVaultSecret"),
+            connectionTimeout: TimeSpan.FromSeconds(GetInt(settings, "ConnectionTimeoutSeconds", 30)),
+            followRedirects: GetBool(settings, "FollowRedirects", true),
+            maxRedirects: GetInt(settings, "MaxRedirects", 3)
         );
     }
 
     private AzureBlobProtocolSettings MapAzureBlobSettings(Dictionary<string, object> settings)
     {
-        var authTypeStr = settings.GetValueOrDefault("AuthenticationType", "ManagedIdentity").ToString()!;
+        var authTypeStr = GetString(settings, "AuthenticationType") ?? "ManagedIdentity";
         if (!Enum.TryParse<AzureAuthType>(authTypeStr, ignoreCase: true, out var authType))
         {
             authType = AzureAuthType.ManagedIdentity;
         }
 
         return new AzureBlobProtocolSettings(
-            storageAccountName: settings["StorageAccountName"].ToString()!,
-            containerName: settings["ContainerName"].ToString()!,
+            storageAccountName: GetRequiredString(settings, "StorageAccountName"),
+            containerName: GetRequiredString(settings, "ContainerName"),
             authenticationType: authType,
-            connectionStringKeyVaultSecret: settings.GetValueOrDefault("ConnectionStringKeyVaultSecret")?.ToString(),
-            sasTokenKeyVaultSecret: settings.GetValueOrDefault("SasTokenKeyVaultSecret")?.ToString(),
-            blobPrefix: settings.GetValueOrDefault("BlobPrefix")?.ToString()
+            connectionStringKeyVaultSecret: GetString(settings, "ConnectionStringKeyVaultSecret"),
+            sasTokenKeyVaultSecret: GetString(settings, "SasTokenKeyVaultSecret"),
+            blobPrefix: GetString(settings, "BlobPrefix")
         );
+    }
+
+    private static string GetRequiredString(Dictionary<string, object> settings, string key)
+    {
+        return GetString(settings, key)
+            ?? throw new ArgumentException($"Required setting '{key}' is missing or empty", key);
+    }
+
+    private static string? GetString(Dictionary<string, object> settings, string key)
+    {
+        if (!settings.TryGetValue(key, out var value) || value is null)
+        {
+            return null;
+        }
+
+        return value switch
+        {
+            JsonElement json when json.ValueKind == JsonValueKind.String => json.GetString(),
+            JsonElement json => json.ToString(),
+            _ => value.ToString()
+        };
+    }
+
+    private static int GetInt(Dictionary<string, object> settings, string key, int defaultValue)
+    {
+        if (!settings.TryGetValue(key, out var value) || value is null)
+        {
+            return defaultValue;
+        }
+
+        return value switch
+        {
+            JsonElement json when json.ValueKind == JsonValueKind.Number => json.GetInt32(),
+            JsonElement json when json.ValueKind == JsonValueKind.String && int.TryParse(json.GetString(), out var parsed) => parsed,
+            _ when int.TryParse(value.ToString(), out var parsed) => parsed,
+            _ => defaultValue
+        };
+    }
+
+    private static bool GetBool(Dictionary<string, object> settings, string key, bool defaultValue)
+    {
+        if (!settings.TryGetValue(key, out var value) || value is null)
+        {
+            return defaultValue;
+        }
+
+        return value switch
+        {
+            JsonElement json when json.ValueKind is JsonValueKind.True or JsonValueKind.False => json.GetBoolean(),
+            JsonElement json when json.ValueKind == JsonValueKind.String && bool.TryParse(json.GetString(), out var parsed) => parsed,
+            _ when bool.TryParse(value.ToString(), out var parsed) => parsed,
+            _ => defaultValue
+        };
     }
 
     private ScheduleDefinition MapScheduleDefinition(ScheduleDefinitionDto dto)
@@ -218,23 +250,6 @@ public class CreateConfigurationHandler : IHandleMessages<CreateConfiguration>
             dto.CronExpression,
             dto.Timezone,
             dto.Description
-        );
-    }
-
-    private EventDefinition MapEventDefinition(EventDefinitionDto dto)
-    {
-        return new EventDefinition(
-            dto.EventType,
-            dto.EventData
-        );
-    }
-
-    private CommandDefinition MapCommandDefinition(CommandDefinitionDto dto)
-    {
-        return new CommandDefinition(
-            dto.CommandType,
-            dto.TargetEndpoint,
-            dto.CommandData
         );
     }
 }

@@ -10,3 +10,5 @@ docker-compose.yml text eol=lf
 
 # Auto-detect and normalize other text files
 * text=auto
+
+.github/workflows/*.lock.yml linguist-generated=true merge=ours

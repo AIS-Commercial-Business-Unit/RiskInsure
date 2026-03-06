@@ -66,6 +66,20 @@ public class PaginatedExecutionHistoryResponse
     public int Count { get; init; }
 }
 
+public class ProcessedFileResponse
+{
+    public required Guid Id { get; init; }
+    public required Guid DiscoveredFileId { get; init; }
+    public required Guid ExecutionId { get; init; }
+    public required string FileName { get; init; }
+    public required string FileUrl { get; init; }
+    public required string Protocol { get; init; }
+    public required long DownloadedSizeBytes { get; init; }
+    public required string ChecksumAlgorithm { get; init; }
+    public required string ChecksumHex { get; init; }
+    public required DateTimeOffset ProcessedAt { get; init; }
+}
+
 /// <summary>
 /// T128: Execution metrics aggregation response
 /// </summary>

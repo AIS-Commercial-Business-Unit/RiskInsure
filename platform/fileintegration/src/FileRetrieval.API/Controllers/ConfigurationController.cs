@@ -40,11 +40,11 @@ public class ConfigurationController : ControllerBase
     /// <returns>ClientId from authenticated user's JWT token</returns>
     private string GetClientIdFromClaims()
     {
-        var clientId = User.FindFirst("clientId")?.Value;
+        var clientId = User.FindFirst("client_id")?.Value;
         if (string.IsNullOrWhiteSpace(clientId))
         {
-            _logger.LogWarning("ClientId claim not found in JWT token for user {UserId}", User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
-            throw new UnauthorizedAccessException("ClientId claim is required but not found in token");
+            _logger.LogWarning("client_id claim not found in JWT token for user {UserId}", User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+            throw new UnauthorizedAccessException("client_id claim is required but not found in token");
         }
         return clientId;
     }
@@ -108,8 +108,6 @@ public class ConfigurationController : ControllerBase
                 FilenamePattern = request.FilenamePattern,
                 FileExtension = request.FileExtension,
                 Schedule = request.Schedule,
-                EventsToPublish = request.EventsToPublish,
-                CommandsToSend = request.CommandsToSend,
                 CreatedBy = userId
             };
 
@@ -412,8 +410,6 @@ public class ConfigurationController : ControllerBase
                 FilenamePattern = request.FilenamePattern,
                 FileExtension = request.FileExtension,
                 Schedule = request.Schedule,
-                EventsToPublish = request.EventsToPublish,
-                CommandsToSend = request.CommandsToSend ?? [],
                 LastModifiedBy = userId
             };
 
@@ -667,8 +663,6 @@ public class ConfigurationController : ControllerBase
             FilenamePattern = entity.FilenamePattern,
             FileExtension = entity.FileExtension,
             Schedule = MapScheduleToDto(entity.Schedule),
-            EventsToPublish = entity.EventsToPublish.Select(MapEventToDto).ToList(),
-            CommandsToSend = entity.CommandsToSend.Select(MapCommandToDto).ToList(),
             IsActive = entity.IsActive,
             CreatedAt = entity.CreatedAt,
             CreatedBy = entity.CreatedBy,
@@ -734,25 +728,6 @@ public class ConfigurationController : ControllerBase
             CronExpression = schedule.CronExpression,
             Timezone = schedule.Timezone,
             Description = schedule.Description
-        };
-    }
-
-    private EventDefinitionDto MapEventToDto(EventDefinition eventDef)
-    {
-        return new EventDefinitionDto
-        {
-            EventType = eventDef.EventType,
-            EventData = eventDef.EventData
-        };
-    }
-
-    private CommandDefinitionDto MapCommandToDto(CommandDefinition cmdDef)
-    {
-        return new CommandDefinitionDto
-        {
-            CommandType = cmdDef.CommandType,
-            TargetEndpoint = cmdDef.TargetEndpoint,
-            CommandData = cmdDef.CommandData
         };
     }
 }

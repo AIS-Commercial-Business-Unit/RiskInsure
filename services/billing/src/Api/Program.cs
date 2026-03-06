@@ -6,19 +6,49 @@ using RiskInsure.Billing.Domain.Services.BillingDb;
 using RiskInsure.Billing.Infrastructure;
 using Scalar.AspNetCore;
 using Serilog;
+using Serilog.Sinks.ApplicationInsights.TelemetryConverters;
+using Microsoft.ApplicationInsights.Extensibility;
+using Azure.Monitor.OpenTelemetry.Exporter;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
-    .CreateLogger();
+    .CreateBootstrapLogger();
 
 try
 {
     Log.Information("Starting Billing API");
 
     var builder = WebApplication.CreateBuilder(args);
+    var appInsightsConnectionString = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
+    var enableApplicationInsights = !string.IsNullOrWhiteSpace(appInsightsConnectionString);
 
-    // Configure Serilog
-    builder.Host.UseSerilog();
+    builder.Host.UseSerilog((context, services, configuration) =>
+    {
+        configuration
+            .ReadFrom.Configuration(context.Configuration)
+            .Enrich.FromLogContext()
+            .WriteTo.Console();
+
+        if (enableApplicationInsights)
+        {
+            configuration.WriteTo.ApplicationInsights(
+                services.GetRequiredService<TelemetryConfiguration>(),
+                TelemetryConverter.Traces);
+        }
+    });
+
+    if (enableApplicationInsights)
+    {
+        builder.Services.AddApplicationInsightsTelemetry();
+
+        builder.Services.AddOpenTelemetry()
+            .WithTracing(tracing => tracing
+                .AddSource("NServiceBus.Core")
+                .AddAzureMonitorTraceExporter())
+            .WithMetrics(metrics => metrics
+                .AddMeter("NServiceBus.Core")
+                .AddAzureMonitorMetricExporter());
+    }
 
     // Add controllers with JSON options for enum string conversion
     builder.Services.AddControllers()

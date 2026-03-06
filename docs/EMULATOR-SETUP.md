@@ -19,10 +19,11 @@ See [.devcontainer/README.md](.devcontainer/README.md) for full documentation.
 
 ### Setup Steps
 
-1. **Copy emulator environment variables**:
+1. **Copy environment template and review settings**:
    ```bash
-   cp .env.emulator .env
+   cp .env.example .env
    ```
+   The defaults in `.env.example` are pre-configured for local emulators.
 
 2. **Start emulators** (first time):
    ```bash

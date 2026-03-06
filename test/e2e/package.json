@@ -8,7 +8,9 @@
     "test:ui": "playwright test --ui",
     "test:headed": "playwright test --headed",
     "test:debug": "playwright test --debug",
-    "test:report": "playwright show-report"
+    "test:report": "playwright show-report",
+    "agent:generate": "node ./agent/generate-e2e-tests.mjs",
+    "agent:plan": "node ./agent/generate-e2e-tests.mjs --mode plan"
   },
   "keywords": [
     "e2e",
@@ -18,6 +20,7 @@
   "author": "RiskInsure Team",
   "license": "UNLICENSED",
   "devDependencies": {
+    "@azure/storage-blob": "^12.27.0",
     "@playwright/test": "^1.41.0",
     "@types/node": "^20.11.0",
     "dotenv": "^17.3.1"

@@ -81,7 +81,7 @@ Write-Host "🎉 Emulators Started!" -ForegroundColor Green
 Write-Host "════════════════════════════════════════════════════════════" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "📋 Next Steps:" -ForegroundColor Yellow
-Write-Host "   1. Copy environment template:  cp .env.emulator .env" -ForegroundColor White
+Write-Host "   1. Copy environment template:  cp .env.example .env" -ForegroundColor White
 Write-Host "   2. Start all services:         docker-compose up -d" -ForegroundColor White
 Write-Host "   3. View logs:                  docker-compose logs -f" -ForegroundColor White
 Write-Host "   4. Run tests:                  cd test/e2e && npm test" -ForegroundColor White

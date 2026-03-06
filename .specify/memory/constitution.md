@@ -160,10 +160,12 @@ This constitution defines **non-negotiable architectural rules** for all project
 - Use `context.Publish()` for events (subscribers)
 - All messages include standard metadata (MessageId, OccurredUtc, correlation fields, IdempotencyKey)
 - Define message contracts as C# records (immutable)
+- Every event published via `context.Publish()` or `IMessageSession.Publish()` MUST have a corresponding topic declared in `platform/infra/shared-services/servicebus.tf` under `locals.topic_names`
 
 **Rationale**: Message-based integration maintains loose coupling, enables independent scaling, provides natural retry/error handling.
 
 **Verification**: No direct service-to-service HTTP calls; all integration through message transport.
+**Verification**: Every published event type resolves to an existing Service Bus topic in `platform/infra/shared-services/servicebus.tf`.
 
 ---
 
