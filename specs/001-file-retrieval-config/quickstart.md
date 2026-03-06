@@ -97,7 +97,7 @@ azurite --silent --location c:\azurite --debug c:\azurite\debug.log
   "ServiceBus": {
     "ConnectionString": "Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=<your-key>"
   },
-  "KeyVault": {
+  "AzureKeyVault": {
     "VaultUri": "https://localhost:8200" // Local Key Vault mock
   },
   "Logging": {

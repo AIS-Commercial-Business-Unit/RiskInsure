@@ -60,9 +60,8 @@ Tasks are organized by phase and include clear dependencies, acceptance criteria
 **Acceptance Criteria**:
 - [ ] `Infrastructure/Encryption/KeyVaultConfiguration.cs` exists
 - [ ] Uses `DefaultAzureCredential` for Managed Identity authentication
-- [ ] Reads Key Vault URI from configuration: `CosmosEncryption:KeyVaultUri`
+- [ ] Reads Key Vault URI from configuration: `AzureKeyVault:VaultUri`
 - [ ] Reads key name from configuration: `CosmosEncryption:KeyName`
-- [ ] Reads key version from configuration: `CosmosEncryption:KeyVersion`
 - [ ] Creates KeyClient for Key Vault operations
 - [ ] Provides dependency injection bindings for KeyClient
 - [ ] Handles Key Vault unavailability gracefully

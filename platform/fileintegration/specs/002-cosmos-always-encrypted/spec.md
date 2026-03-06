@@ -340,9 +340,8 @@ public record AzureBlobProtocolSettings(
 
 **CosmosDB Client Configuration**:
 ```csharp
-var keyVaultUri = configuration["CosmosEncryption:KeyVaultUri"];
+var keyVaultUri = configuration["AzureKeyVault:VaultUri"];
 var keyName = configuration["CosmosEncryption:KeyName"];
-var keyVersion = configuration["CosmosEncryption:KeyVersion"];
 
 var encryptionPolicy = CosmosEncryptionPolicyBuilder.BuildPolicy(
     keyVaultUri, 
