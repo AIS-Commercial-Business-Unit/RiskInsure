@@ -162,30 +162,6 @@ public sealed class JsonPathObjectConverter<T> : JsonConverter<T>
             .Where(p => p.GetCustomAttribute<JsonIgnoreAttribute>() is null)
             .ToList();
 
-foreach (var p in props)
-{
-    Console.WriteLine($"Inspecting property {p.Name} of type {p.PropertyType.Name} for JSON mapping...");
-
-    var gm = p.GetGetMethod(nonPublic: false);
-    if (gm is null)
-    {
-        var hasJsonIgnore = p.GetCustomAttribute<JsonIgnoreAttribute>() is not null;
-        if (hasJsonIgnore) {
-            Console.WriteLine($"Property {p.Name} has no public getter, and it is marked [JsonIgnore], but missed the filter (!!!!!!!!!!)");
-            continue;
-        }
-    }
-    var sm = p.GetSetMethod(nonPublic: false);
-    if (sm is null)
-    {
-        var hasJsonIgnore = p.GetCustomAttribute<JsonIgnoreAttribute>() is not null;
-        if (hasJsonIgnore) {
-            Console.WriteLine($"Property {p.Name} has no public setter, and it is marked [JsonIgnore], but missed the filter (!!!!!!!!!!)");
-            continue;
-        }
-    }
-}
-
         var list = new List<PropMap>();
         foreach (var p in props)
         {
