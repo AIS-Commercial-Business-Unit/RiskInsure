@@ -53,14 +53,15 @@ public class FileRetrievalConfigurationTests
 
     private static FileRetrievalConfiguration CreateValidConfiguration()
     {
-        var ftpSettings = new FtpProtocolSettings(
-            "ftp.example.com",
-            21,
-            "testuser",
-            "testpass-secret",
-            useTls: true,
-            usePassiveMode: true
-        );
+        var ftpSettings = new FtpProtocolSettings
+        {
+            Server = "ftp.example.com",
+            Port = 21,
+            Username = "testuser",
+            Password = "testpass-secret",
+            UseTls = true,
+            UsePassiveMode = true
+        };
 
         return new FileRetrievalConfiguration
         {

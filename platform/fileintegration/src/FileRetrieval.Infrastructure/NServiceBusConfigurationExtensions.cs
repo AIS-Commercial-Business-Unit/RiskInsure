@@ -104,7 +104,7 @@ public static class NServiceBusConfigurationExtensions
         Console.WriteLine("[NServiceBus]: using RabbitMQ transport");
 
         var transportExtensions = endpointConfiguration.UseTransport<RabbitMQTransport>()
-            .UseConventionalRoutingTopology(QueueType.Quorum);
+            .UseConventionalRoutingTopology(QueueType.Classic);
         transportExtensions.ConnectionString(rabbitMqConnectionString);
         
         return transportExtensions.Routing();

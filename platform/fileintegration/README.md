@@ -139,6 +139,8 @@ Key configuration sections:
 - [Research & Decisions](../../specs/001-file-retrieval-config/research.md)
 - [Contracts (Commands & Events)](../../specs/001-file-retrieval-config/contracts/)
 - [Quickstart Guide](../../specs/001-file-retrieval-config/quickstart.md)
+- [Protocol Settings API Documentation](docs/PROTOCOL-SETTINGS-API.md) - FTP, HTTPS, and Azure Blob configuration details
+- [CosmosDB Always Encrypted Setup](PHASE1-INFRASTRUCTURE-SETUP.md) - Encryption key management
 
 ## Development Standards
 

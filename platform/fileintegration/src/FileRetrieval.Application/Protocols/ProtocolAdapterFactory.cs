@@ -12,18 +12,15 @@ namespace FileRetrieval.Application.Protocols;
 public class ProtocolAdapterFactory
 {
     private readonly IServiceProvider _serviceProvider;
-    private readonly SecretClient _keyVaultClient;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILoggerFactory _loggerFactory;
 
     public ProtocolAdapterFactory(
         IServiceProvider serviceProvider,
-        SecretClient keyVaultClient,
         IHttpClientFactory httpClientFactory,
         ILoggerFactory loggerFactory)
     {
         _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
-        _keyVaultClient = keyVaultClient ?? throw new ArgumentNullException(nameof(keyVaultClient));
         _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
         _loggerFactory = loggerFactory ?? throw new ArgumentNullException(nameof(loggerFactory));
     }
@@ -52,18 +49,18 @@ public class ProtocolAdapterFactory
     private IProtocolAdapter CreateFtpAdapter(FtpProtocolSettings settings)
     {
         var logger = _loggerFactory.CreateLogger<FtpProtocolAdapter>();
-        return new FtpProtocolAdapter(settings, _keyVaultClient, logger);
+        return new FtpProtocolAdapter(settings, logger);
     }
 
     private IProtocolAdapter CreateHttpsAdapter(HttpsProtocolSettings settings)
     {
         var logger = _loggerFactory.CreateLogger<HttpsProtocolAdapter>();
-        return new HttpsProtocolAdapter(settings, _keyVaultClient, _httpClientFactory, logger);
+        return new HttpsProtocolAdapter(settings, _httpClientFactory, logger);
     }
 
     private IProtocolAdapter CreateAzureBlobAdapter(AzureBlobProtocolSettings settings)
     {
         var logger = _loggerFactory.CreateLogger<AzureBlobProtocolAdapter>();
-        return new AzureBlobProtocolAdapter(settings, _keyVaultClient, logger);
+        return new AzureBlobProtocolAdapter(settings, logger);
     }
 }

@@ -1,3 +1,5 @@
 include:
   - docker-compose.domain.yml
   - docker-compose.particular.yml
+  - ./platform/fileintegration/docker-compose.fileintegration.yml # File Retrieval API and Worker
+  - ./platform/fileintegration/docker-compose.test-services.yml

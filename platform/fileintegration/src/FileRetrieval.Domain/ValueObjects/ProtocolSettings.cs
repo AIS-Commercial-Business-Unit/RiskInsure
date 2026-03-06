@@ -10,10 +10,5 @@ public abstract class ProtocolSettings
     /// <summary>
     /// Protocol type (FTP, HTTPS, AzureBlob)
     /// </summary>
-    public ProtocolType ProtocolType { get; protected init; }
-
-    protected ProtocolSettings(ProtocolType protocolType)
-    {
-        ProtocolType = protocolType;
-    }
+    public abstract ProtocolType ProtocolType { get; }
 }

@@ -116,7 +116,28 @@ az keyvault secret set --vault-name $KEY_VAULT_NAME --name "CosmosDbConnectionSt
 az keyvault secret set --vault-name $KEY_VAULT_NAME --name "ServiceBusConnectionString" --value "$SERVICEBUS_CONNECTION"
 ```
 
-### 1.6 Create Application Insights
+### 1.6 Create Cosmos Always Encrypted key in Key Vault
+
+Create the encryption key used by CosmosDB Always Encrypted metadata resolution.
+
+```bash
+ENCRYPTION_KEY_NAME="file-retrieval-dek"
+
+az keyvault key create \
+  --vault-name $KEY_VAULT_NAME \
+  --name $ENCRYPTION_KEY_NAME \
+  --kty RSA \
+  --size 2048
+
+echo "CosmosDb__FileRetrievalConfigsEncryptionKeyName=$ENCRYPTION_KEY_NAME"
+```
+
+Required application settings:
+
+- `AzureKeyVault__VaultUri=https://<your-vault-name>.vault.azure.net/`
+- `CosmosDb__FileRetrievalConfigsEncryptionKeyName=<key-name>`
+
+### 1.7 Create Application Insights
 
 ```bash
 APP_INSIGHTS_NAME="riskinsure-fileretr-ai-prod"
@@ -231,7 +252,7 @@ az containerapp create \
     CosmosDb__Endpoint=$COSMOS_ENDPOINT \
     CosmosDb__DatabaseName=file-retrieval \
     ServiceBus__ConnectionString=secretref:servicebus-connection \
-    KeyVault__VaultUri=https://$KEY_VAULT_NAME.vault.azure.net/ \
+    AzureKeyVault__VaultUri=https://$KEY_VAULT_NAME.vault.azure.net/ \
     ApplicationInsights__InstrumentationKey=$APPINSIGHTS_KEY \
   --secrets \
     servicebus-connection=$SERVICEBUS_CONNECTION
@@ -268,7 +289,7 @@ az containerapp create \
     CosmosDb__Endpoint=$COSMOS_ENDPOINT \
     CosmosDb__DatabaseName=file-retrieval \
     ServiceBus__ConnectionString=secretref:servicebus-connection \
-    KeyVault__VaultUri=https://$KEY_VAULT_NAME.vault.azure.net/ \
+    AzureKeyVault__VaultUri=https://$KEY_VAULT_NAME.vault.azure.net/ \
     ApplicationInsights__InstrumentationKey=$APPINSIGHTS_KEY \
   --secrets \
     servicebus-connection=$SERVICEBUS_CONNECTION

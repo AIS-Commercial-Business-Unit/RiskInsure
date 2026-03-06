@@ -21,6 +21,8 @@
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.22.0" />
     <PackageVersion Include="Azure.Identity" Version="1.12.0" />
     <PackageVersion Include="Azure.Security.KeyVault.Secrets" Version="4.8.0" />
+    <PackageVersion Include="Azure.Security.KeyVault.Certificates" Version="4.8.0" />
+    <PackageVersion Include="Azure.Security.KeyVault.Keys" Version="4.8.0" />
     <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.0" />
     <!-- ASP.NET Core / APIs -->
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
@@ -52,6 +54,8 @@
     <!-- Serialization -->
     <PackageVersion Include="System.Text.Json" Version="10.0.0" />
     <!-- File Retrieval Feature Dependencies -->
+    <PackageVersion Include="AzureKeyVaultEmulator.Client" Version="2.8.4" />
+    <PackageVersion Include="Microsoft.Azure.Cosmos.Encryption" Version="2.0.5" />
     <PackageVersion Include="NCrontab" Version="3.3.3" />
     <PackageVersion Include="FluentFTP" Version="51.1.0" />
     <PackageVersion Include="FluentValidation.AspNetCore" Version="11.3.0" />

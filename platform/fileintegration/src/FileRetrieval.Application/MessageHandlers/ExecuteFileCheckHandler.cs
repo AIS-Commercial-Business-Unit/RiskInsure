@@ -53,7 +53,7 @@ public class ExecuteFileCheckHandler : IHandleMessages<ExecuteFileCheck>
                     message.ClientId);
                 
                 // Publish FileCheckFailed event (T090)
-                await context.Publish(new   FileCheckFailed
+                await context.Publish(new FileCheckFailed
                 {
                     MessageId = Guid.NewGuid(),
                     CorrelationId = message.CorrelationId,

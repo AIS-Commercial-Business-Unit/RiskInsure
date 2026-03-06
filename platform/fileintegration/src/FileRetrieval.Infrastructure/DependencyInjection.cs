@@ -1,6 +1,11 @@
 using Microsoft.Azure.Cosmos;
+using Microsoft.Azure.Cosmos.Encryption;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
+using Azure.Security.KeyVault.Keys.Cryptography;
+using Azure.Security.KeyVault.Certificates;
+using Azure.Security.KeyVault.Keys;
+using AzureKeyVaultEmulator.Aspire.Client;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using FileRetrieval.Application.Protocols;
@@ -8,9 +13,13 @@ using RiskInsure.FileRetrieval.Application.Services;
 using RiskInsure.FileRetrieval.Domain.Repositories;
 using RiskInsure.FileRetrieval.Infrastructure.Configuration;
 using RiskInsure.FileRetrieval.Infrastructure.Cosmos;
-using RiskInsure.FileRetrieval.Infrastructure.KeyVault;
 using RiskInsure.FileRetrieval.Infrastructure.Repositories;
 using RiskInsure.FileRetrieval.Infrastructure.Scheduling;
+using System.Security.AccessControl;
+using System.Security.Cryptography.X509Certificates;
+using System.Security.Cryptography;
+using System.Runtime.Serialization;
+using System.Transactions;
 
 namespace RiskInsure.FileRetrieval.Infrastructure;
 
@@ -30,26 +39,44 @@ public static class DependencyInjection
                                 throw new InvalidOperationException("CosmosDb connection string is required");
 
             // Configure CosmosClient to use System.Text.Json serialization
+            var serializerOptions = new System.Text.Json.JsonSerializerOptions
+            {
+                PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+                DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+                Converters =
+                {
+                    new ProtocolSettingsJsonConverter(),
+                    new System.Text.Json.Serialization.JsonStringEnumConverter()
+                }
+            };
+
+            JsonPathModifierExtensions.AddJsonPathConverters(serializerOptions);
+
             var cosmosClientOptions = new CosmosClientOptions
             {
                 ConnectionMode = ConnectionMode.Direct,
-                Serializer = new CosmosSystemTextJsonSerializer(new System.Text.Json.JsonSerializerOptions
-                {
-                    PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
-                    DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
-                    Converters =
-                    {
-                        new ProtocolSettingsJsonConverter(),
-                        new System.Text.Json.Serialization.JsonStringEnumConverter()
-                    }
-                }),
+                Serializer = new CosmosSystemTextJsonSerializer(serializerOptions),
                 RequestTimeout = TimeSpan.FromSeconds(10),
                 MaxRetryAttemptsOnRateLimitedRequests = 3,
                 MaxRetryWaitTimeOnRateLimitedRequests = TimeSpan.FromSeconds(5)
             };
 
-            return new CosmosClient(connectionString, cosmosClientOptions);
+            var vaultUri = configuration["AzureKeyVault:VaultUri"]
+                ?? throw new InvalidOperationException("AzureKeyVault:VaultUri configuration is missing");
+            var usingAzureKeyVaultEmulator = configuration["AzureKeyVault:UsingEmulator"] != null &&
+                                            bool.TryParse(configuration["AzureKeyVault:UsingEmulator"], out var usingEmulator) &&
+                                            usingEmulator;
+
+            var keyResolver = usingAzureKeyVaultEmulator
+                ? new KeyResolver(new EmulatedTokenCredential(vaultUri))
+                : new KeyResolver(new DefaultAzureCredential());
+
+            return new CosmosClient(connectionString, cosmosClientOptions)
+                .WithEncryption(keyResolver, KeyEncryptionKeyResolverName.AzureKeyVault);
         });
+
+        // Cosmos DB Encryption Configuration (singleton)
+        services.AddSingleton<CosmosEncryptionConfiguration>();
 
         // Cosmos DB Context (singleton)
         services.AddSingleton<CosmosDbContext>();
@@ -77,17 +104,32 @@ public static class DependencyInjection
         // HTTP client factory for protocol adapters
         services.AddHttpClient();
 
-        // Azure Key Vault SecretClient (for protocol adapters)
-        services.AddSingleton<SecretClient>(_ =>
+        // Azure Key Vault SecretClient
+        // This stores secrets in Key Vault and retrieves them.  This secret is
+        // used for encryption operations in Cosmos DB.  CosmosDB encrypts values
+        // used by protocol adapters (FTP/HTTP/BLOB Storage) that are needed 
+        // at runtime to retrieve files, but that we don't want stored in 
+        // plaintext in CosmosDB.
+        var vaultUri = configuration["AzureKeyVault:VaultUri"]
+            ?? throw new InvalidOperationException("AzureKeyVault:VaultUri configuration is missing");
+        var usingAzureKeyVaultEmulator = configuration["AzureKeyVault:UsingEmulator"] != null &&
+                                        bool.TryParse(configuration["AzureKeyVault:UsingEmulator"], out var usingEmulator) &&
+                                        usingEmulator;
+
+        if (usingAzureKeyVaultEmulator)
         {
-            var vaultUri = configuration["AzureKeyVault:VaultUri"]
-                ?? throw new InvalidOperationException("AzureKeyVault:VaultUri configuration is missing");
+            services.AddAzureKeyVaultEmulator(vaultUri, secrets: true, keys: true, certificates: true);
 
-            return new SecretClient(new Uri(vaultUri), new DefaultAzureCredential());
-        });
-
-        // Key Vault (singleton)
-        services.AddSingleton<KeyVaultSecretClient>();
+            var credential = new EmulatedTokenCredential(vaultUri);
+            services.AddSingleton(new KeyResolver(credential));
+        }
+        else
+        {
+            services.AddSingleton(new SecretClient(new Uri(vaultUri), new DefaultAzureCredential()));            
+            services.AddSingleton(new KeyClient(new Uri(vaultUri), new DefaultAzureCredential()));
+            services.AddSingleton(new CertificateClient(new Uri(vaultUri), new DefaultAzureCredential()));            
+            services.AddSingleton(new KeyResolver(new DefaultAzureCredential()));
+        }
 
         // Configuration Options
         services.Configure<SchedulerOptions>(configuration.GetSection(SchedulerOptions.SectionName));
