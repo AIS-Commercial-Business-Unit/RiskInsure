@@ -15,7 +15,7 @@ services:
     ports:
       - "7071:8080"
     volumes:
-      - ./license.xml:/app/license.xml:ro
+      - ./License.xml:/app/license.xml:ro
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
@@ -42,7 +42,7 @@ services:
         PROJECT_PATH: services/billing/src/Endpoint.In/Endpoint.In.csproj
         IMPORT_SSL_CERTS_FOR: cosmosdb
     volumes:
-      - ./license.xml:/app/license.xml:ro
+      - ./License.xml:/app/license.xml:ro
     environment:
       - DOTNET_ENVIRONMENT=Development
       - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
@@ -73,7 +73,7 @@ services:
     ports:
       - "7073:8080"
     volumes:
-      - ./license.xml:/app/license.xml:ro
+      - ./License.xml:/app/license.xml:ro
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
@@ -100,7 +100,7 @@ services:
         PROJECT_PATH: services/customer/src/Endpoint.In/Endpoint.In.csproj
         IMPORT_SSL_CERTS_FOR: cosmosdb
     volumes:
-      - ./license.xml:/app/license.xml:ro
+      - ./License.xml:/app/license.xml:ro
     environment:
       - DOTNET_ENVIRONMENT=Development
       - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
@@ -131,7 +131,7 @@ services:
     ports:
       - "7075:8080"
     volumes:
-      - ./license.xml:/app/license.xml:ro
+      - ./License.xml:/app/license.xml:ro
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
@@ -158,7 +158,7 @@ services:
         PROJECT_PATH: services/fundstransfermgt/src/Endpoint.In/Endpoint.In.csproj
         IMPORT_SSL_CERTS_FOR: cosmosdb
     volumes:
-      - ./license.xml:/app/license.xml:ro
+      - ./License.xml:/app/license.xml:ro
     environment:
       - DOTNET_ENVIRONMENT=Development
       - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
@@ -189,7 +189,7 @@ services:
     ports:
       - "7077:8080"
     volumes:
-      - ./license.xml:/app/license.xml:ro
+      - ./License.xml:/app/license.xml:ro
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
@@ -216,7 +216,7 @@ services:
         PROJECT_PATH: services/policy/src/Endpoint.In/Endpoint.In.csproj
         IMPORT_SSL_CERTS_FOR: cosmosdb
     volumes:
-      - ./license.xml:/app/license.xml:ro
+      - ./License.xml:/app/license.xml:ro
     environment:
       - DOTNET_ENVIRONMENT=Development
       - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
@@ -247,7 +247,7 @@ services:
     ports:
       - "7079:8080"
     volumes:
-      - ./license.xml:/app/license.xml:ro
+      - ./License.xml:/app/license.xml:ro
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
@@ -274,7 +274,7 @@ services:
         PROJECT_PATH: services/ratingandunderwriting/src/Endpoint.In/Endpoint.In.csproj
         IMPORT_SSL_CERTS_FOR: cosmosdb
     volumes:
-      - ./license.xml:/app/license.xml:ro
+      - ./License.xml:/app/license.xml:ro
     environment:
       - DOTNET_ENVIRONMENT=Development
       - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}

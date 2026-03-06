@@ -120,12 +120,17 @@ Lapsed → Reinstated (within 30 days, payment received)
 - Effective immediately or with notice period
 
 **Cancellation Process**:
-1. Receive cancellation request (API or internal system)
+1. Receive cancellation request (API or internal system) including cancellation date and cancellation reason
 2. Calculate cancellation date
 3. Calculate refund amount (unearned premium)
 4. Update policy status to "Cancelled" or "Lapsed"
 5. Publish `PolicyCancelled` event
 6. Trigger refund workflow in Billing domain
+
+**Cancellation Request Required Fields**:
+- `CancellationDate`: Requested effective date of cancellation
+- `CancellationReason`: Reason for cancellation (for example: CustomerRequest, NonPayment, Underwriting, Fraud)
+- `PolicyAgeInDays`: Age of the policy at cancellation request time (used for refund and eligibility rules)
 
 **Business Rules**:
 - Minimum 1-day notice for customer cancellations

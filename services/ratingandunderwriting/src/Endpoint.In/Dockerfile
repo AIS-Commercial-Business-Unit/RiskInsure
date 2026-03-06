@@ -9,6 +9,7 @@ WORKDIR /src
 COPY ["RiskInsure.slnx", "."]
 COPY ["Directory.Build.props", "."]
 COPY ["Directory.Packages.props", "."]
+COPY ["License.xml", "."]
 
 # Copy PublicContracts (shared dependency)
 COPY ["platform/RiskInsure.PublicContracts/RiskInsure.PublicContracts.csproj", "platform/RiskInsure.PublicContracts/"]
@@ -34,13 +35,17 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 
 # Create non-root user for security
-RUN groupadd -r nservicebus && useradd -r -g nservicebus nservicebus
+RUN groupadd -r nservicebus && useradd -r -g nservicebus -m -d /home/nservicebus nservicebus
 
 # Copy published application
 COPY --from=build /app/publish .
+COPY --from=build /src/License.xml /app/license.xml
+
+# Configure writable user home for NServiceBus license metadata
+ENV HOME=/home/nservicebus
 
 # Set ownership
-RUN chown -R nservicebus:nservicebus /app
+RUN chown -R nservicebus:nservicebus /app /home/nservicebus
 
 # Switch to non-root user
 USER nservicebus
