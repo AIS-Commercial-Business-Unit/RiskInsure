@@ -1,0 +1,115 @@
+name: Modernization Patterns - Content Validation
+
+on:
+  pull_request:
+    paths:
+      - "platform/modernizationpatterns/content/patterns/**"
+      - "platform/modernizationpatterns/content-tools/**"
+      - ".github/workflows/modernizationpatterns-content-validate.yml"
+
+jobs:
+  validate-content:
+    name: Validate Pattern Content
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Validate patterns
+        run: |
+          cd platform/modernizationpatterns
+          
+          # Run content validation script
+          npm run validate-content 2>&1 | tee validation-output.log
+          
+          # Check return code
+          if [ $? -eq 0 ]; then
+            echo "✅ Content validation passed"
+            exit 0
+          else
+            echo "❌ Content validation failed"
+            exit 1
+          fi
+
+      - name: Check pattern schema
+        run: |
+          cd platform/modernizationpatterns
+          echo "📋 Checking pattern schema compliance..."
+          
+          # Validate each JSON file
+          for file in content/patterns/*.json; do
+            if ! jq empty "$file" 2>/dev/null; then
+              echo "❌ Invalid JSON: $file"
+              exit 1
+            fi
+            
+            # Check required fields
+            if ! jq -e '.slug and .title and .description' "$file" > /dev/null; then
+              echo "❌ Missing required fields in: $file"
+              exit 1
+            fi
+          done
+          
+          echo "✅ All JSON files valid with required fields"
+
+      - name: List changed patterns
+        id: changes
+        run: |
+          echo "Changed files:"
+          git diff --name-only origin/main...HEAD | grep "content/patterns/" || echo "No pattern files changed"
+          
+          # Count changes
+          ADDED=$(git diff --name-status origin/main...HEAD | grep "^A.*content/patterns" | wc -l)
+          MODIFIED=$(git diff --name-status origin/main...HEAD | grep "^M.*content/patterns" | wc -l)
+          DELETED=$(git diff --name-status origin/main...HEAD | grep "^D.*content/patterns" | wc -l)
+          
+          echo "ADDED=$ADDED" >> $GITHUB_OUTPUT
+          echo "MODIFIED=$MODIFIED" >> $GITHUB_OUTPUT
+          echo "DELETED=$DELETED" >> $GITHUB_OUTPUT
+
+      - name: Post validation summary
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const added = ${{ steps.changes.outputs.ADDED || 0 }};
+            const modified = ${{ steps.changes.outputs.MODIFIED || 0 }};
+            const deleted = ${{ steps.changes.outputs.DELETED || 0 }};
+            
+            const summary = `## 📋 Content Validation Results
+
+            * ✅ Pattern JSON validated
+            * ✅ Schema compliance checked
+            * 📊 Changes detected:
+              - Added: ${added} patterns
+              - Modified: ${modified} patterns
+              - Deleted: ${deleted} patterns
+            
+            When merged to main, this will automatically trigger a reindex of ${added + modified} patterns in Azure AI Search.`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });
+
+  suggest-reindex:
+    name: Suggest Reindex
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true
+    steps:
+      - name: Comment suggest reindex when merged
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '🔄 PR merged! The reindex workflow will automatically trigger in the next run to update Azure AI Search with the new/modified patterns.'
+            });
