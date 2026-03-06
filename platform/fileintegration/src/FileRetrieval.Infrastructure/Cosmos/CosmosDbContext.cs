@@ -1,6 +1,8 @@
 using Microsoft.Azure.Cosmos;
+using Microsoft.Azure.Cosmos.Encryption;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Azure.Security.KeyVault.Keys.Cryptography;
 
 namespace RiskInsure.FileRetrieval.Infrastructure.Cosmos;
 
@@ -16,6 +18,7 @@ public class CosmosDbContext
     private readonly CosmosEncryptionConfiguration _encryptionConfig;
     private readonly SemaphoreSlim InitializationLock = new SemaphoreSlim(1, 1);
     private bool _databaseInitialized = false;
+    private bool _dekInitialized = false;
 
     public Database Database { get; private set; } = null!;
     public Container ConfigurationsContainer { get; private set; } = null!;
@@ -54,7 +57,7 @@ public class CosmosDbContext
         // This may fail if Key Vault is misconfigured, but we allow graceful degradation
         try
         {
-            await _encryptionConfig.InitializeEncryptionAsync();
+            await _encryptionConfig.InitializeEncryptionAsync(cancellationToken);
             _logger.LogInformation("✓ Encryption configuration initialized successfully");
         }
         catch (InvalidOperationException ex)
@@ -70,21 +73,21 @@ public class CosmosDbContext
             throw;  // Fatal errors still crash startup
         }
 
-        EncryptionPolicyMetadata? encryptionMetadata = null;
+        EncryptionPolicyMetadata? configsEncryptionMetadata = null;
         try
         {
-            encryptionMetadata = _encryptionConfig.GetEncryptionPolicyMetadata();
+            configsEncryptionMetadata = await _encryptionConfig.GetEncryptionPolicyMetadataForFileRetrievalConfigs(cancellationToken);
             _logger.LogInformation(
                 "Encryption configured for {PathCount} sensitive properties: {Paths}",
-                encryptionMetadata.EncryptionPaths.Count,
-                string.Join(", ", encryptionMetadata.EncryptionPaths));
+                configsEncryptionMetadata.EncryptionPaths.Count,
+                string.Join(", ", configsEncryptionMetadata.EncryptionPaths));
         }
         catch (InvalidOperationException)
         {
             _logger.LogInformation("Encryption metadata unavailable - configuration container will be created without encryption policy");
         }
 
-        await EnsureDbAndContainerAsync(configsContainerName, "/clientId", encryptionMetadata, cancellationToken);
+        await EnsureDbAndContainerAsync(configsContainerName, "/clientId", configsEncryptionMetadata, cancellationToken);
         await EnsureDbAndContainerAsync(executionsContainerName, "/clientId", null, cancellationToken);
         await EnsureDbAndContainerAsync(discoveredFilesContainerName, "/clientId", null, cancellationToken);
         await EnsureDbAndContainerAsync(processedFilesContainerName, "/clientId", null, cancellationToken);
@@ -121,6 +124,30 @@ public class CosmosDbContext
 
             var database = _cosmosClient.GetDatabase(_databaseName);
 
+            // Single DEK shared across containers for simplicity, 
+            // but could be per-container if needed
+            if (!_dekInitialized && encryptionMetadata != null) 
+            {
+                try
+                {
+                    ClientEncryptionKeyProperties dekProperties = await database.CreateClientEncryptionKeyAsync(
+                        clientEncryptionKeyId: encryptionMetadata.DataEncryptionKeyName,
+                        encryptionAlgorithm: DataEncryptionAlgorithm.AeadAes256CbcHmacSha256,
+                        encryptionKeyWrapMetadata: new EncryptionKeyWrapMetadata(
+                            type: KeyEncryptionKeyResolverName.AzureKeyVault,
+                            name: "name of cmk?",
+                            value: encryptionMetadata.CmkKeyId, // Example: https://<my-key-vault>.vault.azure.net/keys/<key>/<version>
+                            algorithm: EncryptionAlgorithm.RsaOaep.ToString())
+                    );
+                    _logger.LogInformation("DEK Key created: " + dekProperties.Id);
+                }
+                catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
+                {
+                    _logger.LogInformation("DEK key already exists.");
+                }
+                _dekInitialized = true;
+            }
+
             var containerProperties = new ContainerProperties
             {
                 Id = containerName,
@@ -154,8 +181,8 @@ public class CosmosDbContext
                 .Select(path => new ClientEncryptionIncludedPath
                 {
                     Path = path,
-                    ClientEncryptionKeyId = encryptionMetadata.DataEncryptionKeyId,
-                    EncryptionType = "Deterministic",
+                    ClientEncryptionKeyId = encryptionMetadata.DataEncryptionKeyName,
+                    EncryptionType = "Randomized",
                     EncryptionAlgorithm = "AEAD_AES_256_CBC_HMAC_SHA256"
                 })
                 .ToList();

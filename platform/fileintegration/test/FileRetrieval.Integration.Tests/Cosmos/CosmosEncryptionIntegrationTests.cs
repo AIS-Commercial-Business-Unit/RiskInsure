@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using RiskInsure.FileRetrieval.Domain.Entities;
 using RiskInsure.FileRetrieval.Domain.Enums;
+using RiskInsure.FileRetrieval.Domain.Serialization;
 using RiskInsure.FileRetrieval.Domain.ValueObjects;
 using RiskInsure.FileRetrieval.Infrastructure.Cosmos;
 using Xunit;
@@ -131,13 +132,13 @@ public class CosmosEncryptionIntegrationTests : IAsyncLifetime
         await encryptionConfig.InitializeEncryptionAsync();
 
         // Assert - should not throw
-        var metadata = encryptionConfig.GetEncryptionPolicyMetadata();
+        var metadata = await encryptionConfig.GetEncryptionPolicyMetadataForFileRetrievalConfigs();
         metadata.Should().NotBeNull();
-        metadata.KeyVaultUri.Should().NotBeNullOrWhiteSpace();
-        metadata.DataEncryptionKeyId.Should().Be("file-retrieval-dek");
+        metadata.CmkKeyId.Should().NotBeNullOrWhiteSpace();
+        metadata.DataEncryptionKeyName.Should().NotBeNullOrWhiteSpace();
         metadata.EncryptionPaths.Should().HaveCount(3);
         metadata.EncryptionPaths.Should().Contain(
-            new[] { "/protocolSettings/password", "/protocolSettings/passwordOrToken", "/protocolSettings/connectionString" });
+            new[] { SecretPaths.FtpSecretPath, SecretPaths.HttpsSecretPath, SecretPaths.AzureBlobSecretPath });
 
         _logger.LogInformation("✓ Encryption configuration initialized successfully");
     }
@@ -151,14 +152,14 @@ public class CosmosEncryptionIntegrationTests : IAsyncLifetime
         var encryptionConfig = _serviceProvider.GetRequiredService<CosmosEncryptionConfiguration>();
         
         // Act - Just validate the configuration exists and can be retrieved
-        var metadata = encryptionConfig.GetEncryptionPolicyMetadata();
+        var metadata = await encryptionConfig.GetEncryptionPolicyMetadataForFileRetrievalConfigs();
         
         // Assert
         metadata.Should().NotBeNull();
         metadata.EncryptionPaths.Should().NotBeEmpty();
-        metadata.EncryptionPaths.Should().Contain("/protocolSettings/password");
-        metadata.EncryptionPaths.Should().Contain("/protocolSettings/passwordOrToken");
-        metadata.EncryptionPaths.Should().Contain("/protocolSettings/connectionString");
+        metadata.EncryptionPaths.Should().Contain(SecretPaths.FtpSecretPath);
+        metadata.EncryptionPaths.Should().Contain(SecretPaths.HttpsSecretPath);
+        metadata.EncryptionPaths.Should().Contain(SecretPaths.AzureBlobSecretPath);
         
         _logger.LogInformation("✓ Encryption configuration infrastructure validated successfully");
     }
@@ -175,15 +176,16 @@ public class CosmosEncryptionIntegrationTests : IAsyncLifetime
         var encryptionConfig = _serviceProvider.GetRequiredService<CosmosEncryptionConfiguration>();
         await encryptionConfig.InitializeEncryptionAsync();
 
-        var ftpSettings = new FtpProtocolSettings(
-            server: "ftp.example.com",
-            port: 21,
-            username: "testuser",
-            password: "super-secret-password-123",
-            useTls: true,
-            usePassiveMode: true,
-            connectionTimeout: TimeSpan.FromSeconds(30)
-        );
+        var ftpSettings = new FtpProtocolSettings
+        {
+            Server = "ftp.example.com",
+            Port = 21,
+            Username = "testuser",
+            Password = "super-secret-password-123",
+            UseTls = true,
+            UsePassiveMode = true,
+            ConnectionTimeout = TimeSpan.FromSeconds(30)
+        };
 
         var config = new FileRetrievalConfiguration
         {
@@ -230,15 +232,16 @@ public class CosmosEncryptionIntegrationTests : IAsyncLifetime
         var encryptionConfig = _serviceProvider.GetRequiredService<CosmosEncryptionConfiguration>();
         await encryptionConfig.InitializeEncryptionAsync();
 
-        var httpsSettings = new HttpsProtocolSettings(
-            baseUrl: "https://api.example.com",
-            authenticationType: AuthType.BearerToken,
-            username: null,
-            passwordOrTokenOrApiKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-            connectionTimeout: TimeSpan.FromSeconds(30),
-            followRedirects: true,
-            maxRedirects: 3
-        );
+        var httpsSettings = new HttpsProtocolSettings
+        {
+            BaseUrl = "https://api.example.com",
+            AuthenticationType = AuthType.BearerToken,
+            Username = null,
+            PasswordOrTokenOrApiKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+            ConnectionTimeout = TimeSpan.FromSeconds(30),
+            FollowRedirects = true,
+            MaxRedirects = 3
+        };
 
         var config = new FileRetrievalConfiguration
         {
@@ -284,14 +287,15 @@ public class CosmosEncryptionIntegrationTests : IAsyncLifetime
         var encryptionConfig = _serviceProvider.GetRequiredService<CosmosEncryptionConfiguration>();
         await encryptionConfig.InitializeEncryptionAsync();
 
-        var azureSettings = new AzureBlobProtocolSettings(
-            storageAccountName: "teststorage",
-            containerName: "testcontainer",
-            authenticationType: AzureAuthType.ConnectionString,
-            connectionString: "DefaultEndpointsProtocol=https;AccountName=teststorage;AccountKey=supersecretkey123==;EndpointSuffix=core.windows.net",
-            SasToken: null,
-            blobPrefix: "2024/reports/"
-        );
+        var azureSettings = new AzureBlobProtocolSettings
+        {
+            StorageAccountName = "teststorage",
+            ContainerName = "testcontainer",
+            AuthenticationType = AzureAuthType.ConnectionString,
+            ConnectionString = "DefaultEndpointsProtocol=https;AccountName=teststorage;AccountKey=supersecretkey123==;EndpointSuffix=core.windows.net",
+            SasToken = null,
+            BlobPrefix = "2024/reports/"
+        };
 
         var config = new FileRetrievalConfiguration
         {
@@ -338,15 +342,16 @@ public class CosmosEncryptionIntegrationTests : IAsyncLifetime
         await encryptionConfig.InitializeEncryptionAsync();
 
         var sensitivePassword = "this-is-sensitive-data-12345";
-        var ftpSettings = new FtpProtocolSettings(
-            server: "ftp.example.com",
-            port: 21,
-            username: "testuser",
-            password: sensitivePassword,
-            useTls: true,
-            usePassiveMode: true,
-            connectionTimeout: TimeSpan.FromSeconds(30)
-        );
+        var ftpSettings = new FtpProtocolSettings
+        {
+            Server = "ftp.example.com",
+            Port = 21,
+            Username = "testuser",
+            Password = sensitivePassword,
+            UseTls = true,
+            UsePassiveMode = true,
+            ConnectionTimeout = TimeSpan.FromSeconds(30)
+        };
 
         var config = new FileRetrievalConfiguration
         {
@@ -393,15 +398,15 @@ public class CosmosEncryptionIntegrationTests : IAsyncLifetime
         {
             CreateTestConfiguration(
                 ProtocolType.FTP,
-                new FtpProtocolSettings("ftp1.com", 21, "user1", "pass1", true, true, TimeSpan.FromSeconds(30))
+                new FtpProtocolSettings { Server = "ftp1.com", Port = 21, Username = "user1", Password = "pass1", UseTls = true, UsePassiveMode = true, ConnectionTimeout = TimeSpan.FromSeconds(30) }
             ),
             CreateTestConfiguration(
                 ProtocolType.HTTPS,
-                new HttpsProtocolSettings("https://api1.com", AuthType.BearerToken, null, "token1")
+                new HttpsProtocolSettings { BaseUrl = "https://api1.com", AuthenticationType = AuthType.BearerToken, PasswordOrTokenOrApiKey = "token1" }
             ),
             CreateTestConfiguration(
                 ProtocolType.AzureBlob,
-                new AzureBlobProtocolSettings("storage1", "container1", AzureAuthType.ManagedIdentity)
+                new AzureBlobProtocolSettings { StorageAccountName = "storage1", ContainerName = "container1", AuthenticationType = AzureAuthType.ManagedIdentity }
             )
         };
 
@@ -439,13 +444,13 @@ public class CosmosEncryptionIntegrationTests : IAsyncLifetime
 
         // Act
         await encryptionConfig.InitializeEncryptionAsync();
-        var metadata = encryptionConfig.GetEncryptionPolicyMetadata();
+        var metadata = await encryptionConfig.GetEncryptionPolicyMetadataForFileRetrievalConfigs();
 
         // Assert
         metadata.EncryptionPaths.Should().Contain(path =>
-            path == CosmosEncryptionConfiguration.FtpPasswordPath ||
-            path == CosmosEncryptionConfiguration.HttpsPasswordOrTokenPath ||
-            path == CosmosEncryptionConfiguration.AzureBlobConnectionStringPath
+            path == SecretPaths.FtpSecretPath ||
+            path == SecretPaths.HttpsSecretPath ||
+            path == SecretPaths.AzureBlobSecretPath
         );
 
         _logger.LogInformation("✓ Encryption configuration correctly identifies sensitive paths");
@@ -463,15 +468,16 @@ public class CosmosEncryptionIntegrationTests : IAsyncLifetime
         var encryptionConfig = _serviceProvider.GetRequiredService<CosmosEncryptionConfiguration>();
         await encryptionConfig.InitializeEncryptionAsync();
 
-        var ftpSettings = new FtpProtocolSettings(
-            server: "ftp.example.com",
-            port: 21,
-            username: "testuser",
-            password: "secret",
-            useTls: true,
-            usePassiveMode: true,
-            connectionTimeout: TimeSpan.FromSeconds(30)
-        );
+        var ftpSettings = new FtpProtocolSettings
+        {
+            Server = "ftp.example.com",
+            Port = 21,
+            Username = "testuser",
+            Password = "secret",
+            UseTls = true,
+            UsePassiveMode = true,
+            ConnectionTimeout = TimeSpan.FromSeconds(30)
+        };
 
         var config = new FileRetrievalConfiguration
         {

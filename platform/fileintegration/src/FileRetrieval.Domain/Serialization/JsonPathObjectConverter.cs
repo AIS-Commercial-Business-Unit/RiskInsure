@@ -53,11 +53,20 @@ public sealed class JsonPathObjectConverter<T> : JsonConverter<T>
                 if (!TryGetByName(root, EffectiveReadNames(m, options), out source)) continue;
             }
 
+
+            // If this is a normal (non-path) property whose type has [JsonPath]-attributed
+            // properties, those were hoisted to our root during serialization — inject them
+            // back into the child's JSON before handing it to the child's own converter.
+            if (string.IsNullOrEmpty(m.Path) && source.ValueKind == JsonValueKind.Object)
+                source = InjectHoistedPropertiesFromRoot(source, root, m.PropType);
+
+            if (m.Setter is null) continue; // getter-only / computed property, cannot be set
+
             object? value = source.ValueKind == JsonValueKind.Null
                 ? null
                 : source.Deserialize(m.PropType, options);
 
-            m.Setter!.Invoke(obj, new[] { value });
+            m.Setter.Invoke(obj, new[] { value });
         }
 
         return obj;
@@ -100,6 +109,15 @@ public sealed class JsonPathObjectConverter<T> : JsonConverter<T>
             var node = SerializeToNode(v, m.PropType, options);
             var name = EffectiveWriteName(m, options);
             if (name is null) continue; // should not happen
+
+            // If the child type has [JsonPath]-attributed properties, its own converter
+            // already placed those values at the roots of its JSON object. Hoist them up
+            // to OUR root so they appear at the top level of the parent document.
+            // Use the runtime type so that polymorphic properties (e.g. ProtocolSettings
+            // holding an FtpProtocolSettings at runtime) are hoisted correctly.
+            if (node is JsonObject childObj)
+                HoistDeepPathsFromChild(rootNode, childObj, v?.GetType() ?? m.PropType);
+
             rootNode[name] = node;
         }
 
@@ -141,7 +159,32 @@ public sealed class JsonPathObjectConverter<T> : JsonConverter<T>
         var props = typeof(T)
             .GetProperties(BindingFlags.Public | BindingFlags.Instance)
             .Where(p => p.GetIndexParameters().Length == 0)
-            .Where(p => p.GetCustomAttribute<JsonIgnoreAttribute>() is null);
+            .Where(p => p.GetCustomAttribute<JsonIgnoreAttribute>() is null)
+            .ToList();
+
+foreach (var p in props)
+{
+    Console.WriteLine($"Inspecting property {p.Name} of type {p.PropertyType.Name} for JSON mapping...");
+
+    var gm = p.GetGetMethod(nonPublic: false);
+    if (gm is null)
+    {
+        var hasJsonIgnore = p.GetCustomAttribute<JsonIgnoreAttribute>() is not null;
+        if (hasJsonIgnore) {
+            Console.WriteLine($"Property {p.Name} has no public getter, and it is marked [JsonIgnore], but missed the filter (!!!!!!!!!!)");
+            continue;
+        }
+    }
+    var sm = p.GetSetMethod(nonPublic: false);
+    if (sm is null)
+    {
+        var hasJsonIgnore = p.GetCustomAttribute<JsonIgnoreAttribute>() is not null;
+        if (hasJsonIgnore) {
+            Console.WriteLine($"Property {p.Name} has no public setter, and it is marked [JsonIgnore], but missed the filter (!!!!!!!!!!)");
+            continue;
+        }
+    }
+}
 
         var list = new List<PropMap>();
         foreach (var p in props)
@@ -198,6 +241,92 @@ public sealed class JsonPathObjectConverter<T> : JsonConverter<T>
 
     private static JsonNode? SerializeToNode(object? value, Type type, JsonSerializerOptions options)
         => value is null ? null : JsonSerializer.SerializeToNode(value, type, options);
+
+    /// <summary>
+    /// Moves any [JsonPath]-attributed properties from <paramref name="childNode"/> up to
+    /// <paramref name="parentRoot"/>, leaving the child without those keys.
+    /// Works at any depth: collects paths from the entire descendant type tree so that values
+    /// already hoisted from a grandchild to the child level are lifted further to the root.
+    /// </summary>
+    private static void HoistDeepPathsFromChild(JsonObject parentRoot, JsonObject childNode, Type childType)
+    {
+        foreach (var path in CollectAllDescendantJsonPaths(childType))
+        {
+            var key = path.TrimStart('/');
+            if (childNode.TryGetPropertyValue(key, out var hoistedNode))
+            {
+                childNode.Remove(key);
+                EnsurePathAndSet(parentRoot, path, hoistedNode);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Before deserializing a child object, re-injects any [JsonPath]-attributed values that
+    /// were hoisted to <paramref name="parentRoot"/> during serialization back into the child's
+    /// JSON so the child's own converter can find them at the expected level.
+    /// Handles any depth by collecting paths from the full descendant type tree.
+    /// </summary>
+    private static JsonElement InjectHoistedPropertiesFromRoot(JsonElement childElement, JsonElement parentRoot, Type childType)
+    {
+        var paths = CollectAllDescendantJsonPaths(childType).ToList();
+        if (paths.Count == 0) return childElement;
+
+        var merged = new JsonObject();
+        foreach (var entry in childElement.EnumerateObject())
+            merged[entry.Name] = JsonNode.Parse(entry.Value.GetRawText());
+
+        foreach (var path in paths)
+        {
+            if (TrySelect(parentRoot, path, out var hoisted))
+                merged[path.TrimStart('/')] = JsonNode.Parse(hoisted.GetRawText());
+        }
+
+        return JsonSerializer.Deserialize<JsonElement>(merged.ToJsonString())!;
+    }
+
+    /// <summary>
+    /// Recursively walks the public properties of <paramref name="type"/> and yields the
+    /// [JsonPath] path string for every property in the subtree that carries that attribute.
+    /// Also scans concrete types that derive from <paramref name="type"/> in the same assembly
+    /// so that polymorphic declared types (e.g. abstract <c>ProtocolSettings</c>) yield paths
+    /// from all concrete subclasses (e.g. <c>FtpProtocolSettings.Password</c>).
+    /// </summary>
+    private static IEnumerable<string> CollectAllDescendantJsonPaths(Type type, HashSet<Type>? visited = null)
+    {
+        visited ??= new HashSet<Type>();
+        if (!visited.Add(type)) yield break;
+
+        foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        {
+            var attr = prop.GetCustomAttribute<JsonPathAttribute>();
+            if (attr is not null && attr.Path is not ("$" or ""))
+            {
+                yield return attr.Path;
+            }
+            else if (attr is null
+                     && prop.PropertyType != typeof(string)
+                     && !prop.PropertyType.IsPrimitive
+                     && !prop.PropertyType.IsEnum)
+            {
+                foreach (var nested in CollectAllDescendantJsonPaths(prop.PropertyType, visited))
+                    yield return nested;
+            }
+        }
+
+        // For abstract/interface types, also scan concrete subclasses in the same assembly.
+        // This allows a declared-type ProtocolSettings property to yield paths from
+        // FtpProtocolSettings, HttpsProtocolSettings, AzureBlobProtocolSettings, etc.
+        if (type.IsAbstract || type.IsInterface)
+        {
+            foreach (var derived in type.Assembly.GetTypes()
+                         .Where(t => !t.IsAbstract && t != type && type.IsAssignableFrom(t)))
+            {
+                foreach (var path in CollectAllDescendantJsonPaths(derived, visited))
+                    yield return path;
+            }
+        }
+    }
 
     /// <summary>
     /// Minimal JSON Pointer evaluator; also accepts "$" (root) and tolerates "a/b" vs "/a/b".

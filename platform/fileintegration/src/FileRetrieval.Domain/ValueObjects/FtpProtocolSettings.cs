@@ -1,5 +1,6 @@
 using RiskInsure.FileRetrieval.Domain.Enums;
 using System.Text.Json.Serialization;
+using RiskInsure.FileRetrieval.Domain.Serialization;
 
 namespace RiskInsure.FileRetrieval.Domain.ValueObjects;
 
@@ -8,55 +9,21 @@ namespace RiskInsure.FileRetrieval.Domain.ValueObjects;
 /// </summary>
 public sealed class FtpProtocolSettings : ProtocolSettings
 {
+    [JsonIgnore]
     public override ProtocolType ProtocolType => ProtocolType.FTP;
 
-    public string Server { get; init; }
+    public required string Server { get; init; }
     public int Port { get; init; }
-    public string Username { get; init; }
+    public required string Username { get; init; }
 
     /// In order for this property to be encrypted, it has to reside
     /// at the root of the JSON being sent to Cosmos. The JsonPath 
     /// attribute causes this to be serialized/deserialized at a 
     /// specific location in the JSON document, using the provided path, 
     /// rather than as a nested property.
-    [JsonPath(CosmosEncryptionConfiguration.FtpSecretPath)]
-    public string Password { get; init; }
+    [JsonPath(SecretPaths.FtpSecretPath)]
+    public required string Password { get; init; }
     public bool UseTls { get; init; }
     public bool UsePassiveMode { get; init; }
     public TimeSpan ConnectionTimeout { get; init; }
-
-    [JsonConstructor]
-    public FtpProtocolSettings(
-        string server,
-        int port,
-        string username,
-        string password,
-        bool useTls = true,
-        bool usePassiveMode = true,
-        TimeSpan connectionTimeout = default)
-    {
-        if (string.IsNullOrWhiteSpace(server))
-            throw new ArgumentException("Server cannot be empty", nameof(server));
-        if (server.Length > 255)
-            throw new ArgumentException("Server cannot exceed 255 characters", nameof(server));
-        if (port < 1 || port > 65535)
-            throw new ArgumentOutOfRangeException(nameof(port), "Port must be between 1 and 65535");
-        if (string.IsNullOrWhiteSpace(username))
-            throw new ArgumentException("Username cannot be empty", nameof(username));
-        if (username.Length > 100)
-            throw new ArgumentException("Username cannot exceed 100 characters", nameof(username));
-        if (string.IsNullOrWhiteSpace(password))
-            throw new ArgumentException("Password cannot be empty", nameof(password));
-
-        Server = server;
-        Port = port;
-        Username = username;
-        Password = password;
-        UseTls = useTls;
-        UsePassiveMode = usePassiveMode;
-        ConnectionTimeout = connectionTimeout == default ? TimeSpan.FromSeconds(30) : connectionTimeout;
-
-        if (ConnectionTimeout <= TimeSpan.Zero)
-            throw new ArgumentException("ConnectionTimeout must be positive", nameof(connectionTimeout));
-    }
 }

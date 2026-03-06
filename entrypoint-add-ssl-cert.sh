@@ -33,8 +33,8 @@ import_ssl_cert_and_verify() {
     cp "${server_name}.crt" /usr/local/share/ca-certificates/
     update-ca-certificates
 
-    echo -e "${Green}Verifying we can connect securely to $test_connect_url...${Color_Off}"
     local test_connect_url="https://${server_name}:${server_port}${test_path}"
+    echo -e "${Green}Verifying we can connect securely to $test_connect_url...${Color_Off}"
     local test_connect_content
     test_connect_content=$(mktemp)
     local test_connect_http_code
@@ -64,8 +64,8 @@ for containerName in "${importSslCertsFor[@]}"; do
     case $containerName in
         "cosmosdb")
             echo -e "${Green}Importing Cosmos DB Emulator SSL Certificate${Color_Off}"
-            import_ssl_cert_and_verify "cosmos.domain" "8081" "/"
-#            import_ssl_cert_and_verify "cosmos.domain" "8081" "/_explorer/emulator.pem1"
+#            import_ssl_cert_and_verify "cosmos.domain" "8081" "/"
+            import_ssl_cert_and_verify "cosmos.domain" "8081" "/_explorer/emulator.pem1"
             ;;
         "file-retrieval-https")
             echo -e "${Green}Importing File Retrieval SSL Certificate${Color_Off}"

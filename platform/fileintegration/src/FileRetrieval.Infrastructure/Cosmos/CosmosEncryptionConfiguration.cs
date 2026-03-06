@@ -1,9 +1,10 @@
-using System.Runtime.CompilerServices;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
+using Azure.Security.KeyVault.Keys;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using RiskInsure.FileRetrieval.Domain.Serialization;
 
 namespace RiskInsure.FileRetrieval.Infrastructure.Cosmos;
 
@@ -16,78 +17,95 @@ namespace RiskInsure.FileRetrieval.Infrastructure.Cosmos;
 /// </summary>
 public class CosmosEncryptionConfiguration
 {
-    // In order for properties to be encrypted with Always Encrypted, 
-    // they have to reside at the root of the JSON being sent to 
-    // Cosmos. The JsonPath attribute is a hint for the converter to 
-    // find them so that they can be mapped to the deeper properties
-    // in our model classes.
-    // 
-    // WARNING: You can't change these values without creating a new 
-    // CosmosDbContainer and migrating all of your data,
-    // because CosmosDB doesn't support changing encyption paths after
-    // a container has been created.  
-    public const string FtpSecretPath = "/ftpProtocolSettings_password";
-    public const string HttpsSecretPath = "/httpsProtocolSettings_passwordOrTokenOrApiKey";
-    public const string AzureBlobSecretPath = "/azureBlobSettings_connectionString";
-
     private readonly ILogger<CosmosEncryptionConfiguration> _logger;
     private readonly SecretClient _secretClient;
+    private readonly KeyClient _keyClient;
+    private readonly string _cmkKeyName;
+    private readonly string _dekKeyName;
 
-    private string? encryptionKeyName;
+    private string? _cmkKeyId = null;
+
+    private readonly bool _usingKeyVaultEmulator;
+    private readonly string _keyVaultUri;
 
     public CosmosEncryptionConfiguration(
         IConfiguration configuration,
         SecretClient secretClient,
+        KeyClient keyClient,
         ILogger<CosmosEncryptionConfiguration> logger)
     {
         _logger = logger;
         _secretClient = secretClient;
+        _keyClient = keyClient;
 
-        _encryptionKeyName = configuration["CosmosDb:EncryptionKeyName"] ?? "file-retrieval-dek";
+        _cmkKeyName = configuration["CosmosDb:CmkKeyName"] ?? "file-retrieval-cmk";
+        _dekKeyName = configuration["CosmosDb:DekKeyName"] ?? "file-retrieval-dek";
+        _usingKeyVaultEmulator = configuration["AzureKeyVault:UsingEmulator"] != null &&
+                                 bool.TryParse(configuration["AzureKeyVault:UsingEmulator"], out var usingEmulator) &&
+                                 usingEmulator;
+        _keyVaultUri = configuration["AzureKeyVault:VaultUri"] ?? throw new InvalidOperationException("AzureKeyVault:VaultUri configuration is missing");
     }
 
     /// <summary>
     /// Initializes the Key Vault client for encryption key management.
     /// Validates that Key Vault is accessible and encryption keys exist.
     /// </summary>
-    public async Task InitializeEncryptionAsync()
+    public async Task InitializeEncryptionAsync(CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Initializing CosmosDB Always Encrypted configuration");
 
         try
         {
-            // Validate Key Vault connectivity and key accessibility
-            _logger.LogInformation("Validating Key Vault access and encryption key availability");
+            // Setup sample RSA CMK key if we're using the key vault emulator, to 
+            // ensure encryption works out of the box in development environments
+            if (_usingKeyVaultEmulator)
+            {
+                var rsaOptions = new CreateRsaKeyOptions(_cmkKeyName)
+                {
+                    KeySize = 2048,
+                    ExpiresOn = DateTimeOffset.UtcNow.AddYears(1), // Key expires in one year
+                    Enabled = true
+                };
+                rsaOptions.KeyOperations.Add(KeyOperation.Encrypt);
+                rsaOptions.KeyOperations.Add(KeyOperation.Decrypt);
+                rsaOptions.KeyOperations.Add(KeyOperation.Sign);
+                rsaOptions.KeyOperations.Add(KeyOperation.Verify);
 
-            var key = _secretClient.GetSecret(_encryptionKeyName);
-            _logger.LogInformation("Encryption key found: {KeyName} (ID: {KeyId})", _encryptionKeyName, key.Value.Id);
+                KeyVaultKey rsaKey = await _keyClient.CreateRsaKeyAsync(rsaOptions);
+                _cmkKeyId = rsaKey.Id.ToString();
+                _logger.LogInformation("Created RSA CMK key in Key Vault emulator: {KeyName} (ID: {KeyId})", _cmkKeyName, _cmkKeyId);
+            }
+            else
+            {
+                // In production, we expect the CMK to already exist in Key Vault and just retrieve its ID
+                KeyVaultKey rsaKey = await _keyClient.GetKeyAsync(_cmkKeyName, cancellationToken: cancellationToken);
+                _cmkKeyId = rsaKey.Id.ToString();
+                _logger.LogInformation("Retrieved RSA CMK key from Key Vault: {KeyName} (ID: {KeyId})", _cmkKeyName, _cmkKeyId);
+            }
 
-            _logger.LogInformation("CosmosDB Always Encrypted initialized successfully with Key Vault");
+            _logger.LogInformation("Cosmos DB Encryption Initialization Complete");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to initialize CosmosDB encryption with Key Vault. Ensure Key Vault URI and credentials are configured correctly.");
-            throw;
+            _logger.LogWarning(ex, "Failed to initialize CosmosDB encryption with Key Vault. Service will continue without encryption policy.");
+            throw new InvalidOperationException("CosmosDB encryption initialization failed", ex);
         }
     }
 
     /// <summary>
-    /// Returns configuration metadata for encryption policy.
-    /// This information is used to configure container-level encryption policies.
+    /// Returns configuration metadata for encryption policy for File Retrieval Config container.
     /// </summary>
-    public async Task<EncryptionPolicyMetadata> GetEncryptionPolicyMetadata()
+    public async Task<EncryptionPolicyMetadata> GetEncryptionPolicyMetadataForFileRetrievalConfigs(CancellationToken cancellationToken = default)
     {
-        var key = await _secretClient.GetSecretAsync(_encryptionKeyName);
-        _logger.LogDebug("Retrieved encryption key for policy metadata: {KeyName} (ID: {KeyId})", _encryptionKeyName, key.Value.Id);
-
         return new EncryptionPolicyMetadata
         {
-            DataEncryptionKey = key.Value,
+            CmkKeyId = _cmkKeyId ?? throw new InvalidOperationException("CMK Key ID is not initialized"),
+            DataEncryptionKeyName = _dekKeyName,
             EncryptionPaths = new List<string>
             {
-                FtpSecretPath,
-                HttpsSecretPath,
-                AzureBlobSecretPath
+                SecretPaths.FtpSecretPath,
+                SecretPaths.HttpsSecretPath,
+                SecretPaths.AzureBlobSecretPath
             }
         };
     }
@@ -98,7 +116,8 @@ public class CosmosEncryptionConfiguration
 /// </summary>
 public class EncryptionPolicyMetadata
 {
-    public string DataEncryptionKeyId { get; set; } = null!;
+    public string CmkKeyId { get; set; } = null!;
+    public string DataEncryptionKeyName { get; set; } = null!;
     public List<string> EncryptionPaths { get; set; } = new();
 }
 

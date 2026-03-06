@@ -4,6 +4,7 @@ using Azure.Identity;
 using RiskInsure.FileRetrieval.Domain.ValueObjects;
 using RiskInsure.FileRetrieval.Domain.Enums;
 using Microsoft.Extensions.Logging;
+using System.Text.Json.Serialization;
 
 namespace FileRetrieval.Application.Protocols;
 
@@ -237,7 +238,7 @@ public class AzureBlobProtocolAdapter : IProtocolAdapter
                 //     "Azure Blob client created with SAS Token for {StorageAccount}/{Container}",
                 //     _settings.StorageAccountName,
                 //     _settings.ContainerName);
-                break;
+                // break;
 
             default:
                 throw new ArgumentException(

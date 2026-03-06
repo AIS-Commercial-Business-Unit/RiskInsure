@@ -50,7 +50,7 @@ services:
     container_name: file-retrieval-https
     ports:
       - "8443:443"
-      - "8080:80"
+      - "8090:80"
     volumes:
       - ./test-data:/usr/share/nginx/html:ro
       - ./docker/nginx.conf:/etc/nginx/nginx.conf:ro
