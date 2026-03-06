@@ -12,24 +12,4 @@ permissions:
   contents: read
 ---
 
-Check the status of my Azure Container Apps using the following list of base URLs. 
-
-For each URL:
-1. Append `/health` to the end of the URL.
-2. Perform an unauthenticated HTTP GET request.
-3. Determine if the app is "Healthy" (HTTP 200) or "Unhealthy" (any other status or timeout).
-
-### Target URLs
-- https://customer-api.ambitioussea-f3f6277f.eastus2.azurecontainerapps.io/health
-- https://fundstransfermgt-api.ambitioussea-f3f6277f.eastus2.azurecontainerapps.io/health
-- https://policy-api.ambitioussea-f3f6277f.eastus2.azurecontainerapps.io/health
-- https://ratingandunderwriting-api.ambitioussea-f3f6277f.eastus2.azurecontainerapps.io/health
-
-### Output Instructions
-DO NOT create any GitHub Issues, Pull Requests, or Comments. 
-Instead, output a Markdown table summarizing the results directly to the **GitHub Actions Job Summary**.
-
-The table should have the following columns:
-
-| App Name | Health Endpoint | Status | Latency (ms) |
-|----------|-----------------|--------|--------------|
+{{#runtime-import .github/agents/HealthMonitoringAlerting.agent.md}}
