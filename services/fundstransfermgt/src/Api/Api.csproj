@@ -7,6 +7,7 @@
   <ItemGroup>
     <!-- ASP.NET Core packages (versions managed by Directory.Packages.props) -->
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+  <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
     <PackageReference Include="Scalar.AspNetCore" />
     
     <!-- NServiceBus for ASP.NET Core -->
