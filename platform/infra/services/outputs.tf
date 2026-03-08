@@ -1,6 +1,11 @@
+output "policyequityandinvoicingmgt_api_url" {
+  description = "PolicyEquityAndInvoicingMgt API URL"
+  value       = "https://${azurerm_container_app.policyequityandinvoicingmgt_api.ingress[0].fqdn}"
+}
+
 output "billing_api_url" {
-  description = "Billing API URL"
-  value       = "https://${azurerm_container_app.billing_api.ingress[0].fqdn}"
+  description = "Deprecated: PolicyEquityAndInvoicingMgt API URL"
+  value       = "https://${azurerm_container_app.policyequityandinvoicingmgt_api.ingress[0].fqdn}"
 }
 
 output "cosmosdb_connection_string" {

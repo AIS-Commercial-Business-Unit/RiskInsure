@@ -39,7 +39,7 @@ jobs:
       matrix:
         include:
           - service: billing
-            path: services/billing/test/Unit.Tests
+            path: services/policyequityandinvoicingmgt/test/Unit.Tests
           - service: customer
             path: services/customer/test/Unit.Tests
           - service: fundstransfermgt

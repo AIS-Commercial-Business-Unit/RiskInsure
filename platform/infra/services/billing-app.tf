@@ -1,9 +1,9 @@
 # ==========================================================================
-# Billing API (HTTP REST)
+# PolicyEquityAndInvoicingMgt API (HTTP REST)
 # ==========================================================================
 
-resource "azurerm_container_app" "billing_api" {
-  name                         = "billing-api"
+resource "azurerm_container_app" "policyequityandinvoicingmgt_api" {
+  name                         = "policyequityandinvoicingmgt-api"
   container_app_environment_id = azurerm_container_app_environment.riskinsure.id
   resource_group_name          = data.terraform_remote_state.foundation.outputs.resource_group_name
   revision_mode                = "Single"
@@ -31,14 +31,14 @@ resource "azurerm_container_app" "billing_api" {
   }
 
   template {
-    min_replicas = var.services["billing"].api.min_replicas
-    max_replicas = var.services["billing"].api.max_replicas
+    min_replicas = var.services["policyequityandinvoicingmgt"].api.min_replicas
+    max_replicas = var.services["policyequityandinvoicingmgt"].api.max_replicas
 
     container {
-      name   = "billing-api"
-      image  = "${data.terraform_remote_state.foundation.outputs.acr_login_server}/billing-api:${var.image_tag}"
-      cpu    = var.services["billing"].api.cpu
-      memory = var.services["billing"].api.memory
+      name   = "policyequityandinvoicingmgt-api"
+      image  = "${data.terraform_remote_state.foundation.outputs.acr_login_server}/policyequityandinvoicingmgt-api:${var.image_tag}"
+      cpu    = var.services["policyequityandinvoicingmgt"].api.cpu
+      memory = var.services["policyequityandinvoicingmgt"].api.memory
 
       env {
         name  = "ASPNETCORE_ENVIRONMENT"
@@ -108,11 +108,11 @@ resource "azurerm_container_app" "billing_api" {
 }
 
 # ==========================================================================
-# Billing Endpoint (NServiceBus)
+# PolicyEquityAndInvoicingMgt Endpoint (NServiceBus)
 # ==========================================================================
 
-resource "azurerm_container_app" "billing_endpoint" {
-  name                         = "billing-endpoint"
+resource "azurerm_container_app" "policyequityandinvoicingmgt_endpoint" {
+  name                         = "policyequityandinvoicingmgt-endpoint"
   container_app_environment_id = azurerm_container_app_environment.riskinsure.id
   resource_group_name          = data.terraform_remote_state.foundation.outputs.resource_group_name
   revision_mode                = "Single"
@@ -140,14 +140,14 @@ resource "azurerm_container_app" "billing_endpoint" {
   }
 
   template {
-    min_replicas = var.services["billing"].endpoint.min_replicas
-    max_replicas = var.services["billing"].endpoint.max_replicas
+    min_replicas = var.services["policyequityandinvoicingmgt"].endpoint.min_replicas
+    max_replicas = var.services["policyequityandinvoicingmgt"].endpoint.max_replicas
 
     container {
-      name   = "billing-endpoint"
-      image  = "${data.terraform_remote_state.foundation.outputs.acr_login_server}/billing-endpoint:${var.image_tag}"
-      cpu    = var.services["billing"].endpoint.cpu
-      memory = var.services["billing"].endpoint.memory
+      name   = "policyequityandinvoicingmgt-endpoint"
+      image  = "${data.terraform_remote_state.foundation.outputs.acr_login_server}/policyequityandinvoicingmgt-endpoint:${var.image_tag}"
+      cpu    = var.services["policyequityandinvoicingmgt"].endpoint.cpu
+      memory = var.services["policyequityandinvoicingmgt"].endpoint.memory
 
       env {
         name  = "DOTNET_ENVIRONMENT"

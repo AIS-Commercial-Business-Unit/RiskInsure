@@ -3,14 +3,14 @@ include:
 
 services:
   # ============================================================================
-  # Billing Domain
+  # PolicyEquityAndInvoicingMgt Domain
   # ============================================================================
-  billing-api:
+  policyequityandinvoicingmgt-api:
     build:
       context: .
       dockerfile: platform/templates/Dockerfile.api.compose
       args:
-        PROJECT_PATH: services/billing/src/Api/Api.csproj
+        PROJECT_PATH: services/policyequityandinvoicingmgt/src/Api/Api.csproj
         IMPORT_SSL_CERTS_FOR: cosmosdb
     ports:
       - "7071:8080"
@@ -34,12 +34,12 @@ services:
       rabbitmq:
         condition: service_healthy
 
-  billing-endpoint:
+  policyequityandinvoicingmgt-endpoint:
     build:
       context: .
       dockerfile: platform/templates/Dockerfile.endpoint.compose
       args:
-        PROJECT_PATH: services/billing/src/Endpoint.In/Endpoint.In.csproj
+        PROJECT_PATH: services/policyequityandinvoicingmgt/src/Endpoint.In/Endpoint.In.csproj
         IMPORT_SSL_CERTS_FOR: cosmosdb
     volumes:
       - ./License.xml:/app/license.xml:ro

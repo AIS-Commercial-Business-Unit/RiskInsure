@@ -83,7 +83,7 @@ jobs:
           
           # Check endpoint queues only
           REQUIRED_QUEUES=(
-            "RiskInsure.Billing.Endpoint"
+            "RiskInsure.PolicyEquityAndInvoicingMgt.Endpoint"
             "RiskInsure.Customer.Endpoint"
             "RiskInsure.FundTransferMgt.Endpoint"
             "RiskInsure.Policy.Endpoint"
@@ -109,7 +109,7 @@ jobs:
           echo "cosmosdb_account=$COSMOS_ACCOUNT"
           
           # Check Container Apps are running
-          SERVICES=("billing" "customer" "fundstransfermgt" "policy" "ratingandunderwriting")
+          SERVICES=("policyequityandinvoicingmgt" "customer" "fundstransfermgt" "policy" "ratingandunderwriting")
           for service in "${SERVICES[@]}"; do
             API_NAME="$service-api"
             ENDPOINT_NAME="$service-endpoint"
@@ -228,8 +228,8 @@ jobs:
           
           # Set environment variable for tests based on service
           case "$SERVICE" in
-            billing)
-              echo "API_BILLING_BASE_URL=$SERVICE_URL" >> "$GITHUB_ENV"
+            policyequityandinvoicingmgt)
+              echo "API_POLICYEQUITYANDINVOICINGMGT_BASE_URL=$SERVICE_URL" >> "$GITHUB_ENV"
               ;;
             customer)
               echo "API_CUSTOMER_BASE_URL=$SERVICE_URL" >> "$GITHUB_ENV"

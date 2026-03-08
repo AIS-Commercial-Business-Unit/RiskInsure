@@ -61,7 +61,7 @@ locals {
     "servicecontrol.throughputdata",
 
     # RiskInsure Application Endpoints (NServiceBus message processors)
-    "RiskInsure.Billing.Endpoint",
+    "RiskInsure.PolicyEquityAndInvoicingMgt.Endpoint",
     "RiskInsure.Customer.Endpoint",
     "RiskInsure.FundTransferMgt.Endpoint",
     "RiskInsure.Policy.Endpoint",
@@ -69,7 +69,7 @@ locals {
 
     # RiskInsure API Send-Only Endpoints (for publishing events from APIs)
     # Note: NServiceBus normalizes these to lowercase in Azure Service Bus
-    "riskinsure.billing.api",
+    "riskinsure.policyequityandinvoicingmgt.api",
     "riskinsure.customer.api",
     "riskinsure.ratingandunderwriting.api",
 
@@ -84,13 +84,13 @@ locals {
     # Legacy/existing topic
     "bundle-1",
 
-    # RiskInsure Billing Domain Events
-    "RiskInsure.Billing.Domain.Contracts.Events.AccountActivated",
-    "RiskInsure.Billing.Domain.Contracts.Events.AccountClosed",
-    "RiskInsure.Billing.Domain.Contracts.Events.AccountSuspended",
-    "RiskInsure.Billing.Domain.Contracts.Events.BillingAccountCreated",
-    "RiskInsure.Billing.Domain.Contracts.Events.BillingCycleUpdated",
-    "RiskInsure.Billing.Domain.Contracts.Events.PremiumOwedUpdated",
+    # RiskInsure PolicyEquityAndInvoicingMgt Domain Events
+    "RiskInsure.PolicyEquityAndInvoicingMgt.Domain.Contracts.Events.AccountActivated",
+    "RiskInsure.PolicyEquityAndInvoicingMgt.Domain.Contracts.Events.AccountClosed",
+    "RiskInsure.PolicyEquityAndInvoicingMgt.Domain.Contracts.Events.AccountSuspended",
+    "RiskInsure.PolicyEquityAndInvoicingMgt.Domain.Contracts.Events.BillingAccountCreated",
+    "RiskInsure.PolicyEquityAndInvoicingMgt.Domain.Contracts.Events.BillingCycleUpdated",
+    "RiskInsure.PolicyEquityAndInvoicingMgt.Domain.Contracts.Events.PremiumOwedUpdated",
 
     # RiskInsure Customer Domain Events
     "RiskInsure.Customer.Domain.Contracts.Events.CustomerClosed",
@@ -125,16 +125,16 @@ locals {
   # ========================================================================
   # Format: "unique_key" = { topic_name, subscription_name, forward_to_queue }
   subscriptions = {
-    "funds_refunded_to_billing" = {
+    "funds_refunded_to_policyequityandinvoicingmgt" = {
       topic_name        = "RiskInsure.PublicContracts.Events.FundsRefunded"
-      subscription_name = "RiskInsure.Billing.Endpoint"
-      forward_to_queue  = "RiskInsure.Billing.Endpoint"
+      subscription_name = "RiskInsure.PolicyEquityAndInvoicingMgt.Endpoint"
+      forward_to_queue  = "RiskInsure.PolicyEquityAndInvoicingMgt.Endpoint"
     }
 
-    "funds_settled_to_billing" = {
+    "funds_settled_to_policyequityandinvoicingmgt" = {
       topic_name        = "RiskInsure.PublicContracts.Events.FundsSettled"
-      subscription_name = "RiskInsure.Billing.Endpoint"
-      forward_to_queue  = "RiskInsure.Billing.Endpoint"
+      subscription_name = "RiskInsure.PolicyEquityAndInvoicingMgt.Endpoint"
+      forward_to_queue  = "RiskInsure.PolicyEquityAndInvoicingMgt.Endpoint"
     }
 
     "quote_accepted_to_policy" = {
@@ -144,10 +144,10 @@ locals {
     }
 
     # Add new subscriptions here:
-    # "payment_received_to_billing" = {
+    # "payment_received_to_policyequityandinvoicingmgt" = {
     #   topic_name        = "RiskInsure.PublicContracts.Events.PaymentReceived"
-    #   subscription_name = "RiskInsure.Billing.Endpoint"
-    #   forward_to_queue  = "RiskInsure.Billing.Endpoint"
+    #   subscription_name = "RiskInsure.PolicyEquityAndInvoicingMgt.Endpoint"
+    #   forward_to_queue  = "RiskInsure.PolicyEquityAndInvoicingMgt.Endpoint"
     # }
   }
 

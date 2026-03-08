@@ -153,14 +153,14 @@ variable "services" {
   }))
 
   default = {
-    "billing" = {
+    "policyequityandinvoicingmgt" = {
       api = {
       enabled        = true
       cpu            = 0.25
       memory         = "0.5Gi"
       min_replicas   = 1
       max_replicas   = 5
-      container_name = "Billing"
+      container_name = "policyequityandinvoicingmgt"
       }
       endpoint = {
       enabled        = true
@@ -168,7 +168,7 @@ variable "services" {
       memory         = "0.5Gi"
       min_replicas   = 1
       max_replicas   = 3
-      container_name = "Billing"
+      container_name = "policyequityandinvoicingmgt"
       }
     }
     "customer" = {

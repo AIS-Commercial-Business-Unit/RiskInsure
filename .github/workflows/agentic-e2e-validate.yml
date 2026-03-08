@@ -51,7 +51,7 @@ jobs:
           CUSTOMER_API_URL: ${{ secrets.CUSTOMER_API_URL }}
           RATING_API_URL: ${{ secrets.RATING_API_URL }}
           POLICY_API_URL: ${{ secrets.POLICY_API_URL }}
-          BILLING_API_URL: ${{ secrets.BILLING_API_URL }}
+          POLICYEQUITYANDINVOICINGMGT_API_URL: ${{ secrets.POLICYEQUITYANDINVOICINGMGT_API_URL }}
           FUNDS_TRANSFER_API_URL: ${{ secrets.FUNDS_TRANSFER_API_URL }}
         run: npx playwright test tests/generated --reporter=list
 

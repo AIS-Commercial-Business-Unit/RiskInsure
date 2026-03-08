@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       services_to_deploy:
-        description: 'Comma-separated list of services (e.g., billing,policy,customer,fundstransfermgt,ratingunderwriting)'
+        description: 'Comma-separated list of services (e.g., policyequityandinvoicingmgt,policy,customer,fundstransfermgt,ratingunderwriting)'
         required: true
         type: string
       acr_login_server:
@@ -143,10 +143,10 @@ jobs:
           
           # If "all", expand to all services
           if [ "$SERVICES_INPUT" = "all" ]; then
-            SERVICES_INPUT="billing,customer,fundstransfermgt,policy,ratingunderwriting"
+            SERVICES_INPUT="policyequityandinvoicingmgt,customer,fundstransfermgt,policy,ratingunderwriting"
           fi
           
-          # Convert "billing,policy,customer" -> {"service":["billing","policy","customer"]}
+          # Convert "policyequityandinvoicingmgt,policy,customer" -> {"service":["policyequityandinvoicingmgt","policy","customer"]}
           # Use a single jq command to avoid GitHub Actions output quirks
           MATRIX_JSON=$(echo "$SERVICES_INPUT" | jq -Rc 'split(",") | map(select(length > 0)) | {service: .}')
           
@@ -213,10 +213,10 @@ jobs:
               PROJECT_PREFIX="RatingUnderwriting"
               IMAGE_NAME="ratingandunderwriting"
               ;;
-            billing)
-              SERVICE_DIR="services/billing"
-              PROJECT_PREFIX="Billing"
-              IMAGE_NAME="billing"
+            policyequityandinvoicingmgt)
+              SERVICE_DIR="services/policyequityandinvoicingmgt"
+              PROJECT_PREFIX="policyequityandinvoicingmgt"
+              IMAGE_NAME="policyequityandinvoicingmgt"
               ;;
             customer)
               SERVICE_DIR="services/customer"

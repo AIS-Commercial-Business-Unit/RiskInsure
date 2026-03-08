@@ -59,7 +59,7 @@ jobs:
         id: determine
         shell: bash
         run: |
-          ALL_SERVICES='["billing","customer","fundstransfermgt","policy","ratingandunderwriting"]'
+          ALL_SERVICES='["policyequityandinvoicingmgt","customer","fundstransfermgt","policy","ratingandunderwriting"]'
           
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             if [[ "${{ github.event.inputs.services }}" == "all" ]]; then
@@ -96,7 +96,7 @@ jobs:
           # Detect changed services from changed files
           changed_services=()
           
-          for service in billing customer fundstransfermgt policy ratingandunderwriting; do
+          for service in policyequityandinvoicingmgt customer fundstransfermgt policy ratingandunderwriting; do
             if echo "$changed_files" | grep -q "^services/$service/"; then
               changed_services+=("\"$service\"")
             fi

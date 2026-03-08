@@ -48,7 +48,7 @@ Each service consists of **two containers**:
 
 | Service | API Container | Endpoint Container | Purpose |
 |---------|---------------|-------------------|---------|
-| **Billing** | billing-api | billing-endpoint | Invoice management |
+| **PolicyEquityAndInvoicingMgt** | policyequityandinvoicingmgt-api | policyequityandinvoicingmgt-endpoint | Invoice management |
 | **Customer** | customer-api | customer-endpoint | Customer profiles |
 | **Policy** | policy-api | policy-endpoint | Insurance policies |
 | **FundsTransferMgt** | fundstransfermgt-api | fundstransfermgt-endpoint | Fund transfers |
@@ -71,7 +71,7 @@ Avoid hard-coded connection strings in configuration files; use secrets/managed 
 ```hcl
 # dev.tfvars
 services = {
-  "billing" = {
+  "policyequityandinvoicingmgt" = {
     api = {
       cpu          = 0.5
       memory       = "1Gi"
@@ -93,7 +93,7 @@ services = {
 ```hcl
 # prod.tfvars
 services = {
-  "billing" = {
+  "policyequityandinvoicingmgt" = {
     api = {
       cpu          = 1.0
       memory       = "2Gi"
@@ -117,7 +117,7 @@ services = {
 ```bash
 # Via GitHub Actions
 # Go to: Actions → "2 - Build & Deploy Microservices"
-# Services: billing
+# Services: policyequityandinvoicingmgt
 ```
 
 ### Update All Services
@@ -143,12 +143,12 @@ After deployment, access services via:
 
 ```bash
 # Get API URLs
-terraform output billing_api_url
+terraform output policyequityandinvoicingmgt_api_url
 terraform output customer_api_url
 terraform output policy_api_url
 
 # Example output:
-# https://billing-api.redbeach-12345.eastus2.azurecontainerapps.io
+# https://policyequityandinvoicingmgt-api.redbeach-12345.eastus2.azurecontainerapps.io
 ```
 
 ## 🔍 Monitoring
@@ -158,12 +158,12 @@ terraform output policy_api_url
 ```bash
 # Via Azure CLI
 az containerapp logs show \
-  --name billing-api \
+  --name policyequityandinvoicingmgt-api \
   --resource-group CAIS-010-RiskInsure \
   --follow
 
 # Via Azure Portal
-# Container Apps → billing-api → Logs
+# Container Apps → policyequityandinvoicingmgt-api → Logs
 ```
 
 ### Health Checks
@@ -171,7 +171,7 @@ az containerapp logs show \
 All APIs expose `/health` endpoint:
 
 ```bash
-curl https://billing-api.xxx.azurecontainerapps.io/health
+curl https://policyequityandinvoicingmgt-api.xxx.azurecontainerapps.io/health
 ```
 
 ## 🔧 Scaling
@@ -180,7 +180,7 @@ curl https://billing-api.xxx.azurecontainerapps.io/health
 
 ```bash
 az containerapp update \
-  --name billing-api \
+  --name policyequityandinvoicingmgt-api \
   --resource-group CAIS-010-RiskInsure \
   --min-replicas 3 \
   --max-replicas 15
@@ -216,7 +216,7 @@ terraform destroy -var-file="dev.tfvars"
 After deployment, services are accessible at:
 
 ```
-https://billing-api.<unique-id>.eastus2.azurecontainerapps.io
+https://policyequityandinvoicingmgt-api.<unique-id>.eastus2.azurecontainerapps.io
 https://customer-api.<unique-id>.eastus2.azurecontainerapps.io
 https://policy-api.<unique-id>.eastus2.azurecontainerapps.io
 https://fundstransfermgt-api.<unique-id>.eastus2.azurecontainerapps.io

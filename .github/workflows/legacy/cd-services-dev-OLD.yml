@@ -66,7 +66,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          ALL_SERVICES='["billing","customer","fundstransfermgt","policy","ratingandunderwriting"]'
+          ALL_SERVICES='["policyequityandinvoicingmgt","customer","fundstransfermgt","policy","ratingandunderwriting"]'
 
           # Decide which tag to deploy
           if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
@@ -131,7 +131,7 @@ jobs:
           fi
 
           changed_services=()
-          for s in billing customer fundstransfermgt policy ratingandunderwriting; do
+          for s in policyequityandinvoicingmgt customer fundstransfermgt policy ratingandunderwriting; do
             if echo "$changed_files" | grep -q "^services/$s/"; then
               changed_services+=("\"$s\"")
             fi
