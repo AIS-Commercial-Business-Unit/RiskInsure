@@ -6,7 +6,13 @@ on:
     branches:
       - main
     paths:
-      - "platform/modernizationpatterns/**"
+      # UI & content changes only (exclude API)
+      - "platform/modernizationpatterns/src/**"
+      - "platform/modernizationpatterns/content/**"
+      - "platform/modernizationpatterns/public/**"
+      - "platform/modernizationpatterns/package.json"
+      - "platform/modernizationpatterns/vite.config.js"
+      - "platform/modernizationpatterns/index.html"
       - ".github/workflows/modernizationpatterns-static-webapp.yml"
 
 jobs:

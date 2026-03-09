@@ -175,14 +175,16 @@ public class UpdateConfigurationHandler : IHandleMessages<UpdateConfiguration>
 
     private FtpProtocolSettings MapFtpSettings(Dictionary<string, object> settings)
     {
-        return new FtpProtocolSettings(
-            server: settings["Server"].ToString()!,
-            port: Convert.ToInt32(settings["Port"]),
-            username: settings["Username"].ToString()!,
-            passwordKeyVaultSecret: settings["PasswordKeyVaultSecret"].ToString()!,
-            useTls: Convert.ToBoolean(settings["UseTls"]),
-            usePassiveMode: Convert.ToBoolean(settings["UsePassiveMode"]),
-            connectionTimeout: TimeSpan.FromSeconds(Convert.ToInt32(settings.GetValueOrDefault("ConnectionTimeoutSeconds", 30))));
+        return new FtpProtocolSettings
+        {
+            Server = settings["Server"].ToString()!,
+            Port = Convert.ToInt32(settings["Port"]),
+            Username = settings["Username"].ToString()!,
+            Password = settings["Password"].ToString()!,
+            UseTls = Convert.ToBoolean(settings["UseTls"]),
+            UsePassiveMode = Convert.ToBoolean(settings["UsePassiveMode"]),
+            ConnectionTimeout = TimeSpan.FromSeconds(Convert.ToInt32(settings.GetValueOrDefault("ConnectionTimeoutSeconds", 30)))
+        };
     }
 
     private HttpsProtocolSettings MapHttpsSettings(Dictionary<string, object> settings)
@@ -192,14 +194,16 @@ public class UpdateConfigurationHandler : IHandleMessages<UpdateConfiguration>
             authType = AuthType.None;
         }
 
-        return new HttpsProtocolSettings(
-            baseUrl: settings["BaseUrl"].ToString()!,
-            authenticationType: authType,
-            usernameOrApiKey: settings.GetValueOrDefault("UsernameOrApiKey")?.ToString(),
-            passwordOrTokenKeyVaultSecret: settings.GetValueOrDefault("PasswordOrTokenKeyVaultSecret")?.ToString(),
-            connectionTimeout: TimeSpan.FromSeconds(Convert.ToInt32(settings.GetValueOrDefault("ConnectionTimeoutSeconds", 30))),
-            followRedirects: Convert.ToBoolean(settings.GetValueOrDefault("FollowRedirects", true)),
-            maxRedirects: Convert.ToInt32(settings.GetValueOrDefault("MaxRedirects", 5)));
+        return new HttpsProtocolSettings
+        {
+            BaseUrl = settings["BaseUrl"].ToString()!,
+            AuthenticationType = authType,
+            Username = settings["Username"].ToString()!,
+            PasswordOrTokenOrApiKey = settings.GetValueOrDefault("PasswordOrTokenOrApiKey")?.ToString(),
+            ConnectionTimeout = TimeSpan.FromSeconds(Convert.ToInt32(settings.GetValueOrDefault("ConnectionTimeoutSeconds", 30))),
+            FollowRedirects = Convert.ToBoolean(settings.GetValueOrDefault("FollowRedirects", true)),
+            MaxRedirects = Convert.ToInt32(settings.GetValueOrDefault("MaxRedirects", 5))
+        };
     }
 
     private AzureBlobProtocolSettings MapAzureBlobSettings(Dictionary<string, object> settings)
@@ -209,11 +213,13 @@ public class UpdateConfigurationHandler : IHandleMessages<UpdateConfiguration>
             authType = AzureAuthType.ManagedIdentity;
         }
 
-        return new AzureBlobProtocolSettings(
-            storageAccountName: settings["StorageAccountName"].ToString()!,
-            containerName: settings["ContainerName"].ToString()!,
-            authenticationType: authType,
-            connectionStringKeyVaultSecret: settings.GetValueOrDefault("ConnectionStringKeyVaultSecret")?.ToString(),
-            sasTokenKeyVaultSecret: settings.GetValueOrDefault("SasTokenKeyVaultSecret")?.ToString());
+        return new AzureBlobProtocolSettings
+        {
+            StorageAccountName = settings["StorageAccountName"].ToString()!,
+            ContainerName = settings["ContainerName"].ToString()!,
+            AuthenticationType = authType,
+            ConnectionString = settings.GetValueOrDefault("ConnectionString")?.ToString(),
+            SasToken = settings.GetValueOrDefault("SasToken")?.ToString()
+        };
     }
 }

@@ -54,7 +54,7 @@ public class ConfigurationRequestValidator : AbstractValidator<CreateConfigurati
         {
             RuleFor(x => x.ProtocolSettings)
                 .Must(ContainRequiredFtpSettings)
-                .WithMessage("FTP protocol requires: Server, Port, Username, PasswordKeyVaultSecret");
+                .WithMessage("FTP protocol requires: Server, Port, Username, Password");
         });
 
         When(x => x.Protocol?.Equals("Https", StringComparison.OrdinalIgnoreCase) == true, () =>
@@ -105,7 +105,7 @@ public class ConfigurationRequestValidator : AbstractValidator<CreateConfigurati
         return settings.ContainsKey("Server") &&
                settings.ContainsKey("Port") &&
                settings.ContainsKey("Username") &&
-               settings.ContainsKey("PasswordKeyVaultSecret");
+               settings.ContainsKey("Password");
     }
 
     private bool ContainRequiredHttpsSettings(Dictionary<string, object>? settings)

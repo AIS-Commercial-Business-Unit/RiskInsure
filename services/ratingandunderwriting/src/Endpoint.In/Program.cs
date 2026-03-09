@@ -7,23 +7,35 @@ using Serilog;
 using Serilog.Sinks.ApplicationInsights.TelemetryConverters;
 using Microsoft.ApplicationInsights.Extensibility;
 using Azure.Monitor.OpenTelemetry.Exporter;
+using Azure.Core.Diagnostics;
+using System.Diagnostics.Tracing;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
     .CreateBootstrapLogger();
+
+AzureEventSourceListener? azureEventSourceListener = null;
 
 try
 {
     Log.Information("Starting Rating & Underwriting Endpoint.In");
 
     var host = Host.CreateDefaultBuilder(args)
-        .UseSerilog((context, services, configuration) => configuration
-            .ReadFrom.Configuration(context.Configuration)
-            .Enrich.FromLogContext()
-            .WriteTo.Console()
-            .WriteTo.ApplicationInsights(
-                services.GetRequiredService<TelemetryConfiguration>(),
-                TelemetryConverter.Traces))
+        .UseSerilog((context, services, configuration) =>
+        {
+            configuration
+                .ReadFrom.Configuration(context.Configuration)
+                .Enrich.FromLogContext()
+                .WriteTo.Console();
+
+            var appInsightsConnectionString = context.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
+            if (!string.IsNullOrWhiteSpace(appInsightsConnectionString))
+            {
+                configuration.WriteTo.ApplicationInsights(
+                    services.GetRequiredService<TelemetryConfiguration>(),
+                    TelemetryConverter.Traces);
+            }
+        })
         .NServiceBusEnvironmentConfiguration("RiskInsure.RatingAndUnderwriting.Endpoint",
         (config, endpoint, routing) =>
         {
@@ -32,17 +44,20 @@ try
         })
         .ConfigureServices((context, services) =>
         {
-            // Application Insights telemetry (auto-reads APPLICATIONINSIGHTS_CONNECTION_STRING env var)
-            services.AddApplicationInsightsTelemetryWorkerService();
+            var appInsightsConnectionString = context.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
+            if (!string.IsNullOrWhiteSpace(appInsightsConnectionString))
+            {
+                services.AddApplicationInsightsTelemetryWorkerService();
 
-            // OpenTelemetry: export NServiceBus traces and metrics to Azure Monitor
-            services.AddOpenTelemetry()
-                .WithTracing(tracing => tracing
-                    .AddSource("NServiceBus.Core")
-                    .AddAzureMonitorTraceExporter())
-                .WithMetrics(metrics => metrics
-                    .AddMeter("NServiceBus.Core")
-                    .AddAzureMonitorMetricExporter());
+                services.AddOpenTelemetry()
+                    .WithTracing(tracing => tracing
+                        .AddSource("NServiceBus.Core")
+                        .AddSource("RiskInsure.RatingAndUnderwriting.Publishing")
+                        .AddAzureMonitorTraceExporter())
+                    .WithMetrics(metrics => metrics
+                        .AddMeter("NServiceBus.Core")
+                        .AddAzureMonitorMetricExporter());
+            }
 
             // Register Cosmos DB container
             var cosmosConnectionString = context.Configuration.GetConnectionString("CosmosDb")
@@ -75,6 +90,41 @@ try
         })
         .Build();
 
+    var configuration = host.Services.GetRequiredService<IConfiguration>();
+    var enableAzureSdkEventSourceVerbose =
+        configuration.GetValue<bool>("Telemetry:EnableAzureSdkEventSourceVerbose");
+
+    if (enableAzureSdkEventSourceVerbose)
+    {
+        var azureSdkLogger = host.Services
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger("AzureSdkEventSource");
+
+        azureEventSourceListener = new AzureEventSourceListener(
+            (eventArgs, message) =>
+            {
+                var source = eventArgs.EventSource?.Name ?? "AzureSDK";
+
+                if (eventArgs.Level >= EventLevel.Warning)
+                {
+                    azureSdkLogger.LogWarning(
+                        "[AzureSDK:{Source}] {Message}",
+                        source,
+                        message);
+                }
+                else
+                {
+                    azureSdkLogger.LogInformation(
+                        "[AzureSDK:{Source}] {Message}",
+                        source,
+                        message);
+                }
+            },
+            EventLevel.Verbose);
+
+        azureSdkLogger.LogWarning("Azure SDK verbose EventSource logging is enabled.");
+    }
+
     await host.RunAsync();
 }
 catch (Exception ex)
@@ -84,5 +134,6 @@ catch (Exception ex)
 }
 finally
 {
+    azureEventSourceListener?.Dispose();
     await Log.CloseAndFlushAsync();
 }

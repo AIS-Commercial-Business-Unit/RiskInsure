@@ -1,6 +1,6 @@
 services:
   # ============================================================================
-  # Infrastructure - RabbitMQ and Cosmos DB Emulator
+  # Infrastructure - RabbitMQ, Cosmos DB Emulator, and Key Vault Emulator
   # ============================================================================
 
   rabbitmq:
@@ -34,7 +34,7 @@ services:
     entrypoint: ["/usr/local/bin/entrypoint-cosmos.sh"]
     ports:
       - "8081:8081"
-      - "10250-10255:10250-10255"
+      - "10350-10355:10250-10255"
     environment:
       - AZURE_COSMOS_EMULATOR_PARTITION_COUNT=10
       - AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE=true
@@ -50,6 +50,73 @@ services:
       retries: 5
       start_period: 120s
 
+  keyvault-emulator:
+    container_name: keyvault-emulator
+    image: jamesgoulddev/azure-keyvault-emulator:latest
+    # Create a SSL certificate so other docker contains can make API
+    # calls to this docker container using HTTPS and have the certificate 
+    # be trusted
+    entrypoint: 
+      - /bin/sh
+      - -c
+      - |
+        set -e
+
+        Green='\033[0;32m'
+        Red='\033[0;31m'
+        Yellow='\033[0;33m'
+        Color_Off='\033[0m'
+
+        if [ ! -f /certs/always-encrypted.crt ] || [ ! -f /certs/always-encrypted.pfx ]; then
+
+          if ! command -v openssl >/dev/null 2>&1; then
+            echo "$${Red}ERROR: openssl is not available in the keyvault-emulator image.$${Color_Off}"
+            echo "$${Red}Please provide /certs/emulator.crt and /certs/emulator.pfx or use an image variant with openssl installed.$${Color_Off}"
+            exit 1
+          fi
+
+          echo "$${Green}Generating self-signed SSL certificate for key vault emulator...$${Color_Off}"
+
+          openssl req \
+            -x509 \
+            -newkey rsa:4096 \
+            -sha256 \
+            -days 3650 \
+            -nodes \
+            -keyout /certs/emulator.key \
+            -out /certs/emulator.crt \
+            -subj "/CN=keyvault-emulator" \
+            -addext "subjectAltName=DNS:localhost,DNS:keyvault-emulator,DNS:localhost.vault.azure.net"
+
+          openssl pkcs12 -export \
+            -out /certs/emulator.pfx \
+            -inkey /certs/emulator.key \
+            -in /certs/emulator.crt \
+            -name "Azure Key Vault Emulator" \
+            -passout pass:emulator
+
+          echo "$${Green}Key Vault emulator certificates generated.$${Color_Off}"
+        else
+          echo "$${Yellow}Key Vault emulator certificates already exist, skipping generation.$${Color_Off}"
+        fi
+
+        exec dotnet AzureKeyVaultEmulator.dll
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 1 bash -c '</dev/tcp/localhost/4997' || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    ports:
+      - "4997:4997"
+    environment:
+      - Persist=true
+    volumes:
+      - keyvault-certs:/certs
+    networks:
+      - riskinsure
+
+
 
 networks:
   riskinsure:
@@ -57,3 +124,4 @@ networks:
 volumes:
   cosmos-data: {}
   rabbitmq-data: {}
+  keyvault-certs: {}

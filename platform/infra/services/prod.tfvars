@@ -14,6 +14,33 @@ keda_service_bus_queue_length        = 5
 
 # Production scaling configuration
 
+# ==========================================================================
+# Modernization Patterns Configuration (Production)
+# ==========================================================================
+
+modernizationpatterns_chat_api = {
+  enabled      = true
+  cpu          = 1.0
+  memory       = "2Gi"
+  min_replicas = 2  # Always-on for production
+  max_replicas = 10
+}
+
+modernizationpatterns_reindex_worker = {
+  enabled      = true
+  cpu          = 2.0
+  memory       = "4Gi"
+  min_replicas = 0  # Scale to zero when not indexing
+  max_replicas = 3
+}
+
+modernizationpatterns_search_index_name    = "modernization-patterns"
+modernizationpatterns_chat_deployment      = "gpt-4o"
+modernizationpatterns_embedding_deployment = "text-embedding-3-large"
+
+# ==========================================================================
+# Tags
+# ==========================================================================
 
 tags = {
   Project     = "RiskInsure"

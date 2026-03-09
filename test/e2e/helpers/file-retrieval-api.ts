@@ -20,7 +20,7 @@ export interface FileRetrievalConfig {
   bearerToken?: string;
 
   ftpContainerName: string;
-  ftpPasswordSecretName: string;
+  ftpPassword: string;
   ftpHost: string;
   ftpPort: number;
   ftpUsername: string;
@@ -34,8 +34,8 @@ export interface FileRetrievalConfig {
   azuriteContainerName: string;
   azuriteStorageAccountName: string;
   azuriteBlobContainerName: string;
-  azuriteHostConnectionString: string;
-  azuriteContainerConnectionString: string;
+  azuriteHostBlobConnectionString: string;
+  azuriteContainerBlobConnectionString: string;
 }
 
 export interface CreatedConfiguration {
@@ -52,8 +52,7 @@ export function getFileRetrievalConfig(): FileRetrievalConfig {
     bearerToken: process.env.FILE_RETRIEVAL_BEARER_TOKEN,
 
     ftpContainerName: process.env.FILE_RETRIEVAL_FTP_CONTAINER || 'file-retrieval-ftp',
-    ftpPasswordSecretName:
-      process.env.FILE_RETRIEVAL_FTP_PASSWORD_SECRET_NAME || 'testpass',
+    ftpPassword: process.env.FILE_RETRIEVAL_FTP_PASSWORD_SECRET_NAME || 'testpass',
     ftpHost: process.env.FILE_RETRIEVAL_FTP_HOST || 'file-retrieval-ftp',
     ftpPort: parseInt(process.env.FILE_RETRIEVAL_FTP_PORT || '21', 10),
     ftpUsername: process.env.FILE_RETRIEVAL_FTP_USERNAME || 'testuser',
@@ -69,12 +68,12 @@ export function getFileRetrievalConfig(): FileRetrievalConfig {
     azuriteContainerName: process.env.FILE_RETRIEVAL_AZURITE_CONTAINER || 'file-retrieval-azurite',
     azuriteStorageAccountName: process.env.FILE_RETRIEVAL_AZURITE_STORAGE_ACCOUNT || 'devstoreaccount1',
     azuriteBlobContainerName: process.env.FILE_RETRIEVAL_AZURITE_BLOB_CONTAINER || 'e2e-files',
-    azuriteHostConnectionString:
+    azuriteHostBlobConnectionString:
       process.env.FILE_RETRIEVAL_AZURITE_HOST_CONNECTION_STRING ||
-      'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;',
-    azuriteContainerConnectionString:
+      "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://localhost:10000/devstoreaccount1;",
+    azuriteContainerBlobConnectionString:
       process.env.FILE_RETRIEVAL_AZURITE_CONTAINER_CONNECTION_STRING ||
-      'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://file-retrieval-azurite:10000/devstoreaccount1;',
+      "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://file-retrieval-azurite:10000/devstoreaccount1;",
   };
 }
 
@@ -125,7 +124,7 @@ export async function seedFileToAzuriteBlob(
   blobName: string,
   fileContent: string
 ): Promise<void> {
-  const blobServiceClient = BlobServiceClient.fromConnectionString(config.azuriteHostConnectionString);
+  const blobServiceClient = BlobServiceClient.fromConnectionString(config.azuriteHostBlobConnectionString);
   const containerClient = blobServiceClient.getContainerClient(config.azuriteBlobContainerName);
   await containerClient.createIfNotExists();
 
@@ -155,7 +154,7 @@ export async function createFtpConfigurationInCosmos(
         Server: config.ftpHost,
         Port: config.ftpPort,
         Username: config.ftpUsername,
-        PasswordKeyVaultSecret: config.ftpPasswordSecretName,
+        Password: config.ftpPassword,
         UseTls: false,
         UsePassiveMode: true,
         ConnectionTimeoutSeconds: 30,
@@ -254,7 +253,7 @@ export async function createAzureBlobConfigurationInCosmos(
         StorageAccountName: config.azuriteStorageAccountName,
         ContainerName: config.azuriteBlobContainerName,
         AuthenticationType: 'ConnectionString',
-        ConnectionStringKeyVaultSecret: config.azuriteContainerConnectionString,
+        ConnectionString: config.azuriteContainerBlobConnectionString,
       },
       filePathPattern: '/',
       filenamePattern: fileName,
@@ -291,7 +290,7 @@ export async function waitForFileFound(
     config,
     configurationId,
     token,
-    Math.min(timeoutMs, 60000),
+    Math.min(timeoutMs, 30000),
     pollIntervalMs
   );
 

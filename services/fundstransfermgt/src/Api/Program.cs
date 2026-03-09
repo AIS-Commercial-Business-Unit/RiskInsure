@@ -19,27 +19,36 @@ try
     Log.Information("Starting Fund Transfer Management API");
 
     var builder = WebApplication.CreateBuilder(args);
+    var appInsightsConnectionString = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
+    var enableApplicationInsights = !string.IsNullOrWhiteSpace(appInsightsConnectionString);
 
-    // Configure Serilog with Application Insights sink
-    builder.Host.UseSerilog((context, services, configuration) => configuration
-        .ReadFrom.Configuration(context.Configuration)
-        .Enrich.FromLogContext()
-        .WriteTo.Console()
-        .WriteTo.ApplicationInsights(
-            services.GetRequiredService<TelemetryConfiguration>(),
-            TelemetryConverter.Traces));
+    builder.Host.UseSerilog((context, services, configuration) =>
+    {
+        configuration
+            .ReadFrom.Configuration(context.Configuration)
+            .Enrich.FromLogContext()
+            .WriteTo.Console();
 
-    // Application Insights telemetry (auto-reads APPLICATIONINSIGHTS_CONNECTION_STRING env var)
-    builder.Services.AddApplicationInsightsTelemetry();
+        if (enableApplicationInsights)
+        {
+            configuration.WriteTo.ApplicationInsights(
+                services.GetRequiredService<TelemetryConfiguration>(),
+                TelemetryConverter.Traces);
+        }
+    });
 
-    // OpenTelemetry: export NServiceBus traces and metrics to Azure Monitor
-    builder.Services.AddOpenTelemetry()
-        .WithTracing(tracing => tracing
-            .AddSource("NServiceBus.Core")
-            .AddAzureMonitorTraceExporter())
-        .WithMetrics(metrics => metrics
-            .AddMeter("NServiceBus.Core")
-            .AddAzureMonitorMetricExporter());
+    if (enableApplicationInsights)
+    {
+        builder.Services.AddApplicationInsightsTelemetry();
+
+        builder.Services.AddOpenTelemetry()
+            .WithTracing(tracing => tracing
+                .AddSource("NServiceBus.Core")
+                .AddAzureMonitorTraceExporter())
+            .WithMetrics(metrics => metrics
+                .AddMeter("NServiceBus.Core")
+                .AddAzureMonitorMetricExporter());
+    }
 
     // Add controllers with JSON options for enum string conversion
     builder.Services.AddControllers()

@@ -488,8 +488,37 @@ docker compose --profile infra up -d cosmos-emulator
 # RabbitMQ (Docker)
 docker compose --profile infra up -d rabbitmq
 
+# Azure Key Vault Emulator (Docker)
+docker compose -f docker-compose.infrastructure.yml up -d keyvault-emulator
+
 # Note: Emulators may be less stable than Azure resources
 ```
+
+**Trust the Key Vault emulator certificate (required for Azure SDK HTTPS):**
+
+**Windows (PowerShell):**
+```powershell
+docker cp keyvault-emulator:/certs/emulator.crt ./emulator.crt
+Import-Certificate -FilePath .\emulator.crt -CertStoreLocation Cert:\CurrentUser\Root
+Remove-Item .\emulator.crt
+```
+
+**Linux:**
+```bash
+docker cp keyvault-emulator:/certs/emulator.crt ./emulator.crt
+sudo cp ./emulator.crt /usr/local/share/ca-certificates/emulator.crt
+sudo update-ca-certificates
+rm ./emulator.crt
+```
+
+**macOS:**
+```bash
+docker cp keyvault-emulator:/certs/emulator.crt ./emulator.crt
+sudo security add-trusted-cert -d -r trustRoot -k /Library/Keychains/System.keychain ./emulator.crt
+rm ./emulator.crt
+```
+
+If certificate trust is not configured, Azure SDK clients may fail with SSL trust errors such as `UntrustedRoot`.
 
 **Emulator connection strings:**
 ```bash
@@ -497,6 +526,18 @@ docker compose --profile infra up -d rabbitmq
 COSMOSDB_CONNECTION_STRING=AccountEndpoint=https://cosmos-emulator:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==;DisableServerCertificateValidation=true
 
 RABBITMQ_CONNECTION_STRING=host=rabbitmq;username=guest;password=guest
+
+# Key Vault emulator endpoint
+AzureKeyVault__VaultUri=https://localhost:4997
+```
+
+**Equivalent `appsettings.Development.json` snippet:**
+```json
+{
+  "AzureKeyVault": {
+    "VaultUri": "https://localhost:4997"
+  }
+}
 ```
 
 ⚠️ **Recommendation**: Use real Azure resources even for local development. Emulators can be memory-intensive and less reliable

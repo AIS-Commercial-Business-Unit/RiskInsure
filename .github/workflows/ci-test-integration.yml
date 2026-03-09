@@ -32,8 +32,7 @@ on:
           - prod
 
 env:
-  DOTNET_VERSION: '10.0.x'
-  PLAYWRIGHT_VERSION: '1.40.0'
+  NODE_VERSION: '20'
 
 permissions:
   contents: read
@@ -47,7 +46,6 @@ jobs:
   verify-infrastructure:
     name: 'Verify Infrastructure Ready'
     runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.environment || 'dev' }}
     
     permissions:
       id-token: write
@@ -81,15 +79,15 @@ jobs:
             echo "ready=false" >> "$GITHUB_OUTPUT"
             exit 1
           fi
-          echo "servicebus_namespace=$SB_NAMESPACE" >> "$GITHUB_OUTPUT"
+          echo "servicebus_namespace=$SB_NAMESPACE"
           
-          # Check required queues
+          # Check endpoint queues only
           REQUIRED_QUEUES=(
-            "riskinsure.billing.api"
-            "riskinsure.customer.api"
-            "riskinsure.fundstransfermgt.api"
-            "riskinsure.policy.api"
-            "riskinsure.ratingandunderwriting.api"
+            "RiskInsure.Billing.Endpoint"
+            "RiskInsure.Customer.Endpoint"
+            "RiskInsure.FundTransferMgt.Endpoint"
+            "RiskInsure.Policy.Endpoint"
+            "RiskInsure.RatingAndUnderwriting.Endpoint"
           )
           
           for queue in "${REQUIRED_QUEUES[@]}"; do
@@ -108,18 +106,31 @@ jobs:
             echo "ready=false" >> "$GITHUB_OUTPUT"
             exit 1
           fi
-          echo "cosmosdb_account=$COSMOS_ACCOUNT" >> "$GITHUB_OUTPUT"
+          echo "cosmosdb_account=$COSMOS_ACCOUNT"
           
           # Check Container Apps are running
           SERVICES=("billing" "customer" "fundstransfermgt" "policy" "ratingandunderwriting")
           for service in "${SERVICES[@]}"; do
-            APP_STATUS=$(az containerapp show --resource-group "$RG" --name "riskinsure-$service-app" --query "properties.runningStatus" -o tsv 2>/dev/null || echo "NotFound")
-            if [[ "$APP_STATUS" != "Running" ]]; then
-              echo "⚠️ Container app $service status: $APP_STATUS"
+            API_NAME="$service-api"
+            ENDPOINT_NAME="$service-endpoint"
+            
+            API_STATUS=$(az containerapp show --resource-group "$RG" --name "$API_NAME" --query "properties.runningStatus" -o tsv 2>/dev/null || echo "NotFound")
+            ENDPOINT_STATUS=$(az containerapp show --resource-group "$RG" --name "$ENDPOINT_NAME" --query "properties.runningStatus" -o tsv 2>/dev/null || echo "NotFound")
+            
+            if [[ "$API_STATUS" != "Running" ]]; then
+              echo "❌ Container app $API_NAME status: $API_STATUS"
               echo "ready=false" >> "$GITHUB_OUTPUT"
               exit 1
             fi
-            echo "✅ Container App: $service ($APP_STATUS)"
+            
+            if [[ "$ENDPOINT_STATUS" != "Running" ]]; then
+              echo "❌ Container app $ENDPOINT_NAME status: $ENDPOINT_STATUS"
+              echo "ready=false" >> "$GITHUB_OUTPUT"
+              exit 1
+            fi
+            
+            echo "✅ Container App API: $API_NAME ($API_STATUS)"
+            echo "✅ Container App Endpoint: $ENDPOINT_NAME ($ENDPOINT_STATUS)"
           done
           
           echo ""
@@ -132,6 +143,7 @@ jobs:
   determine-services:
     name: 'Determine Test Scope'
     needs: verify-infrastructure
+    if: ${{ needs.verify-infrastructure.outputs.ready == 'true' }}
     runs-on: ubuntu-latest
     outputs:
       services: ${{ steps.determine.outputs.services }}
@@ -164,7 +176,6 @@ jobs:
     name: 'Integration: ${{ matrix.service }}'
     needs: [verify-infrastructure, determine-services]
     runs-on: ubuntu-latest
-    environment: ${{ github.event.inputs.environment || 'dev' }}
     
     permissions:
       id-token: write
@@ -180,16 +191,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: services/${{ matrix.service }}/test/Integration.Tests/package-lock.json
       
-      - name: Setup Playwright
-        shell: bash
-        run: |
-          dotnet tool install --global Microsoft.Playwright.CLI --version ${{ env.PLAYWRIGHT_VERSION }}
-          playwright install --with-deps
+      - name: Install Playwright Dependencies
+        run: npm install --no-audit --no-fund
+        working-directory: services/${{ matrix.service }}/test/Integration.Tests
+      
+      - name: Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+        working-directory: services/${{ matrix.service }}/test/Integration.Tests
       
       - name: Azure Login
         uses: azure/login@v2
@@ -205,76 +220,66 @@ jobs:
           SERVICE="${{ matrix.service }}"
           RG="CAIS-010-RiskInsure"
           
-          FQDN=$(az containerapp show --resource-group "$RG" --name "riskinsure-$SERVICE-app" --query "properties.configuration.ingress.fqdn" -o tsv)
-          echo "service_url=https://$FQDN" >> "$GITHUB_OUTPUT"
-          echo "📍 Service URL: https://$FQDN"
-      
-      - name: Restore Dependencies
-        working-directory: services/${{ matrix.service }}/test/IntegrationTests
-        run: dotnet restore
-      
-      - name: Build Tests
-        working-directory: services/${{ matrix.service }}/test/IntegrationTests
-        run: dotnet build --no-restore --configuration Release
+          FQDN=$(az containerapp show --resource-group "$RG" --name "$SERVICE-api" --query "properties.configuration.ingress.fqdn" -o tsv)
+          SERVICE_URL="https://$FQDN"
+          
+          echo "service_url=$SERVICE_URL" >> "$GITHUB_OUTPUT"
+          echo "📍 Service URL: $SERVICE_URL"
+          
+          # Set environment variable for tests based on service
+          case "$SERVICE" in
+            billing)
+              echo "API_BILLING_BASE_URL=$SERVICE_URL" >> "$GITHUB_ENV"
+              ;;
+            customer)
+              echo "API_CUSTOMER_BASE_URL=$SERVICE_URL" >> "$GITHUB_ENV"
+              ;;
+            fundstransfermgt)
+              echo "API_FUNDSTRANSFERMGT_BASE_URL=$SERVICE_URL" >> "$GITHUB_ENV"
+              ;;
+            policy)
+              echo "API_POLICY_BASE_URL=$SERVICE_URL" >> "$GITHUB_ENV"
+              ;;
+            ratingandunderwriting)
+              echo "API_RATINGANDUNDERWRITING_BASE_URL=$SERVICE_URL" >> "$GITHUB_ENV"
+              ;;
+          esac
       
       - name: Run Integration Tests
-        working-directory: services/${{ matrix.service }}/test/IntegrationTests
+        run: npm test
+        working-directory: services/${{ matrix.service }}/test/Integration.Tests
         env:
-          SERVICE_BASE_URL: ${{ steps.url.outputs.service_url }}
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          SERVICEBUS_NAMESPACE: ${{ needs.verify-infrastructure.outputs.servicebus_namespace }}
-          COSMOSDB_ACCOUNT: ${{ needs.verify-infrastructure.outputs.cosmosdb_account }}
-        run: |
-          dotnet test \
-            --no-build \
-            --configuration Release \
-            --logger "trx;LogFileName=${{ matrix.service }}-integration-tests.trx" \
-            --results-directory ./TestResults \
-            -- RunConfiguration.CollectSourceInformation=true
+          CI: true
+          API_BASE_URL: ${{ steps.url.outputs.service_url }}
       
       - name: Upload Test Results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: integration-test-results-${{ matrix.service }}
-          path: services/${{ matrix.service }}/test/IntegrationTests/TestResults/*.trx
+          path: services/${{ matrix.service }}/test/Integration.Tests/test-results/
           retention-days: 7
+          if-no-files-found: warn
       
-      - name: Upload Playwright Traces
-        if: failure()
+      - name: Upload Playwright Report
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-traces-${{ matrix.service }}
-          path: services/${{ matrix.service }}/test/IntegrationTests/playwright-traces/
-          retention-days: 7
+          name: playwright-report-${{ matrix.service }}
+          path: services/${{ matrix.service }}/test/Integration.Tests/playwright-report/
+          retention-days: 15
+          if-no-files-found: warn
 
   # ==========================================================================
   # Test Summary
   # ==========================================================================
   test-summary:
     name: 'Test Summary'
-    needs: integration-tests
+    needs: [verify-infrastructure, integration-tests]
     if: always()
     runs-on: ubuntu-latest
     
     steps:
-      - name: Download All Test Results
-        uses: actions/download-artifact@v4
-        with:
-          pattern: integration-test-results-*
-          merge-multiple: true
-          path: test-results
-      
-      - name: Publish Test Results
-        uses: EnricoMi/publish-unit-test-result-action/windows@v2
-        if: always()
-        with:
-          check_name: 'Integration Test Results'
-          files: 'test-results/**/*.trx'
-          comment_mode: off
-      
       - name: Generate Summary
         shell: bash
         run: |
@@ -285,12 +290,12 @@ jobs:
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "| Job | Status |" >> "$GITHUB_STEP_SUMMARY"
           echo "|-----|--------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Infrastructure Check | ${{ needs.verify-infrastructure.result }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Integration Tests | ${{ needs.integration-tests.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Infrastructure Check | ${{ needs['verify-infrastructure'].result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Integration Tests | ${{ needs['integration-tests'].result }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           
-          if [[ "${{ needs.integration-tests.result }}" == "success" ]]; then
+          if [[ "${{ needs['integration-tests'].result }}" == "success" ]]; then
             echo "✅ All integration tests passed!" >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "❌ Some integration tests failed. Check the logs and Playwright traces." >> "$GITHUB_STEP_SUMMARY"
+            echo "❌ Some integration tests failed. Check the logs and Playwright reports." >> "$GITHUB_STEP_SUMMARY"
           fi
