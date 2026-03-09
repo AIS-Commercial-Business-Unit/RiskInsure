@@ -25,7 +25,7 @@
     <PackageVersion Include="Azure.Security.KeyVault.Keys" Version="4.8.0" />
     <!-- Azure AI & Search (for Chat API) -->
     <PackageVersion Include="Azure.AI.OpenAI" Version="1.0.0-beta.17" />
-    <PackageVersion Include="Azure.Search.Documents" Version="11.5.0" />
+    <PackageVersion Include="Azure.Search.Documents" Version="11.7.0" />
     <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.0" />
     <!-- ASP.NET Core / APIs -->
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.0" />
