@@ -11,7 +11,7 @@ container_apps_internal_only   = false
 enable_keda_scaling            = true
 
 # Service configurations use defaults from variables.tf
-# Services deployed: billing, customer, policy, ratingandunderwriting, fundstransfermgt, policyequityandinvoicingmgt
+# Services deployed: billing, customer, policy, ratingandunderwriting, fundstransfermgt, policyequityandinvoicingmgt, customerrelationshipsmgt
 
 tags = {
   Project     = "RiskInsure"

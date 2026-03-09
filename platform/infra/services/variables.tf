@@ -261,6 +261,24 @@ variable "services" {
         container_name = "PolicyEquityAndInvoicingMgt"
       }
     }
+    "customerrelationshipsmgt" = {
+      api = {
+        enabled        = true
+        cpu            = 0.25
+        memory         = "0.5Gi"
+        min_replicas   = 1
+        max_replicas   = 10
+        container_name = "customerrelationshipsmgt"
+      }
+      endpoint = {
+        enabled        = true
+        cpu            = 0.25
+        memory         = "0.5Gi"
+        min_replicas   = 1
+        max_replicas   = 5
+        container_name = "customerrelationshipsmgt"
+      }
+    }
   }
 }
 

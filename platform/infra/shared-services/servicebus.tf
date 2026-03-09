@@ -66,12 +66,14 @@ locals {
     "RiskInsure.FundTransferMgt.Endpoint",
     "RiskInsure.Policy.Endpoint",
     "RiskInsure.RatingAndUnderwriting.Endpoint",
+    "RiskInsure.CustomerRelationshipsMgt.Endpoint",
 
     # RiskInsure API Send-Only Endpoints (for publishing events from APIs)
     # Note: NServiceBus normalizes these to lowercase in Azure Service Bus
     "riskinsure.billing.api",
     "riskinsure.customer.api",
     "riskinsure.ratingandunderwriting.api",
+    "riskinsure.customerrelationshipsmgt.api",
 
     # Add new endpoint queues here:
     # "RiskInsure.NewService.Endpoint",
@@ -114,6 +116,12 @@ locals {
     "RiskInsure.RatingAndUnderwriting.Domain.Contracts.Events.QuoteDeclined",
     "RiskInsure.RatingAndUnderwriting.Domain.Contracts.Events.QuoteStarted",
     "RiskInsure.RatingAndUnderwriting.Domain.Contracts.Events.UnderwritingSubmitted",
+
+    # RiskInsure CustomerRelationshipsMgt Domain Events
+    "RiskInsure.CustomerRelationshipsMgt.Domain.Contracts.Events.RelationshipCreated",
+    "RiskInsure.CustomerRelationshipsMgt.Domain.Contracts.Events.RelationshipInformationUpdated",
+    "RiskInsure.CustomerRelationshipsMgt.Domain.Contracts.Events.ContactInformationChanged",
+    "RiskInsure.CustomerRelationshipsMgt.Domain.Contracts.Events.RelationshipClosed",
 
     # Add new event topics here:
     # "RiskInsure.PublicContracts.Events.PaymentReceived",

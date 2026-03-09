@@ -13,7 +13,7 @@ enable_keda_scaling                  = true
 keda_service_bus_queue_length        = 5
 
 # Service configurations use defaults from variables.tf
-# Services deployed: billing, customer, policy, ratingandunderwriting, fundstransfermgt, policyequityandinvoicingmgt
+# Services deployed: billing, customer, policy, ratingandunderwriting, fundstransfermgt, policyequityandinvoicingmgt, customerrelationshipsmgt
 # Production scaling: policyequityandinvoicingmgt (API: 1-5, Endpoint: 1-3) matches billing baseline
 
 tags = {
