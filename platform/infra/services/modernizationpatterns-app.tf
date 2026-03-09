@@ -74,6 +74,12 @@ resource "azurerm_container_app" "modernizationpatterns_chat_api" {
     identity            = data.terraform_remote_state.shared_services.outputs.apps_shared_identity_id
   }
 
+  secret {
+    name                = "cosmos-connection-string"
+    key_vault_secret_id = data.azurerm_key_vault_secret.cosmos_db_connection_string.id
+    identity            = data.terraform_remote_state.shared_services.outputs.apps_shared_identity_id
+  }
+
   template {
     min_replicas = var.modernizationpatterns_chat_api.min_replicas
     max_replicas = var.modernizationpatterns_chat_api.max_replicas
@@ -124,6 +130,17 @@ resource "azurerm_container_app" "modernizationpatterns_chat_api" {
       env {
         name  = "AzureOpenAI__DeploymentName"
         value = var.modernizationpatterns_chat_deployment
+      }
+
+      # Cosmos DB configuration
+      env {
+        name        = "ConnectionStrings__CosmosDb"
+        secret_name = "cosmos-connection-string"
+      }
+
+      env {
+        name  = "CosmosDb__DatabaseName"
+        value = "modernization-patterns-db"
       }
 
       # Application Insights

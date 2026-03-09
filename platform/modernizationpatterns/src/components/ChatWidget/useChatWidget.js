@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 
-const API_BASE = 'http://localhost:7071/api/chat';
+// Azure Chat API endpoint - works both locally and in production
+const API_BASE = 'https://modernizationpatterns-chat-api.ambitioussea-f3f6277f.eastus2.azurecontainerapps.io/api/chat';
 
 export function useChatWidget() {
   const [isOpen, setIsOpen] = useState(false);
