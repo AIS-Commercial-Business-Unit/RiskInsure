@@ -1,0 +1,17 @@
+[
+  {
+    "service": "riskratingandunderwriting",
+    "sourceDocs": [
+      "services/riskratingandunderwriting/docs/business/rating-underwriting.md",
+      "services/riskratingandunderwriting/docs/technical/rating-underwriting-technical-spec.md"
+    ],
+    "scenarios": [
+      "api-health-endpoint",
+      "quote-to-policy-binding",
+      "lifecycle-status-visibility"
+    ],
+    "goals": [
+      "Verify customer identity data can be created and retrieved."
+    ]
+  }
+]
