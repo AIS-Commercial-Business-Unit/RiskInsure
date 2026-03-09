@@ -176,28 +176,14 @@ jobs:
           set -euo pipefail
           SERVICE="${{ matrix.service }}"
 
-          case "$SERVICE" in
-            ratingandunderwriting)
-              SERVICE_DIR="services/ratingandunderwriting"
-              IMAGE_NAME="ratingandunderwriting"
-              ;;
-            fundstransfermgt)
-              SERVICE_DIR="services/fundstransfermgt"
-              IMAGE_NAME="fundstransfermgt"
-              ;;
-            policyequityandinvoicingmgt)
-              SERVICE_DIR="services/policyequityandinvoicingmgt"
-              IMAGE_NAME="peimgt"
-              ;;
-            billing|customer|customerrelationshipsmgt|policy|policylifecyclemgt)
-              SERVICE_DIR="services/$SERVICE"
-              IMAGE_NAME="$SERVICE"
-              ;;
-            *)
-              echo "Unknown service: $SERVICE"
-              exit 1
-              ;;
-          esac
+          # Default: service directory and image name match the service name
+          SERVICE_DIR="services/$SERVICE"
+          IMAGE_NAME="$SERVICE"
+
+          # Exception: policyequityandinvoicingmgt uses abbreviated image name
+          if [[ "$SERVICE" == "policyequityandinvoicingmgt" ]]; then
+            IMAGE_NAME="peimgt"
+          fi
 
           echo "service_dir=$SERVICE_DIR" >> "$GITHUB_OUTPUT"
           echo "image_name=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
