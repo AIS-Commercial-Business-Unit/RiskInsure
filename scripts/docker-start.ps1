@@ -82,11 +82,12 @@ try {
     
     Write-Host ""
     Write-Host "[API] API Endpoints:" -ForegroundColor Cyan
-    Write-Host "   Billing:               http://localhost:7071" -ForegroundColor White
-    Write-Host "   Customer:              http://localhost:7073" -ForegroundColor White
-    Write-Host "   Funds Transfer:        http://localhost:7075" -ForegroundColor White
-    Write-Host "   Policy:                http://localhost:7077" -ForegroundColor White
-    Write-Host "   Rating & Underwriting: http://localhost:7079" -ForegroundColor White
+    Write-Host "   Billing:                     http://localhost:7071" -ForegroundColor White
+    Write-Host "   Customer:                    http://localhost:7073" -ForegroundColor White
+    Write-Host "   Funds Transfer:              http://localhost:7075" -ForegroundColor White
+    Write-Host "   Policy:                      http://localhost:7077" -ForegroundColor White
+    Write-Host "   Rating & Underwriting:       http://localhost:7079" -ForegroundColor White
+    Write-Host "   Risk Rating & Underwriting:  http://localhost:7087" -ForegroundColor White
     
     Write-Host ""
     Write-Host "[COMMANDS] Useful Commands:" -ForegroundColor Cyan

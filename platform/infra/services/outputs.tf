@@ -37,15 +37,20 @@ output "ratingandunderwriting_api_url" {
 
 output "customerrelationshipsmgt_api_url" {
   description = "Customer Relationship Management API URL"
-  value       = "https://${azurerm_container_app.customer_relationship_api.ingress[0].fqdn}"
+  value       = "https://${azurerm_container_app.crmgt_api.ingress[0].fqdn}"
 }
 
 output "policyequityandinvoicingmgt_api_url" {
   description = "Policy Equity and Invoicing Management API URL"
-  value       = "https://${azurerm_container_app.policyequityandinvoicingmgt_api.ingress[0].fqdn}"
+  value       = "https://${azurerm_container_app.peimgt_api.ingress[0].fqdn}"
 }
 
 output "policylifecyclemgt_api_url" {
   description = "Policy Life Cycle Management API URL"
   value       = "https://${azurerm_container_app.policylifecyclemgt_api.ingress[0].fqdn}"
+}
+
+output "riskratingandunderwriting_api_url" {
+  description = "Risk Rating & Underwriting API URL"
+  value       = "https://${azurerm_container_app.rru_api.ingress[0].fqdn}"
 }

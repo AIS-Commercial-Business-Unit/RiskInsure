@@ -42,7 +42,8 @@ try {
         @{Name="Customer"; Url="http://localhost:7073/health"},
         @{Name="Funds Transfer"; Url="http://localhost:7075/health"},
         @{Name="Policy"; Url="http://localhost:7077/health"},
-        @{Name="Rating & Underwriting"; Url="http://localhost:7079/health"}
+        @{Name="Rating & Underwriting"; Url="http://localhost:7079/health"},
+        @{Name="Risk Rating & Underwriting"; Url="http://localhost:7087/health"}
     )
     
     foreach ($api in $apis) {
