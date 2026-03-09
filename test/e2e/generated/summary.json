@@ -1,0 +1,57 @@
+{
+  "mode": "generate",
+  "changedFiles": [
+    "services/customerrelationshipsmgt/docs/business/relationship-management.md",
+    "services/customerrelationshipsmgt/docs/technical/relationship-technical-spec.md",
+    "services/policylifecyclemgt/docs/business/lifecycle-management.md",
+    "services/policylifecyclemgt/docs/technical/cutover-plan.md",
+    "services/policylifecyclemgt/docs/technical/lifecycle-technical-spec.md",
+    "services/policylifecyclemgt/docs/technical/transition-integration.md"
+  ],
+  "requirementFiles": [
+    "services/customerrelationshipsmgt/docs/business/relationship-management.md",
+    "services/customerrelationshipsmgt/docs/technical/relationship-technical-spec.md",
+    "services/policylifecyclemgt/docs/business/lifecycle-management.md",
+    "services/policylifecyclemgt/docs/technical/cutover-plan.md",
+    "services/policylifecyclemgt/docs/technical/lifecycle-technical-spec.md",
+    "services/policylifecyclemgt/docs/technical/transition-integration.md"
+  ],
+  "generatedSpecs": [
+    "test/e2e/tests/generated/customerrelationshipsmgt.generated.spec.ts",
+    "test/e2e/tests/generated/policylifecyclemgt.generated.spec.ts"
+  ],
+  "personas": [
+    {
+      "service": "customerrelationshipsmgt",
+      "sourceDocs": [
+        "services/customerrelationshipsmgt/docs/business/relationship-management.md",
+        "services/customerrelationshipsmgt/docs/technical/relationship-technical-spec.md"
+      ],
+      "scenarios": [
+        "api-health-endpoint"
+      ],
+      "goals": [
+        "Verify customer identity data can be created and retrieved."
+      ]
+    },
+    {
+      "service": "policylifecyclemgt",
+      "sourceDocs": [
+        "services/policylifecyclemgt/docs/business/lifecycle-management.md",
+        "services/policylifecyclemgt/docs/technical/cutover-plan.md",
+        "services/policylifecyclemgt/docs/technical/lifecycle-technical-spec.md",
+        "services/policylifecyclemgt/docs/technical/transition-integration.md"
+      ],
+      "scenarios": [
+        "api-health-endpoint",
+        "quote-to-policy-binding",
+        "lifecycle-status-visibility"
+      ],
+      "goals": [
+        "Verify policy issuance prerequisites and bound state handoff.",
+        "Verify cancellation and billing refund triggers are visible to APIs.",
+        "Verify customer identity data can be created and retrieved."
+      ]
+    }
+  ]
+}
