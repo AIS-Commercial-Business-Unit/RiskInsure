@@ -12,8 +12,9 @@ container_apps_zone_redundancy_enabled = true
 enable_keda_scaling                  = true
 keda_service_bus_queue_length        = 5
 
-# Production scaling configuration
-
+# Service configurations use defaults from variables.tf
+# Services deployed: billing, customer, policy, ratingandunderwriting, fundstransfermgt, policyequityandinvoicingmgt
+# Production scaling: policyequityandinvoicingmgt (API: 1-5, Endpoint: 1-3) matches billing baseline
 
 tags = {
   Project     = "RiskInsure"

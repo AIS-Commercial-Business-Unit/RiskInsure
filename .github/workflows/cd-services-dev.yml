@@ -65,7 +65,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          ALL_SERVICES='["billing","customer","fundstransfermgt","policy","ratingandunderwriting"]'
+          ALL_SERVICES='["billing","customer","fundstransfermgt","policy","policyequityandinvoicingmgt","ratingandunderwriting"]'
 
           # Decide which image tag to deploy
           if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
@@ -126,7 +126,7 @@ jobs:
 
           # Service-level changes -> deploy only changed services
           changed_services=()
-          for s in billing customer fundstransfermgt policy ratingandunderwriting; do
+          for s in billing customer fundstransfermgt policy policyequityandinvoicingmgt ratingandunderwriting; do
             if echo "$changed_files" | grep -q "^services/$s/"; then
               changed_services+=("\"$s\"")
             fi
@@ -246,8 +246,17 @@ jobs:
           TARGETS=""
 
           for s in $(echo "$SERVICES" | jq -r '.[]'); do
-            TARGETS="$TARGETS -target=azurerm_container_app.${s}_api"
-            TARGETS="$TARGETS -target=azurerm_container_app.${s}_endpoint"
+            # Map service name to Terraform resource name
+            case "$s" in
+              policyequityandinvoicingmgt)
+                TARGETS="$TARGETS -target=azurerm_container_app.peimgt_api"
+                TARGETS="$TARGETS -target=azurerm_container_app.peimgt_endpoint"
+                ;;
+              *)
+                TARGETS="$TARGETS -target=azurerm_container_app.${s}_api"
+                TARGETS="$TARGETS -target=azurerm_container_app.${s}_endpoint"
+                ;;
+            esac
           done
 
           echo "targets=$TARGETS" >> "$GITHUB_OUTPUT"
