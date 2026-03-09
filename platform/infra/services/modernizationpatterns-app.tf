@@ -128,8 +128,13 @@ resource "azurerm_container_app" "modernizationpatterns_chat_api" {
       }
 
       env {
-        name  = "AzureOpenAI__DeploymentName"
+        name  = "AzureOpenAI__ChatDeploymentName"
         value = var.modernizationpatterns_chat_deployment
+      }
+
+      env {
+        name  = "AzureOpenAI__EmbeddingDeploymentName"
+        value = "text-embedding-3-small"
       }
 
       # Cosmos DB configuration
@@ -276,7 +281,7 @@ resource "azurerm_container_app" "modernizationpatterns_reindex_worker" {
       }
 
       env {
-        name  = "AzureOpenAI__DeploymentName"
+        name  = "AzureOpenAI__EmbeddingDeploymentName"
         value = var.modernizationpatterns_embedding_deployment
       }
 

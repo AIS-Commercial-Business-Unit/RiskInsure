@@ -26,11 +26,29 @@ public class SearchService : ISearchService
     {
         _logger = logger;
 
-        _endpoint = (config["AzureSearch:Endpoint"]
-            ?? throw new InvalidOperationException("AzureSearch:Endpoint not configured")).TrimEnd('/');
-        _apiKey = config["AzureSearch:ApiKey"]
-            ?? throw new InvalidOperationException("AzureSearch:ApiKey not configured");
+        var endpoint = config["AzureSearch:Endpoint"];
+        var apiKey = config["AzureSearch:ApiKey"];
+
+        if (string.IsNullOrWhiteSpace(endpoint))
+        {
+            _logger.LogError("AzureSearch:Endpoint configuration is missing or empty");
+            throw new InvalidOperationException("AzureSearch:Endpoint not configured");
+        }
+
+        if (string.IsNullOrWhiteSpace(apiKey))
+        {
+            _logger.LogError("AzureSearch:ApiKey configuration is missing or empty");
+            throw new InvalidOperationException("AzureSearch:ApiKey not configured");
+        }
+
+        _endpoint = endpoint.TrimEnd('/');
+        _apiKey = apiKey;
         _indexName = config["AzureSearch:IndexName"] ?? "modernization-patterns";
+
+        _logger.LogInformation(
+            "SearchService initialized with endpoint: {Endpoint}, index: {IndexName}",
+            _endpoint, 
+            _indexName);
     }
 
     public async Task<List<SearchResultItem>> SearchPatternsAsync(
