@@ -201,7 +201,7 @@ Pending → EventPublished (terminal)
 | `ContainerName` | `string` | Yes | Blob container name | Not empty, max 63 chars, lowercase |
 | `AuthenticationType` | `AzureAuthType` | Yes | ManagedIdentity, ConnectionString, SasToken | Valid enum value |
 | `ConnectionStringKeyVaultSecret` | `string?` | No | Key Vault secret for connection string | Required if ConnectionString auth |
-| `SasTokenKeyVaultSecret` | `string?` | No | Key Vault secret for SAS token | Required if SasToken auth |
+| `SasToken` | `string?` | No | Key Vault secret for SAS token | Required if SasToken auth |
 | `BlobPrefix` | `string?` | No | Prefix for blob listing (path filter) | Max 1024 chars |
 
 ---

@@ -1,7 +1,6 @@
 using FluentFTP;
 using RiskInsure.FileRetrieval.Domain.ValueObjects;
 using Microsoft.Extensions.Logging;
-using Azure.Security.KeyVault.Secrets;
 
 namespace FileRetrieval.Application.Protocols;
 
@@ -12,20 +11,16 @@ namespace FileRetrieval.Application.Protocols;
 public class FtpProtocolAdapter : IProtocolAdapter
 {
     private readonly FtpProtocolSettings _settings;
-    private readonly SecretClient _keyVaultClient;
     private readonly ILogger<FtpProtocolAdapter> _logger;
     private AsyncFtpClient? _ftpClient;
-    private string? _cachedPassword;
 
     public string ProtocolType => "FTP";
 
     public FtpProtocolAdapter(
         FtpProtocolSettings settings,
-        SecretClient keyVaultClient,
         ILogger<FtpProtocolAdapter> logger)
     {
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
-        _keyVaultClient = keyVaultClient ?? throw new ArgumentNullException(nameof(keyVaultClient));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -168,23 +163,12 @@ public class FtpProtocolAdapter : IProtocolAdapter
             return;
         }
 
-        // Retrieve password from Key Vault if not cached
-        if (_cachedPassword == null)
-        {
-            _cachedPassword = _settings.PasswordKeyVaultSecret;
-
-            // Todo: Implement proper secret retrieval with error handling and caching            
-            //     var secret = await _keyVaultClient.GetSecretAsync(
-            //         _settings.PasswordKeyVaultSecret,
-            //         cancellationToken: cancellationToken);
-            // _cachedPassword = secret.Value.Value;
-        }
 
         // Create FTP client with settings
         _ftpClient = new AsyncFtpClient(
             _settings.Server,
             _settings.Username,
-            _cachedPassword,
+            _settings.Password,
             _settings.Port);
 
         // Configure encryption and passive mode
@@ -242,6 +226,5 @@ public class FtpProtocolAdapter : IProtocolAdapter
     {
         _ftpClient?.Dispose();
         _ftpClient = null;
-        _cachedPassword = null;
     }
 }
