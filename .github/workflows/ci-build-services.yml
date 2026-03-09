@@ -63,8 +63,7 @@ jobs:
           set -euo pipefail
 
           ALL_SERVICES='["billing","customer","customerrelationshipsmgt","fundstransfermgt","policy","policylifecyclemgt","policyequityandinvoicingmgt","ratingandunderwriting","riskratingandunderwriting"]'
-          echo "image_tag=${{ github.sha }}" >> "$GITHUB_OUTPUT"
-
+          echo "image_tag=${{ github.sha }}" 
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             if [[ "${{ github.event.inputs.services }}" == "all" ]]; then
               echo "services=$ALL_SERVICES" >> "$GITHUB_OUTPUT"
