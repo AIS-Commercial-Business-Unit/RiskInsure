@@ -22,10 +22,10 @@ jobs:
       - name: Validate patterns
         run: |
           cd platform/modernizationpatterns
-          
+
           # Run content validation script
           npm run validate-content 2>&1 | tee validation-output.log
-          
+
           # Check return code
           if [ $? -eq 0 ]; then
             echo "✅ Content validation passed"
@@ -39,21 +39,21 @@ jobs:
         run: |
           cd platform/modernizationpatterns
           echo "📋 Checking pattern schema compliance..."
-          
+
           # Validate each JSON file
           for file in content/patterns/*.json; do
             if ! jq empty "$file" 2>/dev/null; then
               echo "❌ Invalid JSON: $file"
               exit 1
             fi
-            
+
             # Check required fields
             if ! jq -e '.slug and .title and .description' "$file" > /dev/null; then
               echo "❌ Missing required fields in: $file"
               exit 1
             fi
           done
-          
+
           echo "✅ All JSON files valid with required fields"
 
       - name: List changed patterns

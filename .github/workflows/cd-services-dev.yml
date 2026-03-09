@@ -65,7 +65,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          ALL_SERVICES='["billing","customer","fundstransfermgt","policy","ratingandunderwriting"]'
+          ALL_SERVICES='["billing","customer","fundstransfermgt","policy","ratingandunderwriting","modernizationpatterns"]'
 
           # Decide which image tag to deploy
           if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
@@ -131,6 +131,11 @@ jobs:
               changed_services+=("\"$s\"")
             fi
           done
+
+          # Check for modernizationpatterns changes (different path)
+          if echo "$changed_files" | grep -q "^platform/modernizationpatterns/Api/"; then
+            changed_services+=("\"modernizationpatterns\"")
+          fi
 
           if [[ ${#changed_services[@]} -eq 0 ]]; then
             echo "services=[]" >> "$GITHUB_OUTPUT"
@@ -246,8 +251,14 @@ jobs:
           TARGETS=""
 
           for s in $(echo "$SERVICES" | jq -r '.[]'); do
-            TARGETS="$TARGETS -target=azurerm_container_app.${s}_api"
-            TARGETS="$TARGETS -target=azurerm_container_app.${s}_endpoint"
+            if [ "$s" = "modernizationpatterns" ]; then
+              # Modernization patterns uses different resource names
+              TARGETS="$TARGETS -target=azurerm_container_app.modernizationpatterns_chat_api"
+              TARGETS="$TARGETS -target=azurerm_container_app.modernizationpatterns_reindex_worker"
+            else
+              TARGETS="$TARGETS -target=azurerm_container_app.${s}_api"
+              TARGETS="$TARGETS -target=azurerm_container_app.${s}_endpoint"
+            fi
           done
 
           echo "targets=$TARGETS" >> "$GITHUB_OUTPUT"

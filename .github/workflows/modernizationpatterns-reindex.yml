@@ -3,17 +3,18 @@ name: Modernization Patterns - Reindex on Content Changes
 on:
   workflow_dispatch:
     inputs:
-      clean_reindex:
-        description: "Clean reindex (delete all docs first)"
+      reindex_mode:
+        description: "Select reindex strategy for best results"
         required: true
-        default: "true"
+        default: "incremental"
         type: choice
         options:
-          - "true"
-          - "false"
+          - "📝 Index New/Modified Documents (Fast ⚡)"
+          - "🔄 Full Clean Reindex (Thorough 🔍)"
   push:
     branches:
       - main
+      - Dev
     paths:
       # Trigger on content file changes (new/modified/deleted patterns)
       - "platform/modernizationpatterns/content/patterns/**"
@@ -24,10 +25,10 @@ on:
       - ".github/workflows/modernizationpatterns-reindex.yml"
   workflow_call:
     inputs:
-      clean_reindex:
-        description: "Clean reindex (delete all docs first)"
+      reindex_mode:
+        description: "Reindex mode: 'incremental' or 'full-clean'"
         required: true
-        default: "true"
+        default: "incremental"
         type: string
 
 env:
@@ -137,8 +138,8 @@ jobs:
       - name: Update Container App image
         run: |
           az containerapp update \
-            --name ca-reindex-dev \
-            --resource-group rg-modernization-chatbot-dev \
+            --name modernizationpatterns-reindex \
+            --resource-group CAIS-010-RiskInsure \
             --image "${{ steps.image.outputs.image }}" \
             --subscription "${{ env.AZURE_SUBSCRIPTION_ID }}"
 
@@ -147,8 +148,8 @@ jobs:
           echo "⏳ Waiting for Container App to update..."
           sleep 30
           az containerapp show \
-            --name ca-reindex-dev \
-            --resource-group rg-modernization-chatbot-dev \
+            --name modernizationpatterns-reindex \
+            --resource-group CAIS-010-RiskInsure \
             --subscription "${{ env.AZURE_SUBSCRIPTION_ID }}" \
             --query "properties.latestRevisionName" -o tsv
 
@@ -164,8 +165,8 @@ jobs:
         id: fqdn
         run: |
           FQDN=$(az containerapp show \
-            --name ca-reindex-dev \
-            --resource-group rg-modernization-chatbot-dev \
+            --name modernizationpatterns-reindex \
+            --resource-group CAIS-010-RiskInsure \
             --subscription "${{ env.AZURE_SUBSCRIPTION_ID }}" \
             --query properties.configuration.ingress.fqdn \
             --output tsv 2>/dev/null || echo "localhost:5010")
@@ -173,42 +174,118 @@ jobs:
           echo "fqdn=https://${FQDN}" >> $GITHUB_OUTPUT
           echo "Reindex endpoint: https://${FQDN}"
 
-      - name: List changed files
-        id: changes
+      - name: Detect change types (Smart Incremental Reindex)
+        id: change_detection
         run: |
+          # Parse user-friendly mode selection to clean flag
+          REINDEX_MODE="${{ inputs.reindex_mode || 'incremental' }}"
+          
+          case "$REINDEX_MODE" in
+            *"📝 Index New"*)
+              FORCE_INCREMENTAL="true"
+              ;;
+            *"🔄 Full Clean"*)
+              FORCE_FULL_CLEAN="true"
+              ;;
+            "full-clean")
+              FORCE_FULL_CLEAN="true"
+              ;;
+            "incremental"|*)
+              FORCE_INCREMENTAL="true"
+              ;;
+          esac
+
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            echo "TRIGGER_TYPE=Manual dispatch" >> $GITHUB_ENV
+            # Manual dispatch - use user's selection
+            if [ "$FORCE_FULL_CLEAN" == "true" ]; then
+              CLEAN="true"
+              TRIGGER_TYPE="🔄 Full Clean Reindex (manual request)"
+            else
+              CLEAN="false"
+              TRIGGER_TYPE="📝 New/Modified Documents Only (manual request)"
+            fi
+            ADDED_FILES=""
+            MODIFIED_FILES=""
+            DELETED_FILES=""
           else
-            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD | grep "platform/modernizationpatterns/content/patterns" || true)
-            FILE_COUNT=$(echo "$CHANGED_FILES" | grep . | wc -l || echo "0")
-            echo "changed_files<<EOF" >> $GITHUB_OUTPUT
-            echo "$CHANGED_FILES" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-            echo "TRIGGER_TYPE=Content changed (${FILE_COUNT} files)" >> $GITHUB_ENV
+            # Automatic detection based on pushed changes
+            ADDED_FILES=$(git diff --name-status HEAD~1 HEAD | grep "^A.*platform/modernizationpatterns/content/patterns.*\.json" | cut -f2 | tr '\n' ',' | sed 's/,$//')
+            MODIFIED_FILES=$(git diff --name-status HEAD~1 HEAD | grep "^M.*platform/modernizationpatterns/content/patterns.*\.json" | cut -f2 | tr '\n' ',' | sed 's/,$//')
+            DELETED_FILES=$(git diff --name-status HEAD~1 HEAD | grep "^D.*platform/modernizationpatterns/content/patterns.*\.json" | cut -f2 | tr '\n' ',' | sed 's/,$//')
+
+            ADDED_COUNT=$(echo "$ADDED_FILES" | grep -o '\.json' | wc -l)
+            MODIFIED_COUNT=$(echo "$MODIFIED_FILES" | grep -o '\.json' | wc -l)
+            DELETED_COUNT=$(echo "$DELETED_FILES" | grep -o '\.json' | wc -l)
+
+            # Strategy:
+            # - If files ADDED/MODIFIED only → incremental (clean=false)
+            # - If files DELETED → full reindex (clean=true) to remove orphaned docs
+            # - If mix → full reindex for safety
+            if [ -n "$DELETED_FILES" ]; then
+              CLEAN="true"
+              TRIGGER_TYPE="🔄 Full Clean Reindex (${DELETED_COUNT} file(s) deleted - removing from index)"
+            elif [ -n "$ADDED_FILES" ] || [ -n "$MODIFIED_FILES" ]; then
+              CLEAN="false"
+              TRIGGER_TYPE="📝 Incremental Update (Added: ${ADDED_COUNT}, Modified: ${MODIFIED_COUNT})"
+            else
+              CLEAN="false"
+              TRIGGER_TYPE="⏭️  No pattern files changed"
+            fi
           fi
 
-      - name: Trigger reindex
+          echo "clean=${CLEAN}" >> $GITHUB_OUTPUT
+          echo "trigger_type=${TRIGGER_TYPE}" >> $GITHUB_OUTPUT
+          echo "added_files=${ADDED_FILES}" >> $GITHUB_OUTPUT
+          echo "modified_files=${MODIFIED_FILES}" >> $GITHUB_OUTPUT
+          echo "deleted_files=${DELETED_FILES}" >> $GITHUB_OUTPUT
+          echo "TRIGGER_TYPE=${TRIGGER_TYPE}" >> $GITHUB_ENV
+
+      - name: Trigger incremental or full reindex
         id: reindex
         run: |
-          CLEAN="${{ inputs.clean_reindex || 'true' }}"
-          ENDPOINT="${{ steps.fqdn.outputs.fqdn }}/api/reindex?clean=${CLEAN}"
-          
+          CLEAN="${{ steps.change_detection.outputs.clean }}"
+          ADDED="${{ steps.change_detection.outputs.added_files }}"
+          MODIFIED="${{ steps.change_detection.outputs.modified_files }}"
+          DELETED="${{ steps.change_detection.outputs.deleted_files }}"
+          ENDPOINT="${{ steps.fqdn.outputs.fqdn }}/api/reindex"
+
           echo "🔄 Starting reindex..."
+          echo "Strategy: ${{ steps.change_detection.outputs.trigger_type }}"
           echo "Endpoint: ${ENDPOINT}"
           echo "Clean mode: ${CLEAN}"
+          echo ""
+
+          if [ "${CLEAN}" == "true" ]; then
+            echo "⚠️  Using FULL CLEAN REINDEX (deletions detected)"
+            QUERY_PARAMS="?clean=true"
+          else
+            echo "⚡ Using INCREMENTAL REINDEX (only adds/modifications)"
+            QUERY_PARAMS="?clean=false"
+            if [ -n "$ADDED" ]; then
+              echo "📝 Added files: ${ADDED}"
+            fi
+            if [ -n "$MODIFIED" ]; then
+              echo "✏️  Modified files: ${MODIFIED}"
+            fi
+          fi
+          
+          echo ""
+          echo "📤 Sending reindex request (timeout: 300s)..."
           
           RESPONSE=$(curl -X POST \
             -H "Content-Type: application/json" \
             -w "\n%{http_code}" \
-            "${ENDPOINT}" \
+            "${ENDPOINT}${QUERY_PARAMS}" \
             --max-time 300 \
             --connect-timeout 10)
           
           HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
           BODY=$(echo "$RESPONSE" | head -n-1)
           
+          echo ""
           echo "HTTP Status: $HTTP_CODE"
-          echo "Response: $BODY"
+          echo "Response:"
+          echo "$BODY"
           
           if [ "$HTTP_CODE" == "200" ]; then
             echo "reindex_success=true" >> $GITHUB_OUTPUT
@@ -216,10 +293,10 @@ jobs:
             DOCS=$(echo "$BODY" | jq -r '.documentsUploaded // "N/A"' 2>/dev/null)
             CHUNKS=$(echo "$BODY" | jq -r '.totalChunks // "N/A"' 2>/dev/null)
             DURATION=$(echo "$BODY" | jq -r '.operationTimeSeconds // "N/A"' 2>/dev/null)
-            echo "metrics=Docs: $DOCS, Chunks: $CHUNKS, Duration: ${DURATION}s" >> $GITHUB_OUTPUT
+            echo "metrics=📝 Documents: $DOCS, 🔗 Chunks: $CHUNKS, ⏱️ Duration: ${DURATION}s" >> $GITHUB_OUTPUT
           else
             echo "reindex_success=false" >> $GITHUB_OUTPUT
-            echo "metrics=HTTP $HTTP_CODE" >> $GITHUB_OUTPUT
+            echo "metrics=HTTP $HTTP_CODE - Check logs" >> $GITHUB_OUTPUT
             exit 1
           fi
 
@@ -236,26 +313,35 @@ jobs:
             --subscription "${{ env.AZURE_SUBSCRIPTION_ID }}" \
             --output table
 
-      - name: Generate summary
+      - name: Generate detailed summary
         run: |
-          echo "## 🎯 Reindex Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## 🎯 Modernization Patterns - Reindex Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Status**: ${{ needs.trigger-reindex.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Trigger Type**: ${{ env.TRIGGER_TYPE }}" >> $GITHUB_STEP_SUMMARY
+          echo "### Status" >> $GITHUB_STEP_SUMMARY
+          echo "**Result**: ${{ needs.trigger-reindex.result }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Results" >> $GITHUB_STEP_SUMMARY
+          echo "### Reindex Strategy" >> $GITHUB_STEP_SUMMARY
+          echo "${{ env.TRIGGER_TYPE }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Metrics" >> $GITHUB_STEP_SUMMARY
           echo "${{ needs.trigger-reindex.outputs.metrics }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Changed Files" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          echo "${{ needs.trigger-reindex.outputs.changed_files }}" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "### Why This Strategy?" >> $GITHUB_STEP_SUMMARY
+          echo "- ⚡ **Incremental** (added/modified only): Fast, only updates changed documents" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔄 **Full Clean** (deletions detected): Removes orphaned docs for data consistency" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.trigger-reindex.result }}" == "success" ]; then
+            echo "✅ Chat API will automatically use updated patterns within 30 seconds" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Check Container App logs: \`az containerapp logs show -n modernizationpatterns-reindex -g CAIS-010-RiskInsure\`" >> $GITHUB_STEP_SUMMARY
+          fi
 
       - name: Notify on failure
         if: needs.trigger-reindex.result == 'failure'
         run: |
           echo "❌ Reindex failed!"
-          echo "Check Container App logs: ca-reindex-dev"
+          echo "Check Container App logs: modernizationpatterns-reindex"
           exit 1
 
       - name: Success notification
