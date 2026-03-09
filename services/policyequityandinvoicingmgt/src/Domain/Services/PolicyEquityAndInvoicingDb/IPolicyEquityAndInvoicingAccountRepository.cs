@@ -1,0 +1,47 @@
+namespace RiskInsure.PolicyEquityAndInvoicingMgt.Domain.Services.PolicyEquityAndInvoicingDb;
+
+using RiskInsure.PolicyEquityAndInvoicingMgt.Domain.Models;
+
+/// <summary>
+/// Repository interface for billing account data access
+/// </summary>
+public interface IPolicyEquityAndInvoicingAccountRepository
+{
+    /// <summary>
+    /// Retrieves a billing account by its unique identifier
+    /// </summary>
+    /// <param name="accountId">The account identifier</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>The billing account if found, null otherwise</returns>
+    Task<PolicyEquityAndInvoicingAccount?> GetByAccountIdAsync(string accountId, CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Retrieves a billing account by customer ID
+    /// </summary>
+    /// <param name="customerId">The customer identifier</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>The billing account if found, null otherwise</returns>
+    Task<PolicyEquityAndInvoicingAccount?> GetByCustomerIdAsync(string customerId, CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Retrieves all billing accounts
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of all billing accounts</returns>
+    Task<IEnumerable<PolicyEquityAndInvoicingAccount>> GetAllAsync(CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Creates a new billing account
+    /// </summary>
+    /// <param name="account">The billing account to create</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    Task CreateAsync(PolicyEquityAndInvoicingAccount account, CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Updates an existing billing account with optimistic concurrency control
+    /// </summary>
+    /// <param name="account">The billing account to update</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <exception cref="CosmosException">Thrown when ETag mismatch (PreconditionFailed status)</exception>
+    Task UpdateAsync(PolicyEquityAndInvoicingAccount account, CancellationToken cancellationToken = default);
+}
