@@ -207,6 +207,24 @@ variable "services" {
         container_name = "policy"
       }
     }
+    "policylifecyclemgt" = {
+      api = {
+        enabled        = true
+        cpu            = 0.25
+        memory         = "0.5Gi"
+        min_replicas   = 1
+        max_replicas   = 10
+        container_name = "policylifecyclemgt"
+      }
+      endpoint = {
+        enabled        = true
+        cpu            = 0.25
+        memory         = "0.5Gi"
+        min_replicas   = 1
+        max_replicas   = 5
+        container_name = "policylifecyclemgt"
+      }
+    }
     "ratingandunderwriting" = {
       api = {
         enabled        = true

@@ -235,6 +235,64 @@ services:
       - riskinsure
 
   # ============================================================================
+  # Policy Lifecycle Management Domain
+  # ============================================================================
+  policylifecyclemgt-api:
+    build:
+      context: .
+      dockerfile: platform/templates/Dockerfile.api.compose
+      args:
+        PROJECT_PATH: services/policylifecyclemgt/src/Api/Api.csproj
+        IMPORT_SSL_CERTS_FOR: cosmosdb
+    ports:
+      - "7085:8080"
+    volumes:
+      - ./License.xml:/app/license.xml:ro
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${MESSAGING_CONNECTION_STRING}
+      - ConnectionStrings__ServiceBus=${MESSAGING_CONNECTION_STRING}
+      - CosmosDb__DatabaseName=RiskInsure
+      - CosmosDb__ContainerName=policylifecycle
+      - Messaging__MessageBroker=${MESSAGE_BROKER}
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
+    networks:
+      - riskinsure
+    depends_on:
+      cosmos-emulator:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  policylifecyclemgt-endpoint:
+    build:
+      context: .
+      dockerfile: platform/templates/Dockerfile.endpoint.compose
+      args:
+        PROJECT_PATH: services/policylifecyclemgt/src/Endpoint.In/Endpoint.In.csproj
+        IMPORT_SSL_CERTS_FOR: cosmosdb
+    volumes:
+      - ./License.xml:/app/license.xml:ro
+    environment:
+      - DOTNET_ENVIRONMENT=Development
+      - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${MESSAGING_CONNECTION_STRING}
+      - ConnectionStrings__ServiceBus=${MESSAGING_CONNECTION_STRING}
+      - CosmosDb__DatabaseName=RiskInsure
+      - CosmosDb__ContainerName=policylifecycle
+      - Messaging__MessageBroker=${MESSAGE_BROKER}
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${APPLICATIONINSIGHTS_CONNECTION_STRING:-}
+    depends_on:
+      cosmos-emulator:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - riskinsure
+
+  # ============================================================================
   # Rating & Underwriting Domain
   # ============================================================================
   ratingandunderwriting-api:

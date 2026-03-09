@@ -65,6 +65,7 @@ locals {
     "RiskInsure.Customer.Endpoint",
     "RiskInsure.FundTransferMgt.Endpoint",
     "RiskInsure.Policy.Endpoint",
+    "RiskInsure.PolicyLifeCycleMgt.Endpoint",
     "RiskInsure.RatingAndUnderwriting.Endpoint",
     "RiskInsure.CustomerRelationshipsMgt.Endpoint",
 
@@ -74,6 +75,7 @@ locals {
     "riskinsure.customer.api",
     "riskinsure.ratingandunderwriting.api",
     "riskinsure.customerrelationshipsmgt.api",
+    "riskinsure.policylifecyclemgt.api",
 
     # Add new endpoint queues here:
     # "RiskInsure.NewService.Endpoint",
@@ -104,6 +106,11 @@ locals {
     "RiskInsure.Policy.Domain.Contracts.Events.PolicyCancelled",
     "RiskInsure.Policy.Domain.Contracts.Events.PolicyIssued",
     "RiskInsure.Policy.Domain.Contracts.Events.PolicyReinstated",
+
+    # RiskInsure PolicyLifeCycleMgt Domain Events
+    "RiskInsure.PolicyLifeCycleMgt.Domain.Contracts.Events.LifeCycleInitiated",
+    "RiskInsure.PolicyLifeCycleMgt.Domain.Contracts.Events.LifeCycleCancelled",
+    "RiskInsure.PolicyLifeCycleMgt.Domain.Contracts.Events.LifeCycleReinstated",
 
     # RiskInsure Public Contract Events
     "RiskInsure.PublicContracts.Events.PaymentReceived",
@@ -149,6 +156,12 @@ locals {
       topic_name        = "RiskInsure.PublicContracts.Events.QuoteAccepted"
       subscription_name = "RiskInsure.Policy.Endpoint"
       forward_to_queue  = "RiskInsure.Policy.Endpoint"
+    }
+
+    "quote_accepted_to_policylifecyclemgt" = {
+      topic_name        = "RiskInsure.PublicContracts.Events.QuoteAccepted"
+      subscription_name = "RiskInsure.PolicyLifeCycleMgt.Endpoint"
+      forward_to_queue  = "RiskInsure.PolicyLifeCycleMgt.Endpoint"
     }
 
     # Add new subscriptions here:
