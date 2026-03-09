@@ -155,6 +155,24 @@ resource "azurerm_cosmosdb_sql_container" "fundstransfermgt" {
   }
 }
 
+resource "azurerm_cosmosdb_sql_container" "customerrelationships" {
+  name                  = "customerrelationships"
+  resource_group_name   = local.resource_group_name
+  account_name          = azurerm_cosmosdb_account.riskinsure.name
+  database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
+  partition_key_paths   = ["/customerId"]
+  partition_key_version = 1
+  throughput            = var.cosmosdb_throughput
+
+  indexing_policy {
+    indexing_mode = "consistent"
+
+    included_path {
+      path = "/*"
+    }
+  }
+}
+
 # ==========================================================================
 # Cosmos DB Saga Containers (for NServiceBus)
 # ==========================================================================
@@ -213,6 +231,42 @@ resource "azurerm_cosmosdb_sql_container" "policy_sagas" {
   }
 }
 
+resource "azurerm_cosmosdb_sql_container" "policylifecycle" {
+  name                  = "policylifecycle"
+  resource_group_name   = local.resource_group_name
+  account_name          = azurerm_cosmosdb_account.riskinsure.name
+  database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
+  partition_key_paths   = ["/lifeCycleId"]
+  partition_key_version = 1
+  throughput            = var.cosmosdb_throughput
+
+  indexing_policy {
+    indexing_mode = "consistent"
+
+    included_path {
+      path = "/*"
+    }
+  }
+}
+
+resource "azurerm_cosmosdb_sql_container" "policylifecycle_sagas" {
+  name                  = "policylifecycle-sagas"
+  resource_group_name   = local.resource_group_name
+  account_name          = azurerm_cosmosdb_account.riskinsure.name
+  database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
+  partition_key_paths   = ["/lifeCycleId"]
+  partition_key_version = 1
+  throughput            = var.cosmosdb_throughput
+
+  indexing_policy {
+    indexing_mode = "consistent"
+
+    included_path {
+      path = "/*"
+    }
+  }
+}
+
 resource "azurerm_cosmosdb_sql_container" "fundstransfermgt_sagas" {
   name                  = "fundstransfermgt-sagas"
   resource_group_name   = local.resource_group_name
@@ -237,6 +291,24 @@ resource "azurerm_cosmosdb_sql_container" "ratingunderwriting_sagas" {
   account_name          = azurerm_cosmosdb_account.riskinsure.name
   database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
   partition_key_paths   = ["/quoteId"] # ← NOT id! Use quoteId
+  partition_key_version = 1
+  throughput            = var.cosmosdb_throughput
+
+  indexing_policy {
+    indexing_mode = "consistent"
+
+    included_path {
+      path = "/*"
+    }
+  }
+}
+
+resource "azurerm_cosmosdb_sql_container" "customerrelationshipsmgt_sagas" {
+  name                  = "customerrelationshipsmgt-sagas"
+  resource_group_name   = local.resource_group_name
+  account_name          = azurerm_cosmosdb_account.riskinsure.name
+  database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
+  partition_key_paths   = ["/customerId"]
   partition_key_version = 1
   throughput            = var.cosmosdb_throughput
 
