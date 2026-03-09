@@ -236,7 +236,7 @@ resource "azurerm_cosmosdb_sql_container" "policylifecycle" {
   resource_group_name   = local.resource_group_name
   account_name          = azurerm_cosmosdb_account.riskinsure.name
   database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
-  partition_key_paths   = ["/lifeCycleId"]
+  partition_key_paths   = ["/policyId"]
   partition_key_version = 1
   throughput            = var.cosmosdb_throughput
 
@@ -254,7 +254,7 @@ resource "azurerm_cosmosdb_sql_container" "policylifecycle_sagas" {
   resource_group_name   = local.resource_group_name
   account_name          = azurerm_cosmosdb_account.riskinsure.name
   database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
-  partition_key_paths   = ["/lifeCycleId"]
+  partition_key_paths   = ["/policyId"]
   partition_key_version = 1
   throughput            = var.cosmosdb_throughput
 

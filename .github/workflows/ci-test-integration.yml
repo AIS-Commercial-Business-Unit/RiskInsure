@@ -85,8 +85,11 @@ jobs:
           REQUIRED_QUEUES=(
             "RiskInsure.Billing.Endpoint"
             "RiskInsure.Customer.Endpoint"
+            "RiskInsure.CustomerRelationshipsMgt.Endpoint"
             "RiskInsure.FundTransferMgt.Endpoint"
             "RiskInsure.Policy.Endpoint"
+            "RiskInsure.PolicyEquityAndInvoicingMgt.Endpoint"
+            "RiskInsure.PolicyLifeCycleMgt.Endpoint"
             "RiskInsure.RatingAndUnderwriting.Endpoint"
           )
           
@@ -109,7 +112,7 @@ jobs:
           echo "cosmosdb_account=$COSMOS_ACCOUNT"
           
           # Check Container Apps are running
-          SERVICES=("billing" "customer" "fundstransfermgt" "policy" "ratingandunderwriting")
+          SERVICES=("billing" "customer" "customerrelationshipsmgt" "fundstransfermgt" "policy" "policyequityandinvoicingmgt" "policylifecyclemgt" "ratingandunderwriting")
           for service in "${SERVICES[@]}"; do
             API_NAME="$service-api"
             ENDPOINT_NAME="$service-endpoint"
@@ -158,7 +161,7 @@ jobs:
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             if [[ "${{ github.event.inputs.services }}" == "all" ]]; then
-              echo "services=[\"billing\",\"customer\",\"fundstransfermgt\",\"policy\",\"ratingandunderwriting\"]" >> "$GITHUB_OUTPUT"
+              echo "services=[\"billing\",\"customer\",\"customerrelationshipsmgt\",\"fundstransfermgt\",\"policy\",\"policyequityandinvoicingmgt\",\"policylifecyclemgt\",\"ratingandunderwriting\"]" >> "$GITHUB_OUTPUT"
             else
               services_input="${{ github.event.inputs.services }}"
               services_json=$(echo "$services_input" | jq -R -s -c 'split(",") | map(gsub("^\\s+|\\s+$";""))')
@@ -166,7 +169,7 @@ jobs:
             fi
           else
             # Test all services after deployment
-            echo "services=[\"billing\",\"customer\",\"fundstransfermgt\",\"policy\",\"ratingandunderwriting\"]" >> "$GITHUB_OUTPUT"
+            echo "services=[\"billing\",\"customer\",\"customerrelationshipsmgt\",\"fundstransfermgt\",\"policy\",\"policyequityandinvoicingmgt\",\"policylifecyclemgt\",\"ratingandunderwriting\"]" >> "$GITHUB_OUTPUT"
           fi
 
   # ==========================================================================
@@ -226,24 +229,9 @@ jobs:
           echo "service_url=$SERVICE_URL" >> "$GITHUB_OUTPUT"
           echo "📍 Service URL: $SERVICE_URL"
           
-          # Set environment variable for tests based on service
-          case "$SERVICE" in
-            billing)
-              echo "API_BILLING_BASE_URL=$SERVICE_URL" >> "$GITHUB_ENV"
-              ;;
-            customer)
-              echo "API_CUSTOMER_BASE_URL=$SERVICE_URL" >> "$GITHUB_ENV"
-              ;;
-            fundstransfermgt)
-              echo "API_FUNDSTRANSFERMGT_BASE_URL=$SERVICE_URL" >> "$GITHUB_ENV"
-              ;;
-            policy)
-              echo "API_POLICY_BASE_URL=$SERVICE_URL" >> "$GITHUB_ENV"
-              ;;
-            ratingandunderwriting)
-              echo "API_RATINGANDUNDERWRITING_BASE_URL=$SERVICE_URL" >> "$GITHUB_ENV"
-              ;;
-          esac
+          # Set environment variable for tests: API_{UPPERCASE_SERVICE}_BASE_URL
+          SERVICE_UPPER=$(echo "$SERVICE" | tr '[:lower:]' '[:upper:]')
+          echo "API_${SERVICE_UPPER}_BASE_URL=$SERVICE_URL" >> "$GITHUB_ENV"
       
       - name: Run Integration Tests
         run: npm test
