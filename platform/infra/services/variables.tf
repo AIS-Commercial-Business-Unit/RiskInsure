@@ -243,6 +243,24 @@ variable "services" {
         container_name = "fundstransfermgt"
       }
     }
+    "policyequityandinvoicingmgt" = {
+      api = {
+        enabled        = true
+        cpu            = 0.25
+        memory         = "0.5Gi"
+        min_replicas   = 1
+        max_replicas   = 5
+        container_name = "PolicyEquityAndInvoicingMgt"
+      }
+      endpoint = {
+        enabled        = true
+        cpu            = 0.25
+        memory         = "0.5Gi"
+        min_replicas   = 1
+        max_replicas   = 3
+        container_name = "PolicyEquityAndInvoicingMgt"
+      }
+    }
   }
 }
 
