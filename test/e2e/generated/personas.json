@@ -1,0 +1,22 @@
+[
+  {
+    "service": "policyequityandinvoicingmgt",
+    "sourceDocs": [
+      "services/policyequityandinvoicingmgt/docs/business/billing-account.md",
+      "services/policyequityandinvoicingmgt/docs/business/billing-payment.md",
+      "services/policyequityandinvoicingmgt/docs/business/multi-policy-billing.md",
+      "services/policyequityandinvoicingmgt/docs/technical/highlevel-tech.md",
+      "services/policyequityandinvoicingmgt/docs/technical/multi-policy-billing-technical-spec.md"
+    ],
+    "scenarios": [
+      "api-health-endpoint",
+      "quote-to-policy-binding",
+      "lifecycle-status-visibility"
+    ],
+    "goals": [
+      "Verify policy issuance prerequisites and bound state handoff.",
+      "Verify cancellation and billing refund triggers are visible to APIs.",
+      "Verify customer identity data can be created and retrieved."
+    ]
+  }
+]
