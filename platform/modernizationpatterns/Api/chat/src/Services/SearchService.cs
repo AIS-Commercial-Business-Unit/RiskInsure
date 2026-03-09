@@ -1,9 +1,9 @@
 namespace RiskInsure.Modernization.Chat.Services;
 
-using Azure;
-using Azure.Search.Documents;
-using Azure.Search.Documents.Models;
 using Microsoft.Extensions.Logging;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
 
 public interface ISearchService
 {
@@ -16,21 +16,21 @@ public interface ISearchService
 
 public class SearchService : ISearchService
 {
-    private readonly SearchClient _searchClient;
+    private static readonly HttpClient HttpClient = new();
+    private readonly string _endpoint;
+    private readonly string _apiKey;
+    private readonly string _indexName;
     private readonly ILogger<SearchService> _logger;
 
     public SearchService(IConfiguration config, ILogger<SearchService> logger)
     {
         _logger = logger;
 
-        var endpoint = config["AzureSearch:Endpoint"]
-            ?? throw new InvalidOperationException("AzureSearch:Endpoint not configured");
-        var apiKey = config["AzureSearch:ApiKey"]
+        _endpoint = (config["AzureSearch:Endpoint"]
+            ?? throw new InvalidOperationException("AzureSearch:Endpoint not configured")).TrimEnd('/');
+        _apiKey = config["AzureSearch:ApiKey"]
             ?? throw new InvalidOperationException("AzureSearch:ApiKey not configured");
-        var indexName = config["AzureSearch:IndexName"] ?? "modernization-patterns";
-
-        var credential = new AzureKeyCredential(apiKey);
-        _searchClient = new SearchClient(new Uri(endpoint), indexName, credential);
+        _indexName = config["AzureSearch:IndexName"] ?? "modernization-patterns";
     }
 
     public async Task<List<SearchResultItem>> SearchPatternsAsync(
@@ -41,33 +41,64 @@ public class SearchService : ISearchService
     {
         _logger.LogInformation("Searching patterns for: {Query}", query);
 
-        var searchOptions = new SearchOptions
+        try
         {
-            Size = topK,
-            IncludeTotalCount = true
-        };
+            var url = $"{_endpoint}/indexes/{_indexName}/docs/search?api-version=2024-05-01-preview";
 
-        var results = await _searchClient.SearchAsync<SearchDocument>(query, searchOptions, cancellationToken);
+            using var request = new HttpRequestMessage(HttpMethod.Post, url);
+            request.Headers.Add("api-key", _apiKey);
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-        var resultList = new List<SearchResultItem>();
-        await foreach (var result in results.Value.GetResultsAsync())
-        {
-            var doc = result.Document;
-            resultList.Add(new SearchResultItem
+            var searchPayload = new
             {
-                Id = doc["id"]?.ToString() ?? "",
-                PatternSlug = doc["patternSlug"]?.ToString() ?? "",
-                Title = doc["title"]?.ToString() ?? "",
-                Category = doc["category"]?.ToString() ?? "",
-                Content = doc["content"]?.ToString() ?? "",
-                Relevance = result.Score ?? 0
-            });
+                search = query,
+                top = topK,
+                count = true,
+                select = "id,patternSlug,title,category,content"
+            };
 
-            _logger.LogDebug("Found: {Title} (score: {Score})",
-                doc["title"], result.Score);
+            var payload = JsonSerializer.Serialize(searchPayload);
+            request.Content = new StringContent(payload, Encoding.UTF8, "application/json");
+
+            using var response = await HttpClient.SendAsync(request, cancellationToken);
+            var content = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                _logger.LogError("Search failed with {StatusCode}: {Response}", response.StatusCode, content);
+                throw new InvalidOperationException(
+                    $"Search request failed: {(int)response.StatusCode} {response.ReasonPhrase}. Response: {content}");
+            }
+
+            using var document = JsonDocument.Parse(content);
+            var resultList = new List<SearchResultItem>();
+
+            if (document.RootElement.TryGetProperty("value", out var valueArray))
+            {
+                foreach (var result in valueArray.EnumerateArray())
+                {
+                    resultList.Add(new SearchResultItem
+                    {
+                        Id = result.TryGetProperty("id", out var id) ? id.GetString() ?? "" : "",
+                        PatternSlug = result.TryGetProperty("patternSlug", out var slug) ? slug.GetString() ?? "" : "",
+                        Title = result.TryGetProperty("title", out var title) ? title.GetString() ?? "" : "",
+                        Category = result.TryGetProperty("category", out var cat) ? cat.GetString() ?? "" : "",
+                        Content = result.TryGetProperty("content", out var cont) ? cont.GetString() ?? "" : "",
+                        Relevance = result.TryGetProperty("@search.score", out var score) ? score.GetDouble() : 0
+                    });
+
+                    _logger.LogDebug("Found: {Title}",
+                        result.TryGetProperty("title", out var t) ? t.GetString() ?? "unknown" : "unknown");
+                }
+            }
+
+            return resultList;
         }
-
-        return resultList;
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Search failed for query: {Query}", query);
+            throw;
+        }
     }
 }
 

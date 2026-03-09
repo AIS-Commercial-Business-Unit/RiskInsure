@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 
 // Chat API endpoint - auto-detect environment
-const API_BASE = window.location.hostname === 'localhost' 
+const API_BASE = window.location.hostname === 'localhost'
   ? 'http://localhost:5000/api/chat'
   : 'https://modernizationpatterns-chat-api.ambitioussea-f3f6277f.eastus2.azurecontainerapps.io/api/chat';
 
@@ -123,6 +123,11 @@ export function useChatWidget() {
     setIsLoading(true);
 
     try {
+      console.log(`📤 Sending message to ${API_BASE}/stream`, {
+        conversationId: convId,
+        message: userInputContent.substring(0, 50) + '...',
+      });
+
       // Stream assistant response
       const response = await fetch(`${API_BASE}/stream`, {
         method: 'POST',
@@ -134,7 +139,12 @@ export function useChatWidget() {
         }),
       });
 
-      if (!response.ok) throw new Error('Stream failed');
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ API error: ${response.status}`, errorText);
+        throw new Error(`API returned ${response.status}: ${errorText.substring(0, 200)}`);
+      }
+      console.log('✅ Stream connection established');
 
       // Create assistant message placeholder
       const assistantMessage = {
@@ -233,12 +243,20 @@ export function useChatWidget() {
         return updated;
       });
     } catch (error) {
-      console.error('Failed to send message:', error);
+      console.error('❌ Message sending failed:', error);
+
+      // Show user-friendly error message
+      const errorMsg = error.message.includes('Failed to fetch')
+        ? '❌ Cannot connect to API. Is the server running? Check if http://localhost:5000 is accessible.'
+        : error.message.includes('undefined mode')
+        ? '❌ Invalid response format from API. Server may not be running correctly.'
+        : `❌ Error: ${error.message}`;
+
       setMessages((prev) => [
         ...prev,
         {
           role: 'assistant',
-          content: '❌ Error: Failed to get response. Please try again.',
+          content: errorMsg,
           timestamp: new Date().toISOString(),
         },
       ]);
