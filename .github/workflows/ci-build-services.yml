@@ -143,6 +143,7 @@ jobs:
   # Purpose: Build, tag, and push Docker images for each service in the
   # matrix. Uses the `image_tag` determined above and pushes both SHA and
   # latest tags to ACR.
+  # test comment to kick off build
   # --------------------------------------------------------------------------
   build:
     name: 'Build: ${{ matrix.service }}'

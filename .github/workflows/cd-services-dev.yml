@@ -252,6 +252,14 @@ jobs:
                 TARGETS="$TARGETS -target=azurerm_container_app.peimgt_api"
                 TARGETS="$TARGETS -target=azurerm_container_app.peimgt_endpoint"
                 ;;
+              customerrelationshipsmgt)
+                TARGETS="$TARGETS -target=azurerm_container_app.crmgt_api"
+                TARGETS="$TARGETS -target=azurerm_container_app.crmgt_endpoint"
+                ;;
+              riskratingandunderwriting)
+                TARGETS="$TARGETS -target=azurerm_container_app.rru_api"
+                TARGETS="$TARGETS -target=azurerm_container_app.rru_endpoint"
+                ;;
               *)
                 TARGETS="$TARGETS -target=azurerm_container_app.${s}_api"
                 TARGETS="$TARGETS -target=azurerm_container_app.${s}_endpoint"
