@@ -154,21 +154,15 @@ resource "azurerm_container_app" "modernizationpatterns_chat_api" {
         value = data.terraform_remote_state.foundation.outputs.application_insights_connection_string
       }
 
-      # Reindex service listens on 5010; make container binding explicit for ACA.
-      env {
-        name  = "ASPNETCORE_URLS"
-        value = "http://+:5010"
-      }
-
       env {
         name  = "APPLICATIONINSIGHTS_CONNECTION_STRING"
         value = data.terraform_remote_state.foundation.outputs.application_insights_connection_string
       }
 
-      # Health probes
+      # Health probes for Chat API on port 8080
       liveness_probe {
         path             = "/health"
-        port             = 5010
+        port             = 8080
         transport        = "HTTP"
         initial_delay    = 10
         interval_seconds = 30
@@ -176,7 +170,7 @@ resource "azurerm_container_app" "modernizationpatterns_chat_api" {
 
       readiness_probe {
         path             = "/health/ready"
-        port             = 5010
+        port             = 8080
         transport        = "HTTP"
         initial_delay    = 5
         interval_seconds = 10
@@ -302,10 +296,16 @@ resource "azurerm_container_app" "modernizationpatterns_reindex_worker" {
         value = data.terraform_remote_state.foundation.outputs.application_insights_connection_string
       }
 
+      # Port binding
+      env {
+        name  = "ASPNETCORE_URLS"
+        value = "http://+:5010"
+      }
+
       # Health probes
       liveness_probe {
         path             = "/health"
-        port             = 8080
+        port             = 5010
         transport        = "HTTP"
         initial_delay    = 10
         interval_seconds = 30
@@ -313,7 +313,7 @@ resource "azurerm_container_app" "modernizationpatterns_reindex_worker" {
 
       readiness_probe {
         path             = "/health/ready"
-        port             = 8080
+        port             = 5010
         transport        = "HTTP"
         initial_delay    = 5
         interval_seconds = 10

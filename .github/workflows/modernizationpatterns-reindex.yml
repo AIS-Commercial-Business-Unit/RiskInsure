@@ -109,12 +109,10 @@ jobs:
   trigger-reindex:
     name: Trigger Reindex Pipeline
     runs-on: ubuntu-latest
-    needs: [detect-changes, build-and-push-reindex]
+    needs: [detect-changes]
     if: >
-      (github.event_name == 'workflow_dispatch' ||
-      needs.detect-changes.outputs.content_changed == 'true') &&
-      (needs.build-and-push-reindex.result == 'success' ||
-      needs.build-and-push-reindex.result == 'skipped')
+      github.event_name == 'workflow_dispatch' ||
+      needs.detect-changes.outputs.content_changed == 'true'
     steps:
       - uses: actions/checkout@v4
 
