@@ -1,0 +1,71 @@
+{
+  "id": "ai-based-copy-document",
+  "slug": "ai-based-copy-document",
+  "title": "AI-based copy-document (augment human copy-document)",
+  "category": "copy-document",
+  "subcategory": "ai-copy-document",
+  "summary": "Use AI to accelerate understanding of integrations by extracting flows, contracts, and dependencies from artifacts.",
+  "decisionGuidance": {
+    "problemSolved": "Organizations lack visibility into what BizTalk/middleware actually does; manual copy-document is slow and incomplete.",
+    "whenToUse": [
+      "You have code, configs, maps, logs, tickets, or docs to mine",
+      "Tribal knowledge risk is high"
+    ],
+    "whenNotToUse": [
+      "You lack access to artifacts or telemetry",
+      "Outputs cannot be validated by SMEs"
+    ]
+  },
+  "enablingTechnologies": [
+    "Document/code mining",
+    "Log analytics",
+    "Knowledge graph / RAG"
+  ],
+  "thingsToWatchOutFor": {
+    "gotchas": [
+      "Hallucinated conclusions if not validated",
+      "Sensitive data exposure"
+    ],
+    "opinionatedGuidance": "AI produces hypotheses. Humans validate and turn them into contracts, owners, and backlog slices."
+  },
+  "complexity": {
+    "level": "medium",
+    "rationale": "Faster copy-document but requires disciplined validation.",
+    "teamImpact": "multi-team",
+    "skillDemand": "AI tooling literacy + architecture analysis skill.",
+    "operationalDemand": "Moderate—requires secure data handling and auditability.",
+    "toolingDemand": "RAG index, access controls, redaction."
+  },
+  "starterDiagram": {
+    "title": "Artifacts to hypotheses",
+    "description": "Mine artifacts then validate.",
+    "nodes": [
+      "Artifacts",
+      "AI extraction",
+      "Hypotheses",
+      "SME validation"
+    ]
+  },
+  "realWorldExample": {
+    "context": "BizTalk portfolio copy-document",
+    "approach": "Used AI to summarize orchestration intent, maps, and dependencies; validated in workshops.",
+    "outcome": "Compressed time-to-understanding and reduced missed dependencies."
+  },
+  "relatedPatterns": [
+    "event-storming"
+  ],
+  "furtherReading": [
+    {
+      "title": "Architecture Modernization",
+      "sourceId": "architecture-modernization",
+      "link": "https://www.amazon.com/Architecture-Modernization-Socio-technical-alignment-structure/dp/1633438155",
+      "citationRequired": false
+    }
+  ],
+  "tags": [
+    "ai",
+    "copy-document",
+    "acceleration"
+  ],
+  "lastUpdated": "2026-02-17"
+}
