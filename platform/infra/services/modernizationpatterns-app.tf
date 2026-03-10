@@ -154,6 +154,12 @@ resource "azurerm_container_app" "modernizationpatterns_chat_api" {
         value = data.terraform_remote_state.foundation.outputs.application_insights_connection_string
       }
 
+      # Reindex service listens on 5010; make container binding explicit for ACA.
+      env {
+        name  = "ASPNETCORE_URLS"
+        value = "http://+:5010"
+      }
+
       env {
         name  = "APPLICATIONINSIGHTS_CONNECTION_STRING"
         value = data.terraform_remote_state.foundation.outputs.application_insights_connection_string
@@ -162,7 +168,7 @@ resource "azurerm_container_app" "modernizationpatterns_chat_api" {
       # Health probes
       liveness_probe {
         path             = "/health"
-        port             = 8080
+        port             = 5010
         transport        = "HTTP"
         initial_delay    = 10
         interval_seconds = 30
@@ -170,7 +176,7 @@ resource "azurerm_container_app" "modernizationpatterns_chat_api" {
 
       readiness_probe {
         path             = "/health/ready"
-        port             = 8080
+        port             = 5010
         transport        = "HTTP"
         initial_delay    = 5
         interval_seconds = 10
@@ -318,7 +324,7 @@ resource "azurerm_container_app" "modernizationpatterns_reindex_worker" {
   # Reindex worker has HTTP endpoint for triggering reindex via API
   ingress {
     external_enabled = false  # Internal only - triggered by GitHub Actions or manual
-    target_port      = 8080
+    target_port      = 5010
 
     traffic_weight {
       percentage      = 100
