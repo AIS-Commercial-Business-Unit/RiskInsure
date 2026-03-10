@@ -124,7 +124,7 @@ public class ChatController : ControllerBase
             completionText.Append(completionResponse);
 
             // Stream response in chunks (simulate token streaming)
-            foreach (var chunk in ChunkedString(completionResponse, chunkSize: 20))
+            foreach (var chunk in ChunkedStringByWords(completionResponse, wordsPerChunk: 3))
             {
                 if (cancellationToken.IsCancellationRequested)
                     break;
@@ -348,11 +348,16 @@ public class ChatController : ControllerBase
         return _systemPromptTemplate.Replace("{REFERENCE_MATERIAL}", referenceMaterialSb.ToString().TrimEnd());
     }
 
-    private static IEnumerable<string> ChunkedString(string text, int chunkSize)
+    private static IEnumerable<string> ChunkedStringByWords(string text, int wordsPerChunk)
     {
-        for (int i = 0; i < text.Length; i += chunkSize)
+        if (string.IsNullOrWhiteSpace(text))
+            yield break;
+
+        var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        for (int i = 0; i < words.Length; i += wordsPerChunk)
         {
-            yield return text.Substring(i, Math.Min(chunkSize, text.Length - i));
+            var chunk = string.Join(" ", words.Skip(i).Take(wordsPerChunk));
+            yield return chunk + (i + wordsPerChunk < words.Length ? " " : "");
         }
     }
 
