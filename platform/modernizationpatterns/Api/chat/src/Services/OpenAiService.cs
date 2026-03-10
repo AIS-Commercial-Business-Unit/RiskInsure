@@ -37,7 +37,7 @@ public class OpenAiService : IOpenAiService
             ?? throw new InvalidOperationException("AzureOpenAI:ApiKey not configured");
 
         _endpoint = endpoint.TrimEnd('/');
-        _apiKey = apiKey;
+        _apiKey = apiKey.Trim();
 
         _chatDeploymentName = config["AzureOpenAI:ChatDeploymentName"] ?? "gpt-4.1";
         _embeddingDeploymentName = config["AzureOpenAI:EmbeddingDeploymentName"] ?? "text-embedding-3-small";
