@@ -19,8 +19,6 @@ on:
       # Trigger on any content changes (new/modified/deleted docs or patterns)
       - "platform/modernizationpatterns/content/**"
       - "platform/modernizationpatterns/content-tools/**"
-      # Trigger on reindex service changes
-      - "platform/modernizationpatterns/Api/reindex/**"
       # Trigger on this workflow file
       - ".github/workflows/modernizationpatterns-reindex.yml"
   workflow_call:
