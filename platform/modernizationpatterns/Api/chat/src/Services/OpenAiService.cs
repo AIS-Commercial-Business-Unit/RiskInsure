@@ -1,6 +1,5 @@
 namespace RiskInsure.Modernization.Chat.Services;
 
-using Azure.AI.OpenAI;
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Headers;
 using System.Text;
@@ -22,7 +21,6 @@ public interface IOpenAiService
 public class OpenAiService : IOpenAiService
 {
     private static readonly HttpClient HttpClient = new();
-    private readonly OpenAIClient _client;
     private readonly string _endpoint;
     private readonly string _apiKey;
     private readonly string _chatDeploymentName;
@@ -43,8 +41,6 @@ public class OpenAiService : IOpenAiService
 
         _chatDeploymentName = config["AzureOpenAI:ChatDeploymentName"] ?? "gpt-4.1";
         _embeddingDeploymentName = config["AzureOpenAI:EmbeddingDeploymentName"] ?? "text-embedding-3-small";
-
-        _client = new OpenAIClient(new Uri(_endpoint), new Azure.AzureKeyCredential(_apiKey));
     }
 
     public async Task<float[]> EmbedTextAsync(string text, CancellationToken cancellationToken = default)
@@ -104,64 +100,81 @@ public class OpenAiService : IOpenAiService
         List<ConversationMessage> history,
         CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(userMessage))
+            throw new ArgumentException("User message cannot be empty", nameof(userMessage));
+
         try
         {
-            _logger.LogInformation("Getting chat completion, history: {HistoryCount} messages", history.Count);
+            var safeHistory = history ?? new List<ConversationMessage>();
+            _logger.LogInformation("Getting chat completion, history: {HistoryCount} messages", safeHistory.Count);
 
-            // Build chat messages for Chat Completions API (works with gpt-4.1)
-            var chatOptions = new ChatCompletionsOptions
+            var messages = new List<Dictionary<string, string>>
             {
-                DeploymentName = _chatDeploymentName,
-                MaxTokens = 800,
-                Temperature = 0.2f
+                new()
+                {
+                    ["role"] = "system",
+                    ["content"] = systemPrompt
+                }
             };
 
-            // System prompt with RAG context
-            chatOptions.Messages.Add(new ChatRequestSystemMessage(systemPrompt));
-
-            // Add conversation history (last 6 messages)
-            if (history != null && history.Count > 0)
+            foreach (var msg in safeHistory.TakeLast(6))
             {
-                foreach (var msg in history.TakeLast(6))
+                messages.Add(new Dictionary<string, string>
                 {
-                    if (msg.Role.Equals("assistant", StringComparison.OrdinalIgnoreCase))
-                    {
-                        chatOptions.Messages.Add(new ChatRequestAssistantMessage(msg.Content));
-                    }
-                    else
-                    {
-                        chatOptions.Messages.Add(new ChatRequestUserMessage(msg.Content));
-                    }
-                }
+                    ["role"] = msg.Role.Equals("assistant", StringComparison.OrdinalIgnoreCase) ? "assistant" : "user",
+                    ["content"] = msg.Content
+                });
             }
 
-            // Current user message
-            chatOptions.Messages.Add(new ChatRequestUserMessage(userMessage));
-
-            try
+            messages.Add(new Dictionary<string, string>
             {
-                var response = await _client.GetChatCompletionsAsync(chatOptions, cancellationToken);
-                var choice = response.Value.Choices?.FirstOrDefault();
-                var content = choice?.Message?.Content ?? string.Empty;
+                ["role"] = "user",
+                ["content"] = userMessage
+            });
 
-                if (!string.IsNullOrWhiteSpace(content))
-                {
-                    _logger.LogInformation("Chat completion from Azure: {Length} chars", content.Length);
-                    return content;
-                }
-            }
-            catch (Exception ex)
+            var url = $"{_endpoint}/openai/deployments/{_chatDeploymentName}/chat/completions?api-version=2024-06-01";
+
+            using var request = new HttpRequestMessage(HttpMethod.Post, url);
+            request.Headers.Add("api-key", _apiKey);
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+            var payload = JsonSerializer.Serialize(new
             {
-                _logger.LogWarning(ex, "Azure Chat Completions API call failed, using fallback");
+                messages,
+                temperature = 0.2,
+                max_tokens = 800
+            });
+
+            request.Content = new StringContent(payload, Encoding.UTF8, "application/json");
+
+            using var response = await HttpClient.SendAsync(request, cancellationToken);
+            var content = await response.Content.ReadAsStringAsync(cancellationToken);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new InvalidOperationException(
+                    $"Chat completion request failed: {(int)response.StatusCode} {response.ReasonPhrase}. Response: {content}");
             }
 
-            // Fallback to local generation if Azure fails
-            return GenerateFallback(userMessage, history ?? new List<ConversationMessage>());
+            using var document = JsonDocument.Parse(content);
+            var completion = document.RootElement
+                .GetProperty("choices")[0]
+                .GetProperty("message")
+                .GetProperty("content")
+                .GetString();
+
+            if (string.IsNullOrWhiteSpace(completion))
+            {
+                throw new InvalidOperationException("Chat completion response did not include content");
+            }
+
+            _logger.LogInformation("Chat completion from Azure: {Length} chars", completion.Length);
+            return completion;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in GetCompletionAsync");
-            return GenerateFallback(userMessage, history ?? new List<ConversationMessage>());
+            throw;
         }
     }
 
