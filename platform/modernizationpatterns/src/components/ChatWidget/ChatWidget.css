@@ -698,6 +698,36 @@
   }
 }
 
+/* Markdown formatting in messages */
+.chat-message-content p {
+  margin: 8px 0;
+  line-height: 1.6;
+}
+
+.chat-message-content p:first-child {
+  margin-top: 0;
+}
+
+.chat-message-content p:last-child {
+  margin-bottom: 0;
+}
+
+.chat-message-content ul {
+  list-style-type: disc;
+  margin: 8px 0;
+  padding-left: 24px;
+}
+
+.chat-message-content li {
+  margin: 4px 0;
+  line-height: 1.6;
+}
+
+.chat-message-content strong {
+  font-weight: 600;
+  color: inherit;
+}
+
 /* Message Time */
 .chat-message-time {
   font-size: 11px;
