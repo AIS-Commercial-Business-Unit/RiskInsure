@@ -63,9 +63,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          ALL_SERVICES='["billing","customer","fundstransfermgt","policy","ratingandunderwriting","modernizationpatterns"]'
+          ALL_SERVICES='["billing","customer","customerrelationshipsmgt","fundstransfermgt","policy","policylifecyclemgt","policyequityandinvoicingmgt","ratingandunderwriting","riskratingandunderwriting"]'
           echo "image_tag=${{ github.sha }}" >> "$GITHUB_OUTPUT"
-
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             if [[ "${{ github.event.inputs.services }}" == "all" ]]; then
               echo "services=$ALL_SERVICES" >> "$GITHUB_OUTPUT"
@@ -115,7 +114,7 @@ jobs:
           fi
 
           changed_services=()
-          for service in billing customer fundstransfermgt policy ratingandunderwriting; do
+          for service in billing customer customerrelationshipsmgt fundstransfermgt policy policylifecyclemgt policyequityandinvoicingmgt ratingandunderwriting riskratingandunderwriting; do
             if echo "$changed_files" | grep -q "^services/$service/"; then
               changed_services+=("\"$service\"")
             fi
@@ -150,6 +149,7 @@ jobs:
   # Purpose: Build, tag, and push Docker images for each service in the
   # matrix. Uses the `image_tag` determined above and pushes both SHA and
   # latest tags to ACR.
+  # test comment to kick off build
   # --------------------------------------------------------------------------
   build:
     name: 'Build: ${{ matrix.service }}'
@@ -182,32 +182,18 @@ jobs:
           set -euo pipefail
           SERVICE="${{ matrix.service }}"
 
-          case "$SERVICE" in
-            ratingandunderwriting)
-              SERVICE_DIR="services/ratingandunderwriting"
-              IMAGE_NAME="ratingandunderwriting"
-              BUILD_TYPE="standard"
-              ;;
-            fundstransfermgt)
-              SERVICE_DIR="services/fundstransfermgt"
-              IMAGE_NAME="fundstransfermgt"
-              BUILD_TYPE="standard"
-              ;;
-            billing|customer|policy)
-              SERVICE_DIR="services/$SERVICE"
-              IMAGE_NAME="$SERVICE"
-              BUILD_TYPE="standard"
-              ;;
-            modernizationpatterns)
-              SERVICE_DIR="platform/modernizationpatterns"
-              IMAGE_NAME="modernizationpatterns"
-              BUILD_TYPE="modernizationpatterns"
-              ;;
-            *)
-              echo "Unknown service: $SERVICE"
-              exit 1
-              ;;
-          esac
+          # Default: service directory and image name match the service name
+          SERVICE_DIR="services/$SERVICE"
+          IMAGE_NAME="$SERVICE"
+
+          # Exceptions: services with shortened image names (must match Terraform resource names)
+          if [[ "$SERVICE" == "customerrelationshipsmgt" ]]; then
+            IMAGE_NAME="crmgt"
+          elif [[ "$SERVICE" == "policyequityandinvoicingmgt" ]]; then
+            IMAGE_NAME="peimgt"
+          elif [[ "$SERVICE" == "riskratingandunderwriting" ]]; then
+            IMAGE_NAME="rru"
+          fi
 
           echo "service_dir=$SERVICE_DIR" >> "$GITHUB_OUTPUT"
           echo "image_name=$IMAGE_NAME" >> "$GITHUB_OUTPUT"

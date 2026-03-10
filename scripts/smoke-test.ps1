@@ -71,7 +71,9 @@ $expectedContainers = @(
     "riskinsure-policy-api-1",
     "riskinsure-policy-endpoint-1",
     "riskinsure-ratingandunderwriting-api-1",
-    "riskinsure-ratingandunderwriting-endpoint-1"
+    "riskinsure-ratingandunderwriting-endpoint-1",
+    "riskinsure-rru-api-1",
+    "riskinsure-rru-endpoint-1"
 )
 
 $runningContainers = wsl docker ps --filter "name=riskinsure" --format '{{.Names}}'

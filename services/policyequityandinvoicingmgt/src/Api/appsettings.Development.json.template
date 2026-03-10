@@ -1,0 +1,24 @@
+{
+  "Messaging":
+  {
+    "MessageBroker": "<<RabbitMQ or AzureServiceBus>>" 
+  },
+  "ConnectionStrings": {
+    "CosmosDb": "<<COSMOS_CONNECTION_STRING>>",
+    "ServiceBus": "<<SERVICE_BUS_CONNECTION_STRING>>",
+    "RabbitMQ": "<<RABBITMQ_CONNECTION_STRING>>"
+  },
+  "CosmosDb": {
+    "DatabaseName": "RiskInsure",
+    "PolicyEquityAndInvoicingMgtContainerName": "PolicyEquityAndInvoicingMgt"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft": "Warning",
+      "Microsoft.Hosting.Lifetime": "Information",
+      "NServiceBus": "Information"
+    }
+  },
+  "AllowedHosts": "*"
+}

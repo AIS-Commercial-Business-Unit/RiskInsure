@@ -32,6 +32,16 @@
   <Folder Name="/services/customer/test/">
     <Project Path="services/customer/test/Unit.Tests/Unit.Tests.csproj" />
   </Folder>
+  <Folder Name="/services/customerrelationshipsmgt/" />
+  <Folder Name="/services/customerrelationshipsmgt/src/">
+    <Project Path="services/customerrelationshipsmgt/src/Api/Api.csproj" />
+    <Project Path="services/customerrelationshipsmgt/src/Domain/Domain.csproj" />
+    <Project Path="services/customerrelationshipsmgt/src/Endpoint.In/Endpoint.In.csproj" />
+    <Project Path="services/customerrelationshipsmgt/src/Infrastructure/Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/services/customerrelationshipsmgt/test/">
+    <Project Path="services/customerrelationshipsmgt/test/Unit.Tests/Unit.Tests.csproj" />
+  </Folder>
   <Folder Name="/services/fundstransfermgt/" />
   <Folder Name="/services/fundstransfermgt/src/">
     <Project Path="services/fundstransfermgt/src/Api/Api.csproj" />
@@ -52,6 +62,27 @@
   <Folder Name="/services/policy/test/">
     <Project Path="services/policy/test/Unit.Tests/Unit.Tests.csproj" />
   </Folder>
+  <Folder Name="/services/policylifecyclemgt/" />
+  <Folder Name="/services/policylifecyclemgt/src/">
+    <Project Path="services/policylifecyclemgt/src/Api/Api.csproj" />
+    <Project Path="services/policylifecyclemgt/src/Domain/Domain.csproj" />
+    <Project Path="services/policylifecyclemgt/src/Endpoint.In/Endpoint.In.csproj" />
+    <Project Path="services/policylifecyclemgt/src/Infrastructure/Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/services/policylifecyclemgt/test/">
+    <Project Path="services/policylifecyclemgt/test/Integration.Tests/Integration.Tests.csproj" />
+    <Project Path="services/policylifecyclemgt/test/Unit.Tests/Unit.Tests.csproj" />
+  </Folder>
+  <Folder Name="/services/policyequityandinvoicingmgt/" />
+  <Folder Name="/services/policyequityandinvoicingmgt/src/">
+    <Project Path="services/policyequityandinvoicingmgt/src/Api/Api.csproj" />
+    <Project Path="services/policyequityandinvoicingmgt/src/Domain/Domain.csproj" />
+    <Project Path="services/policyequityandinvoicingmgt/src/Endpoint.In/Endpoint.In.csproj" />
+    <Project Path="services/policyequityandinvoicingmgt/src/Infrastructure/Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/services/policyequityandinvoicingmgt/test/">
+    <Project Path="services/policyequityandinvoicingmgt/test/Unit.Tests/Unit.Tests.csproj" />
+  </Folder>
   <Folder Name="/services/ratingandunderwriting/" />
   <Folder Name="/services/ratingandunderwriting/src/">
     <Project Path="services/ratingandunderwriting/src/Api/Api.csproj" />
@@ -61,5 +92,15 @@
   </Folder>
   <Folder Name="/services/ratingandunderwriting/test/">
     <Project Path="services/ratingandunderwriting/test/Unit.Tests/Unit.Tests.csproj" />
+  </Folder>
+  <Folder Name="/services/riskratingandunderwriting/" />
+  <Folder Name="/services/riskratingandunderwriting/src/">
+    <Project Path="services/riskratingandunderwriting/src/Api/Api.csproj" />
+    <Project Path="services/riskratingandunderwriting/src/Domain/Domain.csproj" />
+    <Project Path="services/riskratingandunderwriting/src/Endpoint.In/Endpoint.In.csproj" />
+    <Project Path="services/riskratingandunderwriting/src/Infrastructure/Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/services/riskratingandunderwriting/test/">
+    <Project Path="services/riskratingandunderwriting/test/Unit.Tests/Unit.Tests.csproj" />
   </Folder>
 </Solution>
