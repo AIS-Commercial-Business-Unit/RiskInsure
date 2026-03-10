@@ -34,6 +34,10 @@ on:
 env:
   AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   detect-changes:
     name: Detect Changed Files
@@ -58,7 +62,7 @@ jobs:
             CONTENT_CHANGED=$(git diff --name-only origin/main HEAD | grep -c "platform/modernizationpatterns/content/patterns\|platform/modernizationpatterns/content-tools" || echo "0")
             REINDEX_CHANGED=$(git diff --name-only origin/main HEAD | grep -c "platform/modernizationpatterns/Api/reindex" || echo "0")
           fi
-          
+
           echo "content_changed=$([[ "$CONTENT_CHANGED" -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "reindex_code_changed=$([[ "$REINDEX_CHANGED" -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
 
@@ -106,20 +110,20 @@ jobs:
         run: |
           # Use the latest image that CI: Build Services already pushed to ACR
           LATEST_IMAGE="riskinsuredevacr.azurecr.io/modernizationpatterns-reindex:latest"
-          
+
           az containerapp update \
             --name modernizationpatterns-reindex \
             --resource-group CAIS-010-RiskInsure \
             --image "$LATEST_IMAGE" \
             --subscription "${{ env.AZURE_SUBSCRIPTION_ID }}"
-          
+
           echo "✅ Container App image updated to: $LATEST_IMAGE"
 
       - name: Wait for Container App to be ready
         run: |
           echo "⏳ Waiting for Container App to update..."
           sleep 10
-          
+
           az containerapp show \
             --name modernizationpatterns-reindex \
             --resource-group CAIS-010-RiskInsure \
@@ -150,7 +154,7 @@ jobs:
             --subscription "${{ env.AZURE_SUBSCRIPTION_ID }}" \
             --query properties.configuration.ingress.fqdn \
             --output tsv 2>/dev/null || echo "localhost:5010")
-          
+
           echo "fqdn=https://${FQDN}" >> $GITHUB_OUTPUT
           echo "Reindex endpoint: https://${FQDN}"
 
@@ -159,7 +163,7 @@ jobs:
         run: |
           # Parse user-friendly mode selection to clean flag
           REINDEX_MODE="${{ inputs.reindex_mode || 'incremental' }}"
-          
+
           case "$REINDEX_MODE" in
             *"📝 Index New"*)
               FORCE_INCREMENTAL="true"
@@ -248,25 +252,25 @@ jobs:
               echo "✏️  Modified files: ${MODIFIED}"
             fi
           fi
-          
+
           echo ""
           echo "📤 Sending reindex request (timeout: 300s)..."
-          
+
           RESPONSE=$(curl -X POST \
             -H "Content-Type: application/json" \
             -w "\n%{http_code}" \
             "${ENDPOINT}${QUERY_PARAMS}" \
             --max-time 300 \
             --connect-timeout 10)
-          
+
           HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
           BODY=$(echo "$RESPONSE" | head -n-1)
-          
+
           echo ""
           echo "HTTP Status: $HTTP_CODE"
           echo "Response:"
           echo "$BODY"
-          
+
           if [ "$HTTP_CODE" == "200" ]; then
             echo "reindex_success=true" >> $GITHUB_OUTPUT
             # Extract metrics from response
@@ -286,6 +290,13 @@ jobs:
     needs: [trigger-reindex]
     if: always()
     steps:
+      - name: Azure CLI Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
       - name: Get ACR connection
         run: |
           az acr repository list \
