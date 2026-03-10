@@ -15,7 +15,7 @@ on:
     workflows:
       - 'CI: Build Services'
     types: [ completed ]
-    branches: [ main ]
+    branches: [ main, Dev ]
 
   workflow_dispatch:
     inputs:
