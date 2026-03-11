@@ -162,72 +162,69 @@ export function useChatWidget() {
       let currentEventType = '';
       let citations = [];
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+      // Helper to process a single SSE line
+      const processLine = (line) => {
+        // Parse event type
+        if (line.startsWith('event: ')) {
+          currentEventType = line.slice(7).trim();
+        }
+        // Parse data - only process token events
+        else if (line.startsWith('data: ')) {
+          const data = line.slice(6);  // Don't trim - preserve leading/trailing spaces
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-
-        // Keep last incomplete line in buffer
-        buffer = lines[lines.length - 1];
-
-        for (let i = 0; i < lines.length - 1; i++) {
-          const line = lines[i];
-
-          // Parse event type
-          if (line.startsWith('event: ')) {
-            currentEventType = line.slice(7).trim();
+          // Only add token data to message content
+          if (currentEventType === 'token' && data) {
+            setMessages((prev) => {
+              const updated = [...prev];
+              const lastMsg = updated[updated.length - 1];
+              // Append token directly - backend already handles spacing
+              lastMsg.content += data;
+              return updated;
+            });
           }
-          // Parse data - only process token events
-          else if (line.startsWith('data: ')) {
-            const data = line.slice(6).trim();
-
-            // Only add token data to message content
-            if (currentEventType === 'token' && data) {
-              setMessages((prev) => {
-                const updated = [...prev];
-                const lastMsg = updated[updated.length - 1];
-
-                // Smart spacing: add space if content exists and doesn't end with space
-                if (lastMsg.content && !lastMsg.content.endsWith(' ') && !data.startsWith(' ')) {
-                  lastMsg.content += ' ';
-                }
-                lastMsg.content += data;
-                return updated;
-              });
-
-              // Small delay for smooth typing effect
-              await new Promise(resolve => setTimeout(resolve, 5));
-            }
-            // Extract citations from response_metadata
-            else if (currentEventType === 'response_metadata' && data) {
-              // Parse citations from format: "Citations: Pattern1; Pattern2"
-              const match = data.match(/Citations:\s*(.+)/);
-              if (match) {
-                // Split, trim, and deduplicate citations
-                const allCitations = match[1].split(';').map(c => c.trim()).filter(c => c);
-                citations = [...new Set(allCitations)]; // Remove duplicates while preserving order
-              }
+          // Extract citations from response_metadata
+          else if (currentEventType === 'response_metadata' && data) {
+            // Parse citations from format: "Citations: Pattern1; Pattern2"
+            const match = data.match(/Citations:\s*(.+)/);
+            if (match) {
+              // Split, trim, and deduplicate citations
+              const allCitations = match[1].split(';').map(c => c.trim()).filter(c => c);
+              citations = [...new Set(allCitations)]; // Remove duplicates while preserving order
             }
           }
         }
-      }
+      };
 
-      // Process remaining buffer
-      if (buffer && buffer.startsWith('data: ')) {
-        const data = buffer.slice(6).trim();
-        if (data && currentEventType === 'token') {
-          setMessages((prev) => {
-            const updated = [...prev];
-            if (updated[updated.length - 1]) {
-              if (updated[updated.length - 1].content && !updated[updated.length - 1].content.endsWith(' ') && !data.startsWith(' ')) {
-                updated[updated.length - 1].content += ' ';
-              }
-              updated[updated.length - 1].content += data;
+      while (true) {
+        const { done, value } = await reader.read();
+
+        if (value) {
+          buffer += decoder.decode(value, { stream: true });
+        }
+
+        // Process complete lines from buffer
+        const lines = buffer.split('\n');
+        // Keep last (potentially incomplete) line in buffer
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.trim()) {
+            processLine(line);
+          }
+        }
+
+        if (done) {
+          // Flush remaining buffer with final decode
+          buffer += decoder.decode(new Uint8Array(), { stream: false });
+
+          // Process any remaining complete lines
+          const finalLines = buffer.split('\n');
+          for (const line of finalLines) {
+            if (line.trim()) {
+              processLine(line);
             }
-            return updated;
-          });
+          }
+          break;
         }
       }
 

@@ -347,16 +347,61 @@ public class ChatController : ControllerBase
         return _systemPromptTemplate.Replace("{REFERENCE_MATERIAL}", referenceMaterialSb.ToString().TrimEnd());
     }
 
+    /// <summary>
+    /// Chunks text for streaming while preserving line structure for markdown formatting.
+    /// Streams line-by-line first, then chunks long lines by words.
+    /// </summary>
     private static IEnumerable<string> ChunkedStringByWords(string text, int wordsPerChunk)
     {
         if (string.IsNullOrWhiteSpace(text))
             yield break;
 
-        var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        for (int i = 0; i < words.Length; i += wordsPerChunk)
+        // Split by newlines first to preserve markdown structure (bullet points, etc.)
+        var lines = text.Split('\n');
+
+        for (int lineIdx = 0; lineIdx < lines.Length; lineIdx++)
         {
-            var chunk = string.Join(" ", words.Skip(i).Take(wordsPerChunk));
-            yield return chunk + (i + wordsPerChunk < words.Length ? " " : "");
+            var line = lines[lineIdx];
+            var isLastLine = lineIdx == lines.Length - 1;
+
+            if (string.IsNullOrEmpty(line))
+            {
+                // Empty line - just yield the newline if not last
+                if (!isLastLine)
+                    yield return "\n";
+                continue;
+            }
+
+            // Split line into words and chunk them
+            var words = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            if (words.Length == 0)
+            {
+                if (!isLastLine)
+                    yield return "\n";
+                continue;
+            }
+
+            for (int i = 0; i < words.Length; i += wordsPerChunk)
+            {
+                var chunk = string.Join(" ", words.Skip(i).Take(wordsPerChunk));
+                var isLastChunkOfLine = i + wordsPerChunk >= words.Length;
+
+                // Add trailing space if more words coming in this line
+                if (!isLastChunkOfLine)
+                {
+                    yield return chunk + " ";
+                }
+                // Add newline at end of line (unless it's the very last line)
+                else if (!isLastLine)
+                {
+                    yield return chunk + "\n";
+                }
+                else
+                {
+                    yield return chunk;
+                }
+            }
         }
     }
 
