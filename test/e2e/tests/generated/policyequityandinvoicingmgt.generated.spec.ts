@@ -1,72 +1,73 @@
-import { test, expect } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { getTestConfig, validateConfig } from '../../config/api-endpoints';
-import { createCustomer, getCustomer } from '../../helpers/customer-api';
-import { startQuote, submitUnderwriting, acceptQuote } from '../../helpers/rating-api';
-import { waitForPolicyCreation } from '../../helpers/policy-api';
-import { getCustomerPolicies } from '../../helpers/policy-api';
 
 const config = getTestConfig();
+
+function buildAccountRequest() {
+  const suffix = Date.now().toString();
+
+  return {
+    accountId: `acct-${suffix}`,
+    customerId: `cust-${suffix}`,
+    policyNumber: `KWG-2026-${suffix.slice(-6)}`,
+    policyHolderName: 'Generated Billing Customer',
+    currentPremiumOwed: 1200,
+    policyEquityAndInvoicingCycle: 3,
+    effectiveDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+  };
+}
 
 test.describe('[Generated] policyequityandinvoicingmgt requirements regression', () => {
   test.beforeAll(() => {
     validateConfig(config);
   });
 
+  test('account and payment health endpoints respond for policyequityandinvoicingmgt', async ({ request }) => {
+    const accountHealth = await request.get(`${config.apis.policyequityandinvoicingmgt}/api/policyequityandinvoicingmgt/accounts/health`);
+    const paymentHealth = await request.get(`${config.apis.policyequityandinvoicingmgt}/api/policyequityandinvoicingmgt/payments/health`);
 
-  test('service health endpoint responds for policyequityandinvoicingmgt', async ({ request }) => {
-    const baseUrl = config.apis.policyequityandinvoicingmgt;
-    const health = await request.get(baseUrl + '/health');
-
-    if (health.status() === 404) {
-      const fallback = await request.get(baseUrl + '/healthz');
-      expect([200, 204, 404]).toContain(fallback.status());
-      return;
-    }
-
-    expect([200, 204]).toContain(health.status());
+    expect(accountHealth.status()).toBe(200);
+    expect(paymentHealth.status()).toBe(200);
   });
 
-  test('quote acceptance creates bound policy', async ({ request }) => {
-    test.setTimeout(180000);
+  test('accounts can be created, retrieved, activated, and paid', async ({ request }) => {
+    const accountRequest = buildAccountRequest();
 
-    const customer = await createCustomer(request, {
-      firstName: 'Policy',
-      lastName: 'Generated'
+    const createResponse = await request.post(`${config.apis.policyequityandinvoicingmgt}/api/policyequityandinvoicingmgt/accounts`, {
+      data: accountRequest,
+    });
+    expect(createResponse.status()).toBe(201);
+
+    const getResponse = await request.get(`${config.apis.policyequityandinvoicingmgt}/api/policyequityandinvoicingmgt/accounts/${accountRequest.accountId}`);
+    expect(getResponse.status()).toBe(200);
+    const account = await getResponse.json();
+    expect(account.status).toBe('Pending');
+    expect(account.outstandingBalance).toBe(1200);
+
+    const activateResponse = await request.post(`${config.apis.policyequityandinvoicingmgt}/api/policyequityandinvoicingmgt/accounts/${accountRequest.accountId}/activate`);
+    expect(activateResponse.status()).toBe(200);
+
+    const paymentResponse = await request.post(`${config.apis.policyequityandinvoicingmgt}/api/policyequityandinvoicingmgt/payments`, {
+      data: {
+        accountId: accountRequest.accountId,
+        amount: 200,
+        referenceNumber: `pay-${Date.now()}`,
+      },
     });
 
-    const quote = await startQuote(request, customer.customerId, {
-      structureCoverageLimit: 300000,
-      structureDeductible: 1000,
-      contentsCoverageLimit: 100000,
-      contentsDeductible: 500,
-      termMonths: 12,
-      propertyZipCode: '90210'
+    expect(paymentResponse.status()).toBe(200);
+    const payment = await paymentResponse.json();
+    expect(payment.totalPaid).toBe(200);
+    expect(payment.outstandingBalance).toBe(1000);
+
+    const queuedResponse = await request.post(`${config.apis.policyequityandinvoicingmgt}/api/policyequityandinvoicingmgt/payments/async`, {
+      data: {
+        accountId: accountRequest.accountId,
+        amount: 50,
+        referenceNumber: `async-${Date.now()}`,
+      },
     });
-
-    const underwriting = await submitUnderwriting(request, quote.quoteId, {
-      priorClaimsCount: 0,
-      propertyAgeYears: 12,
-      creditTier: 'Excellent'
-    });
-
-    expect(underwriting.status()).toBe(200);
-
-    const accepted = await acceptQuote(request, quote.quoteId);
-    expect(accepted.policyCreationInitiated).toBe(true);
-
-    const policy = await waitForPolicyCreation(request, customer.customerId);
-    expect(policy.status).toBe('Bound');
-    expect(policy.policyNumber).toMatch(/^KWG-\d{4}-\d{6}$/);
-  });
-
-  test('policy lifecycle statuses are queryable for customer', async ({ request }) => {
-    const customer = await createCustomer(request, {
-      firstName: 'Lifecycle',
-      lastName: 'Watcher'
-    });
-
-    const policies = await getCustomerPolicies(request, customer.customerId);
-    expect(Array.isArray(policies)).toBe(true);
+    expect(queuedResponse.status()).toBe(202);
   });
 });
 
@@ -77,7 +78,7 @@ test.describe('[Generated] metadata for policyequityandinvoicingmgt', () => {
       '- services/policyequityandinvoicingmgt/docs/business/billing-payment.md',
       '- services/policyequityandinvoicingmgt/docs/business/multi-policy-billing.md',
       '- services/policyequityandinvoicingmgt/docs/technical/highlevel-tech.md',
-      '- services/policyequityandinvoicingmgt/docs/technical/multi-policy-billing-technical-spec.md'
+      '- services/policyequityandinvoicingmgt/docs/technical/multi-policy-billing-technical-spec.md',
     ];
 
     expect(snapshot.length).toBeGreaterThan(0);
