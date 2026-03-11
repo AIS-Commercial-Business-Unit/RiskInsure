@@ -34,6 +34,8 @@ services:
         condition: service_healthy
       keyvault-emulator:
         condition: service_healthy
+      file-retrieval-https:
+        condition: service_healthy
     networks:
       - riskinsure
 

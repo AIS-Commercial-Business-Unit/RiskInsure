@@ -74,6 +74,10 @@ public class CreateConfigurationHandler : IHandleMessages<CreateConfiguration>
                 FilenamePattern = created.FilenamePattern,
                 CronExpression = created.Schedule.CronExpression,
                 Timezone = created.Schedule.Timezone,
+                ProcessingConfig = new FileProcessingConfig
+                {
+                    FileType = created.ProcessingConfig?.FileType ?? string.Empty
+                },
                 IsActive = created.IsActive,
                 CreatedBy = created.CreatedBy
             };
@@ -124,6 +128,10 @@ public class CreateConfigurationHandler : IHandleMessages<CreateConfiguration>
             FilenamePattern = message.FilenamePattern,
             FileExtension = message.FileExtension,
             Schedule = schedule,
+            ProcessingConfig = new FileProcessingDefinition
+            {
+                FileType = message.ProcessingConfig.FileType
+            },
             IsActive = true,
             CreatedAt = message.OccurredUtc,
             CreatedBy = message.CreatedBy

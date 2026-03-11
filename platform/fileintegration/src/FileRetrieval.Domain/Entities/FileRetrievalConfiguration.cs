@@ -60,6 +60,11 @@ public class FileRetrievalConfiguration
     public required ScheduleDefinition Schedule { get; set; }
 
     /// <summary>
+    /// File processing configuration (e.g., NACHA processing semantics).
+    /// </summary>
+    public FileProcessingDefinition? ProcessingConfig { get; set; }
+
+    /// <summary>
     /// Whether configuration is active (inactive configs are not scheduled)
     /// </summary>
     public bool IsActive { get; set; } = true;
@@ -126,6 +131,12 @@ public class FileRetrievalConfiguration
 
         if (FileExtension?.Length > 10)
             throw new ArgumentException("FileExtension max 10 characters", nameof(FileExtension));
+
+        if (ProcessingConfig == null)
+            throw new ArgumentException("ProcessingConfig is required", nameof(ProcessingConfig));
+
+        if (string.IsNullOrWhiteSpace(ProcessingConfig.FileType) || ProcessingConfig.FileType.Length > 50)
+            throw new ArgumentException("ProcessingConfig.FileType must not be empty and max 50 characters", nameof(ProcessingConfig));
 
         if (CreatedAt > DateTimeOffset.UtcNow)
             throw new ArgumentException("CreatedAt cannot be in the future", nameof(CreatedAt));

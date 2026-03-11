@@ -74,7 +74,7 @@ public class HttpsProtocolAdapter : IProtocolAdapter
             var contentType = response.Content.Headers.ContentType?.MediaType;
             
             var content = await response.Content.ReadAsStringAsync(cancellationToken);
-            var filesFound = NginxDirectoryListingParser.ParseNginxFileList(content);
+            var filesFound = NginxDirectoryListingParser.ParseNginxFileList(content, fullUrl);
 
             if (filesFound != null)
             {
