@@ -407,8 +407,11 @@ public class ChatController : ControllerBase
 
     private async Task WriteSseEvent(string eventType, string data, CancellationToken cancellationToken = default)
     {
+        // Escape newlines for SSE transport - frontend will decode
+        var escapedData = data.Replace("\n", "\\n").Replace("\r", "");
+
         var eventLine = $"event: {eventType}\n";
-        var dataLine = $"data: {data}\n\n";
+        var dataLine = $"data: {escapedData}\n\n";
 
         await Response.WriteAsync(eventLine, cancellationToken);
         await Response.WriteAsync(dataLine, cancellationToken);

@@ -4,34 +4,66 @@ import { useEffect } from 'react';
 function parseMessageContent(content) {
   if (!content) return '';
 
-  // Split into paragraphs
-  const paragraphs = content.split('\n\n');
+  // Normalize line endings and split into lines
+  const lines = content.replace(/\r\n/g, '\n').split('\n');
+  const result = [];
+  let currentList = [];
+  let listType = null; // 'ul' for bullets, 'ol' for numbered
 
-  return paragraphs
-    .map((paragraph, pIdx) => {
-      // Check if paragraph is a list (lines starting with -)
-      const lines = paragraph.split('\n');
-      const isListParagraph = lines.some(line => line.trim().startsWith('-'));
+  const flushList = () => {
+    if (currentList.length > 0) {
+      const tag = listType === 'ol' ? 'ol' : 'ul';
+      result.push(`<${tag}>${currentList.join('')}</${tag}>`);
+      currentList = [];
+      listType = null;
+    }
+  };
 
-      if (isListParagraph) {
-        // Handle list items
-        const items = lines
-          .filter(line => line.trim().startsWith('-'))
-          .map(line => {
-            const text = line.trim().substring(1).trim();
-            // Bold text: **text** → <strong>text</strong>
-            const formatted = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-            return `<li>${formatted}</li>`;
-          });
-        return items.length > 0 ? `<ul>${items.join('')}</ul>` : '';
-      } else {
-        // Regular paragraph - parse bold formatting
-        const formatted = paragraph.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        return `<p>${formatted}</p>`;
+  const formatText = (text) => {
+    // Bold: **text** → <strong>text</strong>
+    return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  };
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      // Empty line - flush any pending list
+      flushList();
+      continue;
+    }
+
+    // Check for bullet list item: - text
+    const bulletMatch = trimmed.match(/^-\s+(.+)$/);
+    if (bulletMatch) {
+      if (listType !== 'ul') {
+        flushList();
+        listType = 'ul';
       }
-    })
-    .filter(p => p.length > 0)
-    .join('');
+      currentList.push(`<li>${formatText(bulletMatch[1])}</li>`);
+      continue;
+    }
+
+    // Check for numbered list item: 1. text, 2. text, etc.
+    const numberedMatch = trimmed.match(/^(\d+)\.\s+(.+)$/);
+    if (numberedMatch) {
+      if (listType !== 'ol') {
+        flushList();
+        listType = 'ol';
+      }
+      currentList.push(`<li>${formatText(numberedMatch[2])}</li>`);
+      continue;
+    }
+
+    // Regular text - flush list and add as paragraph
+    flushList();
+    result.push(`<p>${formatText(trimmed)}</p>`);
+  }
+
+  // Flush any remaining list
+  flushList();
+
+  return result.join('');
 }
 
 export function MessageList({ messages, isLoading, messageListRef }) {

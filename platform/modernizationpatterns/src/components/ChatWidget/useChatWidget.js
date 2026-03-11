@@ -170,7 +170,9 @@ export function useChatWidget() {
         }
         // Parse data - only process token events
         else if (line.startsWith('data: ')) {
-          const data = line.slice(6);  // Don't trim - preserve leading/trailing spaces
+          const rawData = line.slice(6);  // Don't trim - preserve leading/trailing spaces
+          // Decode escaped newlines from SSE transport
+          const data = rawData.replace(/\\n/g, '\n');
 
           // Only add token data to message content
           if (currentEventType === 'token' && data) {
