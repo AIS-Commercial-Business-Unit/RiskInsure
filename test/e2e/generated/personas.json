@@ -49,5 +49,18 @@
       "Verify cancellation and billing refund triggers are visible to APIs.",
       "Verify customer identity data can be created and retrieved."
     ]
+  },
+  {
+    "service": "customerrelationshipsmgt",
+    "sourceDocs": [
+      "services/customerrelationshipsmgt/docs/business/relationship-management.md",
+      "services/customerrelationshipsmgt/docs/technical/relationship-technical-spec.md"
+    ],
+    "scenarios": [
+      "api-health-endpoint"
+    ],
+    "goals": [
+      "Verify customer identity data can be created and retrieved."
+    ]
   }
 ]

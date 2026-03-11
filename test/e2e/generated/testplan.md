@@ -13,10 +13,14 @@
   - services/policyequityandinvoicingmgt/docs/business/multi-policy-billing.md
   - services/policyequityandinvoicingmgt/docs/technical/highlevel-tech.md
   - services/policyequityandinvoicingmgt/docs/technical/multi-policy-billing-technical-spec.md
+- customerrelationshipsmgt
+  - services/customerrelationshipsmgt/docs/business/relationship-management.md
+  - services/customerrelationshipsmgt/docs/technical/relationship-technical-spec.md
 
 ## Generated Specs
 
 - test/e2e/tests/generated/riskratingandunderwriting.generated.spec.ts
 - test/e2e/tests/generated/policy.generated.spec.ts
 - test/e2e/tests/generated/policyequityandinvoicingmgt.generated.spec.ts
+- test/e2e/tests/generated/customerrelationshipsmgt.generated.spec.ts
 

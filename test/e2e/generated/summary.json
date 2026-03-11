@@ -8,7 +8,9 @@
     "services/policyequityandinvoicingmgt/docs/technical/multi-policy-billing-technical-spec.md",
     "services/riskratingandunderwriting/docs/business/rating-underwriting.md",
     "services/riskratingandunderwriting/docs/technical/rating-underwriting-technical-spec.md",
-    "services/policy/docs/business/policy-management.md"
+    "services/policy/docs/business/policy-management.md",
+    "services/customerrelationshipsmgt/docs/business/relationship-management.md",
+    "services/customerrelationshipsmgt/docs/technical/relationship-technical-spec.md"
   ],
   "requirementFiles": [
     "services/policyequityandinvoicingmgt/docs/business/billing-account.md",
@@ -18,12 +20,15 @@
     "services/policyequityandinvoicingmgt/docs/technical/multi-policy-billing-technical-spec.md",
     "services/riskratingandunderwriting/docs/business/rating-underwriting.md",
     "services/riskratingandunderwriting/docs/technical/rating-underwriting-technical-spec.md",
-    "services/policy/docs/business/policy-management.md"
+    "services/policy/docs/business/policy-management.md",
+    "services/customerrelationshipsmgt/docs/business/relationship-management.md",
+    "services/customerrelationshipsmgt/docs/technical/relationship-technical-spec.md"
   ],
   "generatedSpecs": [
     "test/e2e/tests/generated/policyequityandinvoicingmgt.generated.spec.ts",
     "test/e2e/tests/generated/riskratingandunderwriting.generated.spec.ts",
-    "test/e2e/tests/generated/policy.generated.spec.ts"
+    "test/e2e/tests/generated/policy.generated.spec.ts",
+    "test/e2e/tests/generated/customerrelationshipsmgt.generated.spec.ts"
   ],
   "personas": [
   {
@@ -74,6 +79,19 @@
       "goals": [
         "Verify policy issuance prerequisites and bound state handoff.",
         "Verify cancellation and billing refund triggers are visible to APIs.",
+        "Verify customer identity data can be created and retrieved."
+      ]
+    },
+    {
+      "service": "customerrelationshipsmgt",
+      "sourceDocs": [
+        "services/customerrelationshipsmgt/docs/business/relationship-management.md",
+        "services/customerrelationshipsmgt/docs/technical/relationship-technical-spec.md"
+      ],
+      "scenarios": [
+        "api-health-endpoint"
+      ],
+      "goals": [
         "Verify customer identity data can be created and retrieved."
       ]
     }
