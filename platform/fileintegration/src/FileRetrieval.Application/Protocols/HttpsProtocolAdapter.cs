@@ -53,8 +53,8 @@ public class HttpsProtocolAdapter : IProtocolAdapter
             // Build full URL (combine base URL with path pattern)
             var fullUrl = CombineUrl(_settings.BaseUrl, filePathPattern);
 
-            // For HTTPS, we assume the endpoint returns a JSON array of file metadata
-            // or a directory listing in a standard format
+            // For HTTPS, we assume the endpoint returns 
+            // a directory listing in a standard format
             // This is a simplified implementation - real-world might need content negotiation
             
             _logger.LogDebug("Sending GET request to {Url}", fullUrl);
@@ -69,93 +69,56 @@ public class HttpsProtocolAdapter : IProtocolAdapter
                     response.ReasonPhrase);
                 throw new HttpRequestException(
                     $"HTTP request failed with status {response.StatusCode}: {response.ReasonPhrase}");
-            }
+            }            
 
             var contentType = response.Content.Headers.ContentType?.MediaType;
             
-            // Handle JSON response (assuming array of file objects)
-            if (contentType?.Contains("json", StringComparison.OrdinalIgnoreCase) == true)
-            {
-                var jsonContent = await response.Content.ReadAsStringAsync(cancellationToken);
-                var files = JsonSerializer.Deserialize<List<HttpFileEntry>>(jsonContent, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
+            var content = await response.Content.ReadAsStringAsync(cancellationToken);
+            var filesFound = NginxDirectoryListingParser.ParseNginxFileList(content);
 
-                if (files != null)
+            if (filesFound != null)
+            {
+                foreach (var file in filesFound)
                 {
-                    foreach (var file in files)
+                    // Check if filename matches pattern
+                    if (!MatchesPattern(file.Name ?? string.Empty, filenamePattern))
                     {
-                        // Check if filename matches pattern
-                        if (!MatchesPattern(file.Name ?? string.Empty, filenamePattern))
+                        continue;
+                    }
+
+                    // Check file extension if specified
+                    if (!string.IsNullOrWhiteSpace(fileExtension))
+                    {
+                        var itemExtension = Path.GetExtension(file.Name ?? string.Empty).TrimStart('.');
+                        if (!itemExtension.Equals(fileExtension, StringComparison.OrdinalIgnoreCase))
                         {
                             continue;
                         }
-
-                        // Check file extension if specified
-                        if (!string.IsNullOrWhiteSpace(fileExtension))
-                        {
-                            var itemExtension = Path.GetExtension(file.Name ?? string.Empty).TrimStart('.');
-                            if (!itemExtension.Equals(fileExtension, StringComparison.OrdinalIgnoreCase))
-                            {
-                                continue;
-                            }
-                        }
-
-                        var fileUrl = file.Url ?? CombineUrl(fullUrl, file.Name ?? string.Empty);
-
-                        var discoveredFile = new DiscoveredFileInfo
-                        {
-                            FileUrl = fileUrl,
-                            Filename = file.Name ?? Path.GetFileName(fileUrl),
-                            FileSize = file.Size > 0 ? file.Size : null,
-                            LastModified = file.LastModified,
-                            DiscoveredAt = DateTimeOffset.UtcNow,
-                            ProtocolMetadata = new Dictionary<string, object>
-                            {
-                                ["ContentType"] = file.ContentType ?? "unknown",
-                                ["ETag"] = file.ETag ?? string.Empty
-                            }
-                        };
-
-                        discoveredFiles.Add(discoveredFile);
-
-                        _logger.LogDebug(
-                            "Discovered HTTPS file: {Filename} ({Size} bytes) at {Url}",
-                            discoveredFile.Filename,
-                            discoveredFile.FileSize,
-                            discoveredFile.FileUrl);
                     }
-                }
-            }
-            else
-            {
-                // For non-JSON responses, assume single file at the URL
-                // Check if filename matches pattern
-                var filename = ExtractFilenameFromUrl(fullUrl);
-                
-                if (MatchesPattern(filename, filenamePattern))
-                {
-                    // Check file extension
-                    if (string.IsNullOrWhiteSpace(fileExtension) ||
-                        Path.GetExtension(filename).TrimStart('.').Equals(fileExtension, StringComparison.OrdinalIgnoreCase))
+
+                    var fileUrl = file.Url ?? CombineUrl(fullUrl, file.Name ?? string.Empty);
+
+                    var discoveredFile = new DiscoveredFileInfo
                     {
-                        var discoveredFile = new DiscoveredFileInfo
+                        FileUrl = fileUrl,
+                        Filename = file.Name ?? Path.GetFileName(fileUrl),
+                        FileSize = file.Size > 0 ? file.Size : null,
+                        LastModified = file.Date,
+                        DiscoveredAt = DateTimeOffset.UtcNow,
+                        ProtocolMetadata = new Dictionary<string, object>
                         {
-                            FileUrl = fullUrl,
-                            Filename = filename,
-                            FileSize = response.Content.Headers.ContentLength,
-                            LastModified = response.Content.Headers.LastModified,
-                            DiscoveredAt = DateTimeOffset.UtcNow,
-                            ProtocolMetadata = new Dictionary<string, object>
-                            {
-                                ["ContentType"] = contentType ?? "unknown",
-                                ["ETag"] = response.Headers.ETag?.Tag ?? string.Empty
-                            }
-                        };
+                            ["ContentType"] = "unknown",
+                            ["ETag"] = string.Empty
+                        }
+                    };
 
-                        discoveredFiles.Add(discoveredFile);
-                    }
+                    discoveredFiles.Add(discoveredFile);
+
+                    _logger.LogDebug(
+                        "Discovered HTTPS file: {Filename} ({Size} bytes) at {Url}",
+                        discoveredFile.Filename,
+                        discoveredFile.FileSize,
+                        discoveredFile.FileUrl);
                 }
             }
 
@@ -296,18 +259,5 @@ public class HttpsProtocolAdapter : IProtocolAdapter
             filename,
             regexPattern,
             System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-    }
-
-    /// <summary>
-    /// DTO for JSON file listing responses.
-    /// </summary>
-    private class HttpFileEntry
-    {
-        public string? Name { get; set; }
-        public string? Url { get; set; }
-        public long Size { get; set; }
-        public DateTimeOffset? LastModified { get; set; }
-        public string? ContentType { get; set; }
-        public string? ETag { get; set; }
     }
 }
