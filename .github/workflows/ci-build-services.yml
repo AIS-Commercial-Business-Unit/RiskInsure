@@ -63,7 +63,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          ALL_SERVICES='["billing","customer","customerrelationshipsmgt","fundstransfermgt","policy","policylifecyclemgt","policyequityandinvoicingmgt","ratingandunderwriting","riskratingandunderwriting"]'
+          ALL_SERVICES='["billing","customer","customerrelationshipsmgt","fundstransfermgt","modernizationpatterns","policy","policylifecyclemgt","policyequityandinvoicingmgt","ratingandunderwriting","riskratingandunderwriting"]'
           echo "image_tag=${{ github.sha }}" >> "$GITHUB_OUTPUT"
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             if [[ "${{ github.event.inputs.services }}" == "all" ]]; then
@@ -185,6 +185,7 @@ jobs:
           # Default: service directory and image name match the service name
           SERVICE_DIR="services/$SERVICE"
           IMAGE_NAME="$SERVICE"
+          BUILD_TYPE="standard"
 
           # Exceptions: services with shortened image names (must match Terraform resource names)
           if [[ "$SERVICE" == "customerrelationshipsmgt" ]]; then
@@ -193,6 +194,9 @@ jobs:
             IMAGE_NAME="peimgt"
           elif [[ "$SERVICE" == "riskratingandunderwriting" ]]; then
             IMAGE_NAME="rru"
+          elif [[ "$SERVICE" == "modernizationpatterns" ]]; then
+            SERVICE_DIR="platform/modernizationpatterns"
+            BUILD_TYPE="modernizationpatterns"
           fi
 
           echo "service_dir=$SERVICE_DIR" >> "$GITHUB_OUTPUT"
@@ -205,7 +209,7 @@ jobs:
           set -euo pipefail
           SERVICE_DIR="${{ steps.map.outputs.service_dir }}"
           BUILD_TYPE="${{ steps.map.outputs.build_type }}"
-          
+
           if [ "$BUILD_TYPE" = "modernizationpatterns" ]; then
             dotnet restore "$SERVICE_DIR/Api/chat"
             dotnet restore "$SERVICE_DIR/Api/reindex"
@@ -220,7 +224,7 @@ jobs:
           set -euo pipefail
           SERVICE_DIR="${{ steps.map.outputs.service_dir }}"
           BUILD_TYPE="${{ steps.map.outputs.build_type }}"
-          
+
           if [ "$BUILD_TYPE" = "modernizationpatterns" ]; then
             dotnet build "$SERVICE_DIR/Api/chat" --configuration Release --no-restore
             dotnet build "$SERVICE_DIR/Api/reindex" --configuration Release --no-restore

@@ -65,7 +65,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          ALL_SERVICES='["billing","customer","customerrelationshipsmgt","fundstransfermgt","policy","policylifecyclemgt","policyequityandinvoicingmgt","ratingandunderwriting","riskratingandunderwriting"]'
+          ALL_SERVICES='["billing","customer","customerrelationshipsmgt","fundstransfermgt","modernizationpatterns","policy","policylifecyclemgt","policyequityandinvoicingmgt","ratingandunderwriting","riskratingandunderwriting"]'
 
           # Decide which image tag to deploy
           if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
@@ -264,6 +264,10 @@ jobs:
               riskratingandunderwriting)
                 TARGETS="$TARGETS -target=azurerm_container_app.rru_api"
                 TARGETS="$TARGETS -target=azurerm_container_app.rru_endpoint"
+                ;;
+              modernizationpatterns)
+                TARGETS="$TARGETS -target=azurerm_container_app.modernizationpatterns_chat_api"
+                TARGETS="$TARGETS -target=azurerm_container_app.modernizationpatterns_reindex_worker"
                 ;;
               *)
                 TARGETS="$TARGETS -target=azurerm_container_app.${s}_api"
