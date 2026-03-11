@@ -56,14 +56,14 @@ public class ChatController : ControllerBase
             if (string.IsNullOrWhiteSpace(request.Message))
             {
                 Response.StatusCode = 400;
-                await WriteSseEvent("error", "Message cannot be empty");
+                await WriteSseEvent("error", "Message cannot be empty", cancellationToken);
                 return;
             }
 
             if (string.IsNullOrWhiteSpace(request.UserId))
             {
                 Response.StatusCode = 400;
-                await WriteSseEvent("error", "UserId is required");
+                await WriteSseEvent("error", "UserId is required", cancellationToken);
                 return;
             }
 
@@ -78,12 +78,12 @@ public class ChatController : ControllerBase
             try
             {
                 embedding = await _openAiService.EmbedTextAsync(request.Message, cancellationToken);
-                await WriteSseEvent("embedding_complete", "Query embedded successfully");
+                await WriteSseEvent("embedding_complete", "Query embedded successfully", cancellationToken);
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Embedding failed, continuing with keyword search");
-                await WriteSseEvent("embedding_skipped", "Continuing with keyword search");
+                await WriteSseEvent("embedding_skipped", "Continuing with keyword search", cancellationToken);
             }
 
             // Step 2: Search knowledge base
@@ -94,7 +94,7 @@ public class ChatController : ControllerBase
                 topK: 5,
                 cancellationToken);
 
-            await WriteSseEvent("search_complete", $"Found {patterns.Count} relevant patterns");
+            await WriteSseEvent("search_complete", $"Found {patterns.Count} relevant patterns", cancellationToken);
             _logger.LogInformation("Found {PatternCount} patterns for query", patterns.Count);
 
             // Step 3: Load conversation history
@@ -129,11 +129,10 @@ public class ChatController : ControllerBase
                 if (cancellationToken.IsCancellationRequested)
                     break;
 
-                await WriteSseEvent("token", chunk);
-                await Response.Body.FlushAsync(cancellationToken);
+                await WriteSseEvent("token", chunk, cancellationToken);
             }
 
-            await WriteSseEvent("completion_done", "Response streaming complete");
+            await WriteSseEvent("completion_done", "Response streaming complete", cancellationToken);
 
             // Step 6: Build citations
             var citations = patterns
@@ -148,7 +147,7 @@ public class ChatController : ControllerBase
             );
 
             await WriteSseEvent("response_metadata",
-                $"Citations: {string.Join("; ", responseDto.Citations)}");
+                $"Citations: {string.Join("; ", responseDto.Citations)}", cancellationToken);
 
             // Step 7: Persist conversation
             _logger.LogDebug("Step 7: Persisting conversation");
@@ -188,12 +187,12 @@ public class ChatController : ControllerBase
             await _conversationService.SaveConversationAsync(conversation, cancellationToken);
             _logger.LogInformation("Conversation {ConversationId} persisted", request.ConversationId);
 
-            await WriteSseEvent("done", "Chat exchange complete");
+            await WriteSseEvent("done", "Chat exchange complete", cancellationToken);
         }
         catch (OperationCanceledException)
         {
             _logger.LogInformation("Chat request cancelled by client");
-            await WriteSseEvent("error", "Request cancelled");
+            await WriteSseEvent("error", "Request cancelled", cancellationToken);
         }
         catch (Exception ex)
         {
@@ -361,12 +360,13 @@ public class ChatController : ControllerBase
         }
     }
 
-    private async Task WriteSseEvent(string eventType, string data)
+    private async Task WriteSseEvent(string eventType, string data, CancellationToken cancellationToken = default)
     {
         var eventLine = $"event: {eventType}\n";
         var dataLine = $"data: {data}\n\n";
 
-        await Response.WriteAsync(eventLine);
-        await Response.WriteAsync(dataLine);
+        await Response.WriteAsync(eventLine, cancellationToken);
+        await Response.WriteAsync(dataLine, cancellationToken);
+        await Response.Body.FlushAsync(cancellationToken);
     }
 }
