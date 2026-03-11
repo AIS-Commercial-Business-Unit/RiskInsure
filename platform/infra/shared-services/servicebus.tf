@@ -65,17 +65,11 @@ locals {
     "RiskInsure.Customer.Endpoint",
     "RiskInsure.FundTransferMgt.Endpoint",
     "RiskInsure.Policy.Endpoint",
-    "RiskInsure.PolicyLifeCycleMgt.Endpoint",
     "RiskInsure.RatingAndUnderwriting.Endpoint",
+    "RiskInsure.PolicyLifeCycleMgt.Endpoint",
+    "RiskInsure.PolicyEquityAndInvoicingMgt.Endpoint", 
+    "RiskInsure.RiskRatingAndUnderwriting.Endpoint",
     "RiskInsure.CustomerRelationshipsMgt.Endpoint",
-
-    # RiskInsure API Send-Only Endpoints (for publishing events from APIs)
-    # Note: NServiceBus normalizes these to lowercase in Azure Service Bus
-    "riskinsure.billing.api",
-    "riskinsure.customer.api",
-    "riskinsure.ratingandunderwriting.api",
-    "riskinsure.customerrelationshipsmgt.api",
-    "riskinsure.policylifecyclemgt.api",
 
     # Add new endpoint queues here:
     # "RiskInsure.NewService.Endpoint",
@@ -124,6 +118,20 @@ locals {
     "RiskInsure.RatingAndUnderwriting.Domain.Contracts.Events.QuoteStarted",
     "RiskInsure.RatingAndUnderwriting.Domain.Contracts.Events.UnderwritingSubmitted",
 
+    # RiskInsure RiskRatingAndUnderwriting Domain Events
+    "RiskInsure.RiskRatingAndUnderwriting.Domain.Contracts.Events.RiskQuoteCalculated",
+    "RiskInsure.RiskRatingAndUnderwriting.Domain.Contracts.Events.RiskQuoteDeclined",
+    "RiskInsure.RiskRatingAndUnderwriting.Domain.Contracts.Events.RiskQuoteStarted",
+    "RiskInsure.RiskRatingAndUnderwriting.Domain.Contracts.Events.UnderwritingRiskSubmitted",
+
+    # RiskInsure PolicyEquityAndInvoicingMgt Domain Events
+    "RiskInsure.PolicyEquityAndInvoicingMgt.Domain.Contracts.Events.PolicyEquityAndInvoicingAccountCreated",
+    "RiskInsure.PolicyEquityAndInvoicingMgt.Domain.Contracts.Events.PremiumOwedUpdated",
+    "RiskInsure.PolicyEquityAndInvoicingMgt.Domain.Contracts.Events.AccountActivated",
+    "RiskInsure.PolicyEquityAndInvoicingMgt.Domain.Contracts.Events.AccountSuspended",
+    "RiskInsure.PolicyEquityAndInvoicingMgt.Domain.Contracts.Events.AccountClosed",
+    "RiskInsure.PolicyEquityAndInvoicingMgt.Domain.Contracts.Events.PolicyEquityAndInvoicingCycleUpdated",
+
     # RiskInsure CustomerRelationshipsMgt Domain Events
     "RiskInsure.CustomerRelationshipsMgt.Domain.Contracts.Events.RelationshipCreated",
     "RiskInsure.CustomerRelationshipsMgt.Domain.Contracts.Events.RelationshipInformationUpdated",
@@ -150,6 +158,18 @@ locals {
       topic_name        = "RiskInsure.PublicContracts.Events.FundsSettled"
       subscription_name = "RiskInsure.Billing.Endpoint"
       forward_to_queue  = "RiskInsure.Billing.Endpoint"
+    }
+
+    "funds_refunded_to_policyequityandinvoicingmgt" = {
+      topic_name        = "RiskInsure.PublicContracts.Events.FundsRefunded"
+      subscription_name = "RiskInsure.PolicyEquityAndInvoicingMgt.Endpoint"
+      forward_to_queue  = "RiskInsure.PolicyEquityAndInvoicingMgt.Endpoint"
+    }
+
+    "funds_settled_to_policyequityandinvoicingmgt" = {
+      topic_name        = "RiskInsure.PublicContracts.Events.FundsSettled"
+      subscription_name = "RiskInsure.PolicyEquityAndInvoicingMgt.Endpoint"
+      forward_to_queue  = "RiskInsure.PolicyEquityAndInvoicingMgt.Endpoint"
     }
 
     "quote_accepted_to_policy" = {

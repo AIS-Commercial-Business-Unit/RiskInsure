@@ -1,0 +1,63 @@
+# =============================================================================
+# Dockerfile for Modernization Patterns Chat API
+# Multi-stage build for optimized production image
+# =============================================================================
+
+# Build stage
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+
+WORKDIR /src
+
+# Copy solution and package management files
+COPY ["RiskInsure.slnx", "."]
+COPY ["Directory.Build.props", "."]
+COPY ["Directory.Packages.props", "."]
+COPY ["GlobalUsings.cs", "."]
+
+# Copy project files for restore
+COPY ["platform/modernizationpatterns/Api/chat/Chat.Api.csproj", "platform/modernizationpatterns/Api/chat/"]
+
+# Restore dependencies
+RUN dotnet restore "platform/modernizationpatterns/Api/chat/Chat.Api.csproj"
+
+# Copy source code
+COPY ["platform/modernizationpatterns/Api/chat/", "platform/modernizationpatterns/Api/chat/"]
+
+# Build and publish
+RUN dotnet publish "platform/modernizationpatterns/Api/chat/Chat.Api.csproj" \
+    -c Release \
+    -o /app/publish \
+    --no-restore
+
+# =============================================================================
+# Runtime stage
+# =============================================================================
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+
+WORKDIR /app
+
+# Create non-root user for security
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
+# Copy published application
+COPY --from=build /app/publish .
+
+# Set ownership
+RUN chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
+
+# Expose HTTP port (Container Apps standard)
+EXPOSE 8080
+
+# Environment variables (overridden by Container Apps config)
+ENV ASPNETCORE_URLS=http://+:8080
+ENV ASPNETCORE_ENVIRONMENT=Production
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
+
+# Entry point
+ENTRYPOINT ["dotnet", "Chat.Api.dll"]

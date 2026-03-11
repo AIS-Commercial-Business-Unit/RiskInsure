@@ -1,0 +1,67 @@
+# =============================================================================
+# Dockerfile for Modernization Patterns Reindex Worker
+# Multi-stage build for optimized production image
+# =============================================================================
+
+# Build stage
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+
+WORKDIR /src
+
+# Copy solution and package management files
+COPY ["RiskInsure.slnx", "."]
+COPY ["Directory.Build.props", "."]
+COPY ["Directory.Packages.props", "."]
+COPY ["GlobalUsings.cs", "."]
+
+# Copy project files for restore
+COPY ["platform/modernizationpatterns/Api/reindex/Reindex.Endpoint.In.csproj", "platform/modernizationpatterns/Api/reindex/"]
+
+# Restore dependencies
+RUN dotnet restore "platform/modernizationpatterns/Api/reindex/Reindex.Endpoint.In.csproj"
+
+# Copy source code (includes content folder for pattern files)
+COPY ["platform/modernizationpatterns/Api/reindex/", "platform/modernizationpatterns/Api/reindex/"]
+COPY ["platform/modernizationpatterns/content/", "platform/modernizationpatterns/content/"]
+
+# Build and publish
+RUN dotnet publish "platform/modernizationpatterns/Api/reindex/Reindex.Endpoint.In.csproj" \
+    -c Release \
+    -o /app/publish \
+    --no-restore
+
+# Copy content folder to publish output
+RUN cp -r platform/modernizationpatterns/content /app/publish/content
+
+# =============================================================================
+# Runtime stage
+# =============================================================================
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+
+WORKDIR /app
+
+# Create non-root user for security
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
+# Copy published application
+COPY --from=build /app/publish .
+
+# Set ownership
+RUN chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
+
+# Expose HTTP port (Container Apps standard)
+EXPOSE 8080
+
+# Environment variables (overridden by Container Apps config)
+ENV ASPNETCORE_URLS=http://+:8080
+ENV ASPNETCORE_ENVIRONMENT=Production
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
+
+# Entry point
+ENTRYPOINT ["dotnet", "Reindex.Endpoint.In.dll"]

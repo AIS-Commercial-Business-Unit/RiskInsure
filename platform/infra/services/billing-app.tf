@@ -71,6 +71,7 @@ resource "azurerm_container_app" "billing_api" {
         secret_name = "servicebus-connection-string"
       }
 
+
       env {
         name  = "Messaging__MessageBroker"
         value = "AzureServiceBus"

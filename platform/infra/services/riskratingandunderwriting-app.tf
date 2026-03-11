@@ -2,7 +2,7 @@
 # Risk Rating & Underwriting API (HTTP REST)
 # ==========================================================================
 
-resource "azurerm_container_app" "riskratingandunderwriting_api" {
+resource "azurerm_container_app" "rru_api" {
   name                         = "rru-api"
   container_app_environment_id = azurerm_container_app_environment.riskinsure.id
   resource_group_name          = data.terraform_remote_state.foundation.outputs.resource_group_name
@@ -112,7 +112,7 @@ resource "azurerm_container_app" "riskratingandunderwriting_api" {
 # Risk Rating & Underwriting Endpoint (NServiceBus)
 # ==========================================================================
 
-resource "azurerm_container_app" "riskratingandunderwriting_endpoint" {
+resource "azurerm_container_app" "rru_endpoint" {
   name                         = "rru-endpoint"
   container_app_environment_id = azurerm_container_app_environment.riskinsure.id
   resource_group_name          = data.terraform_remote_state.foundation.outputs.resource_group_name

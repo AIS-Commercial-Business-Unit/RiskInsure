@@ -15,6 +15,7 @@ on:
     paths:
       - 'services/**'
       - 'platform/RiskInsure.PublicContracts/**'
+      - 'platform/modernizationpatterns/Api/**'
       - '.github/workflows/ci-build-services.yml'
   workflow_dispatch:
     inputs:
@@ -62,9 +63,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          ALL_SERVICES='["billing","customer","customerrelationshipsmgt","fundstransfermgt","policy","policylifecyclemgt","policyequityandinvoicingmgt","ratingandunderwriting","riskratingandunderwriting"]'
+          ALL_SERVICES='["billing","customer","customerrelationshipsmgt","fundstransfermgt","modernizationpatterns","policy","policylifecyclemgt","policyequityandinvoicingmgt","ratingandunderwriting","riskratingandunderwriting"]'
           echo "image_tag=${{ github.sha }}" >> "$GITHUB_OUTPUT"
-
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             if [[ "${{ github.event.inputs.services }}" == "all" ]]; then
               echo "services=$ALL_SERVICES" >> "$GITHUB_OUTPUT"
@@ -120,6 +120,11 @@ jobs:
             fi
           done
 
+          # Check for modernizationpatterns changes (different path)
+          if echo "$changed_files" | grep -q "^platform/modernizationpatterns/Api/"; then
+            changed_services+=("\"modernizationpatterns\"")
+          fi
+
           if [[ ${#changed_services[@]} -eq 0 ]]; then
             echo "services=[]" >> "$GITHUB_OUTPUT"
             echo "matrix_empty=true" >> "$GITHUB_OUTPUT"
@@ -144,6 +149,7 @@ jobs:
   # Purpose: Build, tag, and push Docker images for each service in the
   # matrix. Uses the `image_tag` determined above and pushes both SHA and
   # latest tags to ACR.
+  # test comment to kick off build
   # --------------------------------------------------------------------------
   build:
     name: 'Build: ${{ matrix.service }}'
@@ -179,6 +185,7 @@ jobs:
           # Default: service directory and image name match the service name
           SERVICE_DIR="services/$SERVICE"
           IMAGE_NAME="$SERVICE"
+          BUILD_TYPE="standard"
 
           # Exceptions: services with shortened image names (must match Terraform resource names)
           if [[ "$SERVICE" == "customerrelationshipsmgt" ]]; then
@@ -187,26 +194,44 @@ jobs:
             IMAGE_NAME="peimgt"
           elif [[ "$SERVICE" == "riskratingandunderwriting" ]]; then
             IMAGE_NAME="rru"
+          elif [[ "$SERVICE" == "modernizationpatterns" ]]; then
+            SERVICE_DIR="platform/modernizationpatterns"
+            BUILD_TYPE="modernizationpatterns"
           fi
 
           echo "service_dir=$SERVICE_DIR" >> "$GITHUB_OUTPUT"
           echo "image_name=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
+          echo "build_type=$BUILD_TYPE" >> "$GITHUB_OUTPUT"
 
       - name: Restore Dependencies
         shell: bash
         run: |
           set -euo pipefail
           SERVICE_DIR="${{ steps.map.outputs.service_dir }}"
-          dotnet restore "$SERVICE_DIR/src/Api"
-          dotnet restore "$SERVICE_DIR/src/Endpoint.In"
+          BUILD_TYPE="${{ steps.map.outputs.build_type }}"
+
+          if [ "$BUILD_TYPE" = "modernizationpatterns" ]; then
+            dotnet restore "$SERVICE_DIR/Api/chat"
+            dotnet restore "$SERVICE_DIR/Api/reindex"
+          else
+            dotnet restore "$SERVICE_DIR/src/Api"
+            dotnet restore "$SERVICE_DIR/src/Endpoint.In"
+          fi
 
       - name: Build .NET Projects
         shell: bash
         run: |
           set -euo pipefail
           SERVICE_DIR="${{ steps.map.outputs.service_dir }}"
-          dotnet build "$SERVICE_DIR/src/Api" --configuration Release --no-restore
-          dotnet build "$SERVICE_DIR/src/Endpoint.In" --configuration Release --no-restore
+          BUILD_TYPE="${{ steps.map.outputs.build_type }}"
+
+          if [ "$BUILD_TYPE" = "modernizationpatterns" ]; then
+            dotnet build "$SERVICE_DIR/Api/chat" --configuration Release --no-restore
+            dotnet build "$SERVICE_DIR/Api/reindex" --configuration Release --no-restore
+          else
+            dotnet build "$SERVICE_DIR/src/Api" --configuration Release --no-restore
+            dotnet build "$SERVICE_DIR/src/Endpoint.In" --configuration Release --no-restore
+          fi
 
       - name: Azure Login
         uses: azure/login@v2
@@ -227,13 +252,21 @@ jobs:
         run: |
           set -euo pipefail
           IMAGE_NAME="${{ steps.map.outputs.image_name }}"
+          BUILD_TYPE="${{ steps.map.outputs.build_type }}"
           FULL_SHA="${{ needs.determine-services.outputs.image_tag }}"
 
-          echo "api_image_sha=${{ env.REGISTRY }}/${IMAGE_NAME}-api:$FULL_SHA" >> "$GITHUB_OUTPUT"
-          echo "api_image_latest=${{ env.REGISTRY }}/${IMAGE_NAME}-api:latest" >> "$GITHUB_OUTPUT"
-
-          echo "endpoint_image_sha=${{ env.REGISTRY }}/${IMAGE_NAME}-endpoint:$FULL_SHA" >> "$GITHUB_OUTPUT"
-          echo "endpoint_image_latest=${{ env.REGISTRY }}/${IMAGE_NAME}-endpoint:latest" >> "$GITHUB_OUTPUT"
+          if [ "$BUILD_TYPE" = "modernizationpatterns" ]; then
+            # Modernization patterns uses chat-api and reindex instead of api/endpoint
+            echo "api_image_sha=${{ env.REGISTRY }}/${IMAGE_NAME}-chat-api:$FULL_SHA" >> "$GITHUB_OUTPUT"
+            echo "api_image_latest=${{ env.REGISTRY }}/${IMAGE_NAME}-chat-api:latest" >> "$GITHUB_OUTPUT"
+            echo "endpoint_image_sha=${{ env.REGISTRY }}/${IMAGE_NAME}-reindex:$FULL_SHA" >> "$GITHUB_OUTPUT"
+            echo "endpoint_image_latest=${{ env.REGISTRY }}/${IMAGE_NAME}-reindex:latest" >> "$GITHUB_OUTPUT"
+          else
+            echo "api_image_sha=${{ env.REGISTRY }}/${IMAGE_NAME}-api:$FULL_SHA" >> "$GITHUB_OUTPUT"
+            echo "api_image_latest=${{ env.REGISTRY }}/${IMAGE_NAME}-api:latest" >> "$GITHUB_OUTPUT"
+            echo "endpoint_image_sha=${{ env.REGISTRY }}/${IMAGE_NAME}-endpoint:$FULL_SHA" >> "$GITHUB_OUTPUT"
+            echo "endpoint_image_latest=${{ env.REGISTRY }}/${IMAGE_NAME}-endpoint:latest" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Build API Image
         shell: bash
@@ -241,13 +274,23 @@ jobs:
           set -euo pipefail
           SERVICE="${{ matrix.service }}"
           SERVICE_DIR="${{ steps.map.outputs.service_dir }}"
+          BUILD_TYPE="${{ steps.map.outputs.build_type }}"
 
-          docker build \
-            -f "$SERVICE_DIR/src/Api/Dockerfile" \
-            -t "${{ steps.tags.outputs.api_image_sha }}" \
-            -t "${{ steps.tags.outputs.api_image_latest }}" \
-            --build-arg SERVICE_NAME="$SERVICE" \
-            .
+          if [ "$BUILD_TYPE" = "modernizationpatterns" ]; then
+            # Chat API uses Dockerfile.chat-api at project root
+            docker build \
+              -f "$SERVICE_DIR/Dockerfile.chat-api" \
+              -t "${{ steps.tags.outputs.api_image_sha }}" \
+              -t "${{ steps.tags.outputs.api_image_latest }}" \
+              .
+          else
+            docker build \
+              -f "$SERVICE_DIR/src/Api/Dockerfile" \
+              -t "${{ steps.tags.outputs.api_image_sha }}" \
+              -t "${{ steps.tags.outputs.api_image_latest }}" \
+              --build-arg SERVICE_NAME="$SERVICE" \
+              .
+          fi
 
       - name: Build Endpoint Image
         shell: bash
@@ -255,13 +298,23 @@ jobs:
           set -euo pipefail
           SERVICE="${{ matrix.service }}"
           SERVICE_DIR="${{ steps.map.outputs.service_dir }}"
+          BUILD_TYPE="${{ steps.map.outputs.build_type }}"
 
-          docker build \
-            -f "$SERVICE_DIR/src/Endpoint.In/Dockerfile" \
-            -t "${{ steps.tags.outputs.endpoint_image_sha }}" \
-            -t "${{ steps.tags.outputs.endpoint_image_latest }}" \
-            --build-arg SERVICE_NAME="$SERVICE" \
-            .
+          if [ "$BUILD_TYPE" = "modernizationpatterns" ]; then
+            # Reindex uses Dockerfile.reindex-worker at project root
+            docker build \
+              -f "$SERVICE_DIR/Dockerfile.reindex-worker" \
+              -t "${{ steps.tags.outputs.endpoint_image_sha }}" \
+              -t "${{ steps.tags.outputs.endpoint_image_latest }}" \
+              .
+          else
+            docker build \
+              -f "$SERVICE_DIR/src/Endpoint.In/Dockerfile" \
+              -t "${{ steps.tags.outputs.endpoint_image_sha }}" \
+              -t "${{ steps.tags.outputs.endpoint_image_latest }}" \
+              --build-arg SERVICE_NAME="$SERVICE" \
+              .
+          fi
 
       - name: Push Images to ACR
         shell: bash

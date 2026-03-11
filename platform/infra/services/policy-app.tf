@@ -81,13 +81,13 @@ resource "azurerm_container_app" "policy_api" {
       }
 
       env {
-        name  = "Messaging__MessageBroker"
-        value = "AzureServiceBus"
+        name  = "APPLICATIONINSIGHTS_CONNECTION_STRING"
+        value = data.terraform_remote_state.foundation.outputs.application_insights_connection_string
       }
 
       env {
-        name  = "APPLICATIONINSIGHTS_CONNECTION_STRING"
-        value = data.terraform_remote_state.foundation.outputs.application_insights_connection_string
+        name = "Messaging__MessageBroker"
+        value = "AzureServiceBus"
       }
 
     }
@@ -186,15 +186,15 @@ resource "azurerm_container_app" "policy_endpoint" {
       }
 
       env {
-        name  = "Messaging__MessageBroker"
-        value = "AzureServiceBus"
-      }
-
-      env {
         name  = "APPLICATIONINSIGHTS_CONNECTION_STRING"
         value = data.terraform_remote_state.foundation.outputs.application_insights_connection_string
       }
- 
+
+      env {
+        name = "Messaging__MessageBroker"
+        value = "AzureServiceBus"
+      }
+
     }
 
   }
