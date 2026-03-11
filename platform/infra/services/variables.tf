@@ -319,6 +319,64 @@ variable "services" {
 }
 
 # ==========================================================================
+# Modernization Patterns Configuration
+# ==========================================================================
+
+variable "modernizationpatterns_chat_api" {
+  description = "Configuration for Modernization Patterns Chat API"
+  type = object({
+    enabled      = bool
+    cpu          = number
+    memory       = string
+    min_replicas = number
+    max_replicas = number
+  })
+  default = {
+    enabled      = true
+    cpu          = 0.5
+    memory       = "1Gi"
+    min_replicas = 1
+    max_replicas = 5
+  }
+}
+
+variable "modernizationpatterns_reindex_worker" {
+  description = "Configuration for Modernization Patterns Reindex Worker"
+  type = object({
+    enabled      = bool
+    cpu          = number
+    memory       = string
+    min_replicas = number
+    max_replicas = number
+  })
+  default = {
+    enabled      = true
+    cpu          = 1.0
+    memory       = "2Gi"
+    min_replicas = 0  # Scale to zero when not indexing
+    max_replicas = 2
+  }
+}
+
+variable "modernizationpatterns_search_index_name" {
+  description = "Azure AI Search index name for modernization patterns"
+  type        = string
+  default     = "modernization-patterns"
+}
+
+variable "modernizationpatterns_chat_deployment" {
+  description = "Azure OpenAI deployment name for chat completions (e.g., gpt-4o)"
+  type        = string
+  default     = "gpt-4o"
+}
+
+variable "modernizationpatterns_embedding_deployment" {
+  description = "Azure OpenAI deployment name for embeddings (e.g., text-embedding-3-large)"
+  type        = string
+  default     = "text-embedding-3-large"
+}
+
+# ==========================================================================
 # Authentication & Authorization
 # ==========================================================================
 

@@ -1,0 +1,23 @@
+{
+  "ConnectionStrings": {
+    "CosmosDb": "AccountEndpoint=https://localhost:8081/;AccountKey=C2y6yDjf5/D+4vIrQnrC1+gXK9YdJFAqkZDyqkJQW8=..."
+  },
+  "CosmosDb": {
+    "DatabaseName": "modernization-patterns-db"
+  },
+  "AzureOpenAI": {
+    "Endpoint": "https://<your-resource>.openai.azure.com/",
+    "ApiKey": "your-api-key-here",
+    "DeploymentName": "text-embedding-3-large"
+  },
+  "AzureSearch": {
+    "Endpoint": "https://<your-search>.search.windows.net/",
+    "ApiKey": "your-search-key-here",
+    "IndexName": "modernization-patterns"
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information"
+    }
+  }
+}
