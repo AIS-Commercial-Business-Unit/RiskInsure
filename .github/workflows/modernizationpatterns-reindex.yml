@@ -168,24 +168,34 @@ jobs:
           echo "Clean mode: ${CLEAN}"
           echo ""
 
-          # Health check - container may be scaled to zero, wait for it to wake up
-          echo "🏥 Checking container health (may take up to 2 minutes if scaled to zero)..."
-          MAX_HEALTH_ATTEMPTS=12
+          # Wake up container - may be scaled to zero, wait for it
+          # Container Apps can return 404/502/503 while waking up from scale-to-zero
+          echo "🏥 Waking up container (may take up to 3 minutes if scaled to zero)..."
+          MAX_HEALTH_ATTEMPTS=18
           HEALTH_WAIT=10
+          CONTAINER_READY=false
           for i in $(seq 1 $MAX_HEALTH_ATTEMPTS); do
-            HEALTH_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_ENDPOINT" --connect-timeout 10 --max-time 15 2>/dev/null || echo "000")
+            HEALTH_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_ENDPOINT" --connect-timeout 15 --max-time 20 2>/dev/null || echo "000")
+
             if [ "$HEALTH_RESPONSE" == "200" ]; then
               echo "✅ Container is healthy (attempt $i)"
+              CONTAINER_READY=true
               break
+            elif [ "$HEALTH_RESPONSE" == "404" ] || [ "$HEALTH_RESPONSE" == "502" ] || [ "$HEALTH_RESPONSE" == "503" ]; then
+              # Container is starting up - 404/502/503 are normal during cold start
+              echo "⏳ Container waking up (HTTP $HEALTH_RESPONSE), waiting ${HEALTH_WAIT}s... (attempt $i/$MAX_HEALTH_ATTEMPTS)"
+            elif [ "$HEALTH_RESPONSE" == "000" ]; then
+              echo "⏳ Connection failed, container may be starting... (attempt $i/$MAX_HEALTH_ATTEMPTS)"
             else
-              echo "⏳ Container not ready (HTTP $HEALTH_RESPONSE), waiting ${HEALTH_WAIT}s... (attempt $i/$MAX_HEALTH_ATTEMPTS)"
-              if [ $i -eq $MAX_HEALTH_ATTEMPTS ]; then
-                echo "❌ Container failed to become healthy after $(($MAX_HEALTH_ATTEMPTS * $HEALTH_WAIT)) seconds"
-                exit 1
-              fi
-              sleep $HEALTH_WAIT
+              echo "⏳ Unexpected response (HTTP $HEALTH_RESPONSE), waiting... (attempt $i/$MAX_HEALTH_ATTEMPTS)"
             fi
+
+            sleep $HEALTH_WAIT
           done
+
+          if [ "$CONTAINER_READY" != "true" ]; then
+            echo "⚠️ Container health check timed out, but proceeding with API call anyway..."
+          fi
 
           if [ "${CLEAN}" == "true" ]; then
             echo "⚠️  Using FULL CLEAN REINDEX (deletions detected)"
@@ -204,8 +214,8 @@ jobs:
           echo ""
           echo "📤 Sending reindex request with retry logic (timeout: 300s)..."
 
-          # Retry logic for transient failures (502/503/504)
-          MAX_ATTEMPTS=3
+          # Retry logic for transient failures (404/502/503/504 - container may still be waking)
+          MAX_ATTEMPTS=5
           RETRY_WAIT=30
           for attempt in $(seq 1 $MAX_ATTEMPTS); do
             echo "Attempt $attempt/$MAX_ATTEMPTS..."
@@ -236,8 +246,8 @@ jobs:
               exit 0
             fi
 
-            # Transient failures - retry
-            if [ "$HTTP_CODE" == "502" ] || [ "$HTTP_CODE" == "503" ] || [ "$HTTP_CODE" == "504" ] || [ "$HTTP_CODE" == "000" ]; then
+            # Transient failures - retry (including 404 for cold start scenarios)
+            if [ "$HTTP_CODE" == "404" ] || [ "$HTTP_CODE" == "502" ] || [ "$HTTP_CODE" == "503" ] || [ "$HTTP_CODE" == "504" ] || [ "$HTTP_CODE" == "000" ]; then
               echo "⚠️ Transient failure (HTTP $HTTP_CODE), retrying in ${RETRY_WAIT}s..."
               if [ $attempt -lt $MAX_ATTEMPTS ]; then
                 sleep $RETRY_WAIT
