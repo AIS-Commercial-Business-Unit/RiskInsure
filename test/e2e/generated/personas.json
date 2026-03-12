@@ -1,0 +1,172 @@
+[
+  {
+    "service": "billing",
+    "sourceDocs": [
+      "services/billing/docs/business/billing-account.md",
+      "services/billing/docs/business/billing-payment.md",
+      "services/billing/docs/business/multi-policy-billing.md",
+      "services/billing/docs/technical/highlevel-tech.md",
+      "services/billing/docs/technical/multi-policy-billing-technical-spec.md"
+    ],
+    "scenarios": [
+      "api-health-endpoint",
+      "quote-to-policy-binding",
+      "lifecycle-status-visibility"
+    ],
+    "goals": [
+      "Verify policy issuance prerequisites and bound state handoff.",
+      "Verify cancellation and billing refund triggers are visible to APIs.",
+      "Verify customer identity data can be created and retrieved."
+    ]
+  },
+  {
+    "service": "customer",
+    "sourceDocs": [
+      "services/customer/docs/business/customer-management.md",
+      "services/customer/docs/technical/customer-technical-spec.md"
+    ],
+    "scenarios": [
+      "api-health-endpoint",
+      "customer-create-and-read"
+    ],
+    "goals": [
+      "Verify customer identity data can be created and retrieved."
+    ]
+  },
+  {
+    "service": "customerrelationshipsmgt",
+    "sourceDocs": [
+      "services/customerrelationshipsmgt/docs/business/relationship-management.md",
+      "services/customerrelationshipsmgt/docs/technical/relationship-technical-spec.md"
+    ],
+    "scenarios": [
+      "api-health-endpoint"
+    ],
+    "goals": [
+      "Verify customer identity data can be created and retrieved."
+    ]
+  },
+  {
+    "service": "fundstransfermgt",
+    "sourceDocs": [
+      "services/fundstransfermgt/docs/business/domain-context.md",
+      "services/fundstransfermgt/docs/business/fund-transfers.md",
+      "services/fundstransfermgt/docs/business/payment-methods.md",
+      "services/fundstransfermgt/docs/technical/fund-transfers-tech.md",
+      "services/fundstransfermgt/docs/technical/highlevel-tech.md",
+      "services/fundstransfermgt/docs/technical/payment-methods-tech.md"
+    ],
+    "scenarios": [
+      "api-health-endpoint",
+      "lifecycle-status-visibility"
+    ],
+    "goals": [
+      "Verify policy issuance prerequisites and bound state handoff.",
+      "Verify cancellation and billing refund triggers are visible to APIs.",
+      "Verify customer identity data can be created and retrieved."
+    ]
+  },
+  {
+    "service": "policy",
+    "sourceDocs": [
+      "services/policy/docs/business/policy-management.md",
+      "services/policy/docs/technical/policy-technical-spec.md"
+    ],
+    "scenarios": [
+      "api-health-endpoint",
+      "quote-to-policy-binding",
+      "lifecycle-status-visibility"
+    ],
+    "goals": [
+      "Verify policy issuance prerequisites and bound state handoff.",
+      "Verify cancellation and billing refund triggers are visible to APIs.",
+      "Verify customer identity data can be created and retrieved."
+    ]
+  },
+  {
+    "service": "policyequityandinvoicingmgt",
+    "sourceDocs": [
+      "services/policyequityandinvoicingmgt/docs/business/billing-account.md",
+      "services/policyequityandinvoicingmgt/docs/business/billing-payment.md",
+      "services/policyequityandinvoicingmgt/docs/business/multi-policy-billing.md",
+      "services/policyequityandinvoicingmgt/docs/technical/highlevel-tech.md",
+      "services/policyequityandinvoicingmgt/docs/technical/multi-policy-billing-technical-spec.md"
+    ],
+    "scenarios": [
+      "api-health-endpoint",
+      "quote-to-policy-binding",
+      "lifecycle-status-visibility"
+    ],
+    "goals": [
+      "Verify policy issuance prerequisites and bound state handoff.",
+      "Verify cancellation and billing refund triggers are visible to APIs.",
+      "Verify customer identity data can be created and retrieved."
+    ]
+  },
+  {
+    "service": "policylifecyclemgt",
+    "sourceDocs": [
+      "services/policylifecyclemgt/docs/business/lifecycle-management.md",
+      "services/policylifecyclemgt/docs/technical/cutover-plan.md",
+      "services/policylifecyclemgt/docs/technical/lifecycle-technical-spec.md",
+      "services/policylifecyclemgt/docs/technical/transition-integration.md"
+    ],
+    "scenarios": [
+      "api-health-endpoint",
+      "quote-to-policy-binding",
+      "lifecycle-status-visibility"
+    ],
+    "goals": [
+      "Verify policy issuance prerequisites and bound state handoff.",
+      "Verify cancellation and billing refund triggers are visible to APIs.",
+      "Verify customer identity data can be created and retrieved."
+    ]
+  },
+  {
+    "service": "premium",
+    "sourceDocs": [
+      "services/premium/docs/business/premium-management.md",
+      "services/premium/docs/technical/premium-technical-spec.md"
+    ],
+    "scenarios": [
+      "api-health-endpoint",
+      "quote-to-policy-binding",
+      "lifecycle-status-visibility"
+    ],
+    "goals": [
+      "Verify policy issuance prerequisites and bound state handoff.",
+      "Verify cancellation and billing refund triggers are visible to APIs.",
+      "Verify customer identity data can be created and retrieved."
+    ]
+  },
+  {
+    "service": "ratingandunderwriting",
+    "sourceDocs": [
+      "services/ratingandunderwriting/docs/business/rating-underwriting.md",
+      "services/ratingandunderwriting/docs/technical/rating-underwriting-technical-spec.md"
+    ],
+    "scenarios": [
+      "api-health-endpoint",
+      "quote-to-policy-binding",
+      "lifecycle-status-visibility"
+    ],
+    "goals": [
+      "Verify customer identity data can be created and retrieved."
+    ]
+  },
+  {
+    "service": "riskratingandunderwriting",
+    "sourceDocs": [
+      "services/riskratingandunderwriting/docs/business/rating-underwriting.md",
+      "services/riskratingandunderwriting/docs/technical/rating-underwriting-technical-spec.md"
+    ],
+    "scenarios": [
+      "api-health-endpoint",
+      "quote-to-policy-binding",
+      "lifecycle-status-visibility"
+    ],
+    "goals": [
+      "Verify customer identity data can be created and retrieved."
+    ]
+  }
+]
