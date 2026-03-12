@@ -41,7 +41,8 @@ jobs:
   # --------------------------------------------------------------------------
   # Determine Services
   # Purpose: Inspect the commit to decide which services changed and set
-  # outputs: `services`, `matrix_empty`, and `image_tag` for downstream jobs.
+  # outputs: `services`, `matrix_empty`, `image_tag`, and `trigger_reason`
+  # for downstream CD jobs.
   # --------------------------------------------------------------------------
   determine-services:
     name: 'Determine Services'
@@ -50,6 +51,7 @@ jobs:
       services: ${{ steps.determine.outputs.services }}
       matrix_empty: ${{ steps.determine.outputs.matrix_empty }}
       image_tag: ${{ steps.determine.outputs.image_tag }}
+      trigger_reason: ${{ steps.determine.outputs.trigger_reason }}
 
     steps:
       - name: Checkout
@@ -63,17 +65,22 @@ jobs:
         run: |
           set -euo pipefail
 
-          ALL_SERVICES='["billing","customer","customerrelationshipsmgt","fundstransfermgt","modernizationpatterns","policy","policylifecyclemgt","policyequityandinvoicingmgt","ratingandunderwriting","riskratingandunderwriting"]'
+          source .github/scripts/managed-services.sh
+
+          ALL_SERVICES="$(managed_services_json)"
           echo "image_tag=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            if [[ "${{ github.event.inputs.services }}" == "all" ]]; then
-              echo "services=$ALL_SERVICES" >> "$GITHUB_OUTPUT"
-              echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
+            services_input="${{ github.event.inputs.services }}"
+            normalized_input=$(echo "$services_input" | tr '[:upper:]' '[:lower:]')
+            services_json="$(parse_dispatch_services_input "$services_input")"
+
+            echo "services=$services_json" >> "$GITHUB_OUTPUT"
+            echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
+            if [[ "$normalized_input" == "all" ]]; then
+              echo "trigger_reason=manual-all-services" >> "$GITHUB_OUTPUT"
             else
-              services_input="${{ github.event.inputs.services }}"
-              services_json=$(echo "$services_input" | jq -R -s -c 'split(",") | map(gsub("^\\s+|\\s+$";"")) | map(select(length > 0))')
-              echo "services=$services_json" >> "$GITHUB_OUTPUT"
-              echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
+              echo "trigger_reason=manual-selected-services" >> "$GITHUB_OUTPUT"
             fi
             exit 0
           fi
@@ -96,6 +103,7 @@ jobs:
           if [[ -z "$changed_files" ]]; then
             echo "services=[]" >> "$GITHUB_OUTPUT"
             echo "matrix_empty=true" >> "$GITHUB_OUTPUT"
+            echo "trigger_reason=no-changed-files" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -103,6 +111,7 @@ jobs:
           if echo "$changed_files" | grep -q '^\.github/workflows/ci-build-services\.yml$'; then
             echo "services=$ALL_SERVICES" >> "$GITHUB_OUTPUT"
             echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
+            echo "trigger_reason=ci-workflow-changed" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -110,28 +119,21 @@ jobs:
           if echo "$changed_files" | grep -q '^platform/RiskInsure\.PublicContracts/'; then
             echo "services=$ALL_SERVICES" >> "$GITHUB_OUTPUT"
             echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
+            echo "trigger_reason=public-contracts-changed" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          changed_services=()
-          for service in billing customer customerrelationshipsmgt fundstransfermgt policy policylifecyclemgt policyequityandinvoicingmgt ratingandunderwriting riskratingandunderwriting; do
-            if echo "$changed_files" | grep -q "^services/$service/"; then
-              changed_services+=("\"$service\"")
-            fi
-          done
+          services_json="$(detect_services_from_changed_files "$changed_files")"
+          service_count="$(echo "$services_json" | jq -r 'length')"
 
-          # Check for modernizationpatterns changes (different path)
-          if echo "$changed_files" | grep -q "^platform/modernizationpatterns/Api/"; then
-            changed_services+=("\"modernizationpatterns\"")
-          fi
-
-          if [[ ${#changed_services[@]} -eq 0 ]]; then
+          if [[ "$service_count" -eq 0 ]]; then
             echo "services=[]" >> "$GITHUB_OUTPUT"
             echo "matrix_empty=true" >> "$GITHUB_OUTPUT"
+            echo "trigger_reason=no-managed-service-changes" >> "$GITHUB_OUTPUT"
           else
-            services_json="[$(IFS=,; echo "${changed_services[*]}")]"
             echo "services=$services_json" >> "$GITHUB_OUTPUT"
             echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
+            echo "trigger_reason=service-path-changes" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Summary
@@ -143,6 +145,8 @@ jobs:
           echo "**Commit:** \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "**Image tag:** \`${{ steps.determine.outputs.image_tag }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "**Services:** \`${{ steps.determine.outputs.services }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Matrix empty:** \`${{ steps.determine.outputs.matrix_empty }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Trigger reason:** \`${{ steps.determine.outputs.trigger_reason }}\`" >> "$GITHUB_STEP_SUMMARY"
 
   # --------------------------------------------------------------------------
   # Build
@@ -371,7 +375,8 @@ jobs:
           {
             "image_tag": "${{ needs.determine-services.outputs.image_tag }}",
             "services": ${{ needs.determine-services.outputs.services }},
-            "matrix_empty": ${{ needs.determine-services.outputs.matrix_empty }}
+            "matrix_empty": ${{ needs.determine-services.outputs.matrix_empty }},
+            "trigger_reason": "${{ needs.determine-services.outputs.trigger_reason }}"
           }
           EOF
 
@@ -404,5 +409,7 @@ jobs:
           echo "**Commit:** \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "**Image tag:** \`${{ needs.determine-services.outputs.image_tag }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "**Services:** \`${{ needs.determine-services.outputs.services }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Matrix empty:** \`${{ needs.determine-services.outputs.matrix_empty }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Trigger reason:** \`${{ needs.determine-services.outputs.trigger_reason }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "**Build result:** \`${{ needs.build.result }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "**Metadata artifact:** \`${{ needs.publish-cd-metadata.result }}\`" >> "$GITHUB_STEP_SUMMARY"
