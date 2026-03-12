@@ -1,6 +1,7 @@
 namespace RiskInsure.Modernization.Reindex.Services;
 
 using Microsoft.Extensions.Logging;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
@@ -18,6 +19,12 @@ public interface IChunkingService
     /// Each chunk includes the pattern title/category as context so it makes sense standalone.
     /// </summary>
     List<PatternChunk> ChunkPattern(string patternJson, string patternSlug);
+
+    /// <summary>
+    /// Takes inbox document text and returns chunks ready for embedding.
+    /// Used for markdown/text/pdf/docx content placed under content/_inbox.
+    /// </summary>
+    List<PatternChunk> ChunkInboxDocument(string documentText, string documentSlug, string sourceType);
 }
 
 public class ChunkingService : IChunkingService
@@ -309,6 +316,39 @@ public class ChunkingService : IChunkingService
         return chunks;
     }
 
+    public List<PatternChunk> ChunkInboxDocument(string documentText, string documentSlug, string sourceType)
+    {
+        var chunks = new List<PatternChunk>();
+        if (string.IsNullOrWhiteSpace(documentText))
+        {
+            return chunks;
+        }
+
+        var safeSlug = string.IsNullOrWhiteSpace(documentSlug) ? "inbox-document" : documentSlug;
+        var title = safeSlug.Replace('-', ' ').Replace('_', ' ');
+        var splitChunks = SplitTextIntoChunks(documentText, TargetChunkTokens, OverlapTokens);
+
+        for (var i = 0; i < splitChunks.Count; i++)
+        {
+            chunks.Add(new PatternChunk
+            {
+                Id = ToSafeChunkId($"inbox_{safeSlug}_{i}"),
+                PatternSlug = $"inbox-{safeSlug}",
+                Title = title,
+                Category = "inbox",
+                ChunkType = $"inbox-{sourceType}",
+                Content = $"# {title}\nCategory: inbox\nSourceType: {sourceType}\n\n{splitChunks[i]}",
+                ChunkIndex = i
+            });
+        }
+
+        _logger.LogInformation(
+            "Chunked inbox document {DocumentSlug}: {ChunkCount} chunks produced",
+            safeSlug, chunks.Count);
+
+        return chunks;
+    }
+
     /// <summary>
     /// Splits long text into overlapping chunks by sentence boundaries.
     /// Overlap ensures context isn't lost at chunk boundaries.
@@ -411,6 +451,50 @@ public class ChunkingService : IChunkingService
                 sb.AppendLine($"- {item.GetString()}");
             }
         }
+    }
+
+    private static string ToSafeChunkId(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return "chunk_0";
+        }
+
+        var normalized = value.ToLowerInvariant();
+        var cleaned = new StringBuilder(normalized.Length);
+
+        foreach (var ch in normalized)
+        {
+            if (char.IsLetterOrDigit(ch) || ch is '_' or '-' or '=')
+            {
+                cleaned.Append(ch);
+            }
+            else
+            {
+                cleaned.Append('_');
+            }
+        }
+
+        var collapsed = cleaned.ToString().Trim('_');
+        while (collapsed.Contains("__", StringComparison.Ordinal))
+        {
+            collapsed = collapsed.Replace("__", "_", StringComparison.Ordinal);
+        }
+
+        if (string.IsNullOrWhiteSpace(collapsed))
+        {
+            collapsed = "chunk";
+        }
+
+        if (collapsed.Length <= 120)
+        {
+            return collapsed;
+        }
+
+        var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(value));
+        var hash = Convert.ToHexString(hashBytes[..8]).ToLowerInvariant();
+        var prefix = collapsed[..Math.Min(96, collapsed.Length)].TrimEnd('_');
+        return $"{prefix}_{hash}";
     }
 }
 
