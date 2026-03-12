@@ -47,9 +47,9 @@ jobs:
               exit 1
             fi
 
-            # Check required fields
-            if ! jq -e '.slug and .title and .description' "$file" > /dev/null; then
-              echo "❌ Missing required fields in: $file"
+            # Check required fields (slug, title, summary)
+            if ! jq -e '.slug and .title and .summary' "$file" > /dev/null; then
+              echo "❌ Missing required fields (slug, title, summary) in: $file"
               exit 1
             fi
           done
@@ -61,12 +61,12 @@ jobs:
         run: |
           echo "Changed files:"
           git diff --name-only origin/main...HEAD | grep "content/patterns/" || echo "No pattern files changed"
-          
+
           # Count changes
           ADDED=$(git diff --name-status origin/main...HEAD | grep "^A.*content/patterns" | wc -l)
           MODIFIED=$(git diff --name-status origin/main...HEAD | grep "^M.*content/patterns" | wc -l)
           DELETED=$(git diff --name-status origin/main...HEAD | grep "^D.*content/patterns" | wc -l)
-          
+
           echo "ADDED=$ADDED" >> $GITHUB_OUTPUT
           echo "MODIFIED=$MODIFIED" >> $GITHUB_OUTPUT
           echo "DELETED=$DELETED" >> $GITHUB_OUTPUT
@@ -79,7 +79,7 @@ jobs:
             const added = ${{ steps.changes.outputs.ADDED || 0 }};
             const modified = ${{ steps.changes.outputs.MODIFIED || 0 }};
             const deleted = ${{ steps.changes.outputs.DELETED || 0 }};
-            
+
             const summary = `## 📋 Content Validation Results
 
             * ✅ Pattern JSON validated
@@ -88,9 +88,9 @@ jobs:
               - Added: ${added} patterns
               - Modified: ${modified} patterns
               - Deleted: ${deleted} patterns
-            
+
             When merged to main, this will automatically trigger a reindex of ${added + modified} patterns in Azure AI Search.`;
-            
+
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
