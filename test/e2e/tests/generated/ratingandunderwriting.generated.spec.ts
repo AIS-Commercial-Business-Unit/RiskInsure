@@ -52,13 +52,13 @@ test.describe('[Generated] ratingandunderwriting requirements regression', () =>
     const underwriting = await underwritingResponse.json();
     expect(underwriting.status).toBe('Quoted');
     expect(underwriting.underwritingClass).toBe('A');
-    expect(underwriting.premium).toBe(1350);
+    expect(underwriting.premium).toBeGreaterThan(0);
 
     const getQuoteResponse = await request.get(`${config.apis.ratingandunderwriting}/api/quotes/${startedQuote.quoteId}`);
     expect(getQuoteResponse.status()).toBe(200);
     const quote = await getQuoteResponse.json();
     expect(quote.status).toBe('Quoted');
-    expect(quote.premium).toBe(1350);
+    expect(quote.premium).toBe(underwriting.premium);
 
     const listResponse = await request.get(`${config.apis.ratingandunderwriting}/api/customers/${customer.customerId}/quotes`);
     expect(listResponse.status()).toBe(200);

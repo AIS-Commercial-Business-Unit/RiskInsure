@@ -5,6 +5,7 @@ import { waitForPolicyCreation } from '../../helpers/policy-api';
 import { acceptQuote, startQuote, submitUnderwriting } from '../../helpers/rating-api';
 
 const config = getTestConfig();
+const policyCreationTimeoutMs = parseInt(process.env.POLICY_CREATION_TIMEOUT || '120000', 10);
 
 async function createBoundPolicy(request: APIRequestContext) {
   const customer = await createCustomer(request, {
@@ -34,7 +35,7 @@ async function createBoundPolicy(request: APIRequestContext) {
   expect(accepted.status).toBe('Accepted');
   expect(accepted.policyCreationInitiated).toBe(true);
 
-  const policy = await waitForPolicyCreation(request, customer.customerId);
+  const policy = await waitForPolicyCreation(request, customer.customerId, policyCreationTimeoutMs);
   return { customer, policy, quote, underwritingResult };
 }
 

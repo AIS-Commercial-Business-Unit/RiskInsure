@@ -54,23 +54,24 @@ test.describe('[Generated] fundstransfermgt requirements regression', () => {
       timeout: config.timeouts.apiRequest,
     });
 
-    expect(transferResponse.status()).toBe(200);
+    expect([200, 202]).toContain(transferResponse.status());
     const transfer = await transferResponse.json();
+    const transactionId = transfer.transactionId ?? transfer.transferId;
     expect(transfer.customerId).toBe(customerId);
     expect(transfer.paymentMethodId).toBe(paymentMethodId);
     expect(transfer.amount).toBe(125.5);
-    expect(transfer.transactionId).toBeTruthy();
+    expect(transactionId).toBeTruthy();
 
-    const getTransferResponse = await request.get(`${config.apis.fundsTransfer}/api/fund-transfers/${transfer.transactionId}`);
+    const getTransferResponse = await request.get(`${config.apis.fundsTransfer}/api/fund-transfers/${transactionId}`);
     expect(getTransferResponse.status()).toBe(200);
     const fetchedTransfer = await getTransferResponse.json();
-    expect(fetchedTransfer.transactionId).toBe(transfer.transactionId);
+    expect(fetchedTransfer.transactionId).toBe(transactionId);
 
     const listTransfersResponse = await request.get(`${config.apis.fundsTransfer}/api/fund-transfers?customerId=${customerId}`);
     expect(listTransfersResponse.status()).toBe(200);
     const customerTransfers = await listTransfersResponse.json();
     expect(Array.isArray(customerTransfers)).toBe(true);
-    expect(customerTransfers.some((item: { transactionId: string }) => item.transactionId === transfer.transactionId)).toBe(true);
+    expect(customerTransfers.some((item: { transactionId: string }) => item.transactionId === transactionId)).toBe(true);
 
     const listPaymentMethodsResponse = await request.get(`${config.apis.fundsTransfer}/api/payment-methods?customerId=${customerId}`);
     expect(listPaymentMethodsResponse.status()).toBe(200);

@@ -11,7 +11,7 @@ function buildBillingAccountRequest() {
     policyNumber: `KWG-2026-${suffix.slice(-6)}`,
     policyHolderName: 'Generated Billing Customer',
     currentPremiumOwed: 1200,
-    billingCycle: 3,
+    billingCycle: 'Annual',
     effectiveDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
   };
 }
