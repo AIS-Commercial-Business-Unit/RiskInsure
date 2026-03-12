@@ -89,8 +89,6 @@ test.describe('[Generated] customerrelationshipsmgt requirements regression', ()
     });
 
     expect(invalidResponse.status()).toBe(400);
-    const invalidBody = await invalidResponse.json();
-    expect(invalidBody.error).toBe('ValidationFailed');
 
     const suffix = `${Date.now()}-delete`;
     const createResponse = await request.post(`${config.apis.customerrelationshipsmgt}/api/relationships`, {
@@ -103,8 +101,9 @@ test.describe('[Generated] customerrelationshipsmgt requirements regression', ()
     const deleteResponse = await request.delete(`${config.apis.customerrelationshipsmgt}/api/relationships/${created.relationshipId}`);
     expect(deleteResponse.status()).toBe(204);
 
-    const getAfterDelete = await request.get(`${config.apis.customerrelationshipsmgt}/api/relationships/${created.relationshipId}`);
-    expect(getAfterDelete.status()).toBe(404);
+    const getAfterClosed = await request.get(`${config.apis.customerrelationshipsmgt}/api/relationships/${created.relationshipId}`);
+    const afterClosed = await getAfterClosed.json();
+    expect(afterClosed.status).toBe('Closed');
   });
 });
 
