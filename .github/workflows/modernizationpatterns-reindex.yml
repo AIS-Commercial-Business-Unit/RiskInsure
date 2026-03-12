@@ -68,6 +68,16 @@ jobs:
     name: Trigger Reindex Pipeline
     runs-on: ubuntu-latest
     needs: [detect-changes]
+    outputs:
+      metrics: ${{ steps.reindex.outputs.metrics }}
+      trigger_type: ${{ steps.change_detection.outputs.trigger_type }}
+      patterns_indexed: ${{ steps.reindex.outputs.patterns_indexed }}
+      inbox_indexed: ${{ steps.reindex.outputs.inbox_indexed }}
+      pdf_count: ${{ steps.reindex.outputs.pdf_count }}
+      docx_count: ${{ steps.reindex.outputs.docx_count }}
+      md_count: ${{ steps.reindex.outputs.md_count }}
+      txt_count: ${{ steps.reindex.outputs.txt_count }}
+      json_count: ${{ steps.reindex.outputs.json_count }}
     if: >
       github.event_name == 'workflow_dispatch' ||
       needs.detect-changes.outputs.content_changed == 'true'
@@ -217,6 +227,15 @@ jobs:
           echo ""
           echo "📤 Sending reindex request with retry logic (timeout: 300s)..."
 
+          # Default outputs (overridden on success)
+          echo "patterns_indexed=0" >> $GITHUB_OUTPUT
+          echo "inbox_indexed=0" >> $GITHUB_OUTPUT
+          echo "pdf_count=0" >> $GITHUB_OUTPUT
+          echo "docx_count=0" >> $GITHUB_OUTPUT
+          echo "md_count=0" >> $GITHUB_OUTPUT
+          echo "txt_count=0" >> $GITHUB_OUTPUT
+          echo "json_count=0" >> $GITHUB_OUTPUT
+
           # Retry logic for transient failures (404/502/503/504 - container may still be waking)
           MAX_ATTEMPTS=5
           RETRY_WAIT=30
@@ -245,7 +264,22 @@ jobs:
               DOCS=$(echo "$BODY" | jq -r '.documentsUploaded // "N/A"' 2>/dev/null || echo "N/A")
               CHUNKS=$(echo "$BODY" | jq -r '.chunksCreated // .totalChunks // "N/A"' 2>/dev/null || echo "N/A")
               DURATION=$(echo "$BODY" | jq -r '.elapsedSeconds // .operationTimeSeconds // "N/A"' 2>/dev/null || echo "N/A")
+              PATTERNS_INDEXED=$(echo "$BODY" | jq -r '.patternsProcessed // (.patterns // [] | length) // 0' 2>/dev/null || echo "0")
+              INBOX_INDEXED=$(echo "$BODY" | jq -r '.inboxDocumentsProcessed // (.inboxDocuments // [] | length) // 0' 2>/dev/null || echo "0")
+              PDF_COUNT=$(echo "$BODY" | jq -r '(.inboxDocuments // []) | map(ascii_downcase | select(endswith(".pdf"))) | length' 2>/dev/null || echo "0")
+              DOCX_COUNT=$(echo "$BODY" | jq -r '(.inboxDocuments // []) | map(ascii_downcase | select(endswith(".docx"))) | length' 2>/dev/null || echo "0")
+              MD_COUNT=$(echo "$BODY" | jq -r '(.inboxDocuments // []) | map(ascii_downcase | select(endswith(".md") or endswith(".markdown"))) | length' 2>/dev/null || echo "0")
+              TXT_COUNT=$(echo "$BODY" | jq -r '(.inboxDocuments // []) | map(ascii_downcase | select(endswith(".txt"))) | length' 2>/dev/null || echo "0")
+              JSON_COUNT=$(echo "$BODY" | jq -r '(.inboxDocuments // []) | map(ascii_downcase | select(endswith(".json"))) | length' 2>/dev/null || echo "0")
+
               echo "metrics=📝 Documents: $DOCS, 🔗 Chunks: $CHUNKS, ⏱️ Duration: ${DURATION}s" >> $GITHUB_OUTPUT
+              echo "patterns_indexed=$PATTERNS_INDEXED" >> $GITHUB_OUTPUT
+              echo "inbox_indexed=$INBOX_INDEXED" >> $GITHUB_OUTPUT
+              echo "pdf_count=$PDF_COUNT" >> $GITHUB_OUTPUT
+              echo "docx_count=$DOCX_COUNT" >> $GITHUB_OUTPUT
+              echo "md_count=$MD_COUNT" >> $GITHUB_OUTPUT
+              echo "txt_count=$TXT_COUNT" >> $GITHUB_OUTPUT
+              echo "json_count=$JSON_COUNT" >> $GITHUB_OUTPUT
               exit 0
             fi
 
@@ -296,10 +330,21 @@ jobs:
           echo "**Result**: ${{ needs.trigger-reindex.result }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Reindex Strategy" >> $GITHUB_STEP_SUMMARY
-          echo "${{ env.TRIGGER_TYPE }}" >> $GITHUB_STEP_SUMMARY
+          echo "${{ needs.trigger-reindex.outputs.trigger_type }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Metrics" >> $GITHUB_STEP_SUMMARY
           echo "${{ needs.trigger-reindex.outputs.metrics }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Indexed Content Summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | Count |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---:|" >> $GITHUB_STEP_SUMMARY
+          echo "| Patterns Indexed | ${{ needs.trigger-reindex.outputs.patterns_indexed }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Inbox Documents Indexed | ${{ needs.trigger-reindex.outputs.inbox_indexed }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| PDF (.pdf) | ${{ needs.trigger-reindex.outputs.pdf_count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| DOCX (.docx) | ${{ needs.trigger-reindex.outputs.docx_count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Markdown (.md/.markdown) | ${{ needs.trigger-reindex.outputs.md_count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Text (.txt) | ${{ needs.trigger-reindex.outputs.txt_count }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| JSON (.json) | ${{ needs.trigger-reindex.outputs.json_count }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Why This Strategy?" >> $GITHUB_STEP_SUMMARY
           echo "- ⚡ **Incremental** (added/modified only): Fast, only updates changed documents" >> $GITHUB_STEP_SUMMARY
