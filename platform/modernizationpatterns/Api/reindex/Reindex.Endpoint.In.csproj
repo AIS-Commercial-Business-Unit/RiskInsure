@@ -22,6 +22,10 @@
     <!-- Logging -->
     <PackageReference Include="Serilog.AspNetCore" />
     <PackageReference Include="Serilog.Sinks.Console" />
+
+    <!-- Document extraction for content/_inbox ingestion -->
+    <PackageReference Include="DocumentFormat.OpenXml" />
+    <PackageReference Include="UglyToad.PdfPig" />
   </ItemGroup>
 
 </Project>
