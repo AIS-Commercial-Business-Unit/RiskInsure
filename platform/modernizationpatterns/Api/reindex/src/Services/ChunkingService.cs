@@ -18,6 +18,12 @@ public interface IChunkingService
     /// Each chunk includes the pattern title/category as context so it makes sense standalone.
     /// </summary>
     List<PatternChunk> ChunkPattern(string patternJson, string patternSlug);
+
+    /// <summary>
+    /// Takes inbox document text and returns chunks ready for embedding.
+    /// Used for markdown/text/pdf/docx content placed under content/_inbox.
+    /// </summary>
+    List<PatternChunk> ChunkInboxDocument(string documentText, string documentSlug, string sourceType);
 }
 
 public class ChunkingService : IChunkingService
@@ -309,6 +315,39 @@ public class ChunkingService : IChunkingService
         return chunks;
     }
 
+    public List<PatternChunk> ChunkInboxDocument(string documentText, string documentSlug, string sourceType)
+    {
+        var chunks = new List<PatternChunk>();
+        if (string.IsNullOrWhiteSpace(documentText))
+        {
+            return chunks;
+        }
+
+        var safeSlug = string.IsNullOrWhiteSpace(documentSlug) ? "inbox-document" : documentSlug;
+        var title = safeSlug.Replace('-', ' ').Replace('_', ' ');
+        var splitChunks = SplitTextIntoChunks(documentText, TargetChunkTokens, OverlapTokens);
+
+        for (var i = 0; i < splitChunks.Count; i++)
+        {
+            chunks.Add(new PatternChunk
+            {
+                Id = ToSafeChunkId($"inbox_{safeSlug}_{i}"),
+                PatternSlug = $"inbox-{safeSlug}",
+                Title = title,
+                Category = "inbox",
+                ChunkType = $"inbox-{sourceType}",
+                Content = $"# {title}\nCategory: inbox\nSourceType: {sourceType}\n\n{splitChunks[i]}",
+                ChunkIndex = i
+            });
+        }
+
+        _logger.LogInformation(
+            "Chunked inbox document {DocumentSlug}: {ChunkCount} chunks produced",
+            safeSlug, chunks.Count);
+
+        return chunks;
+    }
+
     /// <summary>
     /// Splits long text into overlapping chunks by sentence boundaries.
     /// Overlap ensures context isn't lost at chunk boundaries.
@@ -411,6 +450,21 @@ public class ChunkingService : IChunkingService
                 sb.AppendLine($"- {item.GetString()}");
             }
         }
+    }
+
+    private static string ToSafeChunkId(string value)
+    {
+        var invalidChars = Path.GetInvalidFileNameChars();
+        var cleaned = new StringBuilder(value.Length);
+        foreach (var ch in value)
+        {
+            cleaned.Append(invalidChars.Contains(ch) ? '_' : ch);
+        }
+
+        return cleaned
+            .ToString()
+            .Replace(' ', '_')
+            .ToLowerInvariant();
     }
 }
 

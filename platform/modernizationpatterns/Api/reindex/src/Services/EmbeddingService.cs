@@ -44,7 +44,7 @@ public class EmbeddingService : IEmbeddingService
             ?? throw new InvalidOperationException("AzureOpenAI:ApiKey not configured");
         _endpoint = endpoint.TrimEnd('/');
         _apiKey = apiKey.Trim();
-        _deploymentName = config["AzureOpenAI:EmbeddingDeploymentName"] ?? "text-embedding-3-large";
+        _deploymentName = config["AzureOpenAI:EmbeddingDeploymentName"] ?? "text-embedding-3-small";
 
         _logger.LogInformation("EmbeddingService initialized with deployment: {Deployment}", _deploymentName);
     }
