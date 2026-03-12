@@ -1,8 +1,9 @@
 namespace RiskInsure.Modernization.Reindex.Services;
 
-using Azure;
-using Azure.AI.OpenAI;
 using Microsoft.Extensions.Logging;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
 
 /// <summary>
 /// Wraps Azure OpenAI for generating embeddings in the Reindex Service.
@@ -27,7 +28,9 @@ public interface IEmbeddingService
 
 public class EmbeddingService : IEmbeddingService
 {
-    private readonly OpenAIClient _client;
+    private static readonly HttpClient HttpClient = new();
+    private readonly string _endpoint;
+    private readonly string _apiKey;
     private readonly string _deploymentName;
     private readonly ILogger<EmbeddingService> _logger;
 
@@ -39,9 +42,10 @@ public class EmbeddingService : IEmbeddingService
             ?? throw new InvalidOperationException("AzureOpenAI:Endpoint not configured");
         var apiKey = config["AzureOpenAI:ApiKey"]
             ?? throw new InvalidOperationException("AzureOpenAI:ApiKey not configured");
+        _endpoint = endpoint.TrimEnd('/');
+        _apiKey = apiKey.Trim();
         _deploymentName = config["AzureOpenAI:EmbeddingDeploymentName"] ?? "text-embedding-3-small";
 
-        _client = new OpenAIClient(new Uri(endpoint), new AzureKeyCredential(apiKey));
         _logger.LogInformation("EmbeddingService initialized with deployment: {Deployment}", _deploymentName);
     }
 
@@ -49,18 +53,17 @@ public class EmbeddingService : IEmbeddingService
     {
         try
         {
-            var options = new EmbeddingsOptions(_deploymentName, new[] { text });
-            var response = await _client.GetEmbeddingsAsync(options, cancellationToken);
-            var embedding = response.Value.Data[0].Embedding.ToArray();
+            var embeddings = await EmbedBatchAsync(new List<string> { text }, cancellationToken);
+            var embedding = embeddings[0];
 
             _logger.LogDebug("Embedded text ({Length} chars) → {Dimensions} dimensions",
                 text.Length, embedding.Length);
 
             return embedding;
         }
-        catch (RequestFailedException ex)
+        catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to embed text: {ErrorCode}", ex.ErrorCode);
+            _logger.LogError(ex, "Failed to embed text");
             throw;
         }
     }
@@ -84,12 +87,42 @@ public class EmbeddingService : IEmbeddingService
 
             try
             {
-                var options = new EmbeddingsOptions(_deploymentName, batch);
-                var response = await _client.GetEmbeddingsAsync(options, cancellationToken);
+                var url = $"{_endpoint}/openai/deployments/{_deploymentName}/embeddings?api-version=2024-06-01";
+                using var request = new HttpRequestMessage(HttpMethod.Post, url);
+                request.Headers.Add("api-key", _apiKey);
+                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-                foreach (var item in response.Value.Data)
+                var payload = JsonSerializer.Serialize(new
                 {
-                    allEmbeddings.Add(item.Embedding.ToArray());
+                    input = batch
+                });
+
+                request.Content = new StringContent(payload, Encoding.UTF8, "application/json");
+
+                using var response = await HttpClient.SendAsync(request, cancellationToken);
+                var content = await response.Content.ReadAsStringAsync(cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new InvalidOperationException(
+                        $"Embedding request failed: {(int)response.StatusCode} {response.ReasonPhrase}. Response: {content}");
+                }
+
+                using var document = JsonDocument.Parse(content);
+                var data = document.RootElement.GetProperty("data");
+
+                foreach (var item in data.EnumerateArray())
+                {
+                    var embeddingArray = item.GetProperty("embedding");
+                    var vector = new float[embeddingArray.GetArrayLength()];
+                    var index = 0;
+
+                    foreach (var value in embeddingArray.EnumerateArray())
+                    {
+                        vector[index++] = value.GetSingle();
+                    }
+
+                    allEmbeddings.Add(vector);
                 }
 
                 _logger.LogInformation(
@@ -104,11 +137,11 @@ public class EmbeddingService : IEmbeddingService
                     await Task.Delay(200, cancellationToken);
                 }
             }
-            catch (RequestFailedException ex)
+            catch (Exception ex)
             {
                 _logger.LogError(ex,
-                    "Failed to embed batch at offset {Offset}: {ErrorCode}",
-                    i, ex.ErrorCode);
+                    "Failed to embed batch at offset {Offset}",
+                    i);
                 throw;
             }
         }

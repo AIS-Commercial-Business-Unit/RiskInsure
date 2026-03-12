@@ -371,9 +371,9 @@ variable "modernizationpatterns_chat_deployment" {
 }
 
 variable "modernizationpatterns_embedding_deployment" {
-  description = "Azure OpenAI deployment name for embeddings (e.g., text-embedding-3-large)"
+  description = "Azure OpenAI deployment name for embeddings (e.g., text-embedding-3-small)"
   type        = string
-  default     = "text-embedding-3-large"
+  default     = "text-embedding-3-small"
 }
 
 # ==========================================================================

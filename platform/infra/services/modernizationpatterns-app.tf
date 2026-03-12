@@ -242,6 +242,13 @@ resource "azurerm_container_app" "modernizationpatterns_reindex_worker" {
     min_replicas = var.modernizationpatterns_reindex_worker.min_replicas
     max_replicas = var.modernizationpatterns_reindex_worker.max_replicas
 
+    # HTTP scaling rule - required for scale-to-zero to work
+    # Without this, container won't scale up on incoming HTTP requests
+    http_scale_rule {
+      name                = "http-scaling"
+      concurrent_requests = 10  # Scale up when 10+ concurrent requests
+    }
+
     container {
       name   = "modernizationpatterns-reindex"
       image  = "${data.terraform_remote_state.foundation.outputs.acr_login_server}/modernizationpatterns-reindex:${var.image_tag}"
