@@ -72,6 +72,10 @@ public class ConfigurationScheduledFtpE2ETests
                 cronExpression = "*/5 * * * * *",
                 timezone = "UTC",
                 description = "Every 5 seconds"
+            },
+            processingConfig = new
+            {
+                fileType = "NACHA"
             }
         };
 

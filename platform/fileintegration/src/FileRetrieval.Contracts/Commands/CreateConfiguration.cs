@@ -25,5 +25,6 @@ public record CreateConfiguration : ICommand
     public required string FilenamePattern { get; init; }
     public string? FileExtension { get; init; }
     public required ScheduleDefinitionDto Schedule { get; init; }
+    public required FileProcessingConfig ProcessingConfig { get; init; }
     public required string CreatedBy { get; init; } // User ID from JWT claims
 }

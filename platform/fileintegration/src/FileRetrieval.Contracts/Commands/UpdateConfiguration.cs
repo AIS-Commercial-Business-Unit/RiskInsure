@@ -25,6 +25,7 @@ public record UpdateConfiguration : ICommand
     public required string FilenamePattern { get; init; }
     public string? FileExtension { get; init; }
     public required ScheduleDefinitionDto Schedule { get; init; }
+    public required FileProcessingConfig ProcessingConfig { get; init; }
     public bool IsActive { get; init; }
     public required string LastModifiedBy { get; init; } // User ID from JWT claims
     public required string ETag { get; init; } // Optimistic concurrency

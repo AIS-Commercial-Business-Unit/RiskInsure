@@ -8,7 +8,9 @@ using RiskInsure.FileRetrieval.Domain.Entities;
 using RiskInsure.FileRetrieval.Domain.Enums;
 using RiskInsure.FileRetrieval.Domain.Repositories;
 using RiskInsure.FileRetrieval.Domain.ValueObjects;
+using System.Globalization;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 
 namespace RiskInsure.FileRetrieval.Application.MessageHandlers;
@@ -105,6 +107,8 @@ public class ProcessDiscoveredFileHandler : IHandleMessages<ProcessDiscoveredFil
                 return;
             }
 
+            await ProcessFileByTypeAsync(configuration, message, fileContent, context);
+
 
             await context.Publish(new DiscoveredFileProcessed
             {
@@ -143,5 +147,113 @@ public class ProcessDiscoveredFileHandler : IHandleMessages<ProcessDiscoveredFil
             // Re-throw to trigger NServiceBus retry logic
             throw;
         }
+    }
+
+    private async Task ProcessFileByTypeAsync(
+        FileRetrievalConfiguration configuration,
+        ProcessDiscoveredFile message,
+        byte[] fileContent,
+        IMessageHandlerContext context)
+    {
+        var fileType = configuration.ProcessingConfig?.FileType;
+
+        if (string.Equals(fileType, "NACHA", StringComparison.OrdinalIgnoreCase))
+        {
+            await ProcessNachaFileAsync(message, fileContent, context);
+            return;
+        }
+
+        _logger.LogInformation(
+            "No row-level processor configured for file type {FileType} on configuration {ConfigurationId}",
+            fileType ?? "<null>",
+            configuration.Id);
+    }
+
+    private async Task ProcessNachaFileAsync(
+        ProcessDiscoveredFile message,
+        byte[] fileContent,
+        IMessageHandlerContext context)
+    {
+        var nachaRows = ParseNachaRows(fileContent);
+
+        _logger.LogInformation(
+            "Parsed {RowCount} NACHA rows from file {Filename} for client {ClientId}",
+            nachaRows.Count,
+            message.Filename,
+            message.ClientId);
+
+        foreach (var row in nachaRows)
+        {
+            var rowIdempotencyKey = $"{message.IdempotencyKey}:nacha:{row.TraceNumber}";
+
+            await context.Publish(new NachaRowDiscovered
+            {
+                MessageId = Guid.NewGuid(),
+                CorrelationId = message.CorrelationId,
+                OccurredUtc = DateTimeOffset.UtcNow,
+                IdempotencyKey = rowIdempotencyKey,
+                ClientId = message.ClientId,
+                ConfigurationId = message.ConfigurationId,
+                ExecutionId = message.ExecutionId,
+                DiscoveredFileId = message.DiscoveredFileId,
+                Filename = message.Filename,
+                Row = row
+            });
+
+            // Send to the configured endpoint for row handling.
+            await context.Send(new ProcessNachaRow
+            {
+                MessageId = Guid.NewGuid(),
+                CorrelationId = message.CorrelationId,
+                OccurredUtc = DateTimeOffset.UtcNow,
+                IdempotencyKey = rowIdempotencyKey,
+                ClientId = message.ClientId,
+                ConfigurationId = message.ConfigurationId,
+                ExecutionId = message.ExecutionId,
+                DiscoveredFileId = message.DiscoveredFileId,
+                Filename = message.Filename,
+                Row = row
+            });
+        }
+    }
+
+    private static IReadOnlyList<NachaRow> ParseNachaRows(byte[] fileContent)
+    {
+        var rows = new List<NachaRow>();
+        var content = Encoding.ASCII.GetString(fileContent);
+        var lines = content.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+
+        for (var index = 0; index < lines.Length; index++)
+        {
+            var line = lines[index];
+            if (line.Length < 94 || line[0] != '6')
+            {
+                continue;
+            }
+
+            var amountText = line.Substring(29, 10);
+            if (!long.TryParse(amountText, NumberStyles.None, CultureInfo.InvariantCulture, out var amountCents))
+            {
+                amountCents = 0;
+            }
+
+            var routingPrefix = line.Substring(3, 8);
+            var routingCheckDigit = line.Substring(11, 1);
+
+            rows.Add(new NachaRow
+            {
+                RowNumber = index + 1,
+                TransactionCode = line.Substring(1, 2),
+                RoutingNumber = routingPrefix + routingCheckDigit,
+                AccountNumber = line.Substring(12, 17).Trim(),
+                AmountCents = amountCents,
+                IndividualId = line.Substring(39, 15).Trim(),
+                IndividualName = line.Substring(54, 22).Trim(),
+                TraceNumber = line.Substring(79, 15),
+                RawRecord = line
+            });
+        }
+
+        return rows;
     }
 }

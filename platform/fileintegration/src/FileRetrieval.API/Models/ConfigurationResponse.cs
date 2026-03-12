@@ -58,6 +58,11 @@ public class ConfigurationResponse
     public required ScheduleDefinitionDto Schedule { get; set; }
 
     /// <summary>
+    /// File processing configuration details.
+    /// </summary>
+    public required FileProcessingConfig ProcessingConfig { get; set; }
+
+    /// <summary>
     /// Whether configuration is active
     /// </summary>
     public bool IsActive { get; set; }
