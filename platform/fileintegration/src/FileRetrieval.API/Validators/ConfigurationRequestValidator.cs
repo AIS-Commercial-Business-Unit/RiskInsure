@@ -49,6 +49,13 @@ public class ConfigurationRequestValidator : AbstractValidator<CreateConfigurati
             .NotNull().WithMessage("Schedule is required")
             .SetValidator(new ScheduleDefinitionValidator());
 
+        RuleFor(x => x.ProcessingConfig)
+            .NotNull().WithMessage("ProcessingConfig is required");
+
+        RuleFor(x => x.ProcessingConfig.FileType)
+            .NotEmpty().WithMessage("ProcessingConfig.FileType is required")
+            .Must(BeSupportedFileType).WithMessage("ProcessingConfig.FileType must be NACHA");
+
         // Protocol-specific validation
         When(x => x.Protocol?.Equals("Ftp", StringComparison.OrdinalIgnoreCase) == true, () =>
         {
@@ -78,6 +85,12 @@ public class ConfigurationRequestValidator : AbstractValidator<CreateConfigurati
         return protocol.Equals("Ftp", StringComparison.OrdinalIgnoreCase) ||
                protocol.Equals("Https", StringComparison.OrdinalIgnoreCase) ||
                protocol.Equals("AzureBlob", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool BeSupportedFileType(string? fileType)
+    {
+        if (string.IsNullOrWhiteSpace(fileType)) return false;
+        return fileType.Equals("NACHA", StringComparison.OrdinalIgnoreCase);
     }
 
     private bool NotContainTokensInServerPortion(string? filePathPattern)

@@ -46,4 +46,9 @@ public class CreateConfigurationRequest
     /// Schedule definition for when to execute file checks
     /// </summary>
     public required ScheduleDefinitionDto Schedule { get; set; }
+
+    /// <summary>
+    /// File processing configuration details.
+    /// </summary>
+    public required FileProcessingConfig ProcessingConfig { get; set; }
 }

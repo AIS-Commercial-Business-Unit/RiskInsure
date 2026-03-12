@@ -1,4 +1,5 @@
 using NServiceBus;
+using FileRetrieval.Contracts.DTOs;
 
 namespace FileRetrieval.Contracts.Events;
 
@@ -22,6 +23,7 @@ public record ConfigurationUpdated : IEvent
     public required string FilenamePattern { get; init; }
     public required string CronExpression { get; init; }
     public required string Timezone { get; init; }
+    public required FileProcessingConfig ProcessingConfig { get; init; }
     public bool IsActive { get; init; }
     public required string LastModifiedBy { get; init; }
     

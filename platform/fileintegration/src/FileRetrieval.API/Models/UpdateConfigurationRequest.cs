@@ -51,4 +51,9 @@ public class UpdateConfigurationRequest
     /// Schedule definition (cron expression and timezone)
     /// </summary>
     public required ScheduleDefinitionDto Schedule { get; init; }
+
+    /// <summary>
+    /// File processing configuration details.
+    /// </summary>
+    public required FileProcessingConfig ProcessingConfig { get; init; }
 }
