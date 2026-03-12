@@ -6,11 +6,11 @@ on:
       reindex_mode:
         description: "Select reindex strategy"
         required: true
-        default: "incremental"
+        default: "Index New/Modified Documents"
         type: choice
         options:
-          - "incremental"
-          - "full-clean"
+          - "Index New/Modified Documents "
+          - "Full Clean Reindex"
   push:
     branches:
       - main
@@ -104,19 +104,19 @@ jobs:
           echo "fqdn=https://${FQDN}" >> $GITHUB_OUTPUT
           echo "Reindex endpoint: https://${FQDN}"
 
-      - name: Detect change types (Smart Incremental Reindex)
+      - name: Detect change types (Smart Index New/Modified Documents Reindex)
         id: change_detection
         run: |
-          REINDEX_MODE="${{ inputs.reindex_mode || 'incremental' }}"
+          REINDEX_MODE="${{ inputs.reindex_mode || 'Index New/Modified Documents' }}"
 
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             # Manual dispatch - use user's selection
-            if [ "$REINDEX_MODE" == "full-clean" ]; then
+            if [ "$REINDEX_MODE" == "Full Clean Reindex" ]; then
               CLEAN="true"
               TRIGGER_TYPE="🔄 Full Clean Reindex (manual request)"
             else
               CLEAN="false"
-              TRIGGER_TYPE="📝 Incremental Reindex (manual request)"
+              TRIGGER_TYPE="📝 Index New/Modified Documents Reindex (manual request)"
             fi
             ADDED_FILES=""
             MODIFIED_FILES=""
@@ -140,7 +140,7 @@ jobs:
             DELETED_COUNT=$([ -n "$DELETED_FILES" ] && echo "$DELETED_FILES" | awk -F',' '{print NF}' || echo 0)
 
             # Strategy:
-            # - If files ADDED/MODIFIED only → incremental (clean=false)
+            # - If files ADDED/MODIFIED only → Index New/Modified Documents (clean=false)
             # - If files DELETED → full reindex (clean=true) to remove orphaned docs
             # - If mix → full reindex for safety
             if [ -n "$DELETED_FILES" ]; then
@@ -148,7 +148,7 @@ jobs:
               TRIGGER_TYPE="🔄 Full Clean Reindex (${DELETED_COUNT} file(s) deleted - removing from index)"
             elif [ -n "$ADDED_FILES" ] || [ -n "$MODIFIED_FILES" ]; then
               CLEAN="false"
-              TRIGGER_TYPE="📝 Incremental Update (Added: ${ADDED_COUNT}, Modified: ${MODIFIED_COUNT})"
+              TRIGGER_TYPE="📝 Index New/Modified Documents Update (Added: ${ADDED_COUNT}, Modified: ${MODIFIED_COUNT})"
             else
               CLEAN="false"
               TRIGGER_TYPE="⏭️  No content files changed"
@@ -162,7 +162,7 @@ jobs:
           echo "deleted_files=${DELETED_FILES}" >> $GITHUB_OUTPUT
           echo "TRIGGER_TYPE=${TRIGGER_TYPE}" >> $GITHUB_ENV
 
-      - name: Trigger incremental or full reindex
+      - name: Trigger Index New/Modified Documents or full reindex
         id: reindex
         run: |
           CLEAN="${{ steps.change_detection.outputs.clean }}"
@@ -214,7 +214,7 @@ jobs:
             echo "⚠️  Using FULL CLEAN REINDEX (deletions detected)"
             QUERY_PARAMS="?clean=true"
           else
-            echo "⚡ Using INCREMENTAL REINDEX (only adds/modifications)"
+            echo "⚡ Using Index New/Modified Documents REINDEX (only adds/modifications)"
             QUERY_PARAMS="?clean=false"
             if [ -n "$ADDED" ]; then
               echo "📝 Added files: ${ADDED}"
@@ -347,7 +347,7 @@ jobs:
           echo "| JSON (.json) | ${{ needs.trigger-reindex.outputs.json_count }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Why This Strategy?" >> $GITHUB_STEP_SUMMARY
-          echo "- ⚡ **Incremental** (added/modified only): Fast, only updates changed documents" >> $GITHUB_STEP_SUMMARY
+          echo "- ⚡ **Index New/Modified Documents** (added/modified only): Fast, only updates changed documents" >> $GITHUB_STEP_SUMMARY
           echo "- 🔄 **Full Clean** (deletions detected): Removes orphaned docs for data consistency" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
