@@ -60,6 +60,11 @@ var host = Host.CreateDefaultBuilder(args)
                 typeof(FileRetrieval.Contracts.Commands.ProcessDiscoveredFile),
                 "FileRetrieval.Worker"
             );
+
+            routing.RouteToEndpoint(
+                typeof(FileRetrieval.Contracts.Commands.ProcessNachaRow),
+                "FileRetrieval.Worker"
+            );
         })
     .Build();
 

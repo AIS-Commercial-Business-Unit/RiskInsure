@@ -108,6 +108,7 @@ public class ConfigurationController : ControllerBase
                 FilenamePattern = request.FilenamePattern,
                 FileExtension = request.FileExtension,
                 Schedule = request.Schedule,
+                ProcessingConfig = request.ProcessingConfig,
                 CreatedBy = userId
             };
 
@@ -410,6 +411,7 @@ public class ConfigurationController : ControllerBase
                 FilenamePattern = request.FilenamePattern,
                 FileExtension = request.FileExtension,
                 Schedule = request.Schedule,
+                ProcessingConfig = request.ProcessingConfig,
                 LastModifiedBy = userId
             };
 
@@ -663,6 +665,10 @@ public class ConfigurationController : ControllerBase
             FilenamePattern = entity.FilenamePattern,
             FileExtension = entity.FileExtension,
             Schedule = MapScheduleToDto(entity.Schedule),
+            ProcessingConfig = new FileProcessingConfig
+            {
+                FileType = entity.ProcessingConfig?.FileType ?? string.Empty
+            },
             IsActive = entity.IsActive,
             CreatedAt = entity.CreatedAt,
             CreatedBy = entity.CreatedBy,

@@ -3,6 +3,7 @@ using NServiceBus;
 using RiskInsure.FileRetrieval.Application.Services;
 using FileRetrieval.Contracts.Commands;
 using FileRetrieval.Contracts.Events;
+using FileRetrieval.Contracts.DTOs;
 using RiskInsure.FileRetrieval.Domain.Enums;
 using RiskInsure.FileRetrieval.Domain.ValueObjects;
 using Microsoft.Azure.Cosmos;
@@ -57,6 +58,7 @@ public class UpdateConfigurationHandler : IHandleMessages<UpdateConfiguration>
                 existing.Protocol,
                 existing.FilePathPattern,
                 existing.FilenamePattern,
+                ProcessingFileType = existing.ProcessingConfig?.FileType,
                 existing.IsActive,
                 existing.ETag
             };
@@ -79,6 +81,10 @@ public class UpdateConfigurationHandler : IHandleMessages<UpdateConfiguration>
                 message.Schedule.CronExpression,
                 message.Schedule.Timezone ?? "UTC",
                 message.Schedule.Description);
+            existing.ProcessingConfig = new FileProcessingDefinition
+            {
+                FileType = message.ProcessingConfig.FileType
+            };
             existing.LastModifiedBy = message.LastModifiedBy;
             existing.ETag = message.ETag; // T106: ETag for optimistic concurrency
 
@@ -99,6 +105,7 @@ public class UpdateConfigurationHandler : IHandleMessages<UpdateConfiguration>
             if (beforeState.Protocol != updated.Protocol) changedFields.Add("Protocol");
             if (beforeState.FilePathPattern != updated.FilePathPattern) changedFields.Add("FilePathPattern");
             if (beforeState.FilenamePattern != updated.FilenamePattern) changedFields.Add("FilenamePattern");
+            if (beforeState.ProcessingFileType != updated.ProcessingConfig?.FileType) changedFields.Add("ProcessingConfig.FileType");
             if (beforeState.IsActive != updated.IsActive) changedFields.Add("IsActive");
 
             var configurationUpdatedEvent = new ConfigurationUpdated
@@ -115,6 +122,10 @@ public class UpdateConfigurationHandler : IHandleMessages<UpdateConfiguration>
                 FilenamePattern = updated.FilenamePattern,
                 CronExpression = updated.Schedule.CronExpression,
                 Timezone = updated.Schedule.Timezone,
+                ProcessingConfig = new FileProcessingConfig
+                {
+                    FileType = updated.ProcessingConfig?.FileType ?? string.Empty
+                },
                 IsActive = updated.IsActive,
                 LastModifiedBy = updated.LastModifiedBy ?? "unknown",
                 ChangedFields = changedFields
@@ -135,6 +146,7 @@ public class UpdateConfigurationHandler : IHandleMessages<UpdateConfiguration>
                     updated.Protocol,
                     updated.FilePathPattern,
                     updated.FilenamePattern,
+                    ProcessingFileType = updated.ProcessingConfig?.FileType,
                     updated.IsActive,
                     updated.ETag
                 });
