@@ -1,6 +1,7 @@
 namespace RiskInsure.Modernization.Reindex.Services;
 
 using Microsoft.Extensions.Logging;
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 
@@ -454,17 +455,46 @@ public class ChunkingService : IChunkingService
 
     private static string ToSafeChunkId(string value)
     {
-        var invalidChars = Path.GetInvalidFileNameChars();
-        var cleaned = new StringBuilder(value.Length);
-        foreach (var ch in value)
+        if (string.IsNullOrWhiteSpace(value))
         {
-            cleaned.Append(invalidChars.Contains(ch) ? '_' : ch);
+            return "chunk_0";
         }
 
-        return cleaned
-            .ToString()
-            .Replace(' ', '_')
-            .ToLowerInvariant();
+        var normalized = value.ToLowerInvariant();
+        var cleaned = new StringBuilder(normalized.Length);
+
+        foreach (var ch in normalized)
+        {
+            if (char.IsLetterOrDigit(ch) || ch is '_' or '-' or '=')
+            {
+                cleaned.Append(ch);
+            }
+            else
+            {
+                cleaned.Append('_');
+            }
+        }
+
+        var collapsed = cleaned.ToString().Trim('_');
+        while (collapsed.Contains("__", StringComparison.Ordinal))
+        {
+            collapsed = collapsed.Replace("__", "_", StringComparison.Ordinal);
+        }
+
+        if (string.IsNullOrWhiteSpace(collapsed))
+        {
+            collapsed = "chunk";
+        }
+
+        if (collapsed.Length <= 120)
+        {
+            return collapsed;
+        }
+
+        var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(value));
+        var hash = Convert.ToHexString(hashBytes[..8]).ToLowerInvariant();
+        var prefix = collapsed[..Math.Min(96, collapsed.Length)].TrimEnd('_');
+        return $"{prefix}_{hash}";
     }
 }
 
