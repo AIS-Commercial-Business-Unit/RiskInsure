@@ -175,7 +175,10 @@ jobs:
           HEALTH_WAIT=10
           CONTAINER_READY=false
           for i in $(seq 1 $MAX_HEALTH_ATTEMPTS); do
-            HEALTH_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_ENDPOINT" --connect-timeout 15 --max-time 20 2>/dev/null || echo "000")
+            HEALTH_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_ENDPOINT" --connect-timeout 15 --max-time 20 || true)
+            if [ -z "$HEALTH_RESPONSE" ]; then
+              HEALTH_RESPONSE="000"
+            fi
 
             if [ "$HEALTH_RESPONSE" == "200" ]; then
               echo "✅ Container is healthy (attempt $i)"
@@ -220,15 +223,15 @@ jobs:
           for attempt in $(seq 1 $MAX_ATTEMPTS); do
             echo "Attempt $attempt/$MAX_ATTEMPTS..."
 
-            RESPONSE=$(curl -X POST \
+            HTTP_CODE=$(curl -sS -X POST \
               -H "Content-Type: application/json" \
-              -w "\n%{http_code}" \
+              -o /tmp/reindex_response.json \
+              -w "%{http_code}" \
               "${ENDPOINT}${QUERY_PARAMS}" \
               --max-time 300 \
-              --connect-timeout 30 2>&1)
+              --connect-timeout 30 || echo "000")
 
-            HTTP_CODE=$(echo "$RESPONSE" | tail -n1)
-            BODY=$(echo "$RESPONSE" | head -n-1)
+            BODY=$(cat /tmp/reindex_response.json 2>/dev/null || echo "")
 
             echo "HTTP Status: $HTTP_CODE"
 
@@ -239,9 +242,9 @@ jobs:
               echo "Response:"
               echo "$BODY"
               echo "reindex_success=true" >> $GITHUB_OUTPUT
-              DOCS=$(echo "$BODY" | jq -r '.documentsUploaded // "N/A"' 2>/dev/null)
-              CHUNKS=$(echo "$BODY" | jq -r '.totalChunks // "N/A"' 2>/dev/null)
-              DURATION=$(echo "$BODY" | jq -r '.operationTimeSeconds // "N/A"' 2>/dev/null)
+              DOCS=$(echo "$BODY" | jq -r '.documentsUploaded // "N/A"' 2>/dev/null || echo "N/A")
+              CHUNKS=$(echo "$BODY" | jq -r '.chunksCreated // .totalChunks // "N/A"' 2>/dev/null || echo "N/A")
+              DURATION=$(echo "$BODY" | jq -r '.elapsedSeconds // .operationTimeSeconds // "N/A"' 2>/dev/null || echo "N/A")
               echo "metrics=📝 Documents: $DOCS, 🔗 Chunks: $CHUNKS, ⏱️ Duration: ${DURATION}s" >> $GITHUB_OUTPUT
               exit 0
             fi
