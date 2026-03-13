@@ -44,6 +44,10 @@ public class CosmosSystemTextJsonSerializer : CosmosSerializer
 
 public interface IConversationService
 {
+    Task<List<Conversation>> GetUserConversationsAsync(
+        string userId,
+        CancellationToken cancellationToken = default);
+
     Task<Conversation?> GetConversationAsync(
         string conversationId,
         string userId,
@@ -149,6 +153,51 @@ public class ConversationService : IConversationService
             _logger.LogError(ex, "Failed to initialize Cosmos DB client/database/container. Conversations will be unavailable locally.");
             // Create a fallback in-memory placeholder container reference will be null
             _container = null!; // allow null and handle in methods
+        }
+    }
+
+    public async Task<List<Conversation>> GetUserConversationsAsync(
+        string userId,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return new List<Conversation>();
+        }
+
+        try
+        {
+            if (_container == null)
+            {
+                _logger.LogWarning("Cosmos container not initialized; returning empty conversation list for user {UserId}", userId);
+                return new List<Conversation>();
+            }
+
+            var queryDefinition = new QueryDefinition(
+                "SELECT * FROM c WHERE c.userId = @userId AND (NOT IS_DEFINED(c.status) OR c.status != 'deleted') ORDER BY c.updatedAt DESC")
+                .WithParameter("@userId", userId);
+
+            var requestOptions = new QueryRequestOptions
+            {
+                PartitionKey = new PartitionKey(userId),
+                MaxItemCount = 50,
+            };
+
+            var results = new List<Conversation>();
+            using var iterator = _container.GetItemQueryIterator<Conversation>(queryDefinition, requestOptions: requestOptions);
+
+            while (iterator.HasMoreResults)
+            {
+                var response = await iterator.ReadNextAsync(cancellationToken);
+                results.AddRange(response.Resource);
+            }
+
+            return results;
+        }
+        catch (CosmosException ex)
+        {
+            _logger.LogError(ex, "Failed to list conversations for user {UserId}", userId);
+            throw;
         }
     }
 

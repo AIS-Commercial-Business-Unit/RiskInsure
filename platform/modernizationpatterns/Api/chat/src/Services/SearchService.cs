@@ -1,6 +1,7 @@
 namespace RiskInsure.Modernization.Chat.Services;
 
 using Microsoft.Extensions.Logging;
+using System.Collections.Generic;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -47,7 +48,7 @@ public class SearchService : ISearchService
 
         _logger.LogInformation(
             "SearchService initialized with endpoint: {Endpoint}, index: {IndexName}",
-            _endpoint, 
+            _endpoint,
             _indexName);
     }
 
@@ -67,13 +68,27 @@ public class SearchService : ISearchService
             request.Headers.Add("api-key", _apiKey);
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-            var searchPayload = new
+            var searchPayload = new Dictionary<string, object?>
             {
-                search = query,
-                top = topK,
-                count = true,
-                select = "id,patternSlug,title,category,content"
+                ["search"] = query,
+                ["top"] = topK,
+                ["count"] = true,
+                ["select"] = "id,patternSlug,title,category,content"
             };
+
+            if (embeddingVector is { Length: > 0 })
+            {
+                searchPayload["vectorQueries"] = new object[]
+                {
+                    new
+                    {
+                        kind = "vector",
+                        vector = embeddingVector,
+                        fields = "contentVector",
+                        k = topK
+                    }
+                };
+            }
 
             var payload = JsonSerializer.Serialize(searchPayload);
             request.Content = new StringContent(payload, Encoding.UTF8, "application/json");
