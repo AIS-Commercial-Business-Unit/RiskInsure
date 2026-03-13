@@ -55,6 +55,7 @@ jobs:
       matrix_empty: ${{ steps.determine.outputs.matrix_empty }}
       image_tag: ${{ steps.determine.outputs.image_tag }}
       trigger_reason: ${{ steps.determine.outputs.trigger_reason }}
+      infra_changed: ${{ steps.determine.outputs.infra_changed }}
 
     steps:
       - name: Checkout
@@ -80,6 +81,7 @@ jobs:
 
             echo "services=$services_json" >> "$GITHUB_OUTPUT"
             echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
+            echo "infra_changed=false" >> "$GITHUB_OUTPUT"
             if [[ "$normalized_input" == "all" ]]; then
               echo "trigger_reason=manual-all-services" >> "$GITHUB_OUTPUT"
             else
@@ -106,9 +108,16 @@ jobs:
           if [[ -z "$changed_files" ]]; then
             echo "services=[]" >> "$GITHUB_OUTPUT"
             echo "matrix_empty=true" >> "$GITHUB_OUTPUT"
+            echo "infra_changed=false" >> "$GITHUB_OUTPUT"
             echo "trigger_reason=no-changed-files" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+
+          infra_changed="false"
+          if echo "$changed_files" | grep -Eq '^platform/infra/foundation/|^platform/infra/shared-services/|^\.github/workflows/cd-infra-dev\.yml$'; then
+            infra_changed="true"
+          fi
+          echo "infra_changed=$infra_changed" >> "$GITHUB_OUTPUT"
 
           # Workflow change -> build all
           if echo "$changed_files" | grep -q '^\.github/workflows/ci-build-services\.yml$'; then
@@ -157,7 +166,69 @@ jobs:
           echo "**Image tag:** \`${{ steps.determine.outputs.image_tag }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "**Services:** \`${{ steps.determine.outputs.services }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "**Matrix empty:** \`${{ steps.determine.outputs.matrix_empty }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Infra changed:** \`${{ steps.determine.outputs.infra_changed }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "**Trigger reason:** \`${{ steps.determine.outputs.trigger_reason }}\`" >> "$GITHUB_STEP_SUMMARY"
+
+  # --------------------------------------------------------------------------
+  # Wait For Infra
+  # Purpose: On commits that modify shared foundation infra, wait for the
+  # infrastructure CD workflow for this same commit SHA before building images.
+  # --------------------------------------------------------------------------
+  wait-for-infra:
+    name: 'Wait: Infra Ready'
+    needs: determine-services
+    if: github.event_name == 'push' && needs.determine-services.outputs.infra_changed == 'true' && needs.determine-services.outputs.matrix_empty == 'false'
+    runs-on: ubuntu-latest
+
+    permissions:
+      actions: read
+      contents: read
+
+    steps:
+      - name: 'Wait for CD: Infrastructure Dev workflow'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const workflowId = 'cd-infra-dev.yml';
+            const targetSha = context.sha;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            const maxAttempts = 45;
+            const delayMs = 60000;
+
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+              const { data } = await github.rest.actions.listWorkflowRuns({
+                owner,
+                repo,
+                workflow_id: workflowId,
+                event: 'push',
+                branch: 'main',
+                per_page: 50,
+              });
+
+              const run = data.workflow_runs.find(r => r.head_sha === targetSha);
+
+              if (!run) {
+                core.info(`Attempt ${attempt}/${maxAttempts}: infra workflow run not visible yet for ${targetSha}.`);
+              } else {
+                core.info(`Attempt ${attempt}/${maxAttempts}: infra run ${run.id} status=${run.status}, conclusion=${run.conclusion ?? 'n/a'}.`);
+
+                if (run.status === 'completed') {
+                  if (run.conclusion === 'success') {
+                    core.info('Infrastructure workflow completed successfully for this commit.');
+                    return;
+                  }
+
+                  core.setFailed(`Infrastructure workflow completed with conclusion='${run.conclusion}'.`);
+                  return;
+                }
+              }
+
+              await new Promise(resolve => setTimeout(resolve, delayMs));
+            }
+
+            core.setFailed(`Timed out waiting for ${workflowId} to complete for commit ${targetSha}.`);
 
   # --------------------------------------------------------------------------
   # Build
@@ -168,8 +239,8 @@ jobs:
   # --------------------------------------------------------------------------
   build:
     name: 'Build: ${{ matrix.service }}'
-    needs: determine-services
-    if: needs.determine-services.outputs.matrix_empty == 'false'
+    needs: [determine-services, wait-for-infra]
+    if: needs.determine-services.outputs.matrix_empty == 'false' && (needs.wait-for-infra.result == 'success' || needs.wait-for-infra.result == 'skipped')
     runs-on: ubuntu-latest
 
     strategy:
