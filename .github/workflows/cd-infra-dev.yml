@@ -12,7 +12,8 @@ on:
     branches:
       - main
     paths:
-      - 'platform/infra/**'
+      - 'platform/infra/foundation/**'
+      - 'platform/infra/shared-services/**'
       - '.github/workflows/cd-infra-dev.yml'
   workflow_dispatch:
     inputs:
@@ -71,6 +72,10 @@ jobs:
       acr_login_server: ${{ steps.outputs.outputs.acr_login_server }}
       acr_name: ${{ steps.outputs.outputs.acr_name }}
       key_vault_name: ${{ steps.outputs.outputs.key_vault_name }}
+      has_changes: ${{ steps.plan-analysis.outputs.has_changes }}
+      changed_resource_count: ${{ steps.plan-analysis.outputs.changed_resource_count }}
+      apply_status: ${{ steps.apply-status.outputs.apply_status }}
+      apply_performed: ${{ steps.apply-status.outputs.apply_performed }}
     
     steps:
       - name: Checkout
@@ -104,9 +109,32 @@ jobs:
           ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Analyze Terraform Plan
+        id: plan-analysis
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          terraform show -json tfplan > tfplan.json
+          changed_resource_count=$(jq '[.resource_changes[]? | select(.change.actions | index("no-op") | not)] | length' tfplan.json)
+
+          if [[ "$changed_resource_count" -gt 0 ]]; then
+            has_changes="true"
+          else
+            has_changes="false"
+          fi
+
+          echo "changed_resource_count=$changed_resource_count" >> "$GITHUB_OUTPUT"
+          echo "has_changes=$has_changes" >> "$GITHUB_OUTPUT"
+
+          echo "### Foundation Plan Analysis" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Changed resource count: $changed_resource_count" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Has changes: $has_changes" >> "$GITHUB_STEP_SUMMARY"
       
       - name: Terraform Apply
-        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply')
+        id: apply
+        if: (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply')) && steps.plan-analysis.outputs.has_changes == 'true'
         run: terraform apply -auto-approve tfplan
         env:
           ARM_USE_OIDC: true
@@ -118,10 +146,61 @@ jobs:
         id: outputs
         if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply')
         run: |
-          echo "resource_group_name=$(terraform output -raw resource_group_name)" >> "$GITHUB_OUTPUT"
-          echo "acr_login_server=$(terraform output -raw acr_login_server)" >> "$GITHUB_OUTPUT"
-          echo "acr_name=$(terraform output -raw acr_name)" >> "$GITHUB_OUTPUT"
-          echo "key_vault_name=$(terraform output -raw key_vault_name)" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+
+          resource_group_name="$(terraform output -raw resource_group_name)"
+          acr_login_server="$(terraform output -raw acr_login_server)"
+          acr_name="$(terraform output -raw acr_name)"
+          key_vault_name="$(terraform output -raw key_vault_name)"
+
+          {
+            echo "resource_group_name=$resource_group_name"
+            echo "acr_login_server=$acr_login_server"
+            echo "acr_name=$acr_name"
+            echo "key_vault_name=$key_vault_name"
+          } >> "$GITHUB_OUTPUT"
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Capture Apply Status
+        id: apply-status
+        if: always()
+        shell: bash
+        env:
+          HAS_CHANGES: ${{ steps.plan-analysis.outputs.has_changes }}
+          APPLY_ALLOWED: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply') }}
+          APPLY_OUTCOME: ${{ steps.apply.outcome }}
+        run: |
+          set -euo pipefail
+
+          apply_status="skipped-policy"
+          apply_performed="false"
+
+          if [[ "$HAS_CHANGES" != "true" ]]; then
+            apply_status="skipped-no-changes"
+          elif [[ "$APPLY_ALLOWED" == "true" ]]; then
+            case "$APPLY_OUTCOME" in
+              success)
+                apply_status="applied"
+                apply_performed="true"
+                ;;
+              failure)
+                apply_status="failed"
+                ;;
+              cancelled)
+                apply_status="cancelled"
+                ;;
+              *)
+                apply_status="unknown"
+                ;;
+            esac
+          fi
+
+          echo "apply_status=$apply_status" >> "$GITHUB_OUTPUT"
+          echo "apply_performed=$apply_performed" >> "$GITHUB_OUTPUT"
 
   # ==========================================================================
   # Shared Services Layer (Cosmos DB, Service Bus, UAMI)
@@ -152,6 +231,10 @@ jobs:
       servicebus_namespace_fqdn: ${{ steps.outputs.outputs.servicebus_namespace_fqdn }}
       apps_shared_identity_id: ${{ steps.outputs.outputs.apps_shared_identity_id }}
       resource_group_name: ${{ steps.rg.outputs.resource_group_name }}
+      has_changes: ${{ steps.plan-analysis.outputs.has_changes }}
+      changed_resource_count: ${{ steps.plan-analysis.outputs.changed_resource_count }}
+      apply_status: ${{ steps.apply-status.outputs.apply_status }}
+      apply_performed: ${{ steps.apply-status.outputs.apply_performed }}
     
     steps:
       - name: Checkout
@@ -195,9 +278,32 @@ jobs:
           ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Analyze Terraform Plan
+        id: plan-analysis
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          terraform show -json tfplan > tfplan.json
+          changed_resource_count=$(jq '[.resource_changes[]? | select(.change.actions | index("no-op") | not)] | length' tfplan.json)
+
+          if [[ "$changed_resource_count" -gt 0 ]]; then
+            has_changes="true"
+          else
+            has_changes="false"
+          fi
+
+          echo "changed_resource_count=$changed_resource_count" >> "$GITHUB_OUTPUT"
+          echo "has_changes=$has_changes" >> "$GITHUB_OUTPUT"
+
+          echo "### Shared Services Plan Analysis" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Changed resource count: $changed_resource_count" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Has changes: $has_changes" >> "$GITHUB_STEP_SUMMARY"
       
       - name: Terraform Apply
-        if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply')
+        id: apply
+        if: (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply')) && steps.plan-analysis.outputs.has_changes == 'true'
         run: terraform apply -auto-approve tfplan
         env:
           ARM_USE_OIDC: true
@@ -209,28 +315,144 @@ jobs:
         id: outputs
         if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply')
         run: |
-          echo "cosmosdb_account_name=$(terraform output -raw cosmosdb_account_name)" >> "$GITHUB_OUTPUT"
-          echo "servicebus_namespace_fqdn=$(terraform output -raw servicebus_namespace_fqdn)" >> "$GITHUB_OUTPUT"
-          echo "apps_shared_identity_id=$(terraform output -raw apps_shared_identity_id)" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+
+          cosmosdb_account_name="$(terraform output -raw cosmosdb_account_name)"
+          servicebus_namespace_fqdn="$(terraform output -raw servicebus_namespace_fqdn)"
+          apps_shared_identity_id="$(terraform output -raw apps_shared_identity_id)"
+
+          {
+            echo "cosmosdb_account_name=$cosmosdb_account_name"
+            echo "servicebus_namespace_fqdn=$servicebus_namespace_fqdn"
+            echo "apps_shared_identity_id=$apps_shared_identity_id"
+          } >> "$GITHUB_OUTPUT"
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Capture Apply Status
+        id: apply-status
+        if: always()
+        shell: bash
+        env:
+          HAS_CHANGES: ${{ steps.plan-analysis.outputs.has_changes }}
+          APPLY_ALLOWED: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply') }}
+          APPLY_OUTCOME: ${{ steps.apply.outcome }}
+        run: |
+          set -euo pipefail
+
+          apply_status="skipped-policy"
+          apply_performed="false"
+
+          if [[ "$HAS_CHANGES" != "true" ]]; then
+            apply_status="skipped-no-changes"
+          elif [[ "$APPLY_ALLOWED" == "true" ]]; then
+            case "$APPLY_OUTCOME" in
+              success)
+                apply_status="applied"
+                apply_performed="true"
+                ;;
+              failure)
+                apply_status="failed"
+                ;;
+              cancelled)
+                apply_status="cancelled"
+                ;;
+              *)
+                apply_status="unknown"
+                ;;
+            esac
+          fi
+
+          echo "apply_status=$apply_status" >> "$GITHUB_OUTPUT"
+          echo "apply_performed=$apply_performed" >> "$GITHUB_OUTPUT"
   
   # ==========================================================================
   # Wait for RBAC Propagation
   # ==========================================================================
   rbac-propagation:
     name: 'Wait for RBAC Propagation'
-    needs: shared-services
+    needs: [foundation, shared-services]
     if: |
       always() &&
       needs.shared-services.result == 'success' &&
-      (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply'))
+      (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply')) &&
+      (needs.foundation.outputs.apply_performed == 'true' || needs.shared-services.outputs.apply_performed == 'true')
     runs-on: ubuntu-latest
     
     steps:
-      - name: Wait 180 seconds
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Poll RBAC propagation readiness
+        shell: bash
+        env:
+          RESOURCE_GROUP_NAME: ${{ needs.shared-services.outputs.resource_group_name }}
+          SHARED_APPLY_PERFORMED: ${{ needs.shared-services.outputs.apply_performed }}
+          ENVIRONMENT_NAME: ${{ env.ENVIRONMENT }}
         run: |
-          echo "⏳ Waiting 180 seconds for Azure RBAC propagation..."
-          sleep 180
-          echo "✅ RBAC propagation complete"
+          set -euo pipefail
+
+          RG="$RESOURCE_GROUP_NAME"
+          if [[ -z "$RG" || "$RG" == "null" ]]; then
+            RG="CAIS-010-RiskInsure"
+          fi
+
+          if [[ "$SHARED_APPLY_PERFORMED" != "true" ]]; then
+            echo "Shared-services apply not performed; skipping RBAC polling."
+            exit 0
+          fi
+
+          UAMI_NAME="riskinsure-${ENVIRONMENT_NAME}-app-mi"
+          MAX_ATTEMPTS=18
+          SLEEP_SECONDS=20
+          principal_found="false"
+          role_assignment_seen="false"
+
+          echo "Polling RBAC propagation for UAMI: $UAMI_NAME (RG: $RG)"
+
+          for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
+            principal_id=$(az identity show -n "$UAMI_NAME" -g "$RG" --query "principalId" -o tsv 2>/dev/null || echo "")
+
+            if [[ -n "$principal_id" && "$principal_id" != "null" ]]; then
+              principal_found="true"
+              role_count=$(az role assignment list --assignee-object-id "$principal_id" --assignee-principal-type ServicePrincipal --query "length(@)" -o tsv 2>/dev/null || echo "0")
+
+              if ! [[ "$role_count" =~ ^[0-9]+$ ]]; then
+                role_count="0"
+              fi
+
+              echo "Attempt $attempt/$MAX_ATTEMPTS: principal resolved, role assignments=$role_count"
+
+              if [[ "$role_count" -gt 0 ]]; then
+                role_assignment_seen="true"
+                break
+              fi
+            else
+              echo "Attempt $attempt/$MAX_ATTEMPTS: UAMI principal not visible yet."
+            fi
+
+            if [[ "$attempt" -lt "$MAX_ATTEMPTS" ]]; then
+              sleep "$SLEEP_SECONDS"
+            fi
+          done
+
+          if [[ "$principal_found" != "true" ]]; then
+            echo "UAMI principal for $UAMI_NAME did not become available within polling window." >&2
+            exit 1
+          fi
+
+          if [[ "$role_assignment_seen" == "true" ]]; then
+            echo "RBAC propagation ready: role assignment detected."
+          else
+            echo "No role assignment observed during polling window; continuing to verification checks."
+          fi
   
   # ==========================================================================
   # Verify Infrastructure & Permissions (matches infrastructure.yml pattern)
@@ -241,8 +463,8 @@ jobs:
     if: |
       always() &&
       needs.shared-services.result == 'success' &&
-      needs.rbac-propagation.result == 'success' &&
-      (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply'))
+      (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply')) &&
+      (needs.rbac-propagation.result == 'success' || needs.rbac-propagation.result == 'skipped')
     runs-on: ubuntu-latest
     
     permissions:
@@ -283,7 +505,7 @@ jobs:
           PRINCIPAL_ID="${{ steps.verify_uami.outputs.principal_id }}"
           
           echo "🔍 Verifying role assignments for principal ID: $PRINCIPAL_ID"
-          ROLES=$(az role assignment list --assignee "$PRINCIPAL_ID" --query "[].roleDefinitionName" -o tsv)
+          ROLES=$(az role assignment list --assignee-object-id "$PRINCIPAL_ID" --assignee-principal-type ServicePrincipal --query "[].roleDefinitionName" -o tsv 2>/dev/null || echo "")
           
           if [ -z "$ROLES" ]; then
             echo "⚠️ No role assignments found (may still be propagating)"
@@ -361,6 +583,16 @@ jobs:
       - name: Generate Summary
         shell: bash
         run: |
+          FOUNDATION_CHANGES="${{ needs.foundation.outputs.changed_resource_count }}"
+          SHARED_CHANGES="${{ needs.shared-services.outputs.changed_resource_count }}"
+          FOUNDATION_APPLY_STATUS="${{ needs.foundation.outputs.apply_status }}"
+          SHARED_APPLY_STATUS="${{ needs.shared-services.outputs.apply_status }}"
+
+          if [[ -z "$FOUNDATION_CHANGES" ]]; then FOUNDATION_CHANGES="n/a"; fi
+          if [[ -z "$SHARED_CHANGES" ]]; then SHARED_CHANGES="n/a"; fi
+          if [[ -z "$FOUNDATION_APPLY_STATUS" ]]; then FOUNDATION_APPLY_STATUS="n/a"; fi
+          if [[ -z "$SHARED_APPLY_STATUS" ]]; then SHARED_APPLY_STATUS="n/a"; fi
+
           echo "# 🏗️ Infrastructure Deployment: Dev" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "**Environment:** \`dev\`" >> "$GITHUB_STEP_SUMMARY"
@@ -369,9 +601,9 @@ jobs:
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "## 📋 Deployment Results" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Layer | Status |" >> "$GITHUB_STEP_SUMMARY"
-          echo "|-------|--------|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Foundation | ${{ needs.foundation.result }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Shared Services | ${{ needs.shared-services.result }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| RBAC Propagation | ${{ needs.rbac-propagation.result }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Verification | ${{ needs.verify.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Layer / Job | Status | Planned Change Count | Apply Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|-------|--------|--------|--------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Foundation | ${{ needs.foundation.result }} | $FOUNDATION_CHANGES | $FOUNDATION_APPLY_STATUS |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Shared Services | ${{ needs.shared-services.result }} | $SHARED_CHANGES | $SHARED_APPLY_STATUS |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| RBAC Propagation | ${{ needs.rbac-propagation.result }} | n/a | n/a |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Verification | ${{ needs.verify.result }} | n/a | n/a |" >> "$GITHUB_STEP_SUMMARY"
