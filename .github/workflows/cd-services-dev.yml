@@ -73,7 +73,7 @@ jobs:
 
       - name: Download CI deployment metadata artifact
         if: github.event_name == 'workflow_run'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: cd-inputs
           path: .cd-inputs
