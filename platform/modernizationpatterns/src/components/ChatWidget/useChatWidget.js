@@ -18,6 +18,28 @@ export function useChatWidget() {
   const [theme, setThemeState] = useState('light');
   const messageListRef = useRef(null);
 
+  const syncConversationMessages = useCallback((convId, nextMessages) => {
+    setConversations((prev) => {
+      const exists = prev.some((conv) => conv.id === convId);
+      const updatedAt = new Date().toISOString();
+
+      if (!exists) {
+        return [{
+          id: convId,
+          createdAt: updatedAt,
+          updatedAt,
+          messages: nextMessages,
+        }, ...prev];
+      }
+
+      return prev.map((conv) => (
+        conv.id === convId
+          ? { ...conv, messages: nextMessages, updatedAt }
+          : conv
+      ));
+    });
+  }, []);
+
   // Initialize with user ID and load theme
   useEffect(() => {
     const uid = `user-${Date.now()}`;
@@ -27,6 +49,26 @@ export function useChatWidget() {
     const savedTheme = localStorage.getItem('chat-theme') || 'light';
     setThemeState(savedTheme);
   }, []);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    const loadUserConversations = async () => {
+      try {
+        const response = await fetch(`${API_BASE}/user/${userId}/conversations`);
+        if (!response.ok) return;
+
+        const data = await response.json();
+        if (Array.isArray(data.conversations)) {
+          setConversations(data.conversations);
+        }
+      } catch (error) {
+        console.error('Failed to load conversations:', error);
+      }
+    };
+
+    loadUserConversations();
+  }, [userId]);
 
   // Auto-open sidebar when expanding to fullscreen
   useEffect(() => {
@@ -96,11 +138,13 @@ export function useChatWidget() {
       const response = await fetch(`${API_BASE}/${convId}?userId=${userId}`);
       const data = await response.json();
       setConversationId(data.id);
-      setMessages(data.messages || []);
+      const loadedMessages = data.messages || [];
+      setMessages(loadedMessages);
+      syncConversationMessages(data.id, loadedMessages);
     } catch (error) {
       console.error('Failed to load conversation:', error);
     }
-  }, [userId]);
+  }, [userId, syncConversationMessages]);
 
   // Send message with streaming
   const sendMessage = useCallback(async () => {
@@ -118,7 +162,11 @@ export function useChatWidget() {
       content: userInputContent,
       timestamp: new Date().toISOString(),
     };
-    setMessages((prev) => [...prev, userMessage]);
+    setMessages((prev) => {
+      const next = [...prev, userMessage];
+      syncConversationMessages(convId, next);
+      return next;
+    });
     setInputValue('');
     setIsLoading(true);
 
@@ -181,6 +229,7 @@ export function useChatWidget() {
               const lastMsg = updated[updated.length - 1];
               // Append token directly - backend already handles spacing
               lastMsg.content += data;
+              syncConversationMessages(convId, updated);
               return updated;
             });
           }
@@ -239,6 +288,7 @@ export function useChatWidget() {
             updated[updated.length - 1].citations = citations;
           }
         }
+        syncConversationMessages(convId, updated);
         return updated;
       });
     } catch (error) {
@@ -251,18 +301,22 @@ export function useChatWidget() {
         ? '❌ Invalid response format from API. Server may not be running correctly.'
         : `❌ Error: ${error.message}`;
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'assistant',
-          content: errorMsg,
-          timestamp: new Date().toISOString(),
-        },
-      ]);
+      setMessages((prev) => {
+        const next = [
+          ...prev,
+          {
+            role: 'assistant',
+            content: errorMsg,
+            timestamp: new Date().toISOString(),
+          },
+        ];
+        syncConversationMessages(convId, next);
+        return next;
+      });
     } finally {
       setIsLoading(false);
     }
-  }, [inputValue, conversationId, userId, createConversation]);
+  }, [inputValue, conversationId, userId, createConversation, syncConversationMessages]);
 
   // Clear chat
   const clearChat = useCallback(() => {
@@ -316,7 +370,17 @@ export function useChatWidget() {
   }, []);
 
   // Delete conversation
-  const deleteConversation = useCallback((convId) => {
+  const deleteConversation = useCallback(async (convId) => {
+    if (userId) {
+      try {
+        await fetch(`${API_BASE}/${convId}?userId=${userId}`, {
+          method: 'DELETE',
+        });
+      } catch (error) {
+        console.error('Failed to delete conversation on API:', error);
+      }
+    }
+
     setConversations((prev) => prev.filter((conv) => conv.id !== convId));
 
     // If deleted conversation is current, start a new one
@@ -325,7 +389,7 @@ export function useChatWidget() {
       setMessages([]);
       setInputValue('');
     }
-  }, [conversationId]);
+  }, [conversationId, userId]);
 
   return {
     // State
