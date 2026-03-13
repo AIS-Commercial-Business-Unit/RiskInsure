@@ -159,6 +159,11 @@ jobs:
             echo "acr_name=$acr_name"
             echo "key_vault_name=$key_vault_name"
           } >> "$GITHUB_OUTPUT"
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Capture Apply Status
         id: apply-status
@@ -321,6 +326,11 @@ jobs:
             echo "servicebus_namespace_fqdn=$servicebus_namespace_fqdn"
             echo "apps_shared_identity_id=$apps_shared_identity_id"
           } >> "$GITHUB_OUTPUT"
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Capture Apply Status
         id: apply-status
