@@ -83,14 +83,15 @@ jobs:
           
           # Check endpoint queues only
           REQUIRED_QUEUES=(
-            "RiskInsure.Billing.Endpoint"
-            "RiskInsure.Customer.Endpoint"
-            "RiskInsure.crmgt.Endpoint"
-            "RiskInsure.FundTransferMgt.Endpoint"
-            "RiskInsure.Policy.Endpoint"
-            "RiskInsure.peimgt.Endpoint"
-            "RiskInsure.PolicyLifeCycleMgt.Endpoint"
-            "RiskInsure.RatingAndUnderwriting.Endpoint"
+            "RiskInsure.billing.Endpoint"
+            "RiskInsure.customer.Endpoint"            
+            "RiskInsure.fundtransfermgt.Endpoint"
+            "RiskInsure.policy.Endpoint",
+            "RiskInsure.ratingandunderwriting.Endpoint",
+            "RiskInsure.customerrelationshipsmgt.Endpoint"
+            "RiskInsure.policyequityandinvoicingmgt.Endpoint"
+            "RiskInsure.policylifecyclemgt.Endpoint"
+            "RiskInsure.riskratingandunderwriting.Endpoint"
           )
           
           for queue in "${REQUIRED_QUEUES[@]}"; do
@@ -109,7 +110,44 @@ jobs:
             echo "ready=false" >> "$GITHUB_OUTPUT"
             exit 1
           fi
-          echo "cosmosdb_account=$COSMOS_ACCOUNT"
+          echo "cosmosdb_account=$COSMOS_ACCOUNT" >> "$GITHUB_OUTPUT"
+          echo "✅ Cosmos DB account: $COSMOS_ACCOUNT"
+          
+          # Check Cosmos DB containers
+          COSMOS_DB="RiskInsure"
+          REQUIRED_CONTAINERS=(
+            "Billing"
+            "Billing-sagas"
+            "customer"
+            "customer-sagas"
+            "policy"
+            "policy-sagas"
+            "ratingunderwriting"
+            "ratingunderwriting-sagas"
+            "fundstransfermgt"
+            "fundstransfermgt-sagas"
+            "customerrelationships"
+            "customerrelationshipsmgt-sagas"
+            "policylifecycle"
+            "policylifecycle-sagas"
+            "policyequityandinvoicingmgt"
+            "policyequityandinvoicingmgt-sagas"
+            "riskratingandunderwriting"
+            "riskratingandunderwriting-sagas"
+          )
+          
+          for container in "${REQUIRED_CONTAINERS[@]}"; do
+            if ! az cosmosdb sql container show \
+                --resource-group "$RG" \
+                --account-name "$COSMOS_ACCOUNT" \
+                --database-name "$COSMOS_DB" \
+                --name "$container" &>/dev/null; then
+              echo "❌ Cosmos DB container '$container' not found in database '$COSMOS_DB'"
+              echo "ready=false" >> "$GITHUB_OUTPUT"
+              exit 1
+            fi
+            echo "✅ Cosmos DB container: $container"
+          done
           
           # Check Container Apps are running
           SERVICES=("billing" "customer" "crmgt" "fundstransfermgt" "policy" "peimgt" "policylifecyclemgt" "ratingandunderwriting", "rru")
