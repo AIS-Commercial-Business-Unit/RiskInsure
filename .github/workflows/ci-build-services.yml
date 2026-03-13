@@ -16,6 +16,9 @@ on:
       - 'services/**'
       - 'platform/RiskInsure.PublicContracts/**'
       - 'platform/modernizationpatterns/Api/**'
+      - 'platform/modernizationpatterns/Dockerfile.chat-api'
+      - 'platform/modernizationpatterns/Dockerfile.reindex-worker'
+      - '.github/scripts/managed-services.sh'
       - '.github/workflows/ci-build-services.yml'
   workflow_dispatch:
     inputs:
@@ -41,7 +44,8 @@ jobs:
   # --------------------------------------------------------------------------
   # Determine Services
   # Purpose: Inspect the commit to decide which services changed and set
-  # outputs: `services`, `matrix_empty`, and `image_tag` for downstream jobs.
+  # outputs: `services`, `matrix_empty`, `image_tag`, and `trigger_reason`
+  # for downstream CD jobs.
   # --------------------------------------------------------------------------
   determine-services:
     name: 'Determine Services'
@@ -50,6 +54,8 @@ jobs:
       services: ${{ steps.determine.outputs.services }}
       matrix_empty: ${{ steps.determine.outputs.matrix_empty }}
       image_tag: ${{ steps.determine.outputs.image_tag }}
+      trigger_reason: ${{ steps.determine.outputs.trigger_reason }}
+      infra_changed: ${{ steps.determine.outputs.infra_changed }}
 
     steps:
       - name: Checkout
@@ -63,17 +69,23 @@ jobs:
         run: |
           set -euo pipefail
 
-          ALL_SERVICES='["billing","customer","customerrelationshipsmgt","fundstransfermgt","modernizationpatterns","policy","policylifecyclemgt","policyequityandinvoicingmgt","ratingandunderwriting","riskratingandunderwriting"]'
+          source .github/scripts/managed-services.sh
+
+          ALL_SERVICES="$(managed_services_json)"
           echo "image_tag=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            if [[ "${{ github.event.inputs.services }}" == "all" ]]; then
-              echo "services=$ALL_SERVICES" >> "$GITHUB_OUTPUT"
-              echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
+            services_input="${{ github.event.inputs.services }}"
+            normalized_input=$(echo "$services_input" | tr '[:upper:]' '[:lower:]')
+            services_json="$(parse_dispatch_services_input "$services_input")"
+
+            echo "services=$services_json" >> "$GITHUB_OUTPUT"
+            echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
+            echo "infra_changed=false" >> "$GITHUB_OUTPUT"
+            if [[ "$normalized_input" == "all" ]]; then
+              echo "trigger_reason=manual-all-services" >> "$GITHUB_OUTPUT"
             else
-              services_input="${{ github.event.inputs.services }}"
-              services_json=$(echo "$services_input" | jq -R -s -c 'split(",") | map(gsub("^\\s+|\\s+$";"")) | map(select(length > 0))')
-              echo "services=$services_json" >> "$GITHUB_OUTPUT"
-              echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
+              echo "trigger_reason=manual-selected-services" >> "$GITHUB_OUTPUT"
             fi
             exit 0
           fi
@@ -96,13 +108,30 @@ jobs:
           if [[ -z "$changed_files" ]]; then
             echo "services=[]" >> "$GITHUB_OUTPUT"
             echo "matrix_empty=true" >> "$GITHUB_OUTPUT"
+            echo "infra_changed=false" >> "$GITHUB_OUTPUT"
+            echo "trigger_reason=no-changed-files" >> "$GITHUB_OUTPUT"
             exit 0
           fi
+
+          infra_changed="false"
+          if echo "$changed_files" | grep -Eq '^platform/infra/foundation/|^platform/infra/shared-services/|^\.github/workflows/cd-infra-dev\.yml$'; then
+            infra_changed="true"
+          fi
+          echo "infra_changed=$infra_changed" >> "$GITHUB_OUTPUT"
 
           # Workflow change -> build all
           if echo "$changed_files" | grep -q '^\.github/workflows/ci-build-services\.yml$'; then
             echo "services=$ALL_SERVICES" >> "$GITHUB_OUTPUT"
             echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
+            echo "trigger_reason=ci-workflow-changed" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Managed services helper change -> build all
+          if echo "$changed_files" | grep -q '^\.github/scripts/managed-services\.sh$'; then
+            echo "services=$ALL_SERVICES" >> "$GITHUB_OUTPUT"
+            echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
+            echo "trigger_reason=managed-services-script-changed" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -110,28 +139,21 @@ jobs:
           if echo "$changed_files" | grep -q '^platform/RiskInsure\.PublicContracts/'; then
             echo "services=$ALL_SERVICES" >> "$GITHUB_OUTPUT"
             echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
+            echo "trigger_reason=public-contracts-changed" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          changed_services=()
-          for service in billing customer customerrelationshipsmgt fundstransfermgt policy policylifecyclemgt policyequityandinvoicingmgt ratingandunderwriting riskratingandunderwriting; do
-            if echo "$changed_files" | grep -q "^services/$service/"; then
-              changed_services+=("\"$service\"")
-            fi
-          done
+          services_json="$(detect_services_from_changed_files "$changed_files")"
+          service_count="$(echo "$services_json" | jq -r 'length')"
 
-          # Check for modernizationpatterns changes (different path)
-          if echo "$changed_files" | grep -q "^platform/modernizationpatterns/Api/"; then
-            changed_services+=("\"modernizationpatterns\"")
-          fi
-
-          if [[ ${#changed_services[@]} -eq 0 ]]; then
+          if [[ "$service_count" -eq 0 ]]; then
             echo "services=[]" >> "$GITHUB_OUTPUT"
             echo "matrix_empty=true" >> "$GITHUB_OUTPUT"
+            echo "trigger_reason=no-managed-service-changes" >> "$GITHUB_OUTPUT"
           else
-            services_json="[$(IFS=,; echo "${changed_services[*]}")]"
             echo "services=$services_json" >> "$GITHUB_OUTPUT"
             echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
+            echo "trigger_reason=service-path-changes" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Summary
@@ -143,6 +165,70 @@ jobs:
           echo "**Commit:** \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "**Image tag:** \`${{ steps.determine.outputs.image_tag }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "**Services:** \`${{ steps.determine.outputs.services }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Matrix empty:** \`${{ steps.determine.outputs.matrix_empty }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Infra changed:** \`${{ steps.determine.outputs.infra_changed }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Trigger reason:** \`${{ steps.determine.outputs.trigger_reason }}\`" >> "$GITHUB_STEP_SUMMARY"
+
+  # --------------------------------------------------------------------------
+  # Wait For Infra
+  # Purpose: On commits that modify shared foundation infra, wait for the
+  # infrastructure CD workflow for this same commit SHA before building images.
+  # --------------------------------------------------------------------------
+  wait-for-infra:
+    name: 'Wait: Infra Ready'
+    needs: determine-services
+    if: github.event_name == 'push' && needs.determine-services.outputs.infra_changed == 'true' && needs.determine-services.outputs.matrix_empty == 'false'
+    runs-on: ubuntu-latest
+
+    permissions:
+      actions: read
+      contents: read
+
+    steps:
+      - name: 'Wait for CD: Infrastructure Dev workflow'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const workflowId = 'cd-infra-dev.yml';
+            const targetSha = context.sha;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            const maxAttempts = 45;
+            const delayMs = 60000;
+
+            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+              const { data } = await github.rest.actions.listWorkflowRuns({
+                owner,
+                repo,
+                workflow_id: workflowId,
+                event: 'push',
+                branch: 'main',
+                per_page: 50,
+              });
+
+              const run = data.workflow_runs.find(r => r.head_sha === targetSha);
+
+              if (!run) {
+                core.info(`Attempt ${attempt}/${maxAttempts}: infra workflow run not visible yet for ${targetSha}.`);
+              } else {
+                core.info(`Attempt ${attempt}/${maxAttempts}: infra run ${run.id} status=${run.status}, conclusion=${run.conclusion ?? 'n/a'}.`);
+
+                if (run.status === 'completed') {
+                  if (run.conclusion === 'success') {
+                    core.info('Infrastructure workflow completed successfully for this commit.');
+                    return;
+                  }
+
+                  core.setFailed(`Infrastructure workflow completed with conclusion='${run.conclusion}'.`);
+                  return;
+                }
+              }
+
+              await new Promise(resolve => setTimeout(resolve, delayMs));
+            }
+
+            core.setFailed(`Timed out waiting for ${workflowId} to complete for commit ${targetSha}.`);
 
   # --------------------------------------------------------------------------
   # Build
@@ -153,8 +239,8 @@ jobs:
   # --------------------------------------------------------------------------
   build:
     name: 'Build: ${{ matrix.service }}'
-    needs: determine-services
-    if: needs.determine-services.outputs.matrix_empty == 'false'
+    needs: [determine-services, wait-for-infra]
+    if: needs.determine-services.outputs.matrix_empty == 'false' && (needs.wait-for-infra.result == 'success' || needs.wait-for-infra.result == 'skipped')
     runs-on: ubuntu-latest
 
     strategy:
@@ -232,6 +318,34 @@ jobs:
             dotnet build "$SERVICE_DIR/src/Api" --configuration Release --no-restore
             dotnet build "$SERVICE_DIR/src/Endpoint.In" --configuration Release --no-restore
           fi
+
+      - name: Run Unit Tests (Pre-Publish Gate)
+        shell: bash
+        run: |
+          set -euo pipefail
+          SERVICE="${{ matrix.service }}"
+          BUILD_TYPE="${{ steps.map.outputs.build_type }}"
+
+          if [[ "$BUILD_TYPE" == "modernizationpatterns" ]]; then
+            echo "No Unit.Tests project configured for modernizationpatterns; skipping test gate for this service."
+            echo "### Unit Test Gate" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Service: \`$SERVICE\`" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Result: skipped (no Unit.Tests project configured)" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          TEST_PROJECT="services/$SERVICE/test/Unit.Tests/Unit.Tests.csproj"
+
+          if [[ ! -f "$TEST_PROJECT" ]]; then
+            echo "Expected unit test project not found: $TEST_PROJECT" >&2
+            exit 1
+          fi
+
+          dotnet test "$TEST_PROJECT" \
+            --configuration Release \
+            --logger "trx;LogFileName=unit-test-results.trx" \
+            --collect:"XPlat Code Coverage" \
+            --results-directory "TestResults/$SERVICE"
 
       - name: Azure Login
         uses: azure/login@v2
@@ -371,7 +485,8 @@ jobs:
           {
             "image_tag": "${{ needs.determine-services.outputs.image_tag }}",
             "services": ${{ needs.determine-services.outputs.services }},
-            "matrix_empty": ${{ needs.determine-services.outputs.matrix_empty }}
+            "matrix_empty": ${{ needs.determine-services.outputs.matrix_empty }},
+            "trigger_reason": "${{ needs.determine-services.outputs.trigger_reason }}"
           }
           EOF
 
@@ -404,5 +519,7 @@ jobs:
           echo "**Commit:** \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "**Image tag:** \`${{ needs.determine-services.outputs.image_tag }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "**Services:** \`${{ needs.determine-services.outputs.services }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Matrix empty:** \`${{ needs.determine-services.outputs.matrix_empty }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Trigger reason:** \`${{ needs.determine-services.outputs.trigger_reason }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "**Build result:** \`${{ needs.build.result }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "**Metadata artifact:** \`${{ needs.publish-cd-metadata.result }}\`" >> "$GITHUB_STEP_SUMMARY"

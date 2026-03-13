@@ -6,7 +6,9 @@ name: 'CD: Services Dev'
 #   - After CI: Build Services completes successfully
 #   - Manual workflow_dispatch (deploy specific services)
 # Duration: ~8-12 minutes
-# CRITICAL: Uses workflow_run.head_sha to deploy exact images CI built
+# CRITICAL:
+#   - workflow_run uses CI artifact metadata for image tag and service scope
+#   - workflow_dispatch requires an explicit immutable image tag
 # ==============================================================================
 
 on:
@@ -15,7 +17,7 @@ on:
     workflows:
       - 'CI: Build Services'
     types: [ completed ]
-    branches: [ main, Dev ]
+    branches: [ main ]
 
   workflow_dispatch:
     inputs:
@@ -24,16 +26,23 @@ on:
         required: true
         default: 'all'
         type: string
+      image_tag:
+        description: 'Exact image tag / commit SHA to deploy'
+        required: true
+        type: string
 
 env:
   TERRAFORM_VERSION: '1.11.4'
   ENVIRONMENT: 'dev'
   REGISTRY: 'riskinsuredevacr.azurecr.io'
+  ACR_NAME: 'riskinsuredevacr'
   RG: 'CAIS-010-RiskInsure'
+  ENABLE_IMAGE_EXISTENCE_CHECK: 'true'
 
 permissions:
   contents: read
   id-token: write
+  actions: read
 
 concurrency:
   group: riskinsure-services-dev
@@ -42,7 +51,9 @@ concurrency:
 jobs:
   # ==============================================================================
   # Determine which services to deploy and which image tag to use
-  # CRITICAL: Uses workflow_run.head_sha to match exact commit CI built
+  # CRITICAL:
+  #   - workflow_run: consume CI metadata artifact
+  #   - workflow_dispatch: use explicit image_tag input
   # ==============================================================================
   determine:
     name: 'Determine Services + Image Tag'
@@ -52,6 +63,7 @@ jobs:
       services: ${{ steps.out.outputs.services }}
       matrix_empty: ${{ steps.out.outputs.matrix_empty }}
       image_tag: ${{ steps.out.outputs.image_tag }}
+      trigger_reason: ${{ steps.out.outputs.trigger_reason }}
 
     steps:
       - name: Checkout
@@ -59,100 +71,91 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Download CI deployment metadata artifact
+        if: github.event_name == 'workflow_run'
+        uses: actions/download-artifact@v4
+        with:
+          name: cd-inputs
+          path: .cd-inputs
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+
       - name: Decide services + image_tag
         id: out
         shell: bash
         run: |
           set -euo pipefail
 
-          ALL_SERVICES='["billing","customer","customerrelationshipsmgt","fundstransfermgt","modernizationpatterns","policy","policylifecyclemgt","policyequityandinvoicingmgt","ratingandunderwriting","riskratingandunderwriting"]'
+          source .github/scripts/managed-services.sh
 
-          # Decide which image tag to deploy
           if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
-            IMAGE_TAG="${{ github.event.workflow_run.head_sha }}"
+            METADATA_FILE=".cd-inputs/deployment-inputs.json"
+
+            if [[ ! -s "$METADATA_FILE" ]]; then
+              echo "Missing or empty CI metadata artifact at $METADATA_FILE" >&2
+              exit 1
+            fi
+
+            if ! jq -e '
+              type == "object" and
+              (.image_tag | type == "string" and length > 0) and
+              (.services | type == "array") and
+              (.matrix_empty | type == "boolean")
+            ' "$METADATA_FILE" >/dev/null; then
+              echo "Malformed deployment-inputs.json in CI metadata artifact." >&2
+              cat "$METADATA_FILE"
+              exit 1
+            fi
+
+            IMAGE_TAG=$(jq -r '.image_tag' "$METADATA_FILE")
+            SERVICES_JSON=$(jq -c '.services' "$METADATA_FILE")
+            MATRIX_EMPTY=$(jq -r '.matrix_empty' "$METADATA_FILE")
+            TRIGGER_REASON=$(jq -r '.trigger_reason // "ci-artifact"' "$METADATA_FILE")
+
+            validate_services_json "$SERVICES_JSON"
+            validate_matrix_consistency "$SERVICES_JSON" "$MATRIX_EMPTY"
+
+            echo "image_tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+            echo "services=$SERVICES_JSON" >> "$GITHUB_OUTPUT"
+            echo "matrix_empty=$MATRIX_EMPTY" >> "$GITHUB_OUTPUT"
+            echo "trigger_reason=$TRIGGER_REASON" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          IMAGE_TAG_RAW="${{ github.event.inputs.image_tag }}"
+          IMAGE_TAG="$(echo "$IMAGE_TAG_RAW" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+
+          if [[ -z "$IMAGE_TAG" ]]; then
+            echo "workflow_dispatch input image_tag is required." >&2
+            exit 1
+          fi
+
+          # Keep manual deployments deterministic: disallow mutable tag aliases.
+          if [[ "$IMAGE_TAG" == "latest" ]]; then
+            echo "The image_tag input cannot be 'latest'. Use an immutable tag (for example, a full commit SHA)." >&2
+            exit 1
+          fi
+
+          if ! [[ "$IMAGE_TAG" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]]; then
+            echo "Invalid image_tag format: $IMAGE_TAG" >&2
+            exit 1
+          fi
+
+          services_input="${{ github.event.inputs.services }}"
+          normalized_input=$(echo "$services_input" | tr '[:upper:]' '[:lower:]')
+          SERVICES_JSON="$(parse_dispatch_services_input "$services_input")"
+          MATRIX_EMPTY=$(echo "$SERVICES_JSON" | jq -r 'if length == 0 then "true" else "false" end')
+
+          if [[ "$normalized_input" == "all" ]]; then
+            TRIGGER_REASON="manual-all-services-explicit-image-tag"
           else
-            IMAGE_TAG="${{ github.sha }}"
+            TRIGGER_REASON="manual-selected-services-explicit-image-tag"
           fi
 
           echo "image_tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
-
-          # Manual deployment input handling
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            if [[ "${{ github.event.inputs.services }}" == "all" ]]; then
-              echo "services=$ALL_SERVICES" >> "$GITHUB_OUTPUT"
-              echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
-              exit 0
-            fi
-
-            services_input="${{ github.event.inputs.services }}"
-            services_json=$(echo "$services_input" | jq -R -s -c 'split(",") | map(gsub("^\\s+|\\s+$";"")) | map(select(length>0))')
-            echo "services=$services_json" >> "$GITHUB_OUTPUT"
-            echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          # CI: Build Services triggered this CD -> decide deploy scope based on CI commit
-          changed_files=$(git show --pretty="" --name-only "${{ github.event.workflow_run.head_sha }}" || true)
-
-          # If commit file list cannot be determined, deploy all as safe fallback
-          if [[ -z "$changed_files" ]]; then
-            echo "services=$ALL_SERVICES" >> "$GITHUB_OUTPUT"
-            echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          # Workflow change -> deploy all services
-          if echo "$changed_files" | grep -q '^\.github/workflows/ci-build-services\.yml$'; then
-            echo "CI workflow file changed -> deploy ALL services"
-            echo "services=$ALL_SERVICES" >> "$GITHUB_OUTPUT"
-            echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          if echo "$changed_files" | grep -q '^\.github/workflows/cd-services-dev\.yml$'; then
-            echo "CD workflow file changed -> deploy ALL services"
-            echo "services=$ALL_SERVICES" >> "$GITHUB_OUTPUT"
-            echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          # Shared contracts change -> deploy all services
-          if echo "$changed_files" | grep -q '^platform/RiskInsure\.PublicContracts/'; then
-            echo "Shared contracts changed -> deploy ALL services"
-            echo "services=$ALL_SERVICES" >> "$GITHUB_OUTPUT"
-            echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          # Service-level changes -> deploy only changed services
-          changed_services=()
-          for s in billing customer customerrelationshipsmgt fundstransfermgt policy policylifecyclemgt policyequityandinvoicingmgt ratingandunderwriting riskratingandunderwriting; do
-            if echo "$changed_files" | grep -q "^services/$s/"; then
-              changed_services+=("\"$s\"")
-            fi
-          done
-
-          # Check for modernizationpatterns changes (different path)
-          if echo "$changed_files" | grep -q "^platform/modernizationpatterns/Api/"; then
-            changed_services+=("\"modernizationpatterns\"")
-          fi
-
-          if [[ ${#changed_services[@]} -eq 0 ]]; then
-            echo "services=[]" >> "$GITHUB_OUTPUT"
-            echo "matrix_empty=true" >> "$GITHUB_OUTPUT"
-          else
-            services_json="[$(IFS=,; echo "${changed_services[*]}")]"
-            echo "services=$services_json" >> "$GITHUB_OUTPUT"
-            echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
-          fi
-
-          # Debug: print changed files for workflow_run troubleshooting
-          if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
-            echo "### Changed files (debug)" >> "$GITHUB_STEP_SUMMARY"
-            echo '```' >> "$GITHUB_STEP_SUMMARY"
-            echo "$changed_files" >> "$GITHUB_STEP_SUMMARY"
-            echo '```' >> "$GITHUB_STEP_SUMMARY"
-          fi
+          echo "services=$SERVICES_JSON" >> "$GITHUB_OUTPUT"
+          echo "matrix_empty=$MATRIX_EMPTY" >> "$GITHUB_OUTPUT"
+          echo "trigger_reason=$TRIGGER_REASON" >> "$GITHUB_OUTPUT"
 
       - name: Summary
         shell: bash
@@ -162,9 +165,12 @@ jobs:
           if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
             echo "**Upstream workflow:** \`${{ github.event.workflow_run.name }}\`" >> "$GITHUB_STEP_SUMMARY"
             echo "**Upstream status:** \`${{ github.event.workflow_run.conclusion }}\`" >> "$GITHUB_STEP_SUMMARY"
+            echo "**Upstream run-id:** \`${{ github.event.workflow_run.id }}\`" >> "$GITHUB_STEP_SUMMARY"
           fi
           echo "**image_tag:** \`${{ steps.out.outputs.image_tag }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "**services:** \`${{ steps.out.outputs.services }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**matrix_empty:** \`${{ steps.out.outputs.matrix_empty }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**trigger_reason:** \`${{ steps.out.outputs.trigger_reason }}\`" >> "$GITHUB_STEP_SUMMARY"
 
   # ==============================================================================
   # CRITICAL: Verify infrastructure exists before deploying services
@@ -191,19 +197,112 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Verify RG exists
+      - name: Verify infrastructure pre-flight
         id: verify
         shell: bash
         run: |
           set -euo pipefail
           RG="${{ env.RG }}"
+          ENVIRONMENT="${{ env.ENVIRONMENT }}"
+          CAE_NAME="riskinsure-${ENVIRONMENT}-env"
+          UAMI_NAME="riskinsure-${ENVIRONMENT}-app-mi"
 
+          # 1. Resource group must exist — all resources are scoped to it
           if ! az group show --name "$RG" >/dev/null 2>&1; then
-            echo "Resource group not found: $RG"
+            echo "::error::Resource group not found: $RG. Run cd-infra-dev.yml (foundation layer) first." >&2
+            exit 1
+          fi
+
+          # 2. Container Apps Environment must exist — every Container App binds to it at create time
+          if ! az containerapp env show --name "$CAE_NAME" --resource-group "$RG" >/dev/null 2>&1; then
+            echo "::error::Container Apps Environment '$CAE_NAME' not found in '$RG'. Run cd-infra-dev.yml (services layer) first." >&2
+            exit 1
+          fi
+
+          # 3. UAMI must exist — every Container App references it for managed identity
+          if ! az identity show --name "$UAMI_NAME" --resource-group "$RG" >/dev/null 2>&1; then
+            echo "::error::UAMI '$UAMI_NAME' not found in '$RG'. Run cd-infra-dev.yml (shared-services layer) first." >&2
             exit 1
           fi
 
           echo "resource_group=$RG" >> "$GITHUB_OUTPUT"
+          echo "Infrastructure pre-flight passed: RG=$RG | CAE=$CAE_NAME | UAMI=$UAMI_NAME"
+
+  # ==============================================================================
+  # Optional pre-deploy guard to ensure CI-built image tags exist in ACR
+  # ============================================================================== 
+  verify-images:
+    name: 'Verify Built Images Exist'
+    needs: determine
+    if: needs.determine.outputs.matrix_empty == 'false'
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Azure Login
+        if: env.ENABLE_IMAGE_EXISTENCE_CHECK == 'true'
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Verify image tags exist in ACR
+        shell: bash
+        env:
+          SERVICES: ${{ needs.determine.outputs.services }}
+          IMAGE_TAG: ${{ needs.determine.outputs.image_tag }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${{ env.ENABLE_IMAGE_EXISTENCE_CHECK }}" != "true" ]]; then
+            echo "Image existence check disabled by ENABLE_IMAGE_EXISTENCE_CHECK."
+            exit 0
+          fi
+
+          map_image_name() {
+            case "$1" in
+              customerrelationshipsmgt) echo "crmgt" ;;
+              policyequityandinvoicingmgt) echo "peimgt" ;;
+              riskratingandunderwriting) echo "rru" ;;
+              *) echo "$1" ;;
+            esac
+          }
+
+          missing_images=()
+
+          for service in $(echo "$SERVICES" | jq -r '.[]'); do
+            image_name=$(map_image_name "$service")
+
+            if [[ "$service" == "modernizationpatterns" ]]; then
+              repositories=("${image_name}-chat-api" "${image_name}-reindex")
+            else
+              repositories=("${image_name}-api" "${image_name}-endpoint")
+            fi
+
+            for repository in "${repositories[@]}"; do
+              tag_count=$(az acr repository show-tags \
+                --name "${{ env.ACR_NAME }}" \
+                --repository "$repository" \
+                --query "[?@=='$IMAGE_TAG'] | length(@)" \
+                -o tsv 2>/dev/null || echo "0")
+
+              if [[ "$tag_count" != "1" ]]; then
+                missing_images+=("${repository}:$IMAGE_TAG")
+              fi
+            done
+          done
+
+          if [[ ${#missing_images[@]} -gt 0 ]]; then
+            echo "Missing image tags in ACR:" >&2
+            printf ' - %s\n' "${missing_images[@]}" >&2
+            exit 1
+          fi
+
+          echo "All selected image tags exist in ACR."
 
   # ==============================================================================
   # Deploy Container Apps using Terraform with targeted deployments
@@ -211,7 +310,7 @@ jobs:
   # ==============================================================================
   deploy:
     name: 'Deploy Container Apps'
-    needs: [determine, verify-infra]
+    needs: [determine, verify-infra, verify-images]
     if: needs.determine.outputs.matrix_empty == 'false'
     runs-on: ubuntu-latest
 
@@ -253,6 +352,30 @@ jobs:
           for s in $(echo "$SERVICES" | jq -r '.[]'); do
             # Map service name to Terraform resource name
             case "$s" in
+              billing)
+                TARGETS="$TARGETS -target=azurerm_container_app.billing_api"
+                TARGETS="$TARGETS -target=azurerm_container_app.billing_endpoint"
+                ;;
+              customer)
+                TARGETS="$TARGETS -target=azurerm_container_app.customer_api"
+                TARGETS="$TARGETS -target=azurerm_container_app.customer_endpoint"
+                ;;
+              fundstransfermgt)
+                TARGETS="$TARGETS -target=azurerm_container_app.fundstransfermgt_api"
+                TARGETS="$TARGETS -target=azurerm_container_app.fundstransfermgt_endpoint"
+                ;;
+              policy)
+                TARGETS="$TARGETS -target=azurerm_container_app.policy_api"
+                TARGETS="$TARGETS -target=azurerm_container_app.policy_endpoint"
+                ;;
+              policylifecyclemgt)
+                TARGETS="$TARGETS -target=azurerm_container_app.policylifecyclemgt_api"
+                TARGETS="$TARGETS -target=azurerm_container_app.policylifecyclemgt_endpoint"
+                ;;
+              ratingandunderwriting)
+                TARGETS="$TARGETS -target=azurerm_container_app.ratingandunderwriting_api"
+                TARGETS="$TARGETS -target=azurerm_container_app.ratingandunderwriting_endpoint"
+                ;;
               policyequityandinvoicingmgt)
                 TARGETS="$TARGETS -target=azurerm_container_app.peimgt_api"
                 TARGETS="$TARGETS -target=azurerm_container_app.peimgt_endpoint"
@@ -270,8 +393,8 @@ jobs:
                 TARGETS="$TARGETS -target=azurerm_container_app.modernizationpatterns_reindex_worker"
                 ;;
               *)
-                TARGETS="$TARGETS -target=azurerm_container_app.${s}_api"
-                TARGETS="$TARGETS -target=azurerm_container_app.${s}_endpoint"
+                echo "Unsupported service in deployment scope: $s" >&2
+                exit 1
                 ;;
             esac
           done
@@ -306,7 +429,7 @@ jobs:
   # ==============================================================================
   summary:
     name: 'Deployment Summary'
-    needs: [determine, verify-infra, deploy]
+    needs: [determine, verify-infra, verify-images, deploy]
     if: always()
     runs-on: ubuntu-latest
 
@@ -317,9 +440,12 @@ jobs:
           echo "# 🚀 CD Services Dev Summary" >> "$GITHUB_STEP_SUMMARY"
           echo "**image_tag:** \`${{ needs.determine.outputs.image_tag }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "**services:** \`${{ needs.determine.outputs.services }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**matrix_empty:** \`${{ needs.determine.outputs.matrix_empty }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**trigger_reason:** \`${{ needs.determine.outputs.trigger_reason }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "| Job | Status |" >> "$GITHUB_STEP_SUMMARY"
           echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
           echo "| Determine | ${{ needs.determine.result }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Verify Infra | ${{ needs.verify-infra.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Verify Images | ${{ needs.verify-images.result }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Deploy | ${{ needs.deploy.result }} |" >> "$GITHUB_STEP_SUMMARY"
