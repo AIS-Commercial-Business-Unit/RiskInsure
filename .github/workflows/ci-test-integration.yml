@@ -83,15 +83,15 @@ jobs:
           
           # Check endpoint queues only
           REQUIRED_QUEUES=(
-            "RiskInsure.billing.Endpoint"
-            "RiskInsure.customer.Endpoint"            
-            "RiskInsure.fundtransfermgt.Endpoint"
-            "RiskInsure.policy.Endpoint",
-            "RiskInsure.ratingandunderwriting.Endpoint",
-            "RiskInsure.customerrelationshipsmgt.Endpoint"
-            "RiskInsure.policyequityandinvoicingmgt.Endpoint"
-            "RiskInsure.policylifecyclemgt.Endpoint"
-            "RiskInsure.riskratingandunderwriting.Endpoint"
+            "riskinsure.billing.endpoint"
+            "riskinsure.customer.endpoint"
+            "riskinsure.fundtransfermgt.endpoint"
+            "riskinsure.policy.endpoint"
+            "riskinsure.ratingandunderwriting.endpoint"
+            "riskinsure.customerrelationshipsmgt.endpoint"
+            "riskinsure.policyequityandinvoicingmgt.endpoint"
+            "riskinsure.policylifecyclemgt.endpoint"
+            "riskinsure.riskratingandunderwriting.endpoint"
           )
           
           for queue in "${REQUIRED_QUEUES[@]}"; do
@@ -150,7 +150,7 @@ jobs:
           done
           
           # Check Container Apps are running
-          SERVICES=("billing" "customer" "crmgt" "fundstransfermgt" "policy" "peimgt" "policylifecyclemgt" "ratingandunderwriting", "rru")
+          SERVICES=("billing" "customer" "crmgt" "fundstransfermgt" "policy" "peimgt" "policylifecyclemgt" "ratingandunderwriting" "rru")
           for service in "${SERVICES[@]}"; do
             API_NAME="$service-api"
             ENDPOINT_NAME="$service-endpoint"
