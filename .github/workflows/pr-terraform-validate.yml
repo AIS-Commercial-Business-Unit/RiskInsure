@@ -34,6 +34,7 @@ jobs:
         layer:
           - foundation
           - shared-services
+          - services
     
     defaults:
       run:
@@ -69,20 +70,61 @@ jobs:
         with:
           script: |
             const layer = '${{ matrix.layer }}';
-            
-            const output = `## Terraform Validation: \`${layer}\`
-            
-            #### Format Check 🖌️\`${{ steps.fmt.outcome }}\`
-            #### Initialization ⚙️\`${{ steps.init.outcome }}\`
-            #### Validation 🤖\`${{ steps.validate.outcome }}\`
-            
-            ✅ Terraform syntax is valid. Full plan will run after merge.
-            
-            *Pusher: @${{ github.actor }}, Workflow: \`${{ github.workflow }}\`*`;
-            
-            github.rest.issues.createComment({
+            const marker = `<!-- tf-validate-${layer} -->`;
+
+            const fmtOutcome  = '${{ steps.fmt.outcome }}';
+            const initOutcome = '${{ steps.init.outcome }}';
+            const valOutcome  = '${{ steps.validate.outcome }}';
+
+            const fmtIcon  = fmtOutcome  === 'success' ? '✅' : '⚠️';
+            const initIcon = initOutcome === 'success' ? '✅' : '❌';
+            const valIcon  = valOutcome  === 'success' ? '✅' : '❌';
+
+            const statusLine = valOutcome === 'success'
+              ? '✅ Terraform syntax is valid. A full plan will run on deployment.'
+              : '❌ Validation failed — fix errors before merging.';
+
+            // Build body as an array to avoid bare pipe characters at column-0
+            // inside the YAML block scalar (which YAML would misinterpret).
+            const body = [
+              marker,
+              `## Terraform Validation: \`${layer}\``,
+              '',
+              '| Step | Result |',
+              '|---|---|',
+              `| Format Check 🖌️ | ${fmtIcon} \`${fmtOutcome}\` |`,
+              `| Initialization ⚙️ | ${initIcon} \`${initOutcome}\` |`,
+              `| Validation 🤖 | ${valIcon} \`${valOutcome}\` |`,
+              '',
+              statusLine,
+              '',
+              `*Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Commit: \`${{ github.sha }}\`*`,
+            ].join('\n');
+
+            // Find an existing comment with this layer's marker and update it,
+            // otherwise create a new one. This prevents comment spam on re-pushes.
+            const { data: comments } = await github.rest.issues.listComments({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: output
             });
+
+            const existing = comments.find(c =>
+              c.user.type === 'Bot' && c.body.includes(marker)
+            );
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body,
+              });
+            }

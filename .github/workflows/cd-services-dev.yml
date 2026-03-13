@@ -6,7 +6,9 @@ name: 'CD: Services Dev'
 #   - After CI: Build Services completes successfully
 #   - Manual workflow_dispatch (deploy specific services)
 # Duration: ~8-12 minutes
-# CRITICAL: Uses workflow_run.head_sha to deploy exact images CI built
+# CRITICAL:
+#   - workflow_run uses CI artifact metadata for image tag and service scope
+#   - workflow_dispatch requires an explicit immutable image tag
 # ==============================================================================
 
 on:
@@ -23,6 +25,10 @@ on:
         description: 'Services to deploy (comma-separated or "all")'
         required: true
         default: 'all'
+        type: string
+      image_tag:
+        description: 'Exact image tag / commit SHA to deploy'
+        required: true
         type: string
 
 env:
@@ -45,7 +51,9 @@ concurrency:
 jobs:
   # ==============================================================================
   # Determine which services to deploy and which image tag to use
-  # CRITICAL: Uses workflow_run.head_sha to match exact commit CI built
+  # CRITICAL:
+  #   - workflow_run: consume CI metadata artifact
+  #   - workflow_dispatch: use explicit image_tag input
   # ==============================================================================
   determine:
     name: 'Determine Services + Image Tag'
@@ -114,16 +122,34 @@ jobs:
             exit 0
           fi
 
-          IMAGE_TAG="${{ github.sha }}"
+          IMAGE_TAG_RAW="${{ github.event.inputs.image_tag }}"
+          IMAGE_TAG="$(echo "$IMAGE_TAG_RAW" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
+
+          if [[ -z "$IMAGE_TAG" ]]; then
+            echo "workflow_dispatch input image_tag is required." >&2
+            exit 1
+          fi
+
+          # Keep manual deployments deterministic: disallow mutable tag aliases.
+          if [[ "$IMAGE_TAG" == "latest" ]]; then
+            echo "The image_tag input cannot be 'latest'. Use an immutable tag (for example, a full commit SHA)." >&2
+            exit 1
+          fi
+
+          if ! [[ "$IMAGE_TAG" =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}$ ]]; then
+            echo "Invalid image_tag format: $IMAGE_TAG" >&2
+            exit 1
+          fi
+
           services_input="${{ github.event.inputs.services }}"
           normalized_input=$(echo "$services_input" | tr '[:upper:]' '[:lower:]')
           SERVICES_JSON="$(parse_dispatch_services_input "$services_input")"
           MATRIX_EMPTY=$(echo "$SERVICES_JSON" | jq -r 'if length == 0 then "true" else "false" end')
 
           if [[ "$normalized_input" == "all" ]]; then
-            TRIGGER_REASON="manual-all-services"
+            TRIGGER_REASON="manual-all-services-explicit-image-tag"
           else
-            TRIGGER_REASON="manual-selected-services"
+            TRIGGER_REASON="manual-selected-services-explicit-image-tag"
           fi
 
           echo "image_tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
@@ -171,19 +197,36 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Verify RG exists
+      - name: Verify infrastructure pre-flight
         id: verify
         shell: bash
         run: |
           set -euo pipefail
           RG="${{ env.RG }}"
+          ENVIRONMENT="${{ env.ENVIRONMENT }}"
+          CAE_NAME="riskinsure-${ENVIRONMENT}-env"
+          UAMI_NAME="riskinsure-${ENVIRONMENT}-app-mi"
 
+          # 1. Resource group must exist — all resources are scoped to it
           if ! az group show --name "$RG" >/dev/null 2>&1; then
-            echo "Resource group not found: $RG"
+            echo "::error::Resource group not found: $RG. Run cd-infra-dev.yml (foundation layer) first." >&2
+            exit 1
+          fi
+
+          # 2. Container Apps Environment must exist — every Container App binds to it at create time
+          if ! az containerapp env show --name "$CAE_NAME" --resource-group "$RG" >/dev/null 2>&1; then
+            echo "::error::Container Apps Environment '$CAE_NAME' not found in '$RG'. Run cd-infra-dev.yml (services layer) first." >&2
+            exit 1
+          fi
+
+          # 3. UAMI must exist — every Container App references it for managed identity
+          if ! az identity show --name "$UAMI_NAME" --resource-group "$RG" >/dev/null 2>&1; then
+            echo "::error::UAMI '$UAMI_NAME' not found in '$RG'. Run cd-infra-dev.yml (shared-services layer) first." >&2
             exit 1
           fi
 
           echo "resource_group=$RG" >> "$GITHUB_OUTPUT"
+          echo "Infrastructure pre-flight passed: RG=$RG | CAE=$CAE_NAME | UAMI=$UAMI_NAME"
 
   # ==============================================================================
   # Optional pre-deploy guard to ensure CI-built image tags exist in ACR

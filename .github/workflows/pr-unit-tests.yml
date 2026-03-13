@@ -54,6 +54,8 @@ jobs:
             path: services/policylifecyclemgt/test/Unit.Tests
           - service: ratingandunderwriting
             path: services/ratingandunderwriting/test/Unit.Tests
+          - service: riskratingandunderwriting
+            path: services/riskratingandunderwriting/test/Unit.Tests
     
     steps:
       - name: Checkout

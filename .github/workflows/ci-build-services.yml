@@ -16,6 +16,9 @@ on:
       - 'services/**'
       - 'platform/RiskInsure.PublicContracts/**'
       - 'platform/modernizationpatterns/Api/**'
+      - 'platform/modernizationpatterns/Dockerfile.chat-api'
+      - 'platform/modernizationpatterns/Dockerfile.reindex-worker'
+      - '.github/scripts/managed-services.sh'
       - '.github/workflows/ci-build-services.yml'
   workflow_dispatch:
     inputs:
@@ -112,6 +115,14 @@ jobs:
             echo "services=$ALL_SERVICES" >> "$GITHUB_OUTPUT"
             echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
             echo "trigger_reason=ci-workflow-changed" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # Managed services helper change -> build all
+          if echo "$changed_files" | grep -q '^\.github/scripts/managed-services\.sh$'; then
+            echo "services=$ALL_SERVICES" >> "$GITHUB_OUTPUT"
+            echo "matrix_empty=false" >> "$GITHUB_OUTPUT"
+            echo "trigger_reason=managed-services-script-changed" >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
@@ -236,6 +247,34 @@ jobs:
             dotnet build "$SERVICE_DIR/src/Api" --configuration Release --no-restore
             dotnet build "$SERVICE_DIR/src/Endpoint.In" --configuration Release --no-restore
           fi
+
+      - name: Run Unit Tests (Pre-Publish Gate)
+        shell: bash
+        run: |
+          set -euo pipefail
+          SERVICE="${{ matrix.service }}"
+          BUILD_TYPE="${{ steps.map.outputs.build_type }}"
+
+          if [[ "$BUILD_TYPE" == "modernizationpatterns" ]]; then
+            echo "No Unit.Tests project configured for modernizationpatterns; skipping test gate for this service."
+            echo "### Unit Test Gate" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Service: \`$SERVICE\`" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Result: skipped (no Unit.Tests project configured)" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          TEST_PROJECT="services/$SERVICE/test/Unit.Tests/Unit.Tests.csproj"
+
+          if [[ ! -f "$TEST_PROJECT" ]]; then
+            echo "Expected unit test project not found: $TEST_PROJECT" >&2
+            exit 1
+          fi
+
+          dotnet test "$TEST_PROJECT" \
+            --configuration Release \
+            --logger "trx;LogFileName=unit-test-results.trx" \
+            --collect:"XPlat Code Coverage" \
+            --results-directory "TestResults/$SERVICE"
 
       - name: Azure Login
         uses: azure/login@v2

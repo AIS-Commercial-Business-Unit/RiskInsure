@@ -108,7 +108,7 @@ detect_services_from_changed_files() {
     fi
   done
 
-  if echo "$changed_files" | grep -q "^platform/modernizationpatterns/Api/"; then
+  if echo "$changed_files" | grep -Eq "^platform/modernizationpatterns/Api/|^platform/modernizationpatterns/Dockerfile\.chat-api$|^platform/modernizationpatterns/Dockerfile\.reindex-worker$"; then
     changed_services+=("modernizationpatterns")
   fi
 
