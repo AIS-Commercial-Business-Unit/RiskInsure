@@ -258,20 +258,30 @@ public class ChatController : ControllerBase
 
     /// <summary>List conversations for a user</summary>
     [HttpGet("user/{userId}/conversations")]
-    public IActionResult ListConversations(string userId)
+    public async Task<IActionResult> ListConversations(
+        string userId,
+        CancellationToken cancellationToken)
     {
         _logger.LogDebug("Listing conversations for user {UserId}", userId);
 
         if (string.IsNullOrWhiteSpace(userId))
             return BadRequest("UserId is required");
 
-        // Note: In production, implement Cosmos DB query for user's conversations
-        // For now, return empty list (requires UI to track locally)
+        var conversations = await _conversationService.GetUserConversationsAsync(userId, cancellationToken);
+
         return Ok(new
         {
             userId = userId,
-            conversations = new List<object>(),
-            message = "Use POST /api/chat/new to create conversations"
+            conversations = conversations.Select(c => new
+            {
+                id = c.Id,
+                userId = c.UserId,
+                createdAt = c.CreatedAt,
+                updatedAt = c.UpdatedAt,
+                status = c.Status,
+                messages = c.Messages
+            }).ToList(),
+            message = "Conversations loaded"
         });
     }
 

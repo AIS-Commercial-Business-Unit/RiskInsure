@@ -71,7 +71,7 @@ export function Sidebar({
                         key={conv.id}
                         id={conv.id}
                         preview={
-                          conv.messages?.[conv.messages.length - 1]?.message?.substring(0, 40) ||
+                          conv.messages?.[conv.messages.length - 1]?.content?.substring(0, 40) ||
                           'New conversation'
                         }
                         timestamp={conv.createdAt}
