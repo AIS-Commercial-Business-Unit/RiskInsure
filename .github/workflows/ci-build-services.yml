@@ -240,7 +240,7 @@ jobs:
   build:
     name: 'Build: ${{ matrix.service }}'
     needs: [determine-services, wait-for-infra]
-    if: needs.determine-services.outputs.matrix_empty == 'false' && (needs.wait-for-infra.result == 'success' || needs.wait-for-infra.result == 'skipped')
+    if: always() && needs.determine-services.result == 'success' && needs.determine-services.outputs.matrix_empty == 'false' && (needs.wait-for-infra.result == 'success' || needs.wait-for-infra.result == 'skipped')
     runs-on: ubuntu-latest
 
     strategy:
@@ -471,7 +471,7 @@ jobs:
   publish-cd-metadata:
     name: 'Publish CD Metadata'
     needs: [determine-services, build]
-    if: always() && needs.determine-services.result == 'success'
+    if: always() && needs.determine-services.result == 'success' && (needs.build.result == 'success' || (needs.build.result == 'skipped' && needs.determine-services.outputs.matrix_empty == 'true'))
     runs-on: ubuntu-latest
 
     steps:

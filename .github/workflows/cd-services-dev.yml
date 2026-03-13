@@ -112,6 +112,16 @@ jobs:
             MATRIX_EMPTY=$(jq -r '.matrix_empty' "$METADATA_FILE")
             TRIGGER_REASON=$(jq -r '.trigger_reason // "ci-artifact"' "$METADATA_FILE")
 
+            # Do not auto-deploy from workflow_run when upstream CI was manually dispatched.
+            if [[ "$TRIGGER_REASON" == manual-* ]]; then
+              echo "Skipping automatic CD for manual CI workflow_run (trigger_reason=$TRIGGER_REASON)."
+              echo "image_tag=$IMAGE_TAG" >> "$GITHUB_OUTPUT"
+              echo "services=[]" >> "$GITHUB_OUTPUT"
+              echo "matrix_empty=true" >> "$GITHUB_OUTPUT"
+              echo "trigger_reason=workflow-run-manual-ci-suppressed" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+
             validate_services_json "$SERVICES_JSON"
             validate_matrix_consistency "$SERVICES_JSON" "$MATRIX_EMPTY"
 
