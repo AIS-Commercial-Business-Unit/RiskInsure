@@ -85,10 +85,10 @@ jobs:
           REQUIRED_QUEUES=(
             "RiskInsure.Billing.Endpoint"
             "RiskInsure.Customer.Endpoint"
-            "RiskInsure.CustomerRelationshipsMgt.Endpoint"
+            "RiskInsure.crmgt.Endpoint"
             "RiskInsure.FundTransferMgt.Endpoint"
             "RiskInsure.Policy.Endpoint"
-            "RiskInsure.PolicyEquityAndInvoicingMgt.Endpoint"
+            "RiskInsure.peimgt.Endpoint"
             "RiskInsure.PolicyLifeCycleMgt.Endpoint"
             "RiskInsure.RatingAndUnderwriting.Endpoint"
           )
@@ -112,7 +112,7 @@ jobs:
           echo "cosmosdb_account=$COSMOS_ACCOUNT"
           
           # Check Container Apps are running
-          SERVICES=("billing" "customer" "customerrelationshipsmgt" "fundstransfermgt" "policy" "policyequityandinvoicingmgt" "policylifecyclemgt" "ratingandunderwriting")
+          SERVICES=("billing" "customer" "crmgt" "fundstransfermgt" "policy" "peimgt" "policylifecyclemgt" "ratingandunderwriting", "rru")
           for service in "${SERVICES[@]}"; do
             API_NAME="$service-api"
             ENDPOINT_NAME="$service-endpoint"
@@ -161,7 +161,7 @@ jobs:
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             if [[ "${{ github.event.inputs.services }}" == "all" ]]; then
-              echo "services=[\"billing\",\"customer\",\"customerrelationshipsmgt\",\"fundstransfermgt\",\"policy\",\"policyequityandinvoicingmgt\",\"policylifecyclemgt\",\"ratingandunderwriting\"]" >> "$GITHUB_OUTPUT"
+              echo "services=[\"billing\",\"customer\",\"crmgt\",\"fundstransfermgt\",\"policy\",\"peimgt\",\"policylifecyclemgt\",\"ratingandunderwriting\",\"rru\"]" >> "$GITHUB_OUTPUT"
             else
               services_input="${{ github.event.inputs.services }}"
               services_json=$(echo "$services_input" | jq -R -s -c 'split(",") | map(gsub("^\\s+|\\s+$";""))')
@@ -169,7 +169,7 @@ jobs:
             fi
           else
             # Test all services after deployment
-            echo "services=[\"billing\",\"customer\",\"customerrelationshipsmgt\",\"fundstransfermgt\",\"policy\",\"policyequityandinvoicingmgt\",\"policylifecyclemgt\",\"ratingandunderwriting\"]" >> "$GITHUB_OUTPUT"
+            echo "services=[\"billing\",\"customer\",\"crmgt\",\"fundstransfermgt\",\"policy\",\"peimgt\",\"policylifecyclemgt\",\"ratingandunderwriting\",\"rru\"]" >> "$GITHUB_OUTPUT"
           fi
 
   # ==========================================================================
