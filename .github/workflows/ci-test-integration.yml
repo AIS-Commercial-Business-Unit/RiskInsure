@@ -197,24 +197,39 @@ jobs:
         id: determine
         shell: bash
         run: |
+          to_service_matrix() {
+            jq -R -s -c '
+              split(",")
+              | map(gsub("^\\s+|\\s+$"; ""))
+              | map(select(length > 0))
+              | map(
+                  if . == "crmgt" then { name: "crmgt", path: "customerrelationshipsmgt" }
+                  elif . == "peimgt" then { name: "peimgt", path: "policyequityandinvoicingmgt" }
+                  elif . == "rru" then { name: "rru", path: "riskratingandunderwriting" }
+                  else { name: ., path: . }
+                  end
+                )
+            '
+          }
+
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             if [[ "${{ github.event.inputs.services }}" == "all" ]]; then
-              echo "services=[\"billing\",\"customer\",\"crmgt\",\"fundstransfermgt\",\"policy\",\"peimgt\",\"policylifecyclemgt\",\"ratingandunderwriting\",\"rru\"]" >> "$GITHUB_OUTPUT"
+              echo 'services=[{"name":"billing","path":"billing"},{"name":"customer","path":"customer"},{"name":"crmgt","path":"customerrelationshipsmgt"},{"name":"fundstransfermgt","path":"fundstransfermgt"},{"name":"policy","path":"policy"},{"name":"peimgt","path":"policyequityandinvoicingmgt"},{"name":"policylifecyclemgt","path":"policylifecyclemgt"},{"name":"ratingandunderwriting","path":"ratingandunderwriting"},{"name":"rru","path":"riskratingandunderwriting"}]' >> "$GITHUB_OUTPUT"
             else
               services_input="${{ github.event.inputs.services }}"
-              services_json=$(echo "$services_input" | jq -R -s -c 'split(",") | map(gsub("^\\s+|\\s+$";""))')
+              services_json=$(echo "$services_input" | to_service_matrix)
               echo "services=$services_json" >> "$GITHUB_OUTPUT"
             fi
           else
             # Test all services after deployment
-            echo "services=[\"billing\",\"customer\",\"crmgt\",\"fundstransfermgt\",\"policy\",\"peimgt\",\"policylifecyclemgt\",\"ratingandunderwriting\",\"rru\"]" >> "$GITHUB_OUTPUT"
+            echo 'services=[{"name":"billing","path":"billing"},{"name":"customer","path":"customer"},{"name":"crmgt","path":"customerrelationshipsmgt"},{"name":"fundstransfermgt","path":"fundstransfermgt"},{"name":"policy","path":"policy"},{"name":"peimgt","path":"policyequityandinvoicingmgt"},{"name":"policylifecyclemgt","path":"policylifecyclemgt"},{"name":"ratingandunderwriting","path":"ratingandunderwriting"},{"name":"rru","path":"riskratingandunderwriting"}]' >> "$GITHUB_OUTPUT"
           fi
 
   # ==========================================================================
   # Run Integration Tests (Matrix per service)
   # ==========================================================================
   integration-tests:
-    name: 'Integration: ${{ matrix.service }}'
+    name: 'Integration: ${{ matrix.service.name }}'
     needs: [verify-infrastructure, determine-services]
     runs-on: ubuntu-latest
     
@@ -231,21 +246,44 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Map Service Paths
+        id: map
+        shell: bash
+        run: |
+          TEST_DIR="services/${{ matrix.service.path }}/test/Integration.Tests"
+
+          echo "service_name=${{ matrix.service.name }}" >> "$GITHUB_OUTPUT"
+          echo "test_dir=$TEST_DIR" >> "$GITHUB_OUTPUT"
+
+          if [[ -f "$TEST_DIR/package-lock.json" ]]; then
+            echo "use_cache=true" >> "$GITHUB_OUTPUT"
+            echo "cache_path=$TEST_DIR/package-lock.json" >> "$GITHUB_OUTPUT"
+          else
+            echo "use_cache=false" >> "$GITHUB_OUTPUT"
+          fi
       
       - name: Setup Node.js
+        if: ${{ steps.map.outputs.use_cache == 'true' }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          cache-dependency-path: services/${{ matrix.service }}/test/Integration.Tests/package-lock.json
+          cache-dependency-path: ${{ steps.map.outputs.cache_path }}
+
+      - name: Setup Node.js
+        if: ${{ steps.map.outputs.use_cache != 'true' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
       
       - name: Install Playwright Dependencies
         run: npm install --no-audit --no-fund
-        working-directory: services/${{ matrix.service }}/test/Integration.Tests
+        working-directory: ${{ steps.map.outputs.test_dir }}
       
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium
-        working-directory: services/${{ matrix.service }}/test/Integration.Tests
+        working-directory: ${{ steps.map.outputs.test_dir }}
       
       - name: Azure Login
         uses: azure/login@v2
@@ -258,7 +296,7 @@ jobs:
         id: url
         shell: bash
         run: |
-          SERVICE="${{ matrix.service }}"
+          SERVICE="${{ steps.map.outputs.service_name }}"
           RG="CAIS-010-RiskInsure"
           
           FQDN=$(az containerapp show --resource-group "$RG" --name "$SERVICE-api" --query "properties.configuration.ingress.fqdn" -o tsv)
@@ -273,7 +311,7 @@ jobs:
       
       - name: Run Integration Tests
         run: npm test
-        working-directory: services/${{ matrix.service }}/test/Integration.Tests
+        working-directory: ${{ steps.map.outputs.test_dir }}
         env:
           CI: true
           API_BASE_URL: ${{ steps.url.outputs.service_url }}
@@ -282,8 +320,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: integration-test-results-${{ matrix.service }}
-          path: services/${{ matrix.service }}/test/Integration.Tests/test-results/
+          name: integration-test-results-${{ steps.map.outputs.service_name }}
+          path: ${{ steps.map.outputs.test_dir }}/test-results/
           retention-days: 7
           if-no-files-found: warn
       
@@ -291,8 +329,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report-${{ matrix.service }}
-          path: services/${{ matrix.service }}/test/Integration.Tests/playwright-report/
+          name: playwright-report-${{ steps.map.outputs.service_name }}
+          path: ${{ steps.map.outputs.test_dir }}/playwright-report/
           retention-days: 15
           if-no-files-found: warn
 
