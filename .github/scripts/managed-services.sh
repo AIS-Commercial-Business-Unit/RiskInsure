@@ -102,15 +102,11 @@ detect_services_from_changed_files() {
   local changed_files="${1:-}"
   local changed_services=()
 
-  for service in billing customer customerrelationshipsmgt fundstransfermgt policy policylifecyclemgt policyequityandinvoicingmgt ratingandunderwriting riskratingandunderwriting; do
+  for service in billing customer customerrelationshipsmgt fundstransfermgt modernizationpatterns policy policylifecyclemgt policyequityandinvoicingmgt ratingandunderwriting riskratingandunderwriting; do
     if echo "$changed_files" | grep -q "^services/$service/"; then
       changed_services+=("$service")
     fi
   done
-
-  if echo "$changed_files" | grep -Eq "^platform/modernizationpatterns/Api/|^platform/modernizationpatterns/Dockerfile\.chat-api$|^platform/modernizationpatterns/Dockerfile\.reindex-worker$"; then
-    changed_services+=("modernizationpatterns")
-  fi
 
   if [[ ${#changed_services[@]} -eq 0 ]]; then
     echo '[]'

@@ -15,18 +15,18 @@ COPY ["Directory.Packages.props", "."]
 COPY ["GlobalUsings.cs", "."]
 
 # Copy project files for restore
-COPY ["services/modernizationpatternsmgt/src/Domain/Domain.csproj", "services/modernizationpatternsmgt/src/Domain/"]
-COPY ["services/modernizationpatternsmgt/src/Infrastructure/Infrastructure.csproj", "services/modernizationpatternsmgt/src/Infrastructure/"]
-COPY ["services/modernizationpatternsmgt/src/Api/Api.csproj", "services/modernizationpatternsmgt/src/Api/"]
+COPY ["services/modernizationpatterns/src/Domain/Domain.csproj", "services/modernizationpatterns/src/Domain/"]
+COPY ["services/modernizationpatterns/src/Infrastructure/Infrastructure.csproj", "services/modernizationpatterns/src/Infrastructure/"]
+COPY ["services/modernizationpatterns/src/Api/Api.csproj", "services/modernizationpatterns/src/Api/"]
 
 # Restore dependencies
-RUN dotnet restore "services/modernizationpatternsmgt/src/Api/Api.csproj"
+RUN dotnet restore "services/modernizationpatterns/src/Api/Api.csproj"
 
 # Copy source code
-COPY ["services/modernizationpatternsmgt/src/", "services/modernizationpatternsmgt/src/"]
+COPY ["services/modernizationpatterns/src/", "services/modernizationpatterns/src/"]
 
 # Build and publish
-RUN dotnet publish "services/modernizationpatternsmgt/src/Api/Api.csproj" \
+RUN dotnet publish "services/modernizationpatterns/src/Api/Api.csproj" \
     -c Release \
     -o /app/publish \
     --no-restore

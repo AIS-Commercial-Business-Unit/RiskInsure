@@ -15,17 +15,19 @@ COPY ["Directory.Packages.props", "."]
 COPY ["GlobalUsings.cs", "."]
 
 # Copy project files for restore
-COPY ["platform/modernizationpatterns/Api/reindex/Reindex.Endpoint.In.csproj", "platform/modernizationpatterns/Api/reindex/"]
+COPY ["services/modernizationpatternsmgt/src/Domain/Domain.csproj", "services/modernizationpatternsmgt/src/Domain/"]
+COPY ["services/modernizationpatternsmgt/src/Infrastructure/Infrastructure.csproj", "services/modernizationpatternsmgt/src/Infrastructure/"]
+COPY ["services/modernizationpatternsmgt/src/Endpoint.In/Endpoint.In.csproj", "services/modernizationpatternsmgt/src/Endpoint.In/"]
 
 # Restore dependencies
-RUN dotnet restore "platform/modernizationpatterns/Api/reindex/Reindex.Endpoint.In.csproj"
+RUN dotnet restore "services/modernizationpatternsmgt/src/Endpoint.In/Endpoint.In.csproj"
 
 # Copy source code (includes content folder for pattern files)
-COPY ["platform/modernizationpatterns/Api/reindex/", "platform/modernizationpatterns/Api/reindex/"]
+COPY ["services/modernizationpatternsmgt/src/", "services/modernizationpatternsmgt/src/"]
 COPY ["platform/modernizationpatterns/content/", "platform/modernizationpatterns/content/"]
 
 # Build and publish
-RUN dotnet publish "platform/modernizationpatterns/Api/reindex/Reindex.Endpoint.In.csproj" \
+RUN dotnet publish "services/modernizationpatternsmgt/src/Endpoint.In/Endpoint.In.csproj" \
     -c Release \
     -o /app/publish \
     --no-restore
@@ -64,4 +66,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
 
 # Entry point
-ENTRYPOINT ["dotnet", "Reindex.Endpoint.In.dll"]
+ENTRYPOINT ["dotnet", "Endpoint.In.dll"]

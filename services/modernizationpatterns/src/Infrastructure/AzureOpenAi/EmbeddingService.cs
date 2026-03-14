@@ -1,0 +1,132 @@
+namespace RiskInsure.ModernizationPatternsMgt.Infrastructure.AzureOpenAi;
+
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using RiskInsure.ModernizationPatternsMgt.Domain.Services;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
+
+public class EmbeddingService : IEmbeddingService
+{
+    private static readonly HttpClient HttpClient = new();
+    private readonly string _endpoint;
+    private readonly string _apiKey;
+    private readonly string _deploymentName;
+    private readonly ILogger<EmbeddingService> _logger;
+
+    public EmbeddingService(IConfiguration config, ILogger<EmbeddingService> logger)
+    {
+        _logger = logger;
+
+        var endpoint = config["AzureOpenAI:Endpoint"]
+            ?? throw new InvalidOperationException("AzureOpenAI:Endpoint not configured");
+        var apiKey = config["AzureOpenAI:ApiKey"]
+            ?? throw new InvalidOperationException("AzureOpenAI:ApiKey not configured");
+        _endpoint = endpoint.TrimEnd('/');
+        _apiKey = apiKey.Trim();
+        _deploymentName = config["AzureOpenAI:EmbeddingDeploymentName"] ?? "text-embedding-3-small";
+
+        _logger.LogInformation("EmbeddingService initialized with deployment: {Deployment}", _deploymentName);
+    }
+
+    public async Task<float[]> EmbedTextAsync(string text, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var embeddings = await EmbedBatchAsync(new List<string> { text }, cancellationToken);
+            var embedding = embeddings[0];
+
+            _logger.LogDebug("Embedded text ({Length} chars) → {Dimensions} dimensions",
+                text.Length, embedding.Length);
+
+            return embedding;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to embed text");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Embeds multiple texts in batches of 16 (Azure OpenAI limit per request).
+    /// More efficient than calling EmbedTextAsync in a loop.
+    /// </summary>
+    public async Task<List<float[]>> EmbedBatchAsync(
+        List<string> texts,
+        CancellationToken cancellationToken = default)
+    {
+        var allEmbeddings = new List<float[]>();
+        const int batchSize = 16; // Azure OpenAI batch limit
+
+        _logger.LogInformation("Embedding {Count} texts in batches of {BatchSize}", texts.Count, batchSize);
+
+        for (int i = 0; i < texts.Count; i += batchSize)
+        {
+            var batch = texts.Skip(i).Take(batchSize).ToList();
+
+            try
+            {
+                var url = $"{_endpoint}/openai/deployments/{_deploymentName}/embeddings?api-version=2024-06-01";
+                using var request = new HttpRequestMessage(HttpMethod.Post, url);
+                request.Headers.Add("api-key", _apiKey);
+                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+
+                var payload = JsonSerializer.Serialize(new
+                {
+                    input = batch
+                });
+
+                request.Content = new StringContent(payload, Encoding.UTF8, "application/json");
+
+                using var response = await HttpClient.SendAsync(request, cancellationToken);
+                var content = await response.Content.ReadAsStringAsync(cancellationToken);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    throw new InvalidOperationException(
+                        $"Embedding request failed: {(int)response.StatusCode} {response.ReasonPhrase}. Response: {content}");
+                }
+
+                using var document = JsonDocument.Parse(content);
+                var data = document.RootElement.GetProperty("data");
+
+                foreach (var item in data.EnumerateArray())
+                {
+                    var embeddingArray = item.GetProperty("embedding");
+                    var vector = new float[embeddingArray.GetArrayLength()];
+                    var index = 0;
+
+                    foreach (var value in embeddingArray.EnumerateArray())
+                    {
+                        vector[index++] = value.GetSingle();
+                    }
+
+                    allEmbeddings.Add(vector);
+                }
+
+                _logger.LogInformation(
+                    "Batch {BatchNum}/{TotalBatches}: Embedded {Count} texts",
+                    (i / batchSize) + 1,
+                    (int)Math.Ceiling((double)texts.Count / batchSize),
+                    batch.Count);
+
+                // Small delay between batches to avoid rate limiting
+                if (i + batchSize < texts.Count)
+                {
+                    await Task.Delay(200, cancellationToken);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Failed to embed batch at offset {Offset}",
+                    i);
+                throw;
+            }
+        }
+
+        return allEmbeddings;
+    }
+}

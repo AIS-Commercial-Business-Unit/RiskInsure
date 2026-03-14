@@ -1,0 +1,25 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft": "Warning"
+    }
+  },
+  "AzureOpenAI": {
+    "Endpoint": "https://YOUR-OPENAI-INSTANCE.openai.azure.com/",
+    "ApiKey": "YOUR-API-KEY",
+    "ChatDeploymentName": "gpt-4.1",
+    "EmbeddingDeploymentName": "text-embedding-3-small"
+  },
+  "AzureSearch": {
+    "Endpoint": "https://YOUR-SEARCH-INSTANCE.search.windows.net",
+    "ApiKey": "YOUR-API-KEY",
+    "IndexName": "modernization-patterns"
+  },
+  "ConnectionStrings": {
+    "CosmosDb": "AccountEndpoint=https://localhost:8081/;AccountKey=YOUR-EMULATOR-KEY"
+  },
+  "CosmosDb": {
+    "DatabaseName": "modernization-patterns-db"
+  }
+}

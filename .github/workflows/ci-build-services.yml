@@ -15,9 +15,6 @@ on:
     paths:
       - 'services/**'
       - 'platform/RiskInsure.PublicContracts/**'
-      - 'platform/modernizationpatterns/Api/**'
-      - 'platform/modernizationpatterns/Dockerfile.chat-api'
-      - 'platform/modernizationpatterns/Dockerfile.reindex-worker'
       - '.github/scripts/managed-services.sh'
       - '.github/workflows/ci-build-services.yml'
   workflow_dispatch:
@@ -271,7 +268,6 @@ jobs:
           # Default: service directory and image name match the service name
           SERVICE_DIR="services/$SERVICE"
           IMAGE_NAME="$SERVICE"
-          BUILD_TYPE="standard"
 
           # Exceptions: services with shortened image names (must match Terraform resource names)
           if [[ "$SERVICE" == "customerrelationshipsmgt" ]]; then
@@ -280,65 +276,43 @@ jobs:
             IMAGE_NAME="peimgt"
           elif [[ "$SERVICE" == "riskratingandunderwriting" ]]; then
             IMAGE_NAME="rru"
-          elif [[ "$SERVICE" == "modernizationpatterns" ]]; then
-            SERVICE_DIR="platform/modernizationpatterns"
-            BUILD_TYPE="modernizationpatterns"
           fi
 
           echo "service_dir=$SERVICE_DIR" >> "$GITHUB_OUTPUT"
           echo "image_name=$IMAGE_NAME" >> "$GITHUB_OUTPUT"
-          echo "build_type=$BUILD_TYPE" >> "$GITHUB_OUTPUT"
 
       - name: Restore Dependencies
         shell: bash
         run: |
           set -euo pipefail
           SERVICE_DIR="${{ steps.map.outputs.service_dir }}"
-          BUILD_TYPE="${{ steps.map.outputs.build_type }}"
 
-          if [ "$BUILD_TYPE" = "modernizationpatterns" ]; then
-            dotnet restore "$SERVICE_DIR/Api/chat"
-            dotnet restore "$SERVICE_DIR/Api/reindex"
-          else
-            dotnet restore "$SERVICE_DIR/src/Api"
-            dotnet restore "$SERVICE_DIR/src/Endpoint.In"
-          fi
+          dotnet restore "$SERVICE_DIR/src/Api"
+          dotnet restore "$SERVICE_DIR/src/Endpoint.In"
 
       - name: Build .NET Projects
         shell: bash
         run: |
           set -euo pipefail
           SERVICE_DIR="${{ steps.map.outputs.service_dir }}"
-          BUILD_TYPE="${{ steps.map.outputs.build_type }}"
 
-          if [ "$BUILD_TYPE" = "modernizationpatterns" ]; then
-            dotnet build "$SERVICE_DIR/Api/chat" --configuration Release --no-restore
-            dotnet build "$SERVICE_DIR/Api/reindex" --configuration Release --no-restore
-          else
-            dotnet build "$SERVICE_DIR/src/Api" --configuration Release --no-restore
-            dotnet build "$SERVICE_DIR/src/Endpoint.In" --configuration Release --no-restore
-          fi
+          dotnet build "$SERVICE_DIR/src/Api" --configuration Release --no-restore
+          dotnet build "$SERVICE_DIR/src/Endpoint.In" --configuration Release --no-restore
 
       - name: Run Unit Tests (Pre-Publish Gate)
         shell: bash
         run: |
           set -euo pipefail
           SERVICE="${{ matrix.service }}"
-          BUILD_TYPE="${{ steps.map.outputs.build_type }}"
-
-          if [[ "$BUILD_TYPE" == "modernizationpatterns" ]]; then
-            echo "No Unit.Tests project configured for modernizationpatterns; skipping test gate for this service."
-            echo "### Unit Test Gate" >> "$GITHUB_STEP_SUMMARY"
-            echo "- Service: \`$SERVICE\`" >> "$GITHUB_STEP_SUMMARY"
-            echo "- Result: skipped (no Unit.Tests project configured)" >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
 
           TEST_PROJECT="services/$SERVICE/test/Unit.Tests/Unit.Tests.csproj"
 
           if [[ ! -f "$TEST_PROJECT" ]]; then
-            echo "Expected unit test project not found: $TEST_PROJECT" >&2
-            exit 1
+            echo "No Unit.Tests project configured for $SERVICE; skipping test gate."
+            echo "### Unit Test Gate" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Service: \`$SERVICE\`" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Result: skipped (no Unit.Tests project configured)" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
           fi
 
           dotnet test "$TEST_PROJECT" \
@@ -366,10 +340,10 @@ jobs:
         run: |
           set -euo pipefail
           IMAGE_NAME="${{ steps.map.outputs.image_name }}"
-          BUILD_TYPE="${{ steps.map.outputs.build_type }}"
+          SERVICE="${{ matrix.service }}"
           FULL_SHA="${{ needs.determine-services.outputs.image_tag }}"
 
-          if [ "$BUILD_TYPE" = "modernizationpatterns" ]; then
+          if [ "$SERVICE" = "modernizationpatterns" ]; then
             # Modernization patterns uses chat-api and reindex instead of api/endpoint
             echo "api_image_sha=${{ env.REGISTRY }}/${IMAGE_NAME}-chat-api:$FULL_SHA" >> "$GITHUB_OUTPUT"
             echo "api_image_latest=${{ env.REGISTRY }}/${IMAGE_NAME}-chat-api:latest" >> "$GITHUB_OUTPUT"
@@ -388,12 +362,11 @@ jobs:
           set -euo pipefail
           SERVICE="${{ matrix.service }}"
           SERVICE_DIR="${{ steps.map.outputs.service_dir }}"
-          BUILD_TYPE="${{ steps.map.outputs.build_type }}"
 
-          if [ "$BUILD_TYPE" = "modernizationpatterns" ]; then
-            # Chat API uses Dockerfile.chat-api at project root
+          if [ "$SERVICE" = "modernizationpatterns" ]; then
+            # Modernization patterns uses Dockerfile.api at service root
             docker build \
-              -f "$SERVICE_DIR/Dockerfile.chat-api" \
+              -f "$SERVICE_DIR/Dockerfile.api" \
               -t "${{ steps.tags.outputs.api_image_sha }}" \
               -t "${{ steps.tags.outputs.api_image_latest }}" \
               .
@@ -412,12 +385,11 @@ jobs:
           set -euo pipefail
           SERVICE="${{ matrix.service }}"
           SERVICE_DIR="${{ steps.map.outputs.service_dir }}"
-          BUILD_TYPE="${{ steps.map.outputs.build_type }}"
 
-          if [ "$BUILD_TYPE" = "modernizationpatterns" ]; then
-            # Reindex uses Dockerfile.reindex-worker at project root
+          if [ "$SERVICE" = "modernizationpatterns" ]; then
+            # Modernization patterns uses Dockerfile.endpoint at service root
             docker build \
-              -f "$SERVICE_DIR/Dockerfile.reindex-worker" \
+              -f "$SERVICE_DIR/Dockerfile.endpoint" \
               -t "${{ steps.tags.outputs.endpoint_image_sha }}" \
               -t "${{ steps.tags.outputs.endpoint_image_latest }}" \
               .

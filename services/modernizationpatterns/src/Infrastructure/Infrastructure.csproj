@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>RiskInsure.ModernizationPatternsMgt.Infrastructure</RootNamespace>
+    <!-- Using System.Text.Json via CosmosSystemTextJsonSerializer, not Newtonsoft.Json -->
+    <AzureCosmosDisableNewtonsoftJsonCheck>true</AzureCosmosDisableNewtonsoftJsonCheck>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Azure SDKs (versions from Directory.Packages.props) -->
+    <PackageReference Include="Azure.AI.OpenAI" />
+    <PackageReference Include="Azure.Search.Documents" />
+    <PackageReference Include="Microsoft.Azure.Cosmos" />
+    <PackageReference Include="Azure.Identity" />
+
+    <!-- Logging -->
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Serilog.Sinks.Console" />
+    <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" />
+
+    <!-- Project references -->
+    <ProjectReference Include="..\Domain\Domain.csproj" />
+  </ItemGroup>
+
+</Project>

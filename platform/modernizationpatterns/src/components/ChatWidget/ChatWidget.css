@@ -235,6 +235,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   font-size: 13px;
+  max-width: 155px;
 }
 
 .conversation-item-time {
@@ -290,13 +291,19 @@
   justify-content: center;
   border-radius: 6px;
   transition: all 0.2s ease;
-  opacity: 0;
+  opacity: 0.55;
   flex-shrink: 0;
   margin-right: 4px;
 }
 
 .conversation-item-wrapper:hover .conversation-item-delete {
   opacity: 1;
+}
+
+.conversation-item-delete:focus-visible {
+  opacity: 1;
+  outline: 2px solid rgba(231, 76, 60, 0.35);
+  outline-offset: 1px;
 }
 
 .conversation-item-delete:hover {

@@ -1,5 +1,5 @@
 # =============================================================================
-# Dockerfile for Modernization Patterns Chat API
+# Dockerfile for Modernization Patterns Reindex Worker
 # Multi-stage build for optimized production image
 # =============================================================================
 
@@ -15,21 +15,25 @@ COPY ["Directory.Packages.props", "."]
 COPY ["GlobalUsings.cs", "."]
 
 # Copy project files for restore
-COPY ["services/modernizationpatternsmgt/src/Domain/Domain.csproj", "services/modernizationpatternsmgt/src/Domain/"]
-COPY ["services/modernizationpatternsmgt/src/Infrastructure/Infrastructure.csproj", "services/modernizationpatternsmgt/src/Infrastructure/"]
-COPY ["services/modernizationpatternsmgt/src/Api/Api.csproj", "services/modernizationpatternsmgt/src/Api/"]
+COPY ["services/modernizationpatterns/src/Domain/Domain.csproj", "services/modernizationpatterns/src/Domain/"]
+COPY ["services/modernizationpatterns/src/Infrastructure/Infrastructure.csproj", "services/modernizationpatterns/src/Infrastructure/"]
+COPY ["services/modernizationpatterns/src/Endpoint.In/Endpoint.In.csproj", "services/modernizationpatterns/src/Endpoint.In/"]
 
 # Restore dependencies
-RUN dotnet restore "services/modernizationpatternsmgt/src/Api/Api.csproj"
+RUN dotnet restore "services/modernizationpatterns/src/Endpoint.In/Endpoint.In.csproj"
 
-# Copy source code
-COPY ["services/modernizationpatternsmgt/src/", "services/modernizationpatternsmgt/src/"]
+# Copy source code (includes content folder for pattern files)
+COPY ["services/modernizationpatterns/src/", "services/modernizationpatterns/src/"]
+COPY ["platform/modernizationpatterns/content/", "platform/modernizationpatterns/content/"]
 
 # Build and publish
-RUN dotnet publish "services/modernizationpatternsmgt/src/Api/Api.csproj" \
+RUN dotnet publish "services/modernizationpatterns/src/Endpoint.In/Endpoint.In.csproj" \
     -c Release \
     -o /app/publish \
     --no-restore
+
+# Copy content folder to publish output
+RUN cp -r platform/modernizationpatterns/content /app/publish/content
 
 # =============================================================================
 # Runtime stage
@@ -62,4 +66,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
 
 # Entry point
-ENTRYPOINT ["dotnet", "Api.dll"]
+ENTRYPOINT ["dotnet", "Endpoint.In.dll"]

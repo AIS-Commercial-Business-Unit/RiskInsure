@@ -1,0 +1,22 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft": "Warning"
+    }
+  },
+  "AzureOpenAI": {
+    "Endpoint": "https://YOUR-OPENAI-INSTANCE.openai.azure.com/",
+    "ApiKey": "YOUR-API-KEY",
+    "EmbeddingDeploymentName": "text-embedding-3-small"
+  },
+  "AzureSearch": {
+    "Endpoint": "https://YOUR-SEARCH-INSTANCE.search.windows.net",
+    "ApiKey": "YOUR-API-KEY",
+    "IndexName": "modernization-patterns"
+  },
+  "Reindex": {
+    "PatternsPath": "c:\\RiskInsure\\RiskInsure\\platform\\modernizationpatterns\\content\\patterns",
+    "InboxPath": "c:\\RiskInsure\\RiskInsure\\platform\\modernizationpatterns\\content\\_inbox"
+  }
+}

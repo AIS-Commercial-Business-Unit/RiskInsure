@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 
 // Chat API endpoint - auto-detect environment
 const API_BASE = window.location.hostname === 'localhost'
-  ? 'http://localhost:5000/api/chat'
+  ? 'http://localhost:5001/api/chat'
   : 'https://modernizationpatterns-chat-api.ambitioussea-f3f6277f.eastus2.azurecontainerapps.io/api/chat';
 
 export function useChatWidget() {
@@ -134,17 +134,31 @@ export function useChatWidget() {
   // Load existing conversation
   const loadConversation = useCallback(async (convId) => {
     if (!userId) return;
+
+    // Keep local snapshot so we can still switch conversations if API retrieval fails.
+    const localConversation = conversations.find((conv) => conv.id === convId);
+
     try {
       const response = await fetch(`${API_BASE}/${convId}?userId=${userId}`);
+      if (!response.ok) {
+        throw new Error(`Failed to load conversation ${convId}: ${response.status}`);
+      }
+
       const data = await response.json();
-      setConversationId(data.id);
       const loadedMessages = data.messages || [];
+      setConversationId(data.id);
       setMessages(loadedMessages);
       syncConversationMessages(data.id, loadedMessages);
     } catch (error) {
-      console.error('Failed to load conversation:', error);
+      console.error('Failed to load conversation from API, using local copy:', error);
+
+      // Fallback to sidebar state so users can keep navigating local chat history.
+      if (localConversation) {
+        setConversationId(localConversation.id);
+        setMessages(localConversation.messages || []);
+      }
     }
-  }, [userId, syncConversationMessages]);
+  }, [userId, conversations, syncConversationMessages]);
 
   // Send message with streaming
   const sendMessage = useCallback(async () => {
@@ -296,7 +310,7 @@ export function useChatWidget() {
 
       // Show user-friendly error message
       const errorMsg = error.message.includes('Failed to fetch')
-        ? '❌ Cannot connect to API. Is the server running? Check if http://localhost:5000 is accessible.'
+        ? '❌ Cannot connect to API. Is the server running? Check if http://localhost:5001 is accessible.'
         : error.message.includes('undefined mode')
         ? '❌ Invalid response format from API. Server may not be running correctly.'
         : `❌ Error: ${error.message}`;
