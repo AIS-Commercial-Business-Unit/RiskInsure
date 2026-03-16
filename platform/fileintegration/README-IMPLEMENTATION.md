@@ -172,11 +172,9 @@ curl -X POST https://localhost:5001/api/v1/configuration \
       "cronExpression": "0 8 * * *",
       "timezone": "UTC"
     },
-    "eventsToPublish": [
-      {
-        "eventType": "FileDiscovered"
-      }
-    ]
+    processingConfig: {
+      fileType: "NACHA"
+    }
   }'
 ```
 

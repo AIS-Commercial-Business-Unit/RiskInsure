@@ -1,4 +1,4 @@
-import { APIRequestContext, expect } from '@playwright/test';
+﻿import { APIRequestContext, expect } from '@playwright/test';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
 import { createHmac } from 'node:crypto';
@@ -161,19 +161,15 @@ export async function createFtpConfigurationInCosmos(
       },
       filePathPattern: '/',
       filenamePattern: fileName,
-      fileExtension: 'txt',
+      fileExtension: 'ach',
       schedule: {
         cronExpression: '*/5 * * * * *',
         timezone: 'UTC',
         description: 'Every 5 seconds',
       },
-      eventsToPublish: [
-        {
-          eventType: 'FileDiscovered',
-          eventData: {},
-        },
-      ],
-      commandsToSend: [],
+      processingConfig: {
+        fileType: "NACHA"
+      },
     },
   });
 
@@ -213,11 +209,14 @@ export async function createHttpsConfigurationInCosmos(
       },
       filePathPattern: fileName,
       filenamePattern: fileName,
-      fileExtension: 'txt',
+      fileExtension: 'ach',
       schedule: {
         cronExpression: '*/5 * * * * *',
         timezone: 'UTC',
         description: 'Every 5 seconds',
+      },
+      processingConfig: {
+        fileType: "NACHA"
       }
     },
   });
@@ -257,11 +256,14 @@ export async function createAzureBlobConfigurationInCosmos(
       },
       filePathPattern: '/',
       filenamePattern: fileName,
-      fileExtension: 'txt',
+      fileExtension: 'ach',
       schedule: {
         cronExpression: '*/5 * * * * *',
         timezone: 'UTC',
         description: 'Every 5 seconds',
+      },
+      processingConfig: {
+        fileType: "NACHA"
       }
     },
   });

@@ -30,8 +30,7 @@ This document defines the data model for the Client File Retrieval Configuration
 | `FilenamePattern` | `string` | Yes | Filename pattern with optional tokens | Not empty, max 200 chars |
 | `FileExtension` | `string?` | No | File extension filter (e.g., "xlsx", "pdf") | Max 10 chars, alphanumeric only |
 | `Schedule` | `ScheduleDefinition` | Yes | When to execute file checks | Valid cron or schedule format |
-| `EventsToPublish` | `List<EventDefinition>` | Yes | Events to publish when files found | At least 1 event |
-| `CommandsToSend` | `List<CommandDefinition>` | No | Commands to send when files found | Max 10 commands |
+| `ProcessingConfig` | `FileProcessingConfig` | Yes | How to interpret the files found | Valid FileType |
 | `IsActive` | `bool` | Yes | Whether configuration is active | Default: true |
 | `CreatedAt` | `DateTimeOffset` | Yes | When configuration was created | Not future date |
 | `CreatedBy` | `string` | Yes | User who created configuration | Not empty |
@@ -430,24 +429,9 @@ FileRetrievalConfiguration (1) ----< (M) DiscoveredFile (direct)
     "timezone": "America/New_York",
     "description": "Daily at 8:00 AM ET"
   },
-  "eventsToPublish": [
-    {
-      "eventType": "FileDiscovered",
-      "eventData": {
-        "fileType": "Transaction",
-        "priority": "High"
-      }
-    }
-  ],
-  "commandsToSend": [
-    {
-      "commandType": "ProcessTransactionFile",
-      "targetEndpoint": "WorkflowOrchestrator",
-      "commandData": {
-        "workflowType": "TransactionProcessing"
-      }
-    }
-  ],
+  processingConfig: {
+    fileType: "NACHA"
+  },
   "isActive": true,
   "createdAt": "2025-01-24T10:00:00Z",
   "createdBy": "admin@riskinsure.com",
