@@ -10,7 +10,7 @@ Update services/billing/src/Infrastructure/queues.ps1 to match all current messa
 
 When you need to sync RabbitMQ queue/exchange setup scripts with the current codebase:
 
-1. **Identify the service**: Specify which service (e.g., `billing`, `payments`, `fileintegration`)
+1. **Identify the service**: Specify which service (e.g., `billing`, `payments`, `fileprocessing`)
 
 2. **Run the scan**: The agent will:
    - Find all `IHandleMessages<T>` implementations

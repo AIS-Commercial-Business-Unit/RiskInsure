@@ -1,0 +1,74 @@
+include:
+  - ../../docker-compose.infrastructure.yml # RabbitMQ and Cosmos DB Emulator
+
+services:
+
+  # FileProcessing API (REST API for configuration management)
+  fileprocessing-api:
+    container_name: fileprocessing-api
+    tty: true # This enables colored output
+    build:
+      context: ../..
+      dockerfile: platform/templates/Dockerfile.api.compose
+      args:
+        IMPORT_SSL_CERTS_FOR: cosmosdb,file-processing-https,keyvault-emulator
+        PROJECT_PATH: platform/fileprocessing/src/FileProcessing.API/FileProcessing.API.csproj
+        ASSEMBLY_NAME: FileProcessing.API.dll
+    ports:
+      - "7090:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${MESSAGING_CONNECTION_STRING}
+      - ConnectionStrings__ServiceBus=${MESSAGING_CONNECTION_STRING}
+      - Messaging__MessageBroker=${MESSAGE_BROKER}
+      - CosmosDb__DatabaseName=RiskInsure
+      - CosmosDb__ContainerName=file-processing
+      - AzureKeyVault__VaultUri=https://keyvault-emulator:4997
+      - AzureKeyVault__UsingEmulator=true
+    depends_on:
+      cosmos-emulator:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      keyvault-emulator:
+        condition: service_healthy
+      file-processing-https:
+        condition: service_healthy
+    networks:
+      - riskinsure
+
+  # FileProcessing Worker (Message handler and scheduler)
+  fileprocessing-worker:
+    container_name: fileprocessing-worker
+    tty: true # This enables colored output
+    build:
+      context: ../..
+      dockerfile: platform/templates/Dockerfile.endpoint.compose
+      args:
+        IMPORT_SSL_CERTS_FOR: cosmosdb,file-processing-https,keyvault-emulator
+        PROJECT_PATH: platform/fileprocessing/src/FileProcessing.Worker/FileProcessing.Worker.csproj
+        ASSEMBLY_NAME: FileProcessing.Worker.dll
+    environment:
+      - DOTNET_ENVIRONMENT=Development
+      - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
+      - ConnectionStrings__RabbitMQ=${MESSAGING_CONNECTION_STRING}
+      - ConnectionStrings__ServiceBus=${MESSAGING_CONNECTION_STRING}
+      - Messaging__MessageBroker=${MESSAGE_BROKER}
+      - CosmosDb__DatabaseName=RiskInsure
+      - CosmosDb__ContainerName=file-processing
+      - AzureKeyVault__VaultUri=https://keyvault-emulator:4997
+      - AzureKeyVault__UsingEmulator=true
+    depends_on:
+      cosmos-emulator:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      keyvault-emulator:
+        condition: service_healthy
+    networks:
+      - riskinsure
+
+networks:
+  riskinsure:

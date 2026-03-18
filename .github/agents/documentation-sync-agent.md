@@ -61,7 +61,7 @@ The agent derives documentation from:
    - `.github/copilot-instructions.md` → Coding standards
 
 2. **Domain-Specific Standards**
-   - `platform/fileintegration/docs/filerun-processing-standards.md`
+   - `platform/fileprocessing/docs/filerun-processing-standards.md`
    - `services/Billing/docs/domain-specific-standards.md` (when exists)
    - `services/Payments/docs/domain-specific-standards.md` (when exists)
 
@@ -112,7 +112,7 @@ The agent derives documentation from:
 - Document error codes
 
 ### Message Catalog
-- Group by domain (Billing, Payments, FileIntegration)
+- Group by domain (Billing, Payments, FileProcessing)
 - Show message flow diagrams
 - Include all required fields with types
 

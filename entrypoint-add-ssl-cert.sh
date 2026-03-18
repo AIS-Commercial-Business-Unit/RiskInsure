@@ -67,9 +67,9 @@ for containerName in "${importSslCertsFor[@]}"; do
 #            import_ssl_cert_and_verify "cosmos.domain" "8081" "/"
             import_ssl_cert_and_verify "cosmos.domain" "8081" "/_explorer/emulator.pem1"
             ;;
-        "file-retrieval-https")
-            echo -e "${Green}Importing File Retrieval SSL Certificate${Color_Off}"
-            import_ssl_cert_and_verify "file-retrieval-https" "443" "/"
+        "file-processing-https")
+            echo -e "${Green}Importing File Processing SSL Certificate${Color_Off}"
+            import_ssl_cert_and_verify "file-processing-https" "443" "/"
             ;;
         "keyvault-emulator")
             echo -e "${Green}Importing Key Vault Emulator SSL Certificate${Color_Off}"

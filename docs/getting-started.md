@@ -769,7 +769,7 @@ Use the Scalar UI (built-in):
 ## 🎓 Next Steps
 
 1. **Architecture Deep Dive**: Read [.specify/memory/constitution.md](../.specify/memory/constitution.md)
-2. **Study Domain Standards**: Review [platform/fileintegration/docs/filerun-processing-standards.md](../platform/fileintegration/docs/filerun-processing-standards.md)
+2. **Study Domain Standards**: Review [platform/fileprocessing/docs/filerun-processing-standards.md](../platform/fileprocessing/docs/filerun-processing-standards.md)
 3. **Understand Project Layout**: See [copilot-instructions/project-structure.md](../copilot-instructions/project-structure.md)
 4. **Learn Message Patterns**: Read [copilot-instructions/messaging-patterns.md](../copilot-instructions/messaging-patterns.md)
 5. **Explore E2E Tests**: Study `test/e2e/tests/quote-to-policy-flow.spec.ts`

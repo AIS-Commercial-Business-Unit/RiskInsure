@@ -36,7 +36,7 @@
 
 ### Project Structure Constraints
 
-**Bounded Context**: [Which service - e.g., Billing, Policy, FileIntegration]  
+**Bounded Context**: [Which service - e.g., Billing, Policy, FileProcessing]  
 **Service Location**: `services/nsb.sales/`  
 **Layer Requirements** (per `copilot-instructions/project-structure.md` and existing service patterns like `services/billing/`):
 - `src/Domain/` - Contracts, DTOs, managers, models, services (business logic + orchestration)
