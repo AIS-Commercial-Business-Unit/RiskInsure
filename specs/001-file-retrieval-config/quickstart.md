@@ -195,24 +195,9 @@ Content-Type: application/json
     "timezone": "America/New_York",
     "description": "Daily at 8:00 AM ET"
   },
-  "eventsToPublish": [
-    {
-      "eventType": "FileDiscovered",
-      "eventData": {
-        "fileType": "Transaction",
-        "priority": "High"
-      }
-    }
-  ],
-  "commandsToSend": [
-    {
-      "commandType": "ProcessTransactionFile",
-      "targetEndpoint": "WorkflowOrchestrator",
-      "commandData": {
-        "workflowType": "TransactionProcessing"
-      }
-    }
-  ]
+  processingConfig: {
+    fileType: "NACHA"
+  }
 }
 ```
 
@@ -552,7 +537,7 @@ public class FileDiscoveredHandler : IHandleMessages<FileDiscovered>
 
 ### Testing End-to-End Flow
 
-1. **Create configuration** via API (with `commandsToSend` targeting workflow platform)
+1. **Create configuration** via API (with `processingConfig` defining how to processfile)
 2. **Trigger file check** manually or wait for schedule
 3. **Verify file discovered** - Check Cosmos DB for `DiscoveredFile` record
 4. **Verify event published** - Check Service Bus for `FileDiscovered` event
@@ -644,11 +629,9 @@ curl -X POST http://localhost:5000/api/v1/configuration \
       "cronExpression": "0 8 * * *",
       "timezone": "UTC"
     },
-    "eventsToPublish": [
-      {
-        "eventType": "FileDiscovered"
-      }
-    ]
+    processingConfig: {
+      fileType: "NACHA"
+    }
   }'
 ```
 

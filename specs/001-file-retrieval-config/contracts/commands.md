@@ -101,8 +101,7 @@ public record CreateConfiguration : ICommand
     public string FilenamePattern { get; init; } = default!;
     public string? FileExtension { get; init; }
     public ScheduleDefinitionDto Schedule { get; init; } = default!;
-    public List<EventDefinitionDto> EventsToPublish { get; init; } = default!;
-    public List<CommandDefinitionDto>? CommandsToSend { get; init; }
+    public FileProcessingConfig ProcessingConfig { get; init; } = default!;
     public string CreatedBy { get; init; } = default!; // User ID from JWT claims
 }
 ```
@@ -113,7 +112,7 @@ public record CreateConfiguration : ICommand
 - ProtocolSettings match protocol type (validated by ConfigurationService)
 - FilePathPattern and FilenamePattern do not contain tokens in server/host portion
 - Schedule.CronExpression is valid (NCrontab parser)
-- EventsToPublish has at least one event
+- ProcessingConfig specifies a valid FileType
 - CreatedBy matches authenticated user (security check in API layer)
 
 **Idempotency**:
@@ -164,8 +163,7 @@ public record UpdateConfiguration : ICommand
     public string FilenamePattern { get; init; } = default!;
     public string? FileExtension { get; init; }
     public ScheduleDefinitionDto Schedule { get; init; } = default!;
-    public List<EventDefinitionDto> EventsToPublish { get; init; } = default!;
-    public List<CommandDefinitionDto>? CommandsToSend { get; init; }
+    public FileProcessingConfig ProcessingConfig { get; init; } = default!;
     public bool IsActive { get; init; }
     public string LastModifiedBy { get; init; } = default!; // User ID from JWT claims
     public string ETag { get; init; } = default!; // Optimistic concurrency
