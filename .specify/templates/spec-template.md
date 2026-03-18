@@ -9,7 +9,7 @@
 
 ## RiskInsure Context *(mandatory)*
 
-**Bounded Context(s)**: [Which service(s) - e.g., Billing, Policy, Customer, FileIntegration]  
+**Bounded Context(s)**: [Which service(s) - e.g., Billing, Policy, Customer, FileProcessing]  
 **Domain Documentation**: [Link to services/<domain>/docs/domain-specific-standards.md if exists]  
 **Constitution Reference**: [.specify/memory/constitution.md](../../.specify/memory/constitution.md)
 

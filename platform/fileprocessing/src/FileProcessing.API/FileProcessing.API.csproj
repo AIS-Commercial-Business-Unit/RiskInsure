@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>RiskInsure.FileProcessing.API</RootNamespace>
+  </PropertyGroup>
+
+  <!-- T012: API layer dependencies -->
+  <ItemGroup>
+    <PackageReference Include="FluentValidation.AspNetCore" />
+    <PackageReference Include="NSwag.AspNetCore" />
+    <PackageReference Include="NServiceBus" />
+    <PackageReference Include="NServiceBus.Extensions.Hosting" />
+    <PackageReference Include="Serilog.AspNetCore" />
+    <PackageReference Include="Swashbuckle.AspNetCore" />
+    <PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <PackageReference Include="Microsoft.IdentityModel.Tokens" />
+    <PackageReference Include="Microsoft.OpenApi" />
+    <PackageReference Include="AspNetCore.HealthChecks.CosmosDb" />
+    <PackageReference Include="AspNetCore.HealthChecks.UI.Client" />
+    <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" />
+    <PackageReference Include="Microsoft.ApplicationInsights.NLogTarget" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\FileProcessing.Application\FileProcessing.Application.csproj" />
+    <ProjectReference Include="..\FileProcessing.Infrastructure\FileProcessing.Infrastructure.csproj" />
+    <ProjectReference Include="..\FileProcessing.Contracts\FileProcessing.Contracts.csproj" />
+  </ItemGroup>
+
+</Project>

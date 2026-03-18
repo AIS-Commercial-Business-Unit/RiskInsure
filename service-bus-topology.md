@@ -194,8 +194,8 @@ resource "azurerm_servicebus_topic" "premium_events" {
   max_size_in_megabytes = 1024
 }
 
-resource "azurerm_servicebus_topic" "fileintegration_events" {
-  name              = "fileintegration-events"
+resource "azurerm_servicebus_topic" "fileprocessing_events" {
+  name              = "fileprocessing-events"
   namespace_id      = azurerm_servicebus_namespace.riskinsure.id
   max_size_in_megabytes = 1024
 }
@@ -357,12 +357,12 @@ resource "azurerm_servicebus_topic_subscription" "billing_sub_premium" {
 }
 
 # ==========================================================================
-# FileIntegration Events Subscriptions
+# FileProcessing Events Subscriptions
 # ==========================================================================
 
-resource "azurerm_servicebus_topic_subscription" "billing_sub_fileintegration" {
+resource "azurerm_servicebus_topic_subscription" "billing_sub_fileprocessing" {
   name                = "billing-subscription"
-  topic_id            = azurerm_servicebus_topic.fileintegration_events.id
+  topic_id            = azurerm_servicebus_topic.fileprocessing_events.id
   max_delivery_count  = 10
   dead_letter_on_filter_evaluation_exception = true
 }
@@ -477,8 +477,8 @@ This matrix shows which events belong to which topics and which endpoints should
 | `PolicyCreated` | policy-events | Billing, FundsTransferMgt, Customer |
 | `PolicyIssued` | policy-events | Billing, FundsTransferMgt, Customer |
 | `RiskAssessmentCompleted` | ratingunderwriting-events | Policy, Premium, Billing |
-| `PaymentInstructionReady` | fileintegration-events | Billing |
-| `AchPaymentInstructionProcessed` | fileintegration-events | Billing |
+| `PaymentInstructionReady` | fileprocessing-events | Billing |
+| `AchPaymentInstructionProcessed` | fileprocessing-events | Billing |
 | `CustomerCreated` | customer-events | Billing, Policy, RatingAndUnderwriting |
 
 **Note**: You'll need to document the complete list in your domain contracts. Each event has a specific publisher and a specific set of subscribers.

@@ -11,7 +11,7 @@
 
 ## Context (References)
 
-**Bounded Context**: [Service name - e.g., Billing, Policy, FileIntegration]  
+**Bounded Context**: [Service name - e.g., Billing, Policy, FileProcessing]  
 **Domain Docs**: [Link: `services/<domain>/docs/domain-specific-standards.md`]  
 **Applies Rules**: [Specific section/rule references from domain docs, or "General platform only"]
 

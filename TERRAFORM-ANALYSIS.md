@@ -240,7 +240,7 @@ resource "azurerm_servicebus_topic" "premium_events" {
 - `services/*/src/Infrastructure/NServiceBusConfigurationExtensions.cs` - Endpoint routing configuration
 - `services/*/src/Endpoint.In/Program.cs` - Topic subscriptions
 - All domain event contracts in `RiskInsure.PublicContracts/Events/` - Won't be routed properly
-- Example: `platform/fileintegration/contracts/AchPaymentInstructionReady.cs` has no dedicated topic
+- Example: `platform/fileprocessing/contracts/AchPaymentInstructionReady.cs` has no dedicated topic
 
 ---
 

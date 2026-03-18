@@ -198,10 +198,10 @@ jobs:
           
           # Map service names to correct directory, .NET project prefix, and image names
           case "$SERVICE" in
-            file-retrieval)
-              SERVICE_DIR="platform/fileintegration"
-              PROJECT_PREFIX="FileRetrieval"
-              IMAGE_NAME="file-retrieval"
+            file-processing)
+              SERVICE_DIR="platform/fileprocessing"
+              PROJECT_PREFIX="FileProcessing"
+              IMAGE_NAME="file-processing"
               ;;
             fundstransfermgt)
               SERVICE_DIR="services/fundstransfermgt"
