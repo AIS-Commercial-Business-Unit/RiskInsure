@@ -196,14 +196,9 @@ Content-Type: application/json
     "cronExpression": "0 9 * * *",
     "timezone": "America/New_York"
   },
-  "eventsToPublish": [
-    {
-      "eventType": "CustomerFileDiscovered",
-      "eventData": {
-        "processType": "customer-import"
-      }
-    }
-  ]
+  processingConfig: {
+    fileType: "NACHA"
+  }
 }
 ```
 

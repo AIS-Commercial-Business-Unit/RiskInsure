@@ -50,20 +50,17 @@ public class HttpsProtocolAdapter : IProtocolAdapter
         {
             using var httpClient = await CreateConfiguredHttpClientAsync(cancellationToken);
 
-            // Build full URL (combine base URL with path pattern)
-            var fullUrl = CombineUrl(_settings.BaseUrl, filePathPattern);
-
             // For HTTPS, we assume the endpoint returns 
             // a directory listing in a standard format
             // This is a simplified implementation - real-world might need content negotiation
             
-            _logger.LogDebug("Sending GET request to {Url}", fullUrl);
+            _logger.LogInformation("Sending GET request to {Url}", _settings.BaseUrl);
             
-            var response = await httpClient.GetAsync(fullUrl, cancellationToken);
+            var response = await httpClient.GetAsync(_settings.BaseUrl, cancellationToken);
             
             if (!response.IsSuccessStatusCode)
             {
-                _logger.LogWarning(
+                _logger.LogDebug(
                     "HTTPS request failed with status {StatusCode}: {ReasonPhrase}",
                     response.StatusCode,
                     response.ReasonPhrase);
@@ -74,7 +71,7 @@ public class HttpsProtocolAdapter : IProtocolAdapter
             var contentType = response.Content.Headers.ContentType?.MediaType;
             
             var content = await response.Content.ReadAsStringAsync(cancellationToken);
-            var filesFound = NginxDirectoryListingParser.ParseNginxFileList(content, fullUrl);
+            var filesFound = NginxDirectoryListingParser.ParseNginxFileList(content, _settings.BaseUrl);
 
             if (filesFound != null)
             {
@@ -83,6 +80,10 @@ public class HttpsProtocolAdapter : IProtocolAdapter
                     // Check if filename matches pattern
                     if (!MatchesPattern(file.Name ?? string.Empty, filenamePattern))
                     {
+                        _logger.LogDebug(
+                            "Skipping file {Filename} as it does not match pattern {Pattern}",
+                            file.Name,
+                            filenamePattern);
                         continue;
                     }
 
@@ -92,16 +93,18 @@ public class HttpsProtocolAdapter : IProtocolAdapter
                         var itemExtension = Path.GetExtension(file.Name ?? string.Empty).TrimStart('.');
                         if (!itemExtension.Equals(fileExtension, StringComparison.OrdinalIgnoreCase))
                         {
+                            _logger.LogDebug(
+                                "Skipping file {Filename} as it does not match extension {Extension}",
+                                file.Name,
+                                fileExtension);
                             continue;
                         }
                     }
 
-                    var fileUrl = file.Url ?? CombineUrl(fullUrl, file.Name ?? string.Empty);
-
                     var discoveredFile = new DiscoveredFileInfo
                     {
-                        FileUrl = fileUrl,
-                        Filename = file.Name ?? Path.GetFileName(fileUrl),
+                        FileUrl = file.Url,
+                        Filename = file.Name ?? Path.GetFileName(file.Url),
                         FileSize = file.Size > 0 ? file.Size : null,
                         LastModified = file.Date,
                         DiscoveredAt = DateTimeOffset.UtcNow,

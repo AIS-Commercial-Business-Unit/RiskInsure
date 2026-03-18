@@ -371,10 +371,9 @@ curl -X POST https://$API_URL/api/configuration \
       "cronExpression": "0 2 * * *",
       "timezone": "America/New_York"
     },
-    "eventsToPublish": [{
-      "eventType": "FileDiscovered",
-      "eventData": {}
-    }]
+    processingConfig: {
+      fileType: "NACHA"
+    }
   }'
 ```
 

@@ -14,6 +14,7 @@ import {
   waitForFileFound,
   waitForProcessedFileRecord,
 } from '../helpers/file-retrieval-api';
+import { generateNachaFileContent } from '../helpers/generate-sample-data';
 import { logDetail, logInfo, logStep, logSuccess } from '../helpers/test-logger';
 
 
@@ -24,14 +25,14 @@ test.describe('File Retrieval Scheduled HTTP E2E', () => {
     const fileRetrievalConfig = getFileRetrievalConfig();
 
     const clientId = `e2e-client-${Date.now()}`;
-    const sampleFileName = `e2e-http-sample-${Date.now()}.txt`;
+    const sampleFileName = `e2e-http-sample-${Date.now()}.ach`;
 
     logStep('HTTP', `Ensuring container ${fileRetrievalConfig.httpsContainerName} is running`);
     await ensureContainerRunning(fileRetrievalConfig.httpsContainerName);    
     logSuccess('HTTP', `Container ${fileRetrievalConfig.httpsContainerName} is running`);
 
     logStep('HTTP', `Seeding file to HTTPS container ${fileRetrievalConfig.httpsContainerName}`);
-    await seedFileToHttpsContainer(sampleFileName, `sample payload ${new Date().toISOString()}`);
+    await seedFileToHttpsContainer(sampleFileName, generateNachaFileContent());
     logSuccess('HTTP', `Seeded file ${sampleFileName}`);
 
     logStep('HTTP', 'Creating scheduled configuration in Cosmos DB');
@@ -55,7 +56,7 @@ test.describe('File Retrieval Scheduled FTP E2E', () => {
     const fileRetrievalConfig = getFileRetrievalConfig();
 
     const clientId = `e2e-client-${Date.now()}`;
-    const sampleFileName = `e2e-sample-${Date.now()}.txt`;
+    const sampleFileName = `e2e-sample-${Date.now()}.ach`;
 
     logStep('FTP', `Ensuring container ${fileRetrievalConfig.ftpContainerName} is running`);
     await ensureContainerRunning(fileRetrievalConfig.ftpContainerName);
@@ -65,7 +66,7 @@ test.describe('File Retrieval Scheduled FTP E2E', () => {
     await seedFileToFtpContainer(
       fileRetrievalConfig.ftpContainerName,
       sampleFileName,
-      `sample payload ${new Date().toISOString()}`
+      generateNachaFileContent()
     );
     logSuccess('FTP', `Seeded file ${sampleFileName}`);
 
@@ -90,7 +91,7 @@ test.describe('File Retrieval Scheduled Azure Blob E2E', () => {
     const fileRetrievalConfig = getFileRetrievalConfig();
 
     const clientId = `e2e-client-${Date.now()}`;
-    const sampleFileName = `e2e-blob-sample-${Date.now()}.txt`;
+    const sampleFileName = `e2e-blob-sample-${Date.now()}.ach`;
 
     logStep('AZURE', `Ensuring container ${fileRetrievalConfig.azuriteContainerName} is running`);
     await ensureContainerRunning(fileRetrievalConfig.azuriteContainerName);
@@ -100,7 +101,7 @@ test.describe('File Retrieval Scheduled Azure Blob E2E', () => {
     await seedFileToAzuriteBlob(
       fileRetrievalConfig,
       sampleFileName,
-      `sample payload ${new Date().toISOString()}`
+      generateNachaFileContent()
     );
     logSuccess('AZURE', `Seeded blob ${sampleFileName}`);
 
