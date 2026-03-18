@@ -16,7 +16,7 @@ export default defineConfig({
     ['junit', { outputFile: 'test-results/junit.xml' }]
   ],
   use: {
-    baseURL: process.env.API_BASE_URL || 'http://localhost:7075',
+    baseURL: process.env.API_BASE_URL || 'http://localhost:7073',
     trace: 'on-first-retry',
   },
   projects: [

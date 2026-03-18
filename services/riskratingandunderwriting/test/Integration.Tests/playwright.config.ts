@@ -17,7 +17,7 @@ export default defineConfig({
     ['junit', { outputFile: 'test-results/junit.xml' }]
   ],
   use: {
-    baseURL: process.env.API_BASE_URL || 'http://localhost:7081',
+    baseURL: process.env.API_BASE_URL || 'http://localhost:7087',
     trace: 'on-first-retry',
     actionTimeout: 30000, // Timeout for individual actions (API calls)
     extraHTTPHeaders: {
