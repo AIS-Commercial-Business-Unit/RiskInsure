@@ -25,7 +25,7 @@ This occurred when running the workflow with `terraform_action=plan` or when inf
 
 ### 4. **Dockerfile Path Logic Broken**
 - Used `${SERVICE^}` (bash capitalize first char only)
-- Doesn't handle hyphenated names: `file-retrieval` → `File-retrieval` (not `FileRetrieval`)
+- Doesn't handle hyphenated names: `file-processing` → `File-processing` (not `FileProcessing`)
 - Would fail with "Dockerfile not found" after UAMI fix
 
 ### 5. **UAMI ID Not Passed to Terraform**
@@ -158,7 +158,7 @@ preflight_checks:
 - name: Build API Image
   run: |
     docker build -f "$SERVICE_DIR/src/${SERVICE^}.Api/Dockerfile" ...
-    # ${SERVICE^} = "File-retrieval" ❌ WRONG!
+    # ${SERVICE^} = "File-processing" ❌ WRONG!
 
 # AFTER:
 - name: Determine service path and project prefix
@@ -166,9 +166,9 @@ preflight_checks:
   run: |
     SERVICE="${{ matrix.service }}"
     case "$SERVICE" in
-      file-retrieval)
-        SERVICE_DIR="platform/fileintegration"
-        PROJECT_PREFIX="FileRetrieval"
+      file-processing)
+        SERVICE_DIR="platform/fileprocessing"
+        PROJECT_PREFIX="FileProcessing"
         ;;
       fundstransfermgt)
         SERVICE_DIR="services/fundstransfermgt"
@@ -181,7 +181,7 @@ preflight_checks:
   run: |
     PROJECT_PREFIX="${{ steps.paths.outputs.project_prefix }}"
     docker build -f "$SERVICE_DIR/src/${PROJECT_PREFIX}.Api/Dockerfile" ...
-    # Uses correct "FileRetrieval" ✅
+    # Uses correct "FileProcessing" ✅
 ```
 
 **Why:** Explicit mapping ensures correct .NET project folder names for all services, including hyphenated ones.
@@ -325,7 +325,7 @@ terraform_action: apply
 
 ### Validation Tests
 1. ✅ Test `full-deployment` + `plan` (should skip services)
-2. ✅ Test hyphenated service: `file-retrieval` (Dockerfile found)
+2. ✅ Test hyphenated service: `file-processing` (Dockerfile found)
 3. ✅ Test all service name mappings work
 
 ---

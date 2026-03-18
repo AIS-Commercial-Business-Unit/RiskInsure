@@ -6,7 +6,7 @@
 
 1. **Read the Constitution**: [.specify/memory/constitution.md](../.specify/memory/constitution.md) contains non-negotiable architectural rules
 2. **Understand Project Structure**: [copilot-instructions/project-structure.md](../copilot-instructions/project-structure.md) defines the multi-layer template
-3. **Check Domain Standards**: Each service may have `docs/domain-specific-standards.md` (e.g., [FileIntegration standards](../platform/fileintegration/docs/filerun-processing-standards.md))
+3. **Check Domain Standards**: Each service may have `docs/domain-specific-standards.md` (e.g., [FileProcessing standards](../platform/fileprocessing/docs/filerun-processing-standards.md))
 
 ---
 
@@ -16,7 +16,7 @@
 RiskInsure/
 ├── platform/                         # Shared infrastructure
 │   ├── RiskInsure.PublicContracts/   # Cross-service message contracts
-│   ├── fileintegration/contracts/    # ACH/NACHA processing contracts
+│   ├── fileprocessing/contracts/    # ACH/NACHA processing contracts
 │   ├── infra/                        # Terraform templates
 │   └── templates/                    # Dockerfile.api, Dockerfile.endpoint
 ├── services/                         # Business domains (bounded contexts)
@@ -250,7 +250,7 @@ Endpoint.In → Infrastructure → Domain
 
 **Example**:
 - `InvoiceCreated` sent from Billing to Payments → `PublicContracts` project
-- `PaymentInstructionReady` used only within FileIntegration → `FileIntegration.Domain/Contracts`
+- `PaymentInstructionReady` used only within FileProcessing → `FileProcessing.Domain/Contracts`
 
 ### Standard Fields
 
@@ -487,7 +487,7 @@ Each service MAY define domain-specific standards in `docs/domain-specific-stand
 - State machines and transition rules
 - Domain-specific validation rules
 
-**Example**: See [platform/fileintegration/docs/filerun-processing-standards.md](../platform/fileintegration/docs/filerun-processing-standards.md) for FileIntegration domain rules.
+**Example**: See [platform/fileprocessing/docs/filerun-processing-standards.md](../platform/fileprocessing/docs/filerun-processing-standards.md) for FileProcessing domain rules.
 
 ---
 

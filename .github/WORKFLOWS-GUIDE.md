@@ -127,12 +127,12 @@ working-directory: platform/infra/shared-services  # ✅ Correct directory
 
 **Before**:
 ```bash
-SERVICES_INPUT="billing,customer,file-retrieval,fundstransfermgt,ratingunderwriting"  # 5 services
+SERVICES_INPUT="billing,customer,file-processing,fundstransfermgt,ratingunderwriting"  # 5 services
 ```
 
 **After**:
 ```bash
-SERVICES_INPUT="billing,customer,file-retrieval,fundstransfermgt,policy,ratingunderwriting"  # 6 services
+SERVICES_INPUT="billing,customer,file-processing,fundstransfermgt,policy,ratingunderwriting"  # 6 services
 ```
 
 **Impact**: All 6 microservices now deploy when "all" is selected.
@@ -212,7 +212,7 @@ The workflows build and deploy 6 microservices:
 
 1. **billing** - Billing management and invoicing
 2. **customer** - Customer data and profile management
-3. **file-retrieval** - Document and file retrieval service
+3. **file-processing** - Document and file processing service
 4. **fundstransfermgt** - Funds transfer management
 5. **policy** - Policy lifecycle management (quote → issue → cancel → reinstate)
 6. **ratingunderwriting** - Rating calculations and underwriting decisions
@@ -288,7 +288,7 @@ You'll see 5 input fields:
 #### 4. services_to_deploy (Required)
 **Services to deploy**
 
-- `all` - Deploy all 6 services (billing, customer, file-retrieval, fundstransfermgt, policy, ratingunderwriting)
+- `all` - Deploy all 6 services (billing, customer, file-processing, fundstransfermgt, policy, ratingunderwriting)
 - `billing` - Deploy only billing service
 - `billing,customer` - Deploy specific comma-separated services
 
@@ -432,7 +432,7 @@ Deploys only shared services layer.
 Deploys all 6 microservices:
 - billing
 - customer
-- file-retrieval
+- file-processing
 - fundstransfermgt
 - policy
 - ratingunderwriting
@@ -584,7 +584,7 @@ The infrastructure is split into three layers with separate Terraform state file
 - 12 Container Apps (6 services × 2 containers):
   - `billing-api` & `billing-endpoint`
   - `customer-api` & `customer-endpoint`
-  - `file-retrieval-api` & `file-retrieval-endpoint`
+  - `file-processing-api` & `file-processing-endpoint`
   - `fundstransfermgt-api` & `fundstransfermgt-endpoint`
   - `policy-api` & `policy-endpoint`
   - `ratingunderwriting-api` & `ratingunderwriting-endpoint`
@@ -778,7 +778,7 @@ terraform_action: apply
 # Deploy remaining services
 workflow_mode: deploy-services-only
 environment: prod
-services_to_deploy: file-retrieval,fundstransfermgt,policy,ratingunderwriting
+services_to_deploy: file-processing,fundstransfermgt,policy,ratingunderwriting
 terraform_action: apply
 ```
 

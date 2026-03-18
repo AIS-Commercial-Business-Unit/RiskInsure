@@ -122,7 +122,7 @@ This project contains **public message contracts** that are shared across servic
   - Placed in this project and referenced by multiple services
 
 - **Internal Contracts** (``ServiceName.Domain/Contracts``): Used within a single service
-  - Example: ``ProcessPaymentInstruction`` command used only by FileIntegration
+  - Example: ``ProcessPaymentInstruction`` command used only by FileProcessing
   - Placed in the service's Domain layer
 
 ## Structure
