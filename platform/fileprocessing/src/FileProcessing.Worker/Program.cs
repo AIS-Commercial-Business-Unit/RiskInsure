@@ -62,7 +62,7 @@ var host = Host.CreateDefaultBuilder(args)
             );
 
             routing.RouteToEndpoint(
-                typeof(FileProcessing.Contracts.Commands.ProcessNachaRow),
+                typeof(FileProcessing.Contracts.Commands.ProcessFileChunk),
                 "FileProcessing.Worker"
             );
         })

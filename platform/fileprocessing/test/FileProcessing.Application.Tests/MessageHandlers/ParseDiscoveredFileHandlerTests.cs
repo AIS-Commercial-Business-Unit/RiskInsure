@@ -85,14 +85,14 @@ public class ParseDiscoveredFileHandlerTests
         await handler.Handle(command, context.Object);
 
         // Assert
-        var rowEvents = published.OfType<NachaRowDiscovered>().ToList();
+        var rowEvents = published.OfType<FileChunkDiscovered>().ToList();
         rowEvents.Count.Should().Be(2);
         rowEvents[0].Row.TraceNumber.Should().EndWith("0000001");
         rowEvents[1].Row.TraceNumber.Should().EndWith("0000002");
 
         published.OfType<DiscoveredFileProcessed>().Should().ContainSingle();
 
-        var rowCommands = sent.OfType<ProcessNachaRow>().ToList();
+        var rowCommands = sent.OfType<ProcessFileChunk>().ToList();
         rowCommands.Count.Should().Be(2);
         rowCommands[0].Row.AmountCents.Should().Be(12345);
         rowCommands[1].Row.AmountCents.Should().Be(99999);

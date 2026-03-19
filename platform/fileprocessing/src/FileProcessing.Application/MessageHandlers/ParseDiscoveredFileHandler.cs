@@ -186,7 +186,7 @@ public class ParseDiscoveredFileHandler : IHandleMessages<ParseDiscoveredFile>
         {
             var rowIdempotencyKey = $"{message.IdempotencyKey}:nacha:{row.TraceNumber}";
 
-            await context.Publish(new NachaRowDiscovered
+            await context.Publish(new FileChunkDiscovered
             {
                 MessageId = Guid.NewGuid(),
                 CorrelationId = message.CorrelationId,
@@ -201,7 +201,7 @@ public class ParseDiscoveredFileHandler : IHandleMessages<ParseDiscoveredFile>
             });
 
             // Send to the configured endpoint for row handling.
-            await context.Send(new ProcessNachaRow
+            await context.Send(new ProcessFileChunk
             {
                 MessageId = Guid.NewGuid(),
                 CorrelationId = message.CorrelationId,
