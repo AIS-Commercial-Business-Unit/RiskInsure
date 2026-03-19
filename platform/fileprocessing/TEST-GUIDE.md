@@ -261,15 +261,15 @@ POST https://localhost:5001/api/configurations
 ### Successful File Check
 
 1. **Worker** evaluates schedules every minute
-2. **Worker** sends `ExecuteFileCheck` command when due
-3. **Handler** receives command, calls `FileCheckService`
+2. **Worker** sends `RetrieveFile` command when due
+3. **Handler** receives command, calls `RetrieveFileService`
 4. **Service** replaces tokens: `test-{yyyy}{mm}{dd}.txt` → `test-20260223.txt`
 5. **Protocol Adapter** connects to FTP/HTTPS/Azure Blob
 6. **Service** finds matching files
 7. **Service** creates `DiscoveredFile` entity (idempotency check)
 8. **Service** publishes `FileDiscovered` event
-9. **Service** sends `ProcessDiscoveredFile` command to workflow platform
-10. **Service** publishes `FileCheckCompleted` event
+9. **Service** sends `ParseDiscoveredFile` command to workflow platform
+10. **Service** publishes `RetrieveFileCompleted` event
 11. **Handler** returns success
 
 ### Failed File Check
@@ -278,14 +278,14 @@ POST https://localhost:5001/api/configurations
 2. **Protocol Adapter** encounters error (auth failure, timeout, etc.)
 3. **Service** categorizes error
 4. **Service** retries with exponential backoff (2s, 5s, 10s)
-5. After 3 failures: **Service** publishes `FileCheckFailed` event
+5. After 3 failures: **Service** publishes `RetrieveFileFailed` event
 6. **Handler** logs error with category
 
 ### No Files Found
 
 1. Steps 1-6 same as success  
 2. **Service** finds zero matching files
-3. **Service** publishes `FileCheckCompleted` event with `FilesFound=0`
+3. **Service** publishes `RetrieveFileCompleted` event with `FilesFound=0`
 4. **Handler** logs info message
 
 ## Success Criteria Verification

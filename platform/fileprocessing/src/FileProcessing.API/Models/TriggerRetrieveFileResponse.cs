@@ -3,7 +3,7 @@ namespace RiskInsure.FileProcessing.API.Models;
 /// <summary>
 /// Response model for manual file check trigger endpoint.
 /// </summary>
-public class TriggerFileCheckResponse
+public class TriggerRetrieveFileResponse
 {
     /// <summary>
     /// Configuration identifier that was triggered.

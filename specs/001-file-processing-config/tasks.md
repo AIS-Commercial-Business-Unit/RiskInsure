@@ -93,14 +93,14 @@ Based on plan.md, the project uses:
 
 ### Message Contracts
 
-- [X] T045 Create ExecuteFileCheck command in services/file-processing/FileProcessing.Contracts/Commands/ExecuteFileCheck.cs
+- [X] T045 Create RetrieveFile command in services/file-processing/FileProcessing.Contracts/Commands/RetrieveFile.cs
 - [X] T046 [P] Create CreateConfiguration command in services/file-processing/FileProcessing.Contracts/Commands/CreateConfiguration.cs
 - [X] T047 [P] Create UpdateConfiguration command in services/file-processing/FileProcessing.Contracts/Commands/UpdateConfiguration.cs
 - [X] T048 [P] Create DeleteConfiguration command in services/file-processing/FileProcessing.Contracts/Commands/DeleteConfiguration.cs
-- [X] T049 [P] Create ProcessDiscoveredFile command in services/file-processing/FileProcessing.Contracts/Commands/ProcessDiscoveredFile.cs
+- [X] T049 [P] Create ParseDiscoveredFile command in services/file-processing/FileProcessing.Contracts/Commands/ParseDiscoveredFile.cs
 - [X] T050 Create FileDiscovered event in services/file-processing/FileProcessing.Contracts/Events/FileDiscovered.cs
-- [X] T051 [P] Create FileCheckCompleted event in services/file-processing/FileProcessing.Contracts/Events/FileCheckCompleted.cs
-- [X] T052 [P] Create FileCheckFailed event in services/file-processing/FileProcessing.Contracts/Events/FileCheckFailed.cs
+- [X] T051 [P] Create RetrieveFileCompleted event in services/file-processing/FileProcessing.Contracts/Events/RetrieveFileCompleted.cs
+- [X] T052 [P] Create RetrieveFileFailed event in services/file-processing/FileProcessing.Contracts/Events/RetrieveFileFailed.cs
 - [X] T053 [P] Create ConfigurationCreated event in services/file-processing/FileProcessing.Contracts/Events/ConfigurationCreated.cs
 - [X] T054 [P] Create ConfigurationUpdated event in services/file-processing/FileProcessing.Contracts/Events/ConfigurationUpdated.cs
 - [X] T055 [P] Create ConfigurationDeleted event in services/file-processing/FileProcessing.Contracts/Events/ConfigurationDeleted.cs
@@ -154,12 +154,12 @@ Based on plan.md, the project uses:
 - [X] T074 [P] [US2] Implement FtpProtocolAdapter in services/file-processing/FileProcessing.Application/Protocols/FtpProtocolAdapter.cs using FluentFTP
 - [X] T075 [P] [US2] Implement HttpsProtocolAdapter in services/file-processing/FileProcessing.Application/Protocols/HttpsProtocolAdapter.cs using HttpClient
 - [X] T076 [P] [US2] Implement AzureBlobProtocolAdapter in services/file-processing/FileProcessing.Application/Protocols/AzureBlobProtocolAdapter.cs using Azure.Storage.Blobs
-- [X] T077 [US2] Implement FileCheckService in services/file-processing/FileProcessing.Application/Services/FileCheckService.cs with ExecuteCheck method
-- [X] T078 [US2] Implement ExecuteFileCheckHandler in services/file-processing/FileProcessing.Application/MessageHandlers/ExecuteFileCheckHandler.cs
+- [X] T077 [US2] Implement RetrieveFileService in services/file-processing/FileProcessing.Application/Services/RetrieveFileService.cs with ExecuteCheck method
+- [X] T078 [US2] Implement RetrieveFileHandler in services/file-processing/FileProcessing.Application/MessageHandlers/RetrieveFileHandler.cs
 - [X] T079 [US2] Implement ScheduleEvaluator in services/file-processing/FileProcessing.Infrastructure/Scheduling/ScheduleEvaluator.cs using NCrontab for cron expression parsing
 - [X] T080 [US2] Implement SchedulerHostedService in services/file-processing/FileProcessing.Infrastructure/Scheduling/SchedulerHostedService.cs as BackgroundService
 - [X] T081 [US2] Register SchedulerHostedService in Worker Program.cs
-- [X] T082 [US2] Implement retry logic with exponential backoff in FileCheckService for transient errors
+- [X] T082 [US2] Implement retry logic with exponential backoff in RetrieveFileService for transient errors
 - [X] T083 [US2] Add protocol-specific error handling and categorization (AuthenticationFailure, ConnectionTimeout, ProtocolError)
 - [X] T084 [US2] Add structured logging for file check execution with protocol, executionId, duration, filesFound metrics
 - [X] T085 [US2] Implement connection pooling/reuse for FTP and HTTPS adapters
@@ -172,15 +172,15 @@ Based on plan.md, the project uses:
 
 **Goal**: When system finds a file matching a FileProcessingConfiguration, it executes configured actions: publishing events and/or sending commands to the workflow orchestration platform with file metadata (location, name, size).
 
-**Independent Test**: Create a configuration with specific event/command actions, trigger file discovery (manually or via schedule), and verify the expected FileDiscovered events are published to Service Bus and ProcessDiscoveredFile commands are sent with correct file metadata.
+**Independent Test**: Create a configuration with specific event/command actions, trigger file discovery (manually or via schedule), and verify the expected FileDiscovered events are published to Service Bus and ParseDiscoveredFile commands are sent with correct file metadata.
 
 ### Implementation for User Story 3
 
-- [X] T086 [US3] Implement file discovery event publishing logic in FileCheckService (check for duplicate DiscoveredFile before publishing)
+- [X] T086 [US3] Implement file discovery event publishing logic in RetrieveFileService (check for duplicate DiscoveredFile before publishing)
 - [X] T087 [US3] Implement idempotency check using DiscoveredFile repository (unique key constraint on clientId, configurationId, fileUrl, discoveryDate)
-- [X] T088 [US3] Implement ProcessDiscoveredFile command sending logic in FileCheckService
-- [X] T089 [US3] Add FileCheckCompleted event publishing after successful check in ExecuteFileCheckHandler
-- [X] T090 [US3] Add FileCheckFailed event publishing after failed check in ExecuteFileCheckHandler
+- [X] T088 [US3] Implement ParseDiscoveredFile command sending logic in RetrieveFileService
+- [X] T089 [US3] Add RetrieveFileCompleted event publishing after successful check in RetrieveFileHandler
+- [X] T090 [US3] Add RetrieveFileFailed event publishing after failed check in RetrieveFileHandler
 - [X] T091 [US3] Implement ConfigurationCreated event publishing in CreateConfigurationHandler
 - [X] T092 [US3] Add validation that at least one EventDefinition exists in configuration during creation
 - [X] T093 [US3] Add correlation ID propagation across commands and events for distributed tracing
@@ -258,7 +258,7 @@ Based on plan.md, the project uses:
 - [X] T126 [US6] Add discovered files list to execution details response with file metadata
 - [X] T127 [US6] Add error categorization display in execution history (AuthenticationFailure, ConnectionTimeout, etc.)
 - [X] T128 [US6] Implement execution metrics aggregation endpoint (success rate, average duration, files discovered per day)
-- [X] T129 [US6] Add Application Insights custom metrics tracking for FileCheckDuration, FileCheckSuccess, FilesDiscovered, ProtocolErrors
+- [X] T129 [US6] Add Application Insights custom metrics tracking for RetrieveFileDuration, RetrieveFileSuccess, FilesDiscovered, ProtocolErrors
 - [X] T130 [US6] Add Application Insights custom logging for all file check operations with correlation IDs
 - [X] T131 [US6] Create monitoring dashboard queries documentation in services/file-processing/docs/monitoring.md
 - [X] T132 [US6] Add OpenAPI documentation for all execution history endpoints
@@ -326,7 +326,7 @@ Based on plan.md, the project uses:
 - **User Stories (Phase 3-8)**: All depend on Foundational phase completion
   - US1 (Configure Basic File Processing): Can start after Foundational - No dependencies on other stories
   - US2 (Retrieve Files on Schedule): Can start after Foundational - Integrates with US1 entities but independently testable
-  - US3 (Trigger Workflows on File Discovery): Depends on US2 (FileCheckService) - Extends US2 with event/command publishing
+  - US3 (Trigger Workflows on File Discovery): Depends on US2 (RetrieveFileService) - Extends US2 with event/command publishing
   - US4 (Manage Multiple Client Configurations): Can start after US1-US3 complete - Enhances existing functionality
   - US5 (Update and Delete Configurations): Depends on US1 (ConfigurationService) - Extends US1 with update/delete operations
   - US6 (Monitor Configuration Execution): Depends on US2 (FileProcessingExecution entity) - Adds observability on top of existing execution tracking
@@ -342,7 +342,7 @@ Setup → Foundational → US1 (Configure) → US2 (Schedule) → US3 (Trigger) 
 
 - **User Story 1 (P1)**: Independent - can start after Foundational
 - **User Story 2 (P1)**: Integrates with US1 entities (FileProcessingConfiguration, FileProcessingExecution) but independently testable
-- **User Story 3 (P1)**: Extends US2 (FileCheckService) with event/command publishing - should complete after US2
+- **User Story 3 (P1)**: Extends US2 (RetrieveFileService) with event/command publishing - should complete after US2
 - **User Story 4 (P2)**: Enhances US1-US3 with multi-configuration support - independently testable with existing infrastructure
 - **User Story 5 (P2)**: Extends US1 (ConfigurationService) with update/delete - independently testable
 - **User Story 6 (P3)**: Adds observability to US2 executions - independently testable with read-only queries

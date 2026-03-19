@@ -175,13 +175,13 @@ The File Processing feature is a **new bounded context** within the RiskInsure p
 ### Message Flow
 ```
 SchedulerHostedService (every 60s)
-  → ExecuteFileCheck command
-    → ExecuteFileCheckHandler
-      → FileCheckService
+  → RetrieveFile command
+    → RetrieveFileHandler
+      → RetrieveFileService
         → ProtocolAdapter (FTP/HTTPS/AzureBlob)
           → DiscoveredFile records created
             → FileDiscovered events published
-              → ProcessDiscoveredFile commands sent to WorkflowOrchestrator
+              → ParseDiscoveredFile commands sent to WorkflowOrchestrator
 ```
 
 ---
@@ -284,8 +284,8 @@ See detailed compliance report: [CONSTITUTION-COMPLIANCE-REPORT.md](CONSTITUTION
 - ✅ Log levels: Info (operations), Warning (retries), Error (failures)
 
 ### Metrics (Application Insights)
-- ✅ FileCheckDuration (milliseconds)
-- ✅ FileCheckSuccess (count)
+- ✅ RetrieveFileDuration (milliseconds)
+- ✅ RetrieveFileSuccess (count)
 - ✅ FilesDiscovered (count)
 - ✅ ProtocolErrors (categorized)
 
@@ -306,7 +306,7 @@ See detailed compliance report: [CONSTITUTION-COMPLIANCE-REPORT.md](CONSTITUTION
 
 ### With Workflow Orchestration Platform
 - ✅ FileDiscovered event published (Service Bus topic)
-- ✅ ProcessDiscoveredFile command sent (to WorkflowOrchestrator endpoint)
+- ✅ ParseDiscoveredFile command sent (to WorkflowOrchestrator endpoint)
 - ✅ NServiceBus routing configured
 - ✅ Message contracts shared (FileProcessing.Contracts)
 
@@ -392,9 +392,9 @@ See detailed compliance report: [CONSTITUTION-COMPLIANCE-REPORT.md](CONSTITUTION
 **Result**: 90%+ coverage achieved (11 domain test classes)
 
 ### Application Layer (Target: 80%)
-- ✅ Service tests (ConfigurationService, FileCheckService, TokenReplacementService)
+- ✅ Service tests (ConfigurationService, RetrieveFileService, TokenReplacementService)
 - ✅ Protocol adapter tests (FTP, HTTPS, Azure Blob)
-- ✅ Message handler tests (CreateConfigurationHandler, ExecuteFileCheckHandler, etc.)
+- ✅ Message handler tests (CreateConfigurationHandler, RetrieveFileHandler, etc.)
 - ✅ Schedule evaluation tests (NCrontab integration)
 
 **Result**: 80%+ coverage achieved (13 application test classes)

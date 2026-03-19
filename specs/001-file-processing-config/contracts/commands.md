@@ -6,7 +6,7 @@
 
 ## Overview
 
-This document defines all command message contracts for the Client File Processing Configuration feature. Commands are imperative instructions sent to specific endpoints via NServiceBus. All commands follow the RiskInsure naming convention: `Verb + Noun` (e.g., `ExecuteFileCheck`, `CreateConfiguration`).
+This document defines all command message contracts for the Client File Processing Configuration feature. Commands are imperative instructions sent to specific endpoints via NServiceBus. All commands follow the RiskInsure naming convention: `Verb + Noun` (e.g., `RetrieveFile`, `CreateConfiguration`).
 
 Commands integrate with the workflow orchestration platform via Azure Service Bus and support the idempotent message handling pattern (Constitution Principle IV).
 
@@ -23,17 +23,17 @@ All commands MUST include:
 
 ---
 
-## 1. ExecuteFileCheck
+## 1. RetrieveFile
 
 **Purpose**: Triggers a file check for a specific FileProcessingConfiguration.
 
 **Sent By**: SchedulerHostedService (when schedule fires)  
-**Handled By**: `ExecuteFileCheckHandler` → `FileCheckService.ExecuteCheck()`
+**Handled By**: `RetrieveFileHandler` → `RetrieveFileService.ExecuteCheck()`
 
 **Properties**:
 
 ```csharp
-public record ExecuteFileCheck : ICommand
+public record RetrieveFile : ICommand
 {
     public Guid MessageId { get; init; }
     public string CorrelationId { get; init; } = default!;
@@ -63,13 +63,13 @@ public record ExecuteFileCheck : ICommand
 1. Validate message structure
 2. Load FileProcessingConfiguration from repository (by ConfigurationId, scoped to ClientId)
 3. Check if configuration is active (IsActive = true)
-4. Delegate to `FileCheckService.ExecuteCheck(configuration, scheduledTime)`
-5. Publish `FileCheckCompleted` or `FileCheckFailed` event
+4. Delegate to `RetrieveFileService.ExecuteCheck(configuration, scheduledTime)`
+5. Publish `RetrieveFileCompleted` or `RetrieveFileFailed` event
 
 **Error Scenarios**:
 - Configuration not found → Log warning, do not retry (invalid schedule)
 - Configuration inactive → Log info, do not retry (expected behavior)
-- Connection failure → Retry 3 times with exponential backoff, then publish `FileCheckFailed` event
+- Connection failure → Retry 3 times with exponential backoff, then publish `RetrieveFileFailed` event
 
 ---
 
@@ -246,17 +246,17 @@ public record DeleteConfiguration : ICommand
 
 ---
 
-## 5. ProcessDiscoveredFile
+## 5. ParseDiscoveredFile
 
 **Purpose**: Command sent to the workflow orchestration platform to process a discovered file. This command is sent FROM the file processing service TO the workflow platform.
 
-**Sent By**: `FileCheckService` (when file is discovered)  
+**Sent By**: `RetrieveFileService` (when file is discovered)  
 **Handled By**: Workflow orchestration platform (external bounded context)
 
 **Properties**:
 
 ```csharp
-public record ProcessDiscoveredFile : ICommand
+public record ParseDiscoveredFile : ICommand
 {
     public Guid MessageId { get; init; }
     public string CorrelationId { get; init; } = default!;
@@ -348,7 +348,7 @@ public record CommandDefinitionDto
 ```csharp
 endpointConfiguration.SendOnly(); // Or full endpoint if receives messages
 var routing = endpointConfiguration.UseTransport<AzureServiceBusTransport>().Routing();
-routing.RouteToEndpoint(typeof(ProcessDiscoveredFile), "WorkflowOrchestrator");
+routing.RouteToEndpoint(typeof(ParseDiscoveredFile), "WorkflowOrchestrator");
 ```
 
 **FileProcessing.API** (sends commands):
@@ -368,20 +368,20 @@ routing.RouteToEndpoint(typeof(DeleteConfiguration), "FileProcessing.Worker");
 ```
 Scheduler (every minute)
   ↓ checks configurations with due schedule
-Send: ExecuteFileCheck command
+Send: RetrieveFile command
   ↓ to FileProcessing.Worker
-ExecuteFileCheckHandler
-  ↓ delegates to FileCheckService
-FileCheckService.ExecuteCheck()
+RetrieveFileHandler
+  ↓ delegates to RetrieveFileService
+RetrieveFileService.ExecuteCheck()
   ↓ calls protocol adapter
 FtpProtocolAdapter.CheckForFiles()
   ↓ discovers 2 files
 For each file:
   Create DiscoveredFile record (idempotency check)
-  Send: ProcessDiscoveredFile command to WorkflowOrchestrator
+  Send: ParseDiscoveredFile command to WorkflowOrchestrator
   Publish: FileDiscovered event
   ↓
-Publish: FileCheckCompleted event
+Publish: RetrieveFileCompleted event
 ```
 
 ### Example 2: Manual Configuration Creation
@@ -409,12 +409,12 @@ API: Return 201 Created with configuration ID
 
 This contracts document defines:
 
-✅ **5 command types**: ExecuteFileCheck, CreateConfiguration, UpdateConfiguration, DeleteConfiguration, ProcessDiscoveredFile  
+✅ **5 command types**: RetrieveFile, CreateConfiguration, UpdateConfiguration, DeleteConfiguration, ParseDiscoveredFile  
 ✅ **Imperative naming**: All commands follow `Verb + Noun` convention  
 ✅ **Idempotency support**: All commands include IdempotencyKey and duplicate detection logic  
 ✅ **Multi-tenant isolation**: All commands include ClientId for security trimming  
 ✅ **Optimistic concurrency**: Update/Delete commands include ETag for safe concurrent updates  
-✅ **Cross-platform integration**: ProcessDiscoveredFile command sent to workflow orchestration platform  
+✅ **Cross-platform integration**: ParseDiscoveredFile command sent to workflow orchestration platform  
 ✅ **Validation rules**: Each command specifies required fields and validation logic  
 ✅ **Error handling**: Retry strategies and error scenarios documented  
 

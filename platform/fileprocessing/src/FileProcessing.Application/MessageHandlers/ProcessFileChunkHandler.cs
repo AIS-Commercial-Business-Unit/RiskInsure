@@ -5,18 +5,18 @@ using NServiceBus;
 namespace RiskInsure.FileProcessing.Application.MessageHandlers;
 
 /// <summary>
-/// Handles ProcessNachaRow commands.
+/// Handles ProcessFileChunk commands.
 /// </summary>
-public class ProcessNachaRowHandler : IHandleMessages<ProcessNachaRow>
+public class ProcessFileChunkHandler : IHandleMessages<ProcessFileChunk>
 {
-    private readonly ILogger<ProcessNachaRowHandler> _logger;
+    private readonly ILogger<ProcessFileChunk> _logger;
 
-    public ProcessNachaRowHandler(ILogger<ProcessNachaRowHandler> logger)
+    public ProcessFileChunkHandler(ILogger<ProcessFileChunk> logger)
     {
         _logger = logger;
     }
 
-    public Task Handle(ProcessNachaRow message, IMessageHandlerContext context)
+    public Task Handle(ProcessFileChunk message, IMessageHandlerContext context)
     {
         _logger.LogInformation(
             "Processing NACHA row {TraceNumber} (TxnCode: {TransactionCode}, AmountCents: {AmountCents}) for file {Filename} client {ClientId}",

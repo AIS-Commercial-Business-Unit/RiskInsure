@@ -14,7 +14,7 @@ namespace FileProcessing.Integration.Tests.Api;
 public class ConfigurationTriggerEndpointTests
 {
     [Fact]
-    public async Task TriggerFileCheck_InvalidGuid_Returns400BadRequest()
+    public async Task TriggerRetrieveFile_InvalidGuid_Returns400BadRequest()
     {
         // Arrange
         var invalidGuid = "not-a-guid";
@@ -27,7 +27,7 @@ public class ConfigurationTriggerEndpointTests
     }
 
     [Fact]
-    public void TriggerFileCheck_EndpointRoute_FollowsConvention()
+    public void TriggerRetrieveFile_EndpointRoute_FollowsConvention()
     {
         // Arrange
         var configId = Guid.NewGuid();
@@ -43,7 +43,7 @@ public class ConfigurationTriggerEndpointTests
     }
 
     [Fact]
-    public void TriggerFileCheckResponse_HasRequiredFields()
+    public void TriggerRetrieveFileResponse_HasRequiredFields()
     {
         // Arrange
         var configId = Guid.NewGuid();
@@ -51,7 +51,7 @@ public class ConfigurationTriggerEndpointTests
         var triggeredAt = DateTimeOffset.UtcNow;
 
         // Act - Verify response DTO structure
-        var response = new RiskInsure.FileProcessing.API.Models.TriggerFileCheckResponse
+        var response = new RiskInsure.FileProcessing.API.Models.TriggerRetrieveFileResponse
         {
             ConfigurationId = configId,
             ExecutionId = executionId,
@@ -67,10 +67,10 @@ public class ConfigurationTriggerEndpointTests
     }
 
     [Fact]
-    public void ExecuteFileCheckCommand_SupportsManualTriggerFlag()
+    public void RetrieveFileCommand_SupportsManualTriggerFlag()
     {
         // Arrange & Act
-        var command = new FileProcessing.Contracts.Commands.ExecuteFileCheck
+        var command = new FileProcessing.Contracts.Commands.RetrieveFile
         {
             MessageId = Guid.NewGuid(),
             CorrelationId = "test-correlation",
@@ -89,10 +89,10 @@ public class ConfigurationTriggerEndpointTests
     }
 
     [Fact]
-    public void FileCheckTriggeredEvent_HasAuditTrailFields()
+    public void RetrieveFileTriggeredEvent_HasAuditTrailFields()
     {
         // Arrange & Act
-        var evt = new FileProcessing.Contracts.Events.FileCheckTriggered
+        var evt = new FileProcessing.Contracts.Events.RetrieveFileTriggered
         {
             MessageId = Guid.NewGuid(),
             CorrelationId = "test-correlation",

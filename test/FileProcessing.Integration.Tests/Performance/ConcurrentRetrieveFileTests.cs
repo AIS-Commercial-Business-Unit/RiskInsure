@@ -17,23 +17,23 @@ namespace RiskInsure.FileProcessing.Tests.Performance;
 /// T137: Performance tests for 100+ concurrent file checks (SC-004 validation).
 /// Target: Support 100 concurrent file checks without performance degradation.
 /// </summary>
-public class ConcurrentFileCheckTests
+public class ConcurrentRetrieveFileTests
 {
     private readonly ITestOutputHelper _output;
 
-    public ConcurrentFileCheckTests(ITestOutputHelper output)
+    public ConcurrentRetrieveFileTests(ITestOutputHelper output)
     {
         _output = output;
     }
 
     [Fact]
-    public async Task ExecuteFileCheck_With100ConcurrentChecks_CompletesWithin30Seconds()
+    public async Task RetrieveFile_With100ConcurrentChecks_CompletesWithin30Seconds()
     {
         // Arrange
         var mockConfigRepo = new Mock<IFileProcessingConfigurationRepository>();
         var mockExecutionRepo = new Mock<IFileProcessingExecutionRepository>();
         var mockDiscoveredFileRepo = new Mock<IDiscoveredFileRepository>();
-        var mockLogger = new Mock<ILogger<FileCheckService>>();
+        var mockLogger = new Mock<ILogger<RetrieveFileService>>();
 
         var configurations = Enumerable.Range(1, 100)
             .Select(i => CreateTestConfiguration($"client-test", $"config-{i}"))
@@ -79,7 +79,7 @@ public class ConcurrentFileCheckTests
         var tokenService = new TokenReplacementService(Mock.Of<ILogger<TokenReplacementService>>());
         var mockMessageSession = new Mock<IMessageSession>();
 
-        var fileCheckService = new FileCheckService(
+        var RetrieveFileService = new RetrieveFileService(
             mockConfigRepo.Object,
             mockExecutionRepo.Object,
             mockDiscoveredFileRepo.Object,
@@ -92,7 +92,7 @@ public class ConcurrentFileCheckTests
         var stopwatch = Stopwatch.StartNew();
         
         var tasks = configurations.Select(config => 
-            fileCheckService.ExecuteCheckAsync(config.Id, config.ClientId, CancellationToken.None)
+            RetrieveFileService.ExecuteCheckAsync(config.Id, config.ClientId, CancellationToken.None)
         ).ToList();
 
         await Task.WhenAll(tasks);
@@ -113,13 +113,13 @@ public class ConcurrentFileCheckTests
     }
 
     [Fact]
-    public async Task ExecuteFileCheck_With100ConcurrentChecks_MaintainsThroughput()
+    public async Task RetrieveFile_With100ConcurrentChecks_MaintainsThroughput()
     {
         // Arrange
         var mockConfigRepo = new Mock<IFileProcessingConfigurationRepository>();
         var mockExecutionRepo = new Mock<IFileProcessingExecutionRepository>();
         var mockDiscoveredFileRepo = new Mock<IDiscoveredFileRepository>();
-        var mockLogger = new Mock<ILogger<FileCheckService>>();
+        var mockLogger = new Mock<ILogger<RetrieveFileService>>();
         var mockMessageSession = new Mock<IMessageSession>();
 
         var configurations = Enumerable.Range(1, 100)
@@ -157,7 +157,7 @@ public class ConcurrentFileCheckTests
 
         var tokenService = new TokenReplacementService(Mock.Of<ILogger<TokenReplacementService>>());
 
-        var fileCheckService = new FileCheckService(
+        var RetrieveFileService = new RetrieveFileService(
             mockConfigRepo.Object,
             mockExecutionRepo.Object,
             mockDiscoveredFileRepo.Object,
@@ -170,7 +170,7 @@ public class ConcurrentFileCheckTests
         var stopwatch = Stopwatch.StartNew();
         
         var tasks = configurations.Select(config => 
-            fileCheckService.ExecuteCheckAsync(config.Id, config.ClientId, CancellationToken.None)
+            RetrieveFileService.ExecuteCheckAsync(config.Id, config.ClientId, CancellationToken.None)
         ).ToList();
 
         await Task.WhenAll(tasks);

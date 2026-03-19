@@ -2,7 +2,7 @@
 
 ## Overview
 
-The File Processing Worker includes a background scheduler that periodically checks for file processing configurations that are due to run based on their CRON schedules. When a configuration is due, the scheduler sends an `ExecuteFileCheck` command to trigger the file processing process.
+The File Processing Worker includes a background scheduler that periodically checks for file processing configurations that are due to run based on their CRON schedules. When a configuration is due, the scheduler sends an `RetrieveFile` command to trigger the file processing process.
 
 ## Configuration
 
@@ -79,7 +79,7 @@ The `EnableDistributedLocking` setting (future implementation) will prevent mult
    - Queries Cosmos DB for all active file processing configurations
    - Evaluates each configuration's CRON schedule using the `ScheduleEvaluator`
    - Determines which configurations are due within the `ExecutionWindowMinutes` window
-   - Sends `ExecuteFileCheck` commands for due configurations
+   - Sends `RetrieveFile` commands for due configurations
 3. **Concurrency**: Uses a semaphore to limit concurrent checks to `MaxConcurrentChecks`
 4. **Idempotency**: Tracks in-progress checks to prevent duplicate processing within the same instance
 
@@ -110,7 +110,7 @@ Execution Window: 2 minutes
 Configuration Next Run: 10:01:30 UTC
 
 Time Difference: 1.5 minutes < 2 minutes
-Result: Configuration is DUE, ExecuteFileCheck command sent
+Result: Configuration is DUE, RetrieveFile command sent
 ```
 
 ### Missed Executions
@@ -138,7 +138,7 @@ Scheduler check completed: 3 triggered, 0 skipped (in-progress), 0 deferred (con
 Checking for scheduled file processing configurations at 2026-02-23T17:45:00.000Z
 Found 25 active configurations to check
 Triggering file check for configuration abc123 (Client: client1, Name: 'Daily File Import', Protocol: FTP)
-ExecuteFileCheck command sent for configuration abc123
+RetrieveFile command sent for configuration abc123
 ```
 
 ### Warning (Issues)

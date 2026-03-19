@@ -13,13 +13,13 @@ namespace RiskInsure.FileProcessing.Application.Services;
 /// Service for executing file checks according to FileProcessingConfiguration.
 /// Orchestrates token replacement, protocol adapter invocation, and execution tracking.
 /// </summary>
-public class FileCheckService
+public class RetrieveFileService
 {
     private readonly ProtocolAdapterFactory _protocolAdapterFactory;
     private readonly TokenReplacementService _tokenReplacementService;
     private readonly IFileProcessingExecutionRepository _executionRepository;
     private readonly IDiscoveredFileRepository _discoveredFileRepository;
-    private readonly ILogger<FileCheckService> _logger;
+    private readonly ILogger<RetrieveFileService> _logger;
 
     // Error categories for structured error handling (T083)
     private const string ERROR_CATEGORY_AUTHENTICATION = "AuthenticationFailure";
@@ -37,12 +37,12 @@ public class FileCheckService
         TimeSpan.FromSeconds(10)   // Third retry after 10 seconds
     };
 
-    public FileCheckService(
+    public RetrieveFileService(
         ProtocolAdapterFactory protocolAdapterFactory,
         TokenReplacementService tokenReplacementService,
         IFileProcessingExecutionRepository executionRepository,
         IDiscoveredFileRepository discoveredFileRepository,
-        ILogger<FileCheckService> logger)
+        ILogger<RetrieveFileService> logger)
     {
         _protocolAdapterFactory = protocolAdapterFactory ?? throw new ArgumentNullException(nameof(protocolAdapterFactory));
         _tokenReplacementService = tokenReplacementService ?? throw new ArgumentNullException(nameof(tokenReplacementService));
@@ -61,7 +61,7 @@ public class FileCheckService
     /// <param name="executionId">Optional execution ID for tracking (generates new if not provided)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Execution result with discovered files</returns>
-    public async Task<FileCheckResult> ExecuteCheckAsync(
+    public async Task<RetrieveFileResult> ExecuteCheckAsync(
         FileProcessingConfiguration configuration,
         DateTimeOffset? executionDate = null,
         Guid? executionId = null,
@@ -142,7 +142,7 @@ public class FileCheckService
                 execution.FilesFound,
                 execution.DurationMs);
 
-            return new FileCheckResult
+            return new RetrieveFileResult
             {
                 Success = true,
                 ExecutionId = effectiveExecutionId,
@@ -175,7 +175,7 @@ public class FileCheckService
                 execution.RetryCount,
                 ex.Message);
 
-            return new FileCheckResult
+            return new RetrieveFileResult
             {
                 Success = false,
                 ExecutionId = effectiveExecutionId,
@@ -323,7 +323,7 @@ public class FileCheckService
     /// <param name="correlationId">Correlation ID for distributed tracing (T093)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Number of files processed (events published)</returns>
-    public async Task<int> ProcessDiscoveredFilesAsync(
+    public async Task<int> ParseDiscoveredFilesAsync(
         IEnumerable<DiscoveredFileInfo> discoveredFiles,
         FileProcessingConfiguration configuration,
         Guid executionId,
@@ -403,8 +403,8 @@ public class FileCheckService
                     fileDiscoveredEvent.IdempotencyKey);
 
 
-                // T088: Send ProcessDiscoveredFile command
-                var processFileCommand = new ProcessDiscoveredFile
+                // T088: Send ParseDiscoveredFile command
+                var processFileCommand = new ParseDiscoveredFile
                 {
                     MessageId = Guid.NewGuid(),
                     CorrelationId = correlationId, // T093: Correlation ID propagation
@@ -426,7 +426,7 @@ public class FileCheckService
                 await messageContext.Send(processFileCommand);
 
                 _logger.LogInformation(
-                    "Sent ProcessDiscoveredFile command for {Filename} (IdempotencyKey: {IdempotencyKey})",
+                    "Sent ParseDiscoveredFile command for {Filename} (IdempotencyKey: {IdempotencyKey})",
                     fileInfo.Filename,
                     processFileCommand.IdempotencyKey);
 
@@ -461,7 +461,7 @@ public class FileCheckService
 /// <summary>
 /// Result of a file check execution.
 /// </summary>
-public record FileCheckResult
+public record RetrieveFileResult
 {
     public required bool Success { get; init; }
     public required Guid ExecutionId { get; init; }

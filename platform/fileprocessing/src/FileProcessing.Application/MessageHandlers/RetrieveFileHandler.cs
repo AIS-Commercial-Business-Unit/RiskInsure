@@ -8,31 +8,31 @@ using Microsoft.Extensions.Logging;
 namespace RiskInsure.FileProcessing.Application.MessageHandlers;
 
 /// <summary>
-/// Handles ExecuteFileCheck command by delegating to FileCheckService.
+/// Handles RetrieveFile command by delegating to RetrieveFileService.
 /// Thin handler pattern - validates message, delegates to service, publishes events.
 /// </summary>
-public class ExecuteFileCheckHandler : IHandleMessages<ExecuteFileCheck>
+public class RetrieveFileHandler : IHandleMessages<RetrieveFile>
 {
-    private readonly FileCheckService _fileCheckService;
+    private readonly RetrieveFileService _RetrieveFileService;
     private readonly IFileProcessingConfigurationRepository _configurationRepository;
-    private readonly ILogger<ExecuteFileCheckHandler> _logger;
+    private readonly ILogger<RetrieveFileHandler> _logger;
 
-    public ExecuteFileCheckHandler(
-        FileCheckService fileCheckService,
+    public RetrieveFileHandler(
+        RetrieveFileService RetrieveFileService,
         IFileProcessingConfigurationRepository configurationRepository,
-        ILogger<ExecuteFileCheckHandler> logger)
+        ILogger<RetrieveFileHandler> logger)
     {
-        _fileCheckService = fileCheckService ?? throw new ArgumentNullException(nameof(fileCheckService));
+        _RetrieveFileService = RetrieveFileService ?? throw new ArgumentNullException(nameof(RetrieveFileService));
         _configurationRepository = configurationRepository ?? throw new ArgumentNullException(nameof(configurationRepository));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task Handle(ExecuteFileCheck message, IMessageHandlerContext context)
+    public async Task Handle(RetrieveFile message, IMessageHandlerContext context)
     {
         ArgumentNullException.ThrowIfNull(message);
 
         _logger.LogInformation(
-            "Handling ExecuteFileCheck command for configuration {ConfigurationId} (Client: {ClientId}, CorrelationId: {CorrelationId})",
+            "Handling RetrieveFile command for configuration {ConfigurationId} (Client: {ClientId}, CorrelationId: {CorrelationId})",
             message.ConfigurationId,
             message.ClientId,
             message.CorrelationId);
@@ -52,8 +52,8 @@ public class ExecuteFileCheckHandler : IHandleMessages<ExecuteFileCheck>
                     message.ConfigurationId,
                     message.ClientId);
                 
-                // Publish FileCheckFailed event (T090)
-                await context.Publish(new FileCheckFailed
+                // Publish RetrieveFileFailed event (T090)
+                await context.Publish(new RetrieveFileFailed
                 {
                     MessageId = Guid.NewGuid(),
                     CorrelationId = message.CorrelationId,
@@ -89,8 +89,8 @@ public class ExecuteFileCheckHandler : IHandleMessages<ExecuteFileCheck>
             // Generate execution ID for this file check
             var executionId = Guid.NewGuid();
 
-            // Publish FileCheckTriggered event (audit trail for both manual and scheduled triggers)
-            await context.Publish(new FileCheckTriggered
+            // Publish RetrieveFileTriggered event (audit trail for both manual and scheduled triggers)
+            await context.Publish(new RetrieveFileTriggered
             {
                 MessageId = Guid.NewGuid(),
                 CorrelationId = message.CorrelationId,
@@ -107,13 +107,13 @@ public class ExecuteFileCheckHandler : IHandleMessages<ExecuteFileCheck>
             });
 
             _logger.LogInformation(
-                "FileCheckTriggered event published for configuration {ConfigurationId} (ExecutionId: {ExecutionId}, IsManual: {IsManual})",
+                "RetrieveFileTriggered event published for configuration {ConfigurationId} (ExecutionId: {ExecutionId}, IsManual: {IsManual})",
                 message.ConfigurationId,
                 executionId,
                 message.IsManualTrigger);
 
             // Execute file check via service
-            var result = await _fileCheckService.ExecuteCheckAsync(
+            var result = await _RetrieveFileService.ExecuteCheckAsync(
                 configuration,
                 message.ScheduledExecutionTime,
                 executionId,
@@ -125,7 +125,7 @@ public class ExecuteFileCheckHandler : IHandleMessages<ExecuteFileCheck>
                 int filesProcessed = 0;
                 if (result.DiscoveredFiles.Any())
                 {
-                    filesProcessed = await _fileCheckService.ProcessDiscoveredFilesAsync(
+                    filesProcessed = await _RetrieveFileService.ParseDiscoveredFilesAsync(
                         result.DiscoveredFiles,
                         configuration,
                         result.ExecutionId,
@@ -134,8 +134,8 @@ public class ExecuteFileCheckHandler : IHandleMessages<ExecuteFileCheck>
                         CancellationToken.None);
                 }
 
-                // Publish FileCheckCompleted event (T089)
-                await context.Publish(new FileCheckCompleted
+                // Publish RetrieveFileCompleted event (T089)
+                await context.Publish(new RetrieveFileCompleted
                 {
                     MessageId = Guid.NewGuid(),
                     CorrelationId = message.CorrelationId,
@@ -175,8 +175,8 @@ public class ExecuteFileCheckHandler : IHandleMessages<ExecuteFileCheck>
             }
             else
             {
-                // Publish FileCheckFailed event (T090)
-                await context.Publish(new   FileCheckFailed
+                // Publish RetrieveFileFailed event (T090)
+                await context.Publish(new   RetrieveFileFailed
                 {
                     MessageId = Guid.NewGuid(),
                     CorrelationId = message.CorrelationId,
@@ -208,11 +208,11 @@ public class ExecuteFileCheckHandler : IHandleMessages<ExecuteFileCheck>
         {
             _logger.LogError(
                 ex,
-                "Error handling ExecuteFileCheck command for configuration {ConfigurationId}",
+                "Error handling RetrieveFile command for configuration {ConfigurationId}",
                 message.ConfigurationId);
 
-            // Publish FileCheckFailed event
-            await context.Publish(new   FileCheckFailed
+            // Publish RetrieveFileFailed event
+            await context.Publish(new   RetrieveFileFailed
             {
                 MessageId = Guid.NewGuid(),
                 CorrelationId = message.CorrelationId,

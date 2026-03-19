@@ -88,7 +88,7 @@ public record {Action}Triggered : IEvent
 }
 ```
 
-**Naming Convention**: `{Noun}{VerbPastTense}` → `FileCheckTriggered`, `PaymentTriggered`, `ReportTriggered`
+**Naming Convention**: `{Noun}{VerbPastTense}` → `RetrieveFileTriggered`, `PaymentTriggered`, `ReportTriggered`
 
 ---
 
@@ -624,12 +624,12 @@ public async Task Handle_ManualTrigger_PublishesTriggeredEvent()
 **Steps**:
 1. POST `/api/configuration/{id}/trigger` with valid JWT
 2. API validates configuration
-3. API sends `ExecuteFileCheck` command
+3. API sends `RetrieveFile` command
 4. API returns 202 Accepted
 5. Handler receives command
-6. Handler publishes `FileCheckTriggered` event
+6. Handler publishes `RetrieveFileTriggered` event
 7. Handler executes file check
-8. Handler publishes `FileCheckCompleted` event
+8. Handler publishes `RetrieveFileCompleted` event
 
 **Assertions**:
 - API returns 202 with tracking info
@@ -672,7 +672,7 @@ public async Task Handle_ManualTrigger_PublishesTriggeredEvent()
 
 **Steps**:
 1. Handler generates ExecutionId (ABC)
-2. Handler publishes `FileCheckTriggered` (Key=ABC)
+2. Handler publishes `RetrieveFileTriggered` (Key=ABC)
 3. Handler throws exception
 4. NServiceBus retries handler
 5. Handler generates SAME ExecutionId (ABC) - **Wait, this is wrong!**

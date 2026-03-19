@@ -384,7 +384,7 @@ FileProcessingConfiguration (1) ----< (M) DiscoveredFile (direct)
 
 | From State | To State | Trigger | Validation |
 |------------|----------|---------|------------|
-| Pending | InProgress | ExecuteFileCheck command received | Configuration is active |
+| Pending | InProgress | RetrieveFile command received | Configuration is active |
 | InProgress | Completed | File check succeeds | FilesFound >= 0, events published |
 | InProgress | Failed | File check fails (transient error) | Retry count < 3 (retry) |
 | InProgress | Failed | File check fails (terminal error) | Retry count >= 3 or non-retryable error |
@@ -533,7 +533,7 @@ FileProcessingConfiguration (1) ----< (M) DiscoveredFile (direct)
 
 1. **Credential Storage**: All passwords, tokens, connection strings stored in **Azure Key Vault**, not Cosmos DB
    - Configuration stores Key Vault secret name (e.g., `"acme-ftp-password"`)
-   - FileCheckService retrieves secret at execution time
+   - RetrieveFileService retrieves secret at execution time
    - Never log or expose credentials in error messages
 
 2. **Client Isolation**: Partition key `/clientId` enforces data isolation

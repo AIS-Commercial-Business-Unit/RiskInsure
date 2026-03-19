@@ -5,9 +5,9 @@ namespace FileProcessing.Contracts.Events;
 /// <summary>
 /// Event published when a file check is triggered (before execution begins).
 /// Captures trigger source (scheduled vs manual) and user context for audit trail.
-/// Published by ExecuteFileCheckHandler before calling FileCheckService.
+/// Published by RetrieveFileHandler before calling RetrieveFileService.
 /// </summary>
-public record FileCheckTriggered : IEvent
+public record RetrieveFileTriggered : IEvent
 {
     // Standard message metadata
     public Guid MessageId { get; init; }

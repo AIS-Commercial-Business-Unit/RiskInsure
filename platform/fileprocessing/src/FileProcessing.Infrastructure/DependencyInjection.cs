@@ -93,7 +93,7 @@ public static class DependencyInjection
         // Application services (scoped)
         services.AddScoped<ConfigurationService>();
         services.AddScoped<ExecutionHistoryService>();
-        services.AddScoped<FileCheckService>();
+        services.AddScoped<RetrieveFileService>();
         services.AddScoped<DiscoveredFileContentDownloadService>();
         services.AddScoped<ProtocolAdapterFactory>();
 

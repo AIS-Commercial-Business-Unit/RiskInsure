@@ -401,18 +401,18 @@ public class ConfigurationController : ControllerBase
 
     /// <summary>
     /// Manually triggers a file check for an existing configuration.
-    /// Sends ExecuteFileCheck command with IsManualTrigger=true.
+    /// Sends RetrieveFile command with IsManualTrigger=true.
     /// </summary>
     /// <param name="id">Configuration ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Accepted with execution ID</returns>
     [HttpPost("{id}/trigger")]
-    [ProducesResponseType(typeof(TriggerFileCheckResponse), StatusCodes.Status202Accepted)]
+    [ProducesResponseType(typeof(TriggerRetrieveFileResponse), StatusCodes.Status202Accepted)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> TriggerFileCheck(
+    public async Task<IActionResult> TriggerRetrieveFile(
         Guid id,
         CancellationToken cancellationToken)
     {
@@ -449,8 +449,8 @@ public class ConfigurationController : ControllerBase
                 userId,
                 executionId);
 
-            // Send ExecuteFileCheck command via NServiceBus
-            var command = new ExecuteFileCheck
+            // Send RetrieveFile command via NServiceBus
+            var command = new RetrieveFile
             {
                 MessageId = Guid.NewGuid(),
                 CorrelationId = correlationId,
@@ -469,7 +469,7 @@ public class ConfigurationController : ControllerBase
                 id,
                 executionId);
 
-            return Accepted(new TriggerFileCheckResponse
+            return Accepted(new TriggerRetrieveFileResponse
             {
                 ConfigurationId = id,
                 ExecutionId = executionId,

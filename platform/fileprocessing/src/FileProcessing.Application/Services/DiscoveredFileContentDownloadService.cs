@@ -29,7 +29,7 @@ public class DiscoveredFileContentDownloadService
 
     public async Task<byte[]> DownloadToMemoryAsync(
         FileProcessingConfiguration configuration,
-        ProcessDiscoveredFile command,
+        ParseDiscoveredFile command,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(configuration);

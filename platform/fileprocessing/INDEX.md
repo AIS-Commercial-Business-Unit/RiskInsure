@@ -78,7 +78,7 @@ dotnet test test/FileProcessing.Application.Tests
 dotnet test test/FileProcessing.Integration.Tests
 
 # Performance tests only
-dotnet test --filter "ConcurrentFileCheckTests|LoadTests"
+dotnet test --filter "ConcurrentRetrieveFileTests|LoadTests"
 ```
 
 ---

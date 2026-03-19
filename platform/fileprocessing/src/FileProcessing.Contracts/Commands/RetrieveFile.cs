@@ -6,7 +6,7 @@ namespace FileProcessing.Contracts.Commands;
 /// Command to trigger a file check for a specific FileProcessingConfiguration.
 /// Sent by SchedulerHostedService when a schedule fires, or manually triggered via API.
 /// </summary>
-public record ExecuteFileCheck : ICommand
+public record RetrieveFile : ICommand
 {
     public Guid MessageId { get; init; }
     public required string CorrelationId { get; init; }

@@ -16,20 +16,20 @@ using System.Text.Json;
 namespace RiskInsure.FileProcessing.Application.MessageHandlers;
 
 /// <summary>
-/// Handles ProcessDiscoveredFile commands to process discovered files.
+/// Handles ParseDiscoveredFile commands to process discovered files.
 /// </summary>
-public class ProcessDiscoveredFileHandler : IHandleMessages<ProcessDiscoveredFile>
+public class ParseDiscoveredFileHandler : IHandleMessages<ParseDiscoveredFile>
 {
     private readonly IFileProcessingConfigurationRepository _configurationRepository;
     private readonly IProcessedFileRecordRepository _processedRecordRepository;
     private readonly DiscoveredFileContentDownloadService _discoveredFileContentDownloadService;
-    private readonly ILogger<ProcessDiscoveredFileHandler> _logger;
+    private readonly ILogger<ParseDiscoveredFileHandler> _logger;
 
-    public ProcessDiscoveredFileHandler(
+    public ParseDiscoveredFileHandler(
         IFileProcessingConfigurationRepository configurationRepository,
         IProcessedFileRecordRepository processedRecordRepository,
         DiscoveredFileContentDownloadService discoveredFileContentDownloadService,
-        ILogger<ProcessDiscoveredFileHandler> logger)
+        ILogger<ParseDiscoveredFileHandler> logger)
     {
         _configurationRepository = configurationRepository;
         _processedRecordRepository = processedRecordRepository;
@@ -37,10 +37,10 @@ public class ProcessDiscoveredFileHandler : IHandleMessages<ProcessDiscoveredFil
         _logger = logger;
     }
 
-    public async Task Handle(ProcessDiscoveredFile message, IMessageHandlerContext context)
+    public async Task Handle(ParseDiscoveredFile message, IMessageHandlerContext context)
     {
         _logger.LogInformation(
-            "Handling ProcessDiscoveredFile command for client {ClientId}, configuration {ConfigurationId}",
+            "Handling ParseDiscoveredFile command for client {ClientId}, configuration {ConfigurationId}",
             message.ClientId,
             message.ConfigurationId);
 
@@ -151,7 +151,7 @@ public class ProcessDiscoveredFileHandler : IHandleMessages<ProcessDiscoveredFil
 
     private async Task ProcessFileByTypeAsync(
         FileProcessingConfiguration configuration,
-        ProcessDiscoveredFile message,
+        ParseDiscoveredFile message,
         byte[] fileContent,
         IMessageHandlerContext context)
     {
@@ -170,7 +170,7 @@ public class ProcessDiscoveredFileHandler : IHandleMessages<ProcessDiscoveredFil
     }
 
     private async Task ProcessNachaFileAsync(
-        ProcessDiscoveredFile message,
+        ParseDiscoveredFile message,
         byte[] fileContent,
         IMessageHandlerContext context)
     {
@@ -186,7 +186,7 @@ public class ProcessDiscoveredFileHandler : IHandleMessages<ProcessDiscoveredFil
         {
             var rowIdempotencyKey = $"{message.IdempotencyKey}:nacha:{row.TraceNumber}";
 
-            await context.Publish(new NachaRowDiscovered
+            await context.Publish(new FileChunkDiscovered
             {
                 MessageId = Guid.NewGuid(),
                 CorrelationId = message.CorrelationId,
@@ -201,7 +201,7 @@ public class ProcessDiscoveredFileHandler : IHandleMessages<ProcessDiscoveredFil
             });
 
             // Send to the configured endpoint for row handling.
-            await context.Send(new ProcessNachaRow
+            await context.Send(new ProcessFileChunk
             {
                 MessageId = Guid.NewGuid(),
                 CorrelationId = message.CorrelationId,

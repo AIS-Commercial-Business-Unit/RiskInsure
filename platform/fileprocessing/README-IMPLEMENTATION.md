@@ -106,7 +106,7 @@ GET /health/ready
 ### Observability
 - ✅ Structured logging (Serilog)
 - ✅ Application Insights telemetry
-- ✅ Custom metrics (FileCheckDuration, FilesDiscovered, etc.)
+- ✅ Custom metrics (RetrieveFileDuration, FilesDiscovered, etc.)
 - ✅ Correlation ID propagation
 - ✅ Health check endpoints
 
@@ -146,7 +146,7 @@ dotnet test test/FileProcessing.Application.Tests
 dotnet test test/FileProcessing.Integration.Tests
 
 # Run performance tests
-dotnet test --filter "ConcurrentFileCheckTests"
+dotnet test --filter "ConcurrentRetrieveFileTests"
 dotnet test --filter "LoadTests"
 ```
 

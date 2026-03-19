@@ -1,12 +1,12 @@
 using FileProcessing.Contracts.DTOs;
 using NServiceBus;
 
-namespace FileProcessing.Contracts.Commands;
+namespace FileProcessing.Contracts.Events;
 
 /// <summary>
-/// Command to process a parsed NACHA entry row.
+/// Event published when a NACHA row is parsed from a discovered file.
 /// </summary>
-public record ProcessNachaRow : ICommand
+public record FileChunkDiscovered : IEvent
 {
     public Guid MessageId { get; init; }
     public required string CorrelationId { get; init; }

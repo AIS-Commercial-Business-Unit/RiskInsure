@@ -60,11 +60,11 @@ SchedulerHostedService : BackgroundService
 ScheduleEvaluator (uses NCrontab)
   ↓ (checks all configurations)
 For each due configuration:
-  Send ExecuteFileCheck command via NServiceBus
+  Send RetrieveFile command via NServiceBus
     ↓
-ExecuteFileCheckHandler (NServiceBus handler)
+RetrieveFileHandler (NServiceBus handler)
   ↓
-FileCheckService.ExecuteCheck()
+RetrieveFileService.ExecuteCheck()
   ↓ (delegates to protocol adapter)
 IProtocolAdapter (FTP/HTTPS/Azure Blob)
   ↓
@@ -77,7 +77,7 @@ Publishes FileDiscovered events
 2. Polls active FileProcessingConfigurations every minute (configurable interval)
 3. Uses **NCrontab** to parse cron expressions and determine next run time
 4. Tracks last execution time in `FileProcessingExecution` records
-5. Publishes `ExecuteFileCheck` command for each due configuration
+5. Publishes `RetrieveFile` command for each due configuration
 6. **Horizontal scaling**: Multiple worker instances can run concurrently
    - Use distributed lock (Cosmos DB lease) to prevent duplicate checks
    - OR rely on idempotent handlers (check for existing execution before processing)
@@ -507,7 +507,7 @@ What logging and error handling patterns should we use for file processing opera
 - `protocol` - FTP, HTTPS, AzureBlob
 - `fileUrl` - File being checked (if applicable)
 - `correlationId` - Trace across distributed calls
-- `operation` - FileCheck, TokenReplacement, EventPublish
+- `operation` - RetrieveFile, TokenReplacement, EventPublish
 
 **Log Levels**:
 - **Information**: Configuration created, file check started, file discovered, check completed
@@ -538,8 +538,8 @@ _logger.LogError(ex,
 
 ### Metrics (Application Insights)
 
-- `FileCheckDuration` (histogram) - Time to complete check
-- `FileCheckSuccess` (counter) - Success/failure count
+- `RetrieveFileDuration` (histogram) - Time to complete check
+- `RetrieveFileSuccess` (counter) - Success/failure count
 - `FilesDiscovered` (counter) - Number of files found
 - `ProtocolErrors` (counter by category) - Error breakdown
 
@@ -601,7 +601,7 @@ public class ProtocolAdapterFactory
 3. Define `AwsS3ProtocolSettings : ProtocolSettings` (bucket, region, credentials)
 4. Register adapter in DI: `services.AddTransient<IProtocolAdapter, AwsS3ProtocolAdapter>()`
 5. Add `ProtocolType.AwsS3` enum value
-6. No changes to FileCheckService or handlers (loose coupling)
+6. No changes to RetrieveFileService or handlers (loose coupling)
 
 ### Future Protocol Candidates
 

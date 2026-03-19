@@ -143,7 +143,7 @@ builder.Host.NServiceBusEnvironmentConfiguration(
 
         // Configure message routing - send commands to Worker
         routing.RouteToEndpoint(
-            typeof(FileProcessing.Contracts.Commands.ExecuteFileCheck),
+            typeof(FileProcessing.Contracts.Commands.RetrieveFile),
             "FileProcessing.Worker"
         );
     });

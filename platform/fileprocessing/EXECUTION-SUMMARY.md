@@ -93,10 +93,10 @@ Duration: 2.2 seconds
 | **Entities** | 3 | FileProcessingConfiguration, FileProcessingExecution, DiscoveredFile |
 | **Value Objects** | 7 | ProtocolSettings (3 types), ScheduleDefinition, EventDefinition, CommandDefinition, FilePattern |
 | **Enumerations** | 5 | ProtocolType, ExecutionStatus, DiscoveryStatus, AuthType, AzureAuthType |
-| **Services** | 5 | ConfigurationService, FileCheckService, TokenReplacementService, ExecutionHistoryService, ScheduleExecutionService |
+| **Services** | 5 | ConfigurationService, RetrieveFileService, TokenReplacementService, ExecutionHistoryService, ScheduleExecutionService |
 | **Repositories** | 3 | FileProcessingConfigurationRepository, FileProcessingExecutionRepository, DiscoveredFileRepository |
 | **Protocol Adapters** | 3 | FtpProtocolAdapter, HttpsProtocolAdapter, AzureBlobProtocolAdapter |
-| **Message Handlers** | 6 | ExecuteFileCheckHandler, CreateConfigurationHandler, UpdateConfigurationHandler, DeleteConfigurationHandler, etc. |
+| **Message Handlers** | 6 | RetrieveFileHandler, CreateConfigurationHandler, UpdateConfigurationHandler, DeleteConfigurationHandler, etc. |
 | **Controllers** | 2 | ConfigurationController, ExecutionHistoryController |
 
 ### Documentation Deliverables
@@ -128,7 +128,7 @@ Duration: 2.2 seconds
 
 ### User Story 3: Trigger Workflows on File Discovery ✅
 - Publishes FileDiscovered events to Service Bus
-- Sends ProcessDiscoveredFile commands to workflow platform
+- Sends ParseDiscoveredFile commands to workflow platform
 - Idempotency enforcement (unique constraint on DiscoveredFile)
 - Correlation ID propagation for distributed tracing
 - Zero duplicate workflow triggers (SC-007 validated)
@@ -217,7 +217,7 @@ Duration: 2.2 seconds
 - Telemetry SDK configured (API and Worker)
 - Adaptive sampling enabled
 - Quick Pulse Metric Stream enabled
-- Custom metrics: FileCheckDuration, FileCheckSuccess, FilesDiscovered, ProtocolErrors
+- Custom metrics: RetrieveFileDuration, RetrieveFileSuccess, FilesDiscovered, ProtocolErrors
 - Distributed tracing with correlation IDs
 
 ### T147: Constitution Compliance ✅
@@ -256,16 +256,16 @@ All 7 measurable success criteria from spec.md validated:
 
 ### Message Contracts
 **Commands Implemented**:
-1. ExecuteFileCheck (API → Worker)
+1. RetrieveFile (API → Worker)
 2. CreateConfiguration (API → Worker)
 3. UpdateConfiguration (API → Worker)
 4. DeleteConfiguration (API → Worker)
-5. ProcessDiscoveredFile (Worker → WorkflowOrchestrator)
+5. ParseDiscoveredFile (Worker → WorkflowOrchestrator)
 
 **Events Implemented**:
 1. FileDiscovered (published by Worker)
-2. FileCheckCompleted (published by Worker)
-3. FileCheckFailed (published by Worker)
+2. RetrieveFileCompleted (published by Worker)
+3. RetrieveFileFailed (published by Worker)
 4. ConfigurationCreated (published by Worker)
 5. ConfigurationUpdated (published by Worker)
 6. ConfigurationDeleted (published by Worker)

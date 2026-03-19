@@ -30,7 +30,7 @@ This document defines the domain terminology, coding standards, and architectura
 - Example: `/files/{yyyy}/{mm}/{dd}/data_{yyyy}{mm}{dd}.xlsx`
 - Enables date-based file discovery without hardcoding dates
 
-**FileCheck**
+**RetrieveFile**
 - Single execution of a FileProcessingConfiguration
 - Connects to configured location, evaluates patterns with current date, checks for matching files
 - Results in FileProcessingExecution record (success/failure, files found, duration)
@@ -61,7 +61,7 @@ This document defines the domain terminology, coding standards, and architectura
 
 **ConfigurationExecution**
 - The process of scheduler triggering a file check based on schedule evaluation
-- Sends `ExecuteFileCheck` command via message bus
+- Sends `RetrieveFile` command via message bus
 - Ensures scheduled checks execute within 1 minute of scheduled time (SC-002)
 
 ### States and Status
@@ -119,8 +119,8 @@ This document defines the domain terminology, coding standards, and architectura
 - Explicit values for serialization stability
 
 **Commands/Events**
-- PascalCase imperative verbs (commands): `CreateConfiguration`, `ExecuteFileCheck`, `DeleteConfiguration`
-- PascalCase past tense (events): `ConfigurationCreated`, `FileCheckCompleted`, `FileDiscovered`
+- PascalCase imperative verbs (commands): `CreateConfiguration`, `RetrieveFile`, `DeleteConfiguration`
+- PascalCase past tense (events): `ConfigurationCreated`, `RetrieveFileCompleted`, `FileDiscovered`
 - Suffix: `*Command` (optional), `*Event` (optional, use context)
 
 **Repositories**
@@ -190,7 +190,7 @@ catch (Exception ex)
 
 ### Message-Based Integration
 - All cross-boundary communication via Azure Service Bus / NServiceBus
-- Commands: Direct actions (`CreateConfiguration`, `ExecuteFileCheck`)
+- Commands: Direct actions (`CreateConfiguration`, `RetrieveFile`)
 - Events: Notifications (`ConfigurationCreated`, `FileDiscovered`)
 - Idempotency: Every message has `IdempotencyKey` for duplicate detection
 

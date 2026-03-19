@@ -8,7 +8,7 @@
 
 ## Overview
 
-Enhanced the File Processing Worker scheduler to support configurable polling intervals and execution parameters. The scheduler periodically queries Cosmos DB for file processing configurations that are due to run based on their CRON schedules, then sends `ExecuteFileCheck` commands via NServiceBus.
+Enhanced the File Processing Worker scheduler to support configurable polling intervals and execution parameters. The scheduler periodically queries Cosmos DB for file processing configurations that are due to run based on their CRON schedules, then sends `RetrieveFile` commands via NServiceBus.
 
 ## User Story
 
@@ -64,7 +64,7 @@ Added `SchedulerOptions` configuration class that maps to `Scheduler` section in
    - Evaluate each configuration's CRON schedule using `ScheduleEvaluator`
    - Calculate next execution time in configuration's timezone
    - Check if execution falls within `ExecutionWindowMinutes`
-   - Send `ExecuteFileCheck` command for due configurations
+   - Send `RetrieveFile` command for due configurations
 4. **Concurrency Control**: Semaphore limits concurrent checks to `MaxConcurrentChecks`
 5. **Duplicate Prevention**: In-progress checks tracked to avoid duplicates
 
@@ -92,7 +92,7 @@ Evaluate CRON schedule (ScheduleEvaluator.GetNextExecutionTime)
   ↓
 Is due? (within ExecutionWindowMinutes)
   ↓ YES
-Send ExecuteFileCheck command (IMessageSession.Send)
+Send RetrieveFile command (IMessageSession.Send)
   ↓
 [Handler will be implemented later]
 ```
@@ -219,7 +219,7 @@ Test Project Breakdown:
 
 - **NCrontab**: CRON expression parsing and evaluation
 - **Microsoft.Extensions.Options**: Configuration binding
-- **NServiceBus**: Message sending (ExecuteFileCheck commands)
+- **NServiceBus**: Message sending (RetrieveFile commands)
 - **Azure Cosmos DB**: Configuration storage and querying
 
 ---
@@ -259,7 +259,7 @@ Scheduler check completed: 3 triggered, 0 skipped (in-progress), 0 deferred (con
 ### Per-Configuration Log
 ```
 Triggering file check for configuration abc123 (Client: client1, Name: 'Daily File Import', Protocol: FTP)
-ExecuteFileCheck command sent for configuration abc123
+RetrieveFile command sent for configuration abc123
 ```
 
 ---
