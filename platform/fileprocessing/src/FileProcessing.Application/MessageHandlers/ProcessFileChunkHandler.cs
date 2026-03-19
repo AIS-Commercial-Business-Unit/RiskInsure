@@ -7,11 +7,11 @@ namespace RiskInsure.FileProcessing.Application.MessageHandlers;
 /// <summary>
 /// Handles ProcessFileChunk commands.
 /// </summary>
-public class ProcessFileChunk : IHandleMessages<ProcessFileChunk>
+public class ProcessFileChunkHandler : IHandleMessages<ProcessFileChunk>
 {
     private readonly ILogger<ProcessFileChunk> _logger;
 
-    public ProcessFileChunk(ILogger<ProcessFileChunk> logger)
+    public ProcessFileChunkHandler(ILogger<ProcessFileChunk> logger)
     {
         _logger = logger;
     }
