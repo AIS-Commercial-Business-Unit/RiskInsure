@@ -174,7 +174,7 @@ export async function createFtpConfigurationInCosmos(
   });
 
   const bodyText = await response.text();
-  expect(response.status(), `createFtpConfigurationInCosmos failed. Body: ${bodyText}`).toBe(202);
+  expect(response.status(), `createFtpConfigurationInCosmos failed. Body: ${bodyText}`).toBe(201);
 
   const parsed = JSON.parse(bodyText) as CreatedConfiguration;
   expect(parsed.id).toBeTruthy();
@@ -222,7 +222,7 @@ export async function createHttpsConfigurationInCosmos(
   });
 
   const bodyText = await response.text();
-  expect(response.status(), `createHttpsConfigurationInCosmos failed. Body: ${bodyText}`).toBe(202);
+  expect(response.status(), `createHttpsConfigurationInCosmos failed. Body: ${bodyText}`).toBe(201);
 
   const parsed = JSON.parse(bodyText) as CreatedConfiguration;
   expect(parsed.id).toBeTruthy();
@@ -269,7 +269,7 @@ export async function createAzureBlobConfigurationInCosmos(
   });
 
   const bodyText = await response.text();
-  expect(response.status(), `createAzureBlobConfigurationInCosmos failed. Body: ${bodyText}`).toBe(202);
+  expect(response.status(), `createAzureBlobConfigurationInCosmos failed. Body: ${bodyText}`).toBe(201);
 
   const parsed = JSON.parse(bodyText) as CreatedConfiguration;
   expect(parsed.id).toBeTruthy();

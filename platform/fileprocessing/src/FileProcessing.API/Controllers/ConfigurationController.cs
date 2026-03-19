@@ -7,7 +7,9 @@ using FileProcessing.Contracts.Commands;
 using FileProcessing.Contracts.DTOs;
 using RiskInsure.FileProcessing.Domain.Enums;
 using RiskInsure.FileProcessing.Domain.ValueObjects;
+using Microsoft.Azure.Cosmos;
 using System.Security.Claims;
+using System.Text.Json;
 
 namespace RiskInsure.FileProcessing.API.Controllers;
 
@@ -83,7 +85,6 @@ public class ConfigurationController : ControllerBase
             var userId = GetUserIdFromClaims();
 
             var configurationId = Guid.NewGuid();
-            var correlationId = $"{clientId}-{configurationId}-{DateTimeOffset.UtcNow:yyyyMMddHHmmss}";
 
             _logger.LogInformation(
                 "Creating configuration {ConfigurationId} for client {ClientId} by user {UserId}",
@@ -91,44 +92,19 @@ public class ConfigurationController : ControllerBase
                 clientId,
                 userId);
 
-            // Send CreateConfiguration command via NServiceBus
-            var command = new CreateConfiguration
-            {
-                MessageId = Guid.NewGuid(),
-                CorrelationId = correlationId,
-                OccurredUtc = DateTimeOffset.UtcNow,
-                IdempotencyKey = $"{clientId}:{configurationId}",
-                ClientId = clientId,
-                ConfigurationId = configurationId,
-                Name = request.Name,
-                Description = request.Description,
-                Protocol = request.Protocol,
-                ProtocolSettings = request.ProtocolSettings,
-                FilePathPattern = request.FilePathPattern,
-                FilenamePattern = request.FilenamePattern,
-                FileExtension = request.FileExtension,
-                Schedule = request.Schedule,
-                ProcessingConfig = request.ProcessingConfig,
-                CreatedBy = userId
-            };
-
-            await _messageSession.Send(command, cancellationToken);
-
-            // For synchronous response, we need to query the configuration after command handling
-            // In a real implementation, this might use a delayed query or accept eventual consistency
-            // For now, return a 202 Accepted with location header
-            
-            _logger.LogInformation(
-                "Configuration creation command sent for {ConfigurationId} by user {UserId}",
-                configurationId,
-                userId);
-
-            return Accepted($"/api/configuration/{configurationId}", new
-            {
-                id = configurationId,
+            var configuration = MapCreateRequestToEntity(
+                request,
                 clientId,
-                message = "Configuration creation in progress"
-            });
+                configurationId,
+                userId,
+                DateTimeOffset.UtcNow);
+
+            var created = await _configurationService.CreateAsync(configuration, cancellationToken);
+
+            return CreatedAtAction(
+                nameof(GetConfiguration),
+                new { id = created.Id },
+                MapEntityToResponse(created));
         }
         catch (UnauthorizedAccessException ex)
         {
@@ -378,14 +354,8 @@ public class ConfigurationController : ControllerBase
             var existing = await _configurationService.GetByIdAsync(clientId, id, cancellationToken);
             if (existing == null)
             {
-                _logger.LogWarning(
-                    "Configuration {ConfigurationId} not found for client {ClientId}",
-                    id,
-                    clientId);
                 return NotFound(new { error = "Configuration not found" });
             }
-
-            var correlationId = $"{clientId}-{id}-update-{DateTimeOffset.UtcNow:yyyyMMddHHmmss}";
 
             _logger.LogInformation(
                 "Updating configuration {ConfigurationId} for client {ClientId} by user {UserId}",
@@ -393,54 +363,20 @@ public class ConfigurationController : ControllerBase
                 clientId,
                 userId);
 
-            // Send UpdateConfiguration command via NServiceBus
-            var command = new UpdateConfiguration
-            {
-                MessageId = Guid.NewGuid(),
-                CorrelationId = correlationId,
-                OccurredUtc = DateTimeOffset.UtcNow,
-                IdempotencyKey = $"{clientId}:{id}:update:{request.ETag}",
-                ClientId = clientId,
-                ConfigurationId = id,
-                ETag = request.ETag,
-                Name = request.Name,
-                Description = request.Description,
-                Protocol = request.Protocol,
-                ProtocolSettings = request.ProtocolSettings,
-                FilePathPattern = request.FilePathPattern,
-                FilenamePattern = request.FilenamePattern,
-                FileExtension = request.FileExtension,
-                Schedule = request.Schedule,
-                ProcessingConfig = request.ProcessingConfig,
-                LastModifiedBy = userId
-            };
+            ApplyUpdateRequestToEntity(existing, request, userId);
+            var updated = await _configurationService.UpdateAsync(existing, cancellationToken);
 
-            await _messageSession.Send(command, cancellationToken);
-
-            _logger.LogInformation(
-                "Configuration update command sent for {ConfigurationId} by user {UserId}",
-                id,
-                userId);
-
-            // Return updated configuration (eventual consistency - may not reflect immediately)
-            return Accepted($"/api/configuration/{id}", new
-            {
-                id,
-                clientId,
-                message = "Configuration update in progress"
-            });
+            return Ok(MapEntityToResponse(updated));
         }
         catch (UnauthorizedAccessException ex)
         {
             _logger.LogWarning(ex, "Unauthorized access attempt");
             return Unauthorized(new { error = ex.Message });
         }
-        catch (InvalidOperationException ex) when (ex.Message.Contains("was modified by another request"))
+        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.PreconditionFailed)
         {
-            // T115: ETag conflict handling (409 Conflict)
             _logger.LogWarning(ex, "ETag conflict updating configuration {ConfigurationId}", id);
             
-            // Retrieve latest version to return updated ETag
             var clientId = GetClientIdFromClaims();
             var latest = await _configurationService.GetByIdAsync(clientId, id, cancellationToken);
             
@@ -490,10 +426,6 @@ public class ConfigurationController : ControllerBase
             var existing = await _configurationService.GetByIdAsync(clientId, id, cancellationToken);
             if (existing == null)
             {
-                _logger.LogWarning(
-                    "Configuration {ConfigurationId} not found for client {ClientId}",
-                    id,
-                    clientId);
                 return NotFound(new { error = "Configuration not found" });
             }
 
@@ -609,33 +541,22 @@ public class ConfigurationController : ControllerBase
                 });
             }
 
-            var correlationId = $"{clientId}-{id}-delete-{DateTimeOffset.UtcNow:yyyyMMddHHmmss}";
-
             _logger.LogInformation(
                 "Deleting configuration {ConfigurationId} for client {ClientId} by user {UserId}",
                 id,
                 clientId,
                 userId);
 
-            // Send DeleteConfiguration command via NServiceBus
-            var command = new DeleteConfiguration
-            {
-                MessageId = Guid.NewGuid(),
-                CorrelationId = correlationId,
-                OccurredUtc = DateTimeOffset.UtcNow,
-                IdempotencyKey = $"{clientId}:{id}:delete:{existing.ETag}",
-                ClientId = clientId,
-                ConfigurationId = id,
-                DeletedBy = userId,
-                ETag = existing.ETag ?? string.Empty
-            };
-
-            await _messageSession.Send(command, cancellationToken);
-
-            _logger.LogInformation(
-                "Configuration deletion command sent for {ConfigurationId} by user {UserId}",
+            var deleted = await _configurationService.DeleteAsync(
+                clientId,
                 id,
-                userId);
+                userId,
+                cancellationToken);
+
+            if (!deleted)
+            {
+                return NotFound(new { error = "Configuration not found" });
+            }
 
             return NoContent();
         }
@@ -644,11 +565,190 @@ public class ConfigurationController : ControllerBase
             _logger.LogWarning(ex, "Unauthorized access attempt");
             return Unauthorized(new { error = ex.Message });
         }
+        catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.PreconditionFailed)
+        {
+            _logger.LogWarning(ex, "ETag conflict deleting configuration {ConfigurationId}", id);
+
+            var clientId = GetClientIdFromClaims();
+            var latest = await _configurationService.GetByIdAsync(clientId, id, cancellationToken);
+
+            return Conflict(new
+            {
+                error = "Configuration was modified by another request",
+                message = "Please retrieve the latest version and try again",
+                latestETag = latest?.ETag
+            });
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting configuration {ConfigurationId}", id);
             return StatusCode(500, new { error = "An error occurred while deleting the configuration" });
         }
+    }
+
+    private Domain.Entities.FileProcessingConfiguration MapCreateRequestToEntity(
+        CreateConfigurationRequest request,
+        string clientId,
+        Guid configurationId,
+        string createdBy,
+        DateTimeOffset createdAt)
+    {
+        if (!Enum.TryParse<ProtocolType>(request.Protocol, ignoreCase: true, out var protocolType))
+        {
+            throw new ArgumentException($"Invalid protocol type: {request.Protocol}", nameof(request.Protocol));
+        }
+
+        return new Domain.Entities.FileProcessingConfiguration
+        {
+            Id = configurationId,
+            ClientId = clientId,
+            Name = request.Name,
+            Description = request.Description,
+            Protocol = protocolType,
+            ProtocolSettings = MapProtocolSettings(protocolType, request.ProtocolSettings),
+            FilePathPattern = request.FilePathPattern,
+            FilenamePattern = request.FilenamePattern,
+            FileExtension = request.FileExtension,
+            Schedule = MapScheduleDefinition(request.Schedule),
+            ProcessingConfig = new FileProcessingDefinition
+            {
+                FileType = request.ProcessingConfig.FileType
+            },
+            IsActive = true,
+            CreatedAt = createdAt,
+            CreatedBy = createdBy
+        };
+    }
+
+    private void ApplyUpdateRequestToEntity(
+        Domain.Entities.FileProcessingConfiguration existing,
+        UpdateConfigurationRequest request,
+        string lastModifiedBy)
+    {
+        if (!Enum.TryParse<ProtocolType>(request.Protocol, ignoreCase: true, out var protocolType))
+        {
+            throw new ArgumentException($"Invalid protocol type: {request.Protocol}", nameof(request.Protocol));
+        }
+
+        existing.Name = request.Name;
+        existing.Description = request.Description;
+        existing.Protocol = protocolType;
+        existing.ProtocolSettings = MapProtocolSettings(protocolType, request.ProtocolSettings);
+        existing.FilePathPattern = request.FilePathPattern;
+        existing.FilenamePattern = request.FilenamePattern;
+        existing.FileExtension = request.FileExtension;
+        existing.Schedule = MapScheduleDefinition(request.Schedule);
+        existing.ProcessingConfig = new FileProcessingDefinition
+        {
+            FileType = request.ProcessingConfig.FileType
+        };
+        existing.LastModifiedBy = lastModifiedBy;
+        existing.ETag = request.ETag;
+    }
+
+    private static ProtocolSettings MapProtocolSettings(ProtocolType protocolType, Dictionary<string, object> settings)
+    {
+        return protocolType switch
+        {
+            ProtocolType.FTP => new FtpProtocolSettings
+            {
+                Server = GetRequiredString(settings, "Server"),
+                Port = GetInt(settings, "Port", 21),
+                Username = GetRequiredString(settings, "Username"),
+                Password = GetRequiredString(settings, "Password"),
+                UseTls = GetBool(settings, "UseTls", true),
+                UsePassiveMode = GetBool(settings, "UsePassiveMode", true),
+                ConnectionTimeout = TimeSpan.FromSeconds(GetInt(settings, "ConnectionTimeoutSeconds", 30))
+            },
+            ProtocolType.HTTPS => new HttpsProtocolSettings
+            {
+                BaseUrl = GetRequiredString(settings, "BaseUrl"),
+                AuthenticationType = ParseEnum(GetString(settings, "AuthenticationType"), AuthType.None),
+                Username = GetString(settings, "Username"),
+                PasswordOrTokenOrApiKey = GetString(settings, "PasswordOrTokenOrApiKey"),
+                ConnectionTimeout = TimeSpan.FromSeconds(GetInt(settings, "ConnectionTimeoutSeconds", 30)),
+                FollowRedirects = GetBool(settings, "FollowRedirects", true),
+                MaxRedirects = GetInt(settings, "MaxRedirects", 3)
+            },
+            ProtocolType.AzureBlob => new AzureBlobProtocolSettings
+            {
+                StorageAccountName = GetRequiredString(settings, "StorageAccountName"),
+                ContainerName = GetRequiredString(settings, "ContainerName"),
+                AuthenticationType = ParseEnum(GetString(settings, "AuthenticationType"), AzureAuthType.ManagedIdentity),
+                ConnectionString = GetString(settings, "ConnectionString"),
+                SasToken = GetString(settings, "SasToken"),
+                BlobPrefix = GetString(settings, "BlobPrefix")
+            },
+            _ => throw new ArgumentException($"Unsupported protocol type: {protocolType}")
+        };
+    }
+
+    private static TEnum ParseEnum<TEnum>(string? value, TEnum defaultValue) where TEnum : struct, Enum
+    {
+        return Enum.TryParse<TEnum>(value, ignoreCase: true, out var parsed)
+            ? parsed
+            : defaultValue;
+    }
+
+    private static string GetRequiredString(Dictionary<string, object> settings, string key)
+    {
+        return GetString(settings, key)
+            ?? throw new ArgumentException($"Required setting '{key}' is missing or empty", key);
+    }
+
+    private static string? GetString(Dictionary<string, object> settings, string key)
+    {
+        if (!settings.TryGetValue(key, out var value) || value is null)
+        {
+            return null;
+        }
+
+        return value switch
+        {
+            JsonElement json when json.ValueKind == JsonValueKind.String => json.GetString(),
+            JsonElement json => json.ToString(),
+            _ => value.ToString()
+        };
+    }
+
+    private static int GetInt(Dictionary<string, object> settings, string key, int defaultValue)
+    {
+        if (!settings.TryGetValue(key, out var value) || value is null)
+        {
+            return defaultValue;
+        }
+
+        return value switch
+        {
+            JsonElement json when json.ValueKind == JsonValueKind.Number => json.GetInt32(),
+            JsonElement json when json.ValueKind == JsonValueKind.String && int.TryParse(json.GetString(), out var parsed) => parsed,
+            _ when int.TryParse(value.ToString(), out var parsed) => parsed,
+            _ => defaultValue
+        };
+    }
+
+    private static bool GetBool(Dictionary<string, object> settings, string key, bool defaultValue)
+    {
+        if (!settings.TryGetValue(key, out var value) || value is null)
+        {
+            return defaultValue;
+        }
+
+        return value switch
+        {
+            JsonElement json when json.ValueKind is JsonValueKind.True or JsonValueKind.False => json.GetBoolean(),
+            JsonElement json when json.ValueKind == JsonValueKind.String && bool.TryParse(json.GetString(), out var parsed) => parsed,
+            _ when bool.TryParse(value.ToString(), out var parsed) => parsed,
+            _ => defaultValue
+        };
+    }
+
+    private static ScheduleDefinition MapScheduleDefinition(ScheduleDefinitionDto dto)
+    {
+        return new ScheduleDefinition(
+            dto.CronExpression,
+            dto.Timezone,
+            dto.Description);
     }
 
     private ConfigurationResponse MapEntityToResponse(Domain.Entities.FileProcessingConfiguration entity)
