@@ -1,4 +1,4 @@
-# Contract Specification: FileCheckTriggered Event
+# Contract Specification: RetrieveFileTriggered Event
 
 **Version**: 1.0  
 **Created**: 2025-01-24  
@@ -29,7 +29,7 @@ Notifies subscribers that a file check has been initiated for a specific FilePro
 
 ### C# Record Definition
 
-**Location**: `src/FileProcessing.Contracts/Events/FileCheckTriggered.cs`
+**Location**: `src/FileProcessing.Contracts/Events/RetrieveFileTriggered.cs`
 
 ```csharp
 using NServiceBus;
@@ -39,9 +39,9 @@ namespace FileProcessing.Contracts.Events;
 /// <summary>
 /// Event published when a file check is triggered (before execution begins).
 /// Captures trigger source (scheduled vs manual) and user context for audit trail.
-/// Published by RetrieveFileHandler before calling FileCheckService.
+/// Published by RetrieveFileHandler before calling RetrieveFileService.
 /// </summary>
-public record FileCheckTriggered : IEvent
+public record RetrieveFileTriggered : IEvent
 {
     // Standard message metadata
     public Guid MessageId { get; init; }
@@ -122,7 +122,7 @@ public record FileCheckTriggered : IEvent
 ```text
 Handler invocation 1:
   - Generate ExecutionId = ABC
-  - Publish FileCheckTriggered (Key = "client:config:triggered:ABC")
+  - Publish RetrieveFileTriggered (Key = "client:config:triggered:ABC")
   - Outbox stores event
   - Event delivered to subscribers ✓
 ```
@@ -131,13 +131,13 @@ Handler invocation 1:
 ```text
 Handler invocation 1:
   - Generate ExecutionId = ABC
-  - Publish FileCheckTriggered (Key = "client:config:triggered:ABC")
+  - Publish RetrieveFileTriggered (Key = "client:config:triggered:ABC")
   - Outbox stores event
   - Handler throws exception (e.g., service unavailable)
   
 Handler invocation 2 (retry):
   - Use SAME ExecutionId = ABC (stable across retries)
-  - Publish FileCheckTriggered (Key = "client:config:triggered:ABC")
+  - Publish RetrieveFileTriggered (Key = "client:config:triggered:ABC")
   - Outbox detects duplicate key → Skip publishing ✓
   - Continue processing
   - Event delivered to subscribers exactly once ✓
@@ -158,7 +158,7 @@ API Request 2: POST /trigger → Handler with ExecutionId = XYZ → Event publis
 var executionId = Guid.NewGuid(); // ← Generated ONCE per handler invocation, not in service
 
 // Publish event with idempotency key
-await context.Publish(new FileCheckTriggered
+await context.Publish(new RetrieveFileTriggered
 {
     IdempotencyKey = $"{message.ClientId}:{message.ConfigurationId}:triggered:{executionId}",
     ExecutionId = executionId,
@@ -166,7 +166,7 @@ await context.Publish(new FileCheckTriggered
 });
 
 // Pass same executionId to service
-await _fileCheckService.ExecuteCheckAsync(configuration, scheduledTime, executionId, ct);
+await _retrieveFileService.ExecuteCheckAsync(configuration, scheduledTime, executionId, ct);
 ```
 
 ---
@@ -187,7 +187,7 @@ All fields defined above. No optional fields except message metadata.
 **Compatibility Strategy**:
 - Add new fields as nullable/optional
 - Never remove or rename existing fields
-- Use new event types for breaking changes (e.g., `FileCheckTriggeredV2`)
+- Use new event types for breaking changes (e.g., `RetrieveFileTriggeredV2`)
 
 ---
 
@@ -196,7 +196,7 @@ All fields defined above. No optional fields except message metadata.
 ### Expected Subscribers
 
 **Audit Logging System**:
-- Captures all FileCheckTriggered events
+- Captures all RetrieveFileTriggered events
 - Stores for compliance and security audits
 - Retention: 1+ years
 
@@ -215,14 +215,14 @@ All fields defined above. No optional fields except message metadata.
 **NServiceBus Configuration** (in subscriber endpoint):
 ```csharp
 endpointConfiguration.ConfigureRouting()
-    .SubscribeTo<FileCheckTriggered>("FileProcessing.Worker");
+    .SubscribeTo<RetrieveFileTriggered>("FileProcessing.Worker");
 ```
 
 **Handler Example**:
 ```csharp
-public class FileCheckTriggeredHandler : IHandleMessages<FileCheckTriggered>
+public class RetrieveFileTriggeredHandler : IHandleMessages<RetrieveFileTriggered>
 {
-    public async Task Handle(FileCheckTriggered message, IMessageHandlerContext context)
+    public async Task Handle(RetrieveFileTriggered message, IMessageHandlerContext context)
     {
         // Process event
         _logger.LogInformation(
@@ -255,7 +255,7 @@ public class FileCheckTriggeredHandler : IHandleMessages<FileCheckTriggered>
 **When Publishing Event** (in handler):
 ```csharp
 _logger.LogInformation(
-    "Publishing FileCheckTriggered event for configuration {ConfigurationId} (Client: {ClientId}, ExecutionId: {ExecutionId}, TriggeredBy: {TriggeredBy}, Manual: {IsManual})",
+    "Publishing RetrieveFileTriggered event for configuration {ConfigurationId} (Client: {ClientId}, ExecutionId: {ExecutionId}, TriggeredBy: {TriggeredBy}, Manual: {IsManual})",
     message.ConfigurationId,
     message.ClientId,
     executionId,
@@ -274,7 +274,7 @@ _logger.LogInformation(
 ### Metrics to Track
 
 **Custom Metrics** (Application Insights):
-- `FileProcessing.FileCheckTriggered.Count` (dimension: `IsManualTrigger`, `Protocol`)
+- `FileProcessing.RetrieveFileTriggered.Count` (dimension: `IsManualTrigger`, `Protocol`)
 - `FileProcessing.ManualTrigger.ByUser.Count` (dimension: `TriggeredBy`)
 - `FileProcessing.TriggerToCompletion.Duration` (track ExecutionId from triggered → completed)
 
@@ -282,13 +282,13 @@ _logger.LogInformation(
 ```kusto
 // Manual trigger frequency by day
 customEvents
-| where name == "FileCheckTriggered"
+| where name == "RetrieveFileTriggered"
 | where customDimensions.IsManualTrigger == "true"
 | summarize count() by bin(timestamp, 1d)
 
 // Top support engineers by manual triggers
 customEvents
-| where name == "FileCheckTriggered"
+| where name == "RetrieveFileTriggered"
 | where customDimensions.IsManualTrigger == "true"
 | summarize TriggerCount = count() by tostring(customDimensions.TriggeredBy)
 | order by TriggerCount desc
@@ -298,7 +298,7 @@ customEvents
 
 ## Contract Summary
 
-**Event**: `FileCheckTriggered`  
+**Event**: `RetrieveFileTriggered`  
 **Namespace**: `FileProcessing.Contracts.Events`  
 **Version**: 1.0  
 **Publisher**: `RetrieveFileHandler` (FileProcessing.Worker)  

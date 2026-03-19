@@ -144,7 +144,7 @@ public class LoadTests
     }
 
     [Fact]
-    public async Task FileCheckService_WithMixedProtocols_HandlesLoadEvenly()
+    public async Task RetrieveFileService_WithMixedProtocols_HandlesLoadEvenly()
     {
         // Arrange - Create configurations across all 3 protocols
         var mockConfigRepo = new Mock<IFileProcessingConfigurationRepository>();
@@ -204,20 +204,20 @@ public class LoadTests
 
         var tokenService = new TokenReplacementService(Mock.Of<ILogger<TokenReplacementService>>());
 
-        var fileCheckService = new FileCheckService(
+        var RetrieveFileService = new RetrieveFileService(
             mockConfigRepo.Object,
             mockExecutionRepo.Object,
             mockDiscoveredFileRepo.Object,
             mockProtocolFactory.Object,
             tokenService,
             mockMessageSession.Object,
-            Mock.Of<ILogger<FileCheckService>>());
+            Mock.Of<ILogger<RetrieveFileService>>());
 
         // Act
         var stopwatch = Stopwatch.StartNew();
         
         var tasks = configurations.Select(config => 
-            fileCheckService.ExecuteCheckAsync(config.Id, config.ClientId, CancellationToken.None)
+            RetrieveFileService.ExecuteCheckAsync(config.Id, config.ClientId, CancellationToken.None)
         ).ToList();
 
         await Task.WhenAll(tasks);

@@ -90,7 +90,7 @@ All 10 principles passed initial validation. See results below.
 **Assessment**: File processing configuration introduces domain terminology that must be documented consistently.  
 **Required Actions**:
 - Document file processing domain glossary in `services/file-processing/docs/file-processing-standards.md`
-- Define terms: FileProcessingConfiguration, Protocol, Schedule, Token, DiscoveredFile, FileCheck, ConfigurationExecution
+- Define terms: FileProcessingConfiguration, Protocol, Schedule, Token, DiscoveredFile, RetrieveFile, ConfigurationExecution
 - Ensure consistent usage across code, messages, and documentation
 - Align with workflow orchestration terminology (events, commands)
 
@@ -159,15 +159,15 @@ All 10 principles passed initial validation. See results below.
 
 **Post-Design Validation**: ✅ Observability designed throughout:
 - All commands/events include CorrelationId, ClientId, ConfigurationId
-- FileCheckFailed event includes ErrorCategory for categorized monitoring
-- FileCheckCompleted event includes DurationMs, FilesFound, FilesProcessed for metrics
+- RetrieveFileFailed event includes ErrorCategory for categorized monitoring
+- RetrieveFileCompleted event includes DurationMs, FilesFound, FilesProcessed for metrics
 - Research.md section 8 defines logging standards, error categories, and metrics
 
 ### Principle VI: Message-Based Integration
 **Status**: ✅ **PASS** (foundational requirement)  
 **Assessment**: File processing integrates with workflow platform via Azure Service Bus messages.  
 **Design**:
-- Events: `FileDiscovered`, `FileCheckCompleted`, `FileCheckFailed`, `ConfigurationUpdated`
+- Events: `FileDiscovered`, `RetrieveFileCompleted`, `RetrieveFileFailed`, `ConfigurationUpdated`
 - Commands: `RetrieveFile`, `ParseDiscoveredFile` (sent to workflow platform)
 - Use NServiceBus `context.Publish()` for file discovery events
 - Use NServiceBus `context.Send()` for commands to workflow platform
@@ -176,7 +176,7 @@ All 10 principles passed initial validation. See results below.
 
 **Post-Design Validation**: ✅ Contracts fully defined:
 - 5 commands: RetrieveFile, CreateConfiguration, UpdateConfiguration, DeleteConfiguration, ParseDiscoveredFile
-- 6 events: FileDiscovered, FileCheckCompleted, FileCheckFailed, ConfigurationCreated, ConfigurationUpdated, ConfigurationDeleted
+- 6 events: FileDiscovered, RetrieveFileCompleted, RetrieveFileFailed, ConfigurationCreated, ConfigurationUpdated, ConfigurationDeleted
 - All messages use imperative (commands) or past-tense (events) naming
 - All messages include standard metadata fields
 - NServiceBus routing documented in contracts
@@ -186,15 +186,15 @@ All 10 principles passed initial validation. See results below.
 **Assessment**: Handlers will delegate to file processing services.  
 **Design**:
 - Handlers validate message structure only
-- Delegate to `IFileCheckService`, `IConfigurationService`, `IProtocolAdapter`
+- Delegate to `IRetrieveFileService`, `IConfigurationService`, `IProtocolAdapter`
 - Handlers publish resulting events
 - No business logic in handler classes
-- Example: `RetrieveFileHandler` → validates → calls `fileCheckService.ExecuteCheck()` → publishes `FileDiscovered` events
+- Example: `RetrieveFileHandler` → validates → calls `retrieveFileService.ExecuteCheck()` → publishes `FileDiscovered` events
 
 **Post-Design Validation**: ✅ Contracts document handler responsibilities:
 - Each command contract specifies: "Handled By: {Handler} → {Service}.{Method}()"
 - Handler responsibilities limited to: validate, delegate, publish
-- Business logic clearly delegated to services (FileCheckService, ConfigurationService, TokenReplacementService)
+- Business logic clearly delegated to services (RetrieveFileService, ConfigurationService, TokenReplacementService)
 - Project structure separates handlers (Application layer) from services (Application layer) and domain logic (Domain layer)
 
 ### Principle VIII: Test Coverage Requirements
@@ -239,15 +239,15 @@ All 10 principles passed initial validation. See results below.
 **Assessment**: Naming follows strict conventions.  
 **Commitment**:
 - Commands: `RetrieveFile`, `UpdateConfiguration`, `DeleteConfiguration`
-- Events: `FileDiscovered`, `FileCheckCompleted`, `ConfigurationCreated`, `ConfigurationDeleted`
-- Services: `FileCheckService`, `ConfigurationService`, `ProtocolAdapterFactory`
+- Events: `FileDiscovered`, `RetrieveFileCompleted`, `ConfigurationCreated`, `ConfigurationDeleted`
+- Services: `RetrieveFileService`, `ConfigurationService`, `ProtocolAdapterFactory`
 - Repositories: `IFileProcessingConfigurationRepository`, `IFileProcessingExecutionRepository`
 - Handlers: `RetrieveFileHandler`, `FileDiscoveredHandler`
 - Avoid abbreviations: use `Configuration` not `Config`, `Discovered` not `Found`
 
 **Post-Design Validation**: ✅ All contracts follow naming conventions:
 - Commands: RetrieveFile, CreateConfiguration, UpdateConfiguration, DeleteConfiguration, ParseDiscoveredFile (all imperative)
-- Events: FileDiscovered, FileCheckCompleted, FileCheckFailed, ConfigurationCreated, ConfigurationUpdated, ConfigurationDeleted (all past-tense)
+- Events: FileDiscovered, RetrieveFileCompleted, RetrieveFileFailed, ConfigurationCreated, ConfigurationUpdated, ConfigurationDeleted (all past-tense)
 - Services/Repositories follow standard naming in project structure
 - Entities use full names (FileProcessingConfiguration, not FileProcessingConfig)
 
@@ -300,7 +300,7 @@ services/
 │   │
 │   ├── FileProcessing.Application/          # Application layer (services, handlers)
 │   │   ├── Services/
-│   │   │   ├── FileCheckService.cs         # Orchestrates file check execution
+│   │   │   ├── RetrieveFileService.cs         # Orchestrates file check execution
 │   │   │   ├── ConfigurationService.cs     # CRUD operations for configurations
 │   │   │   ├── TokenReplacementService.cs  # Date token replacement logic
 │   │   │   └── ScheduleExecutionService.cs # Schedule evaluation and triggering
@@ -352,8 +352,8 @@ services/
 │   │   │   └── ParseDiscoveredFile.cs
 │   │   └── Events/
 │   │       ├── FileDiscovered.cs
-│   │       ├── FileCheckCompleted.cs
-│   │       ├── FileCheckFailed.cs
+│   │       ├── RetrieveFileCompleted.cs
+│   │       ├── RetrieveFileFailed.cs
 │   │       └── ConfigurationCreated.cs
 │   │
 │   └── docs/

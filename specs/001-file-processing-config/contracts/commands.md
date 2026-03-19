@@ -28,7 +28,7 @@ All commands MUST include:
 **Purpose**: Triggers a file check for a specific FileProcessingConfiguration.
 
 **Sent By**: SchedulerHostedService (when schedule fires)  
-**Handled By**: `RetrieveFileHandler` → `FileCheckService.ExecuteCheck()`
+**Handled By**: `RetrieveFileHandler` → `RetrieveFileService.ExecuteCheck()`
 
 **Properties**:
 
@@ -63,13 +63,13 @@ public record RetrieveFile : ICommand
 1. Validate message structure
 2. Load FileProcessingConfiguration from repository (by ConfigurationId, scoped to ClientId)
 3. Check if configuration is active (IsActive = true)
-4. Delegate to `FileCheckService.ExecuteCheck(configuration, scheduledTime)`
-5. Publish `FileCheckCompleted` or `FileCheckFailed` event
+4. Delegate to `RetrieveFileService.ExecuteCheck(configuration, scheduledTime)`
+5. Publish `RetrieveFileCompleted` or `RetrieveFileFailed` event
 
 **Error Scenarios**:
 - Configuration not found → Log warning, do not retry (invalid schedule)
 - Configuration inactive → Log info, do not retry (expected behavior)
-- Connection failure → Retry 3 times with exponential backoff, then publish `FileCheckFailed` event
+- Connection failure → Retry 3 times with exponential backoff, then publish `RetrieveFileFailed` event
 
 ---
 
@@ -250,7 +250,7 @@ public record DeleteConfiguration : ICommand
 
 **Purpose**: Command sent to the workflow orchestration platform to process a discovered file. This command is sent FROM the file processing service TO the workflow platform.
 
-**Sent By**: `FileCheckService` (when file is discovered)  
+**Sent By**: `RetrieveFileService` (when file is discovered)  
 **Handled By**: Workflow orchestration platform (external bounded context)
 
 **Properties**:
@@ -371,8 +371,8 @@ Scheduler (every minute)
 Send: RetrieveFile command
   ↓ to FileProcessing.Worker
 RetrieveFileHandler
-  ↓ delegates to FileCheckService
-FileCheckService.ExecuteCheck()
+  ↓ delegates to RetrieveFileService
+RetrieveFileService.ExecuteCheck()
   ↓ calls protocol adapter
 FtpProtocolAdapter.CheckForFiles()
   ↓ discovers 2 files
@@ -381,7 +381,7 @@ For each file:
   Send: ParseDiscoveredFile command to WorkflowOrchestrator
   Publish: FileDiscovered event
   ↓
-Publish: FileCheckCompleted event
+Publish: RetrieveFileCompleted event
 ```
 
 ### Example 2: Manual Configuration Creation

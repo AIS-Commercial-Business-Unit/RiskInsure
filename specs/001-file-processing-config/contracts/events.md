@@ -27,7 +27,7 @@ All events MUST include:
 
 **Purpose**: Notifies that a file matching a FileProcessingConfiguration has been found.
 
-**Published By**: `FileCheckService` (when file is discovered)  
+**Published By**: `RetrieveFileService` (when file is discovered)  
 **Subscribers**: Workflow orchestration platform, monitoring systems, audit logs
 
 **Properties**:
@@ -108,17 +108,17 @@ await context.Publish(new FileDiscovered
 
 ---
 
-## 2. FileCheckCompleted
+## 2. RetrieveFileCompleted
 
 **Purpose**: Notifies that a scheduled file check has completed successfully.
 
-**Published By**: `RetrieveFileHandler` (after FileCheckService completes)  
+**Published By**: `RetrieveFileHandler` (after RetrieveFileService completes)  
 **Subscribers**: Monitoring systems, dashboard, operational alerts
 
 **Properties**:
 
 ```csharp
-public record FileCheckCompleted : IEvent
+public record RetrieveFileCompleted : IEvent
 {
     public Guid MessageId { get; init; }
     public string CorrelationId { get; init; } = default!;
@@ -155,7 +155,7 @@ public record FileCheckCompleted : IEvent
 
 **Usage**:
 ```csharp
-await context.Publish(new FileCheckCompleted
+await context.Publish(new RetrieveFileCompleted
 {
     MessageId = Guid.NewGuid(),
     CorrelationId = correlationId,
@@ -178,17 +178,17 @@ await context.Publish(new FileCheckCompleted
 
 ---
 
-## 3. FileCheckFailed
+## 3. RetrieveFileFailed
 
 **Purpose**: Notifies that a scheduled file check has failed after retry attempts.
 
-**Published By**: `RetrieveFileHandler` (after FileCheckService fails)  
+**Published By**: `RetrieveFileHandler` (after RetrieveFileService fails)  
 **Subscribers**: Monitoring systems, operational alerts, incident management
 
 **Properties**:
 
 ```csharp
-public record FileCheckFailed : IEvent
+public record RetrieveFileFailed : IEvent
 {
     public Guid MessageId { get; init; }
     public string CorrelationId { get; init; } = default!;
@@ -238,7 +238,7 @@ public record FileCheckFailed : IEvent
 
 **Usage**:
 ```csharp
-await context.Publish(new FileCheckFailed
+await context.Publish(new RetrieveFileFailed
 {
     MessageId = Guid.NewGuid(),
     CorrelationId = correlationId,
@@ -463,7 +463,7 @@ await context.Publish(new ConfigurationDeleted
 ```
 RetrieveFile command received
   ↓
-FileCheckService.ExecuteCheck()
+RetrieveFileService.ExecuteCheck()
   ↓
 FtpProtocolAdapter finds 2 files
   ↓
@@ -471,12 +471,12 @@ For each file:
   Create DiscoveredFile record
   Publish: FileDiscovered event (2 events total)
   ↓
-Publish: FileCheckCompleted event
+Publish: RetrieveFileCompleted event
   ↓
 Subscribers:
   - Workflow Platform receives FileDiscovered (2 events) → Starts 2 workflow instances
-  - Monitoring System receives FileCheckCompleted → Updates dashboard
-  - Audit Log receives FileDiscovered + FileCheckCompleted → Logs events
+  - Monitoring System receives RetrieveFileCompleted → Updates dashboard
+  - Audit Log receives FileDiscovered + RetrieveFileCompleted → Logs events
 ```
 
 ### Example 2: Failed File Check (Connection Timeout)
@@ -484,18 +484,18 @@ Subscribers:
 ```
 RetrieveFile command received
   ↓
-FileCheckService.ExecuteCheck()
+RetrieveFileService.ExecuteCheck()
   ↓
 FtpProtocolAdapter connection timeout (retry 3x)
   ↓
 After 3 retries: Failure
   ↓
-Publish: FileCheckFailed event
+Publish: RetrieveFileFailed event
   ↓
 Subscribers:
-  - Operational Alerts receives FileCheckFailed → Sends alert to ops team
-  - Monitoring System receives FileCheckFailed → Updates dashboard with error
-  - Incident Management receives FileCheckFailed → Creates incident ticket
+  - Operational Alerts receives RetrieveFileFailed → Sends alert to ops team
+  - Monitoring System receives RetrieveFileFailed → Updates dashboard with error
+  - Incident Management receives RetrieveFileFailed → Creates incident ticket
 ```
 
 ### Example 3: Configuration Lifecycle
@@ -564,18 +564,18 @@ public class FileDiscoveredHandler : IHandleMessages<FileDiscovered>
 
 ```csharp
 // Subscribe to all file processing events
-public class FileCheckCompletedHandler : IHandleMessages<FileCheckCompleted>
+public class RetrieveFileCompletedHandler : IHandleMessages<RetrieveFileCompleted>
 {
-    public async Task Handle(FileCheckCompleted message, IMessageHandlerContext context)
+    public async Task Handle(RetrieveFileCompleted message, IMessageHandlerContext context)
     {
         // Update dashboard metrics
         await _metricsService.RecordSuccessfulCheck(message.ClientId, message.ConfigurationId, message.DurationMs);
     }
 }
 
-public class FileCheckFailedHandler : IHandleMessages<FileCheckFailed>
+public class RetrieveFileFailedHandler : IHandleMessages<RetrieveFileFailed>
 {
-    public async Task Handle(FileCheckFailed message, IMessageHandlerContext context)
+    public async Task Handle(RetrieveFileFailed message, IMessageHandlerContext context)
     {
         // Update dashboard metrics + send alert
         await _metricsService.RecordFailedCheck(message.ClientId, message.ConfigurationId, message.ErrorCategory);
@@ -590,13 +590,13 @@ public class FileCheckFailedHandler : IHandleMessages<FileCheckFailed>
 
 This contracts document defines:
 
-✅ **6 event types**: FileDiscovered, FileCheckCompleted, FileCheckFailed, ConfigurationCreated, ConfigurationUpdated, ConfigurationDeleted  
+✅ **6 event types**: FileDiscovered, RetrieveFileCompleted, RetrieveFileFailed, ConfigurationCreated, ConfigurationUpdated, ConfigurationDeleted  
 ✅ **Past-tense naming**: All events follow `Noun + VerbPastTense` convention  
 ✅ **Publish/Subscribe pattern**: Events broadcast to all interested subscribers  
 ✅ **Idempotency support**: All events include IdempotencyKey for duplicate detection  
 ✅ **Multi-tenant isolation**: All events include ClientId for security filtering  
 ✅ **Rich metadata**: Events include all necessary context for subscribers  
 ✅ **Cross-platform integration**: Events trigger workflows, monitoring, alerts, audit logs  
-✅ **Error handling**: FileCheckFailed event provides detailed error information for troubleshooting  
+✅ **Error handling**: RetrieveFileFailed event provides detailed error information for troubleshooting  
 
 Ready to proceed to **quickstart.md** (developer onboarding guide).

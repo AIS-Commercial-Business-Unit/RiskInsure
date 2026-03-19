@@ -177,7 +177,7 @@ The File Processing feature is a **new bounded context** within the RiskInsure p
 SchedulerHostedService (every 60s)
   → RetrieveFile command
     → RetrieveFileHandler
-      → FileCheckService
+      → RetrieveFileService
         → ProtocolAdapter (FTP/HTTPS/AzureBlob)
           → DiscoveredFile records created
             → FileDiscovered events published
@@ -284,8 +284,8 @@ See detailed compliance report: [CONSTITUTION-COMPLIANCE-REPORT.md](CONSTITUTION
 - ✅ Log levels: Info (operations), Warning (retries), Error (failures)
 
 ### Metrics (Application Insights)
-- ✅ FileCheckDuration (milliseconds)
-- ✅ FileCheckSuccess (count)
+- ✅ RetrieveFileDuration (milliseconds)
+- ✅ RetrieveFileSuccess (count)
 - ✅ FilesDiscovered (count)
 - ✅ ProtocolErrors (categorized)
 
@@ -392,7 +392,7 @@ See detailed compliance report: [CONSTITUTION-COMPLIANCE-REPORT.md](CONSTITUTION
 **Result**: 90%+ coverage achieved (11 domain test classes)
 
 ### Application Layer (Target: 80%)
-- ✅ Service tests (ConfigurationService, FileCheckService, TokenReplacementService)
+- ✅ Service tests (ConfigurationService, RetrieveFileService, TokenReplacementService)
 - ✅ Protocol adapter tests (FTP, HTTPS, Azure Blob)
 - ✅ Message handler tests (CreateConfigurationHandler, RetrieveFileHandler, etc.)
 - ✅ Schedule evaluation tests (NCrontab integration)

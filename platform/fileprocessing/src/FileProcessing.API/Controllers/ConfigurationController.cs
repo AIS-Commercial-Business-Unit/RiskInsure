@@ -407,12 +407,12 @@ public class ConfigurationController : ControllerBase
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Accepted with execution ID</returns>
     [HttpPost("{id}/trigger")]
-    [ProducesResponseType(typeof(TriggerFileCheckResponse), StatusCodes.Status202Accepted)]
+    [ProducesResponseType(typeof(TriggerRetrieveFileResponse), StatusCodes.Status202Accepted)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> TriggerFileCheck(
+    public async Task<IActionResult> TriggerRetrieveFile(
         Guid id,
         CancellationToken cancellationToken)
     {
@@ -469,7 +469,7 @@ public class ConfigurationController : ControllerBase
                 id,
                 executionId);
 
-            return Accepted(new TriggerFileCheckResponse
+            return Accepted(new TriggerRetrieveFileResponse
             {
                 ConfigurationId = id,
                 ExecutionId = executionId,

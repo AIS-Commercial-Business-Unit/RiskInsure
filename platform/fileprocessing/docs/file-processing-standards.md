@@ -30,7 +30,7 @@ This document defines the domain terminology, coding standards, and architectura
 - Example: `/files/{yyyy}/{mm}/{dd}/data_{yyyy}{mm}{dd}.xlsx`
 - Enables date-based file discovery without hardcoding dates
 
-**FileCheck**
+**RetrieveFile**
 - Single execution of a FileProcessingConfiguration
 - Connects to configured location, evaluates patterns with current date, checks for matching files
 - Results in FileProcessingExecution record (success/failure, files found, duration)
@@ -120,7 +120,7 @@ This document defines the domain terminology, coding standards, and architectura
 
 **Commands/Events**
 - PascalCase imperative verbs (commands): `CreateConfiguration`, `RetrieveFile`, `DeleteConfiguration`
-- PascalCase past tense (events): `ConfigurationCreated`, `FileCheckCompleted`, `FileDiscovered`
+- PascalCase past tense (events): `ConfigurationCreated`, `RetrieveFileCompleted`, `FileDiscovered`
 - Suffix: `*Command` (optional), `*Event` (optional, use context)
 
 **Repositories**

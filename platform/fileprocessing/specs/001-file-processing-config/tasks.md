@@ -21,7 +21,7 @@
 **Purpose**: Define the message contracts that all other layers depend on
 
 - [ ] T001 [P] Add TriggeredBy field to RetrieveFile command in `services/file-processing/src/FileProcessing.Contracts/Commands/RetrieveFile.cs`
-- [ ] T002 [P] Create FileCheckTriggered event contract in `services/file-processing/src/FileProcessing.Contracts/Events/FileCheckTriggered.cs`
+- [ ] T002 [P] Create RetrieveFileTriggered event contract in `services/file-processing/src/FileProcessing.Contracts/Events/RetrieveFileTriggered.cs`
 
 **Checkpoint**: Message contracts defined - can proceed with implementation layers
 
@@ -35,23 +35,23 @@
 1. Support engineer authenticates with JWT containing clientId claim
 2. POST to `/api/configuration/{configurationId}/trigger` for owned configuration
 3. Receives 202 Accepted with ExecutionId
-4. FileCheckTriggered event is published with audit details
+4. RetrieveFileTriggered event is published with audit details
 5. File check executes (visible in execution history API)
 
 ### Application Layer Changes
 
-- [ ] T003 Update FileCheckService.ExecuteCheckAsync signature to accept executionId parameter in `services/file-processing/src/FileProcessing.Application/Services/FileCheckService.cs`
-- [ ] T004 Modify RetrieveFileHandler to generate ExecutionId and publish FileCheckTriggered event before processing in `services/file-processing/src/FileProcessing.Application/MessageHandlers/RetrieveFileHandler.cs`
+- [ ] T003 Update RetrieveFileService.ExecuteCheckAsync signature to accept executionId parameter in `services/file-processing/src/FileProcessing.Application/Services/RetrieveFileService.cs`
+- [ ] T004 Modify RetrieveFileHandler to generate ExecutionId and publish RetrieveFileTriggered event before processing in `services/file-processing/src/FileProcessing.Application/MessageHandlers/RetrieveFileHandler.cs`
 
 ### API Layer Implementation
 
-- [ ] T005 [P] Create TriggerFileCheckResponse DTO in `services/file-processing/src/FileProcessing.API/Models/TriggerFileCheckResponse.cs`
-- [ ] T006 Add TriggerFileCheck endpoint to ConfigurationController in `services/file-processing/src/FileProcessing.API/Controllers/ConfigurationController.cs`
+- [ ] T005 [P] Create TriggerRetrieveFileResponse DTO in `services/file-processing/src/FileProcessing.API/Models/TriggerRetrieveFileResponse.cs`
+- [ ] T006 Add TriggerRetrieveFile endpoint to ConfigurationController in `services/file-processing/src/FileProcessing.API/Controllers/ConfigurationController.cs`
 
 ### Unit Tests for Application Layer
 
-- [ ] T007 [P] Add unit tests for FileCheckTriggered event publishing in `services/file-processing/test/FileProcessing.Application.Tests/MessageHandlers/RetrieveFileHandlerTests.cs`
-- [ ] T008 [P] Add unit tests for FileCheckService executionId parameter in `services/file-processing/test/FileProcessing.Application.Tests/Services/FileCheckServiceTests.cs`
+- [ ] T007 [P] Add unit tests for RetrieveFileTriggered event publishing in `services/file-processing/test/FileProcessing.Application.Tests/MessageHandlers/RetrieveFileHandlerTests.cs`
+- [ ] T008 [P] Add unit tests for RetrieveFileService executionId parameter in `services/file-processing/test/FileProcessing.Application.Tests/Services/RetrieveFileServiceTests.cs`
 
 ### Integration Tests for API Layer
 
@@ -109,7 +109,7 @@ Phase 3: Documentation & Polish (T014-T016)
 ```text
                     ┌─ T001 (RetrieveFile) ─┐
                     │                            ├─→ T004 (Handler) ─→ T006 (API) ─→ T009-T013 (Integration Tests)
-                    └─ T002 (FileCheckTriggered) ┘         ↑
+                    └─ T002 (RetrieveFileTriggered) ┘         ↑
                                                            │
                     T003 (Service Signature) ──────────────┘
                                                            │
@@ -129,10 +129,10 @@ Phase 3: Documentation & Polish (T014-T016)
 **Launch in parallel**:
 ```bash
 # Session 1: Service signature change
-Task T003: Update FileCheckService signature
+Task T003: Update RetrieveFileService signature
 
 # Session 2: API response model
-Task T005: Create TriggerFileCheckResponse DTO
+Task T005: Create TriggerRetrieveFileResponse DTO
 
 # Session 3: Unit test preparation
 Task T007: Add handler event publishing tests
@@ -144,7 +144,7 @@ Task T008: Add service executionId tests
 **Launch in parallel**:
 ```bash
 # Session 1: API endpoint
-Task T006: Add TriggerFileCheck endpoint
+Task T006: Add TriggerRetrieveFile endpoint
 
 # Session 2-6: Integration tests (all parallel)
 Task T009: Happy path test (202)
@@ -179,7 +179,7 @@ Task T015: Update file-processing-standards.md
 
 **Why this is the MVP**:
 - Delivers complete manual trigger capability
-- Includes audit trail via FileCheckTriggered event
+- Includes audit trail via RetrieveFileTriggered event
 - Security-trimmed and tested
 - Can be deployed and used immediately
 - Estimated effort: 6-8 hours
@@ -214,14 +214,14 @@ If issues arise after deployment:
 **Validation**: Field is nullable (backward compatible)  
 **Estimated time**: 15 minutes
 
-### T002: Create FileCheckTriggered event contract
-**File**: `services/file-processing/src/FileProcessing.Contracts/Events/FileCheckTriggered.cs`  
+### T002: Create RetrieveFileTriggered event contract
+**File**: `services/file-processing/src/FileProcessing.Contracts/Events/RetrieveFileTriggered.cs`  
 **Content**: Event record with 12 fields (4 metadata, 4 context, 2 tracking, 2 trigger)  
-**Pattern**: Follows existing event patterns (FileCheckCompleted, FileCheckFailed)  
+**Pattern**: Follows existing event patterns (RetrieveFileCompleted, RetrieveFileFailed)  
 **Estimated time**: 30 minutes
 
-### T003: Update FileCheckService.ExecuteCheckAsync signature
-**File**: `services/file-processing/src/FileProcessing.Application/Services/FileCheckService.cs`  
+### T003: Update RetrieveFileService.ExecuteCheckAsync signature
+**File**: `services/file-processing/src/FileProcessing.Application/Services/RetrieveFileService.cs`  
 **Change**: Add `Guid executionId` parameter, use it instead of generating internally  
 **Impact**: Breaking change for 2 callers (handler + tests)  
 **Estimated time**: 30 minutes
@@ -230,18 +230,18 @@ If issues arise after deployment:
 **File**: `services/file-processing/src/FileProcessing.Application/MessageHandlers/RetrieveFileHandler.cs`  
 **Changes**:
 1. Generate `executionId = Guid.NewGuid()` after loading configuration
-2. Publish FileCheckTriggered event before calling FileCheckService
-3. Pass executionId to FileCheckService.ExecuteCheckAsync()
+2. Publish RetrieveFileTriggered event before calling RetrieveFileService
+3. Pass executionId to RetrieveFileService.ExecuteCheckAsync()
 **Pattern**: Event publishing before service call (audit trail)  
 **Estimated time**: 45 minutes
 
-### T005: Create TriggerFileCheckResponse DTO
-**File**: `services/file-processing/src/FileProcessing.API/Models/TriggerFileCheckResponse.cs`  
+### T005: Create TriggerRetrieveFileResponse DTO
+**File**: `services/file-processing/src/FileProcessing.API/Models/TriggerRetrieveFileResponse.cs`  
 **Content**: Record with 4 fields (ConfigurationId, ExecutionId, TriggeredAt, Message)  
 **Pattern**: Response DTO for 202 Accepted async operations  
 **Estimated time**: 15 minutes
 
-### T006: Add TriggerFileCheck endpoint
+### T006: Add TriggerRetrieveFile endpoint
 **File**: `services/file-processing/src/FileProcessing.API/Controllers/ConfigurationController.cs`  
 **Route**: `POST /api/configuration/{configurationId}/trigger`  
 **Logic**:
@@ -249,14 +249,14 @@ If issues arise after deployment:
 2. Validate configuration exists and is active
 3. Generate executionId
 4. Send RetrieveFile command with IsManualTrigger=true
-5. Return 202 Accepted with TriggerFileCheckResponse
+5. Return 202 Accepted with TriggerRetrieveFileResponse
 **Security**: Client-scoped validation via existing ConfigurationService  
 **Estimated time**: 1 hour
 
 ### T007: Add handler event publishing tests
 **File**: `services/file-processing/test/FileProcessing.Application.Tests/MessageHandlers/RetrieveFileHandlerTests.cs`  
 **Scenarios**:
-- Verify FileCheckTriggered published before service call
+- Verify RetrieveFileTriggered published before service call
 - Verify event includes correct trigger context (manual vs scheduled)
 - Verify IdempotencyKey format matches specification
 - Verify TriggeredBy defaults to "Scheduler" when null
@@ -264,7 +264,7 @@ If issues arise after deployment:
 **Estimated time**: 1 hour
 
 ### T008: Add service executionId parameter tests
-**File**: `services/file-processing/test/FileProcessing.Application.Tests/Services/FileCheckServiceTests.cs`  
+**File**: `services/file-processing/test/FileProcessing.Application.Tests/Services/RetrieveFileServiceTests.cs`  
 **Scenarios**:
 - Verify service uses provided executionId instead of generating new one
 - Update existing tests to pass executionId parameter
@@ -348,7 +348,7 @@ This feature consists of a single user story (Support Engineer Manually Triggers
 **Validation**: Integration test T010 verifies 404 for wrong client  
 **Test**: Automated test proves no cross-client access possible
 
-### SC-003: Every file check publishes FileCheckTriggered
+### SC-003: Every file check publishes RetrieveFileTriggered
 **Validation**: Unit test T007 verifies event publishing  
 **Test**: Mock verification proves event published before service call
 
@@ -412,7 +412,7 @@ This feature consists of a single user story (Support Engineer Manually Triggers
 Per spec.md (lines 190-198):
 
 - [ ] All acceptance criteria have passing tests (T007-T013 cover all 5 acceptance criteria)
-- [ ] FileCheckTriggered event includes correlation IDs in all log statements (T004 implementation)
+- [ ] RetrieveFileTriggered event includes correlation IDs in all log statements (T004 implementation)
 - [ ] Idempotency verified (T007 includes duplicate event test)
 - [ ] Domain test coverage ≥90%, handler coverage ≥80% (T007-T008 achieve targets)
 - [ ] API endpoint follows existing security pattern (T006 uses JWT claims extraction)
@@ -431,11 +431,11 @@ Per spec.md (lines 190-198):
 
 **Key Files Modified/Created**:
 - ✨ 1 command modified (RetrieveFile - add TriggeredBy field)
-- ✨ 1 event created (FileCheckTriggered)
+- ✨ 1 event created (RetrieveFileTriggered)
 - ✨ 1 handler modified (RetrieveFileHandler - publish event)
-- ✨ 1 service modified (FileCheckService - accept executionId parameter)
+- ✨ 1 service modified (RetrieveFileService - accept executionId parameter)
 - ✨ 1 controller modified (ConfigurationController - add trigger endpoint)
-- ✨ 1 response DTO created (TriggerFileCheckResponse)
+- ✨ 1 response DTO created (TriggerRetrieveFileResponse)
 - ✨ 2 test files created/extended (handler tests + integration tests)
 - ✨ 2 documentation files updated (Swagger + standards)
 

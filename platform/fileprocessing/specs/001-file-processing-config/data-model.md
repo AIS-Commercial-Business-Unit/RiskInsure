@@ -20,11 +20,11 @@ This document defines the data structures for the Manual File Check Trigger API 
 
 **FileProcessingExecution** - No changes
 - Already tracks execution results with `ExecutionId`, status, files found, duration
-- Created by `FileCheckService` (existing behavior)
+- Created by `RetrieveFileService` (existing behavior)
 
 **DiscoveredFile** - No changes
 - Already tracks discovered files per execution
-- Created by `FileCheckService` when files are found
+- Created by `RetrieveFileService` when files are found
 
 ---
 
@@ -75,15 +75,15 @@ public record RetrieveFile : ICommand
 
 ---
 
-### New Event: FileCheckTriggered
+### New Event: RetrieveFileTriggered
 
 **Purpose**: Notify subscribers that a file check has been initiated, capturing trigger source and context for audit/monitoring.
 
-**Location**: `src/FileProcessing.Contracts/Events/FileCheckTriggered.cs`
+**Location**: `src/FileProcessing.Contracts/Events/RetrieveFileTriggered.cs`
 
 **Event Structure**:
 ```csharp
-public record FileCheckTriggered : IEvent
+public record RetrieveFileTriggered : IEvent
 {
     // Standard message fields
     public Guid MessageId { get; init; }
@@ -145,11 +145,11 @@ public record FileCheckTriggered : IEvent
 
 ## API Models
 
-### New Response DTO: TriggerFileCheckResponse
+### New Response DTO: TriggerRetrieveFileResponse
 
 **Purpose**: Return confirmation and tracking information for manual file check trigger
 
-**Location**: `src/FileProcessing.API/Models/TriggerFileCheckResponse.cs`
+**Location**: `src/FileProcessing.API/Models/TriggerRetrieveFileResponse.cs`
 
 **Structure**:
 ```csharp
@@ -159,7 +159,7 @@ namespace RiskInsure.FileProcessing.API.Models;
 /// Response returned when a file check is manually triggered.
 /// Provides execution tracking ID and confirmation details.
 /// </summary>
-public record TriggerFileCheckResponse
+public record TriggerRetrieveFileResponse
 {
     /// <summary>
     /// The configuration ID that was triggered
@@ -210,7 +210,7 @@ public record TriggerFileCheckResponse
        │
        ↓
 ┌────────────────────────────────────────────────────────┐
-│ ConfigurationController.TriggerFileCheck()             │
+│ ConfigurationController.TriggerRetrieveFile()             │
 │ 1. Extract clientId from JWT (GetClientIdFromClaims)   │
 │ 2. Extract userId from JWT (GetUserIdFromClaims)       │
 │ 3. Validate configuration exists + IsActive            │
@@ -220,7 +220,7 @@ public record TriggerFileCheckResponse
 │ 5. Send RetrieveFile command via NServiceBus       │
 │    - IsManualTrigger = true                            │
 │    - TriggeredBy = userId                              │
-│ 6. Return 202 Accepted with TriggerFileCheckResponse   │
+│ 6. Return 202 Accepted with TriggerRetrieveFileResponse   │
 └────────────────┬───────────────────────────────────────┘
                  │
                  ↓ RetrieveFile command (via Azure Service Bus)
@@ -229,27 +229,27 @@ public record TriggerFileCheckResponse
 │ RetrieveFileHandler.Handle()                       │
 │ 1. Load configuration from repository                  │
 │ 2. Validate IsActive (skip if false)                   │
-│ 3. ✨ Publish FileCheckTriggered event                 │
+│ 3. ✨ Publish RetrieveFileTriggered event                 │
 │    - IdempotencyKey = "{ClientId}:{ConfigurationId}:   │
 │                        triggered:{ExecutionId}"        │
 │    - TriggeredBy = command.TriggeredBy ?? "Scheduler"  │
-│ 4. Call FileCheckService.ExecuteCheckAsync()           │
+│ 4. Call RetrieveFileService.ExecuteCheckAsync()           │
 │    - Pass ExecutionId from command context             │
 │ 5. Process discovered files (existing)                 │
-│ 6. Publish FileCheckCompleted/Failed (existing)        │
+│ 6. Publish RetrieveFileCompleted/Failed (existing)        │
 └────────────────────────────────────────────────────────┘
 ```
 
 ### Idempotency Guarantee Flow
 
 ```text
-Request 1: POST /trigger → ExecutionId=ABC → Command sent → Handler processes → FileCheckTriggered published
-Request 2: (retry of same request) → NEW ExecutionId=XYZ → NEW Command → NEW Handler → NEW FileCheckTriggered
+Request 1: POST /trigger → ExecutionId=ABC → Command sent → Handler processes → RetrieveFileTriggered published
+Request 2: (retry of same request) → NEW ExecutionId=XYZ → NEW Command → NEW Handler → NEW RetrieveFileTriggered
                                                                                         ↑ Different execution!
 
 Handler Retry Flow:
-Handler starts → Generate ExecutionId=ABC → Publish FileCheckTriggered (Key=ABC) → FAIL → Retry
-Handler retries → Use SAME ExecutionId=ABC → Publish FileCheckTriggered (Key=ABC) → Outbox deduplicates ✓
+Handler starts → Generate ExecutionId=ABC → Publish RetrieveFileTriggered (Key=ABC) → FAIL → Retry
+Handler retries → Use SAME ExecutionId=ABC → Publish RetrieveFileTriggered (Key=ABC) → Outbox deduplicates ✓
 ```
 
 **Key Insight**: ExecutionId must be generated in handler (not in API, not in service) to ensure stable idempotency across handler retries while allowing separate executions for separate API requests.
@@ -272,7 +272,7 @@ Handler retries → Use SAME ExecutionId=ABC → Publish FileCheckTriggered (Key
 - No state changes (read-only access from API)
 
 **FileProcessingExecution**:
-- Created by `FileCheckService` with ExecutionId provided by handler (minor change to service signature)
+- Created by `RetrieveFileService` with ExecutionId provided by handler (minor change to service signature)
 - All state transitions remain unchanged
 
 ---
@@ -328,7 +328,7 @@ Handler retries → Use SAME ExecutionId=ABC → Publish FileCheckTriggered (Key
 **Target**: <500ms p95 (message processing)
 
 **New Operation Added**:
-- Publish `FileCheckTriggered` event: ~10-20ms
+- Publish `RetrieveFileTriggered` event: ~10-20ms
 
 **Impact**: Negligible (handler already publishes 1-2 events at end of processing)
 
@@ -369,7 +369,7 @@ Handler retries → Use SAME ExecutionId=ABC → Publish FileCheckTriggered (Key
 
 ## Event Schema Design
 
-### FileCheckTriggered Event
+### RetrieveFileTriggered Event
 
 **Category**: Audit/Monitoring event (non-transactional)  
 **Delivery**: At-least-once with outbox deduplication  
@@ -424,11 +424,11 @@ Handler retries → Use SAME ExecutionId=ABC → Publish FileCheckTriggered (Key
 
 ## API Response Models
 
-### TriggerFileCheckResponse
+### TriggerRetrieveFileResponse
 
 **Purpose**: Confirm acceptance of manual trigger request and provide tracking ID
 
-**Location**: `src/FileProcessing.API/Models/TriggerFileCheckResponse.cs`
+**Location**: `src/FileProcessing.API/Models/TriggerRetrieveFileResponse.cs`
 
 **Schema**:
 ```csharp
@@ -438,7 +438,7 @@ namespace RiskInsure.FileProcessing.API.Models;
 /// Response returned when a file check is manually triggered via API.
 /// Provides execution tracking ID for monitoring and status queries.
 /// </summary>
-public record TriggerFileCheckResponse
+public record TriggerRetrieveFileResponse
 {
     /// <summary>
     /// Configuration ID that was triggered
@@ -495,9 +495,9 @@ public record TriggerFileCheckResponse
 
 ### New Integration
 
-**FileCheckService** (Application layer):
-- **Current signature**: `Task<FileCheckResult> ExecuteCheckAsync(FileProcessingConfiguration configuration, DateTimeOffset scheduledTime, CancellationToken ct)`
-- **New signature**: `Task<FileCheckResult> ExecuteCheckAsync(FileProcessingConfiguration configuration, DateTimeOffset scheduledTime, Guid executionId, CancellationToken ct)`
+**RetrieveFileService** (Application layer):
+- **Current signature**: `Task<RetrieveFileResult> ExecuteCheckAsync(FileProcessingConfiguration configuration, DateTimeOffset scheduledTime, CancellationToken ct)`
+- **New signature**: `Task<RetrieveFileResult> ExecuteCheckAsync(FileProcessingConfiguration configuration, DateTimeOffset scheduledTime, Guid executionId, CancellationToken ct)`
 - **Change**: Accept `executionId` parameter instead of generating internally
 - **Impact**: Existing scheduled flow must pass `Guid.NewGuid()` when calling service
 
@@ -514,7 +514,7 @@ public record TriggerFileCheckResponse
 
 ### Service Signature Changes
 
-**FileCheckService.ExecuteCheckAsync** - Adding `executionId` parameter:
+**RetrieveFileService.ExecuteCheckAsync** - Adding `executionId` parameter:
 - ⚠️ **Breaking change** for callers (signature modified)
 - ✅ **Mitigation**: Only 2 callers:
   1. `RetrieveFileHandler` (we're modifying)
@@ -523,7 +523,7 @@ public record TriggerFileCheckResponse
 
 ### Event Publishing
 
-**New FileCheckTriggered event**:
+**New RetrieveFileTriggered event**:
 - ✅ No existing subscribers (new event)
 - ✅ Subscribers opt-in (publish doesn't break anything)
 - ✅ Future subscribers can start consuming immediately
@@ -572,25 +572,25 @@ public record TriggerFileCheckResponse
 **Test File**: `test/FileProcessing.Integration.Tests/Controllers/ConfigurationController.TriggerTests.cs`
 
 **Scenarios**:
-1. `TriggerFileCheck_ValidConfiguration_Returns202WithExecutionId`
-2. `TriggerFileCheck_ConfigurationNotFound_Returns404`
-3. `TriggerFileCheck_InactiveConfiguration_Returns400`
-4. `TriggerFileCheck_WrongClient_Returns404` (security trimming)
-5. `TriggerFileCheck_MissingClientIdClaim_Returns401`
+1. `TriggerRetrieveFile_ValidConfiguration_Returns202WithExecutionId`
+2. `TriggerRetrieveFile_ConfigurationNotFound_Returns404`
+3. `TriggerRetrieveFile_InactiveConfiguration_Returns400`
+4. `TriggerRetrieveFile_WrongClient_Returns404` (security trimming)
+5. `TriggerRetrieveFile_MissingClientIdClaim_Returns401`
 
 ### Handler Unit Tests (xUnit)
 
 **Test File**: `test/FileProcessing.Application.Tests/MessageHandlers/RetrieveFileHandlerTests.cs`
 
 **Scenarios**:
-1. `Handle_ManualTrigger_PublishesFileCheckTriggeredEvent`
-2. `Handle_ScheduledTrigger_PublishesFileCheckTriggeredEventWithScheduler`
+1. `Handle_ManualTrigger_PublishesRetrieveFileTriggeredEvent`
+2. `Handle_ScheduledTrigger_PublishesRetrieveFileTriggeredEventWithScheduler`
 3. `Handle_EventIdempotency_SameExecutionIdProducesSameIdempotencyKey`
 4. `Handle_TriggeredByField_UsesCommandValueOrDefaultsToScheduler`
 
 ### Service Tests (xUnit)
 
-**Test File**: `test/FileProcessing.Application.Tests/Services/FileCheckServiceTests.cs`
+**Test File**: `test/FileProcessing.Application.Tests/Services/RetrieveFileServiceTests.cs`
 
 **Scenarios**:
 1. `ExecuteCheckAsync_WithProvidedExecutionId_UsesProvidedId` (new test for signature change)
@@ -621,9 +621,9 @@ public record TriggerFileCheckResponse
 
 This data model focuses on **minimal change for maximum value**:
 
-✅ **New Event**: `FileCheckTriggered` (8 fields, follows existing event patterns)  
+✅ **New Event**: `RetrieveFileTriggered` (8 fields, follows existing event patterns)  
 ✅ **Command Enhancement**: `TriggeredBy` field added to `RetrieveFile` (backward compatible)  
-✅ **API Response**: `TriggerFileCheckResponse` (4 fields, minimal payload)  
+✅ **API Response**: `TriggerRetrieveFileResponse` (4 fields, minimal payload)  
 ✅ **Service Change**: `ExecuteCheckAsync` accepts `executionId` parameter (controlled breaking change)  
 ✅ **No database changes**: Uses existing entities and queries  
 ✅ **No new projects**: All changes in existing layers  

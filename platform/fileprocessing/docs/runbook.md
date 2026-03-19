@@ -321,7 +321,7 @@ Executions fail with `ErrorCategory = "AuthenticationFailure"`.
 1. **Check execution duration metrics**:
    ```kusto
    customMetrics
-   | where name == "FileCheckDuration"
+   | where name == "RetrieveFileDuration"
    | where timestamp > ago(24h)
    | summarize avg(value), max(value), percentile(value, 95) by bin(timestamp, 1h), tostring(customDimensions.Protocol)
    ```
@@ -619,12 +619,12 @@ traces
 ### Track configuration execution success rate
 ```kusto
 customEvents
-| where name == "FileCheckCompleted" or name == "FileCheckFailed"
+| where name == "RetrieveFileCompleted" or name == "RetrieveFileFailed"
 | where timestamp > ago(7d)
 | summarize 
     Total = count(),
-    Succeeded = countif(name == "FileCheckCompleted"),
-    Failed = countif(name == "FileCheckFailed")
+    Succeeded = countif(name == "RetrieveFileCompleted"),
+    Failed = countif(name == "RetrieveFileFailed")
     by tostring(customDimensions.ConfigurationId), bin(timestamp, 1d)
 | extend SuccessRate = round(100.0 * Succeeded / Total, 2)
 | order by timestamp desc
@@ -633,7 +633,7 @@ customEvents
 ### Find slow executions (> 10 seconds)
 ```kusto
 customMetrics
-| where name == "FileCheckDuration"
+| where name == "RetrieveFileDuration"
 | where value > 10000  // milliseconds
 | where timestamp > ago(24h)
 | project timestamp, value, 

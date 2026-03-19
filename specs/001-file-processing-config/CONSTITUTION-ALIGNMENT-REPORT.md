@@ -54,7 +54,7 @@
 **Fix Applied**:
 1. ✅ Added `public required string ETag { get; set; }` property (line 90)
 2. ✅ Updated `FileProcessingExecutionRepository.UpdateAsync` to use ETag validation (line 226)
-3. ✅ Added ETag to all instantiations (FileCheckService, unit tests)
+3. ✅ Added ETag to all instantiations (RetrieveFileService, unit tests)
 
 ### ✅ FIXED 2: CreateConfigurationHandler Not Idempotent
 **Principle**: IV. Idempotent Message Handlers  
@@ -100,7 +100,7 @@ if (existing != null) {
 ### ✅ User Stories Implemented (per spec.md)
 - **US1**: Configure Basic File Processing ✅ (CRUD API, token replacement)
 - **US2**: Retrieve Files on Schedule ✅ (SchedulerHostedService, protocol adapters)
-- **US3**: Trigger Workflows on Discovery ✅ (Event/command publishing in FileCheckService)
+- **US3**: Trigger Workflows on Discovery ✅ (Event/command publishing in RetrieveFileService)
 - **US4**: Multiple Client Configurations ✅ (Multi-tenant repository with clientId partitioning)
 - **US5**: Update and Delete Configurations ✅ (Full CRUD handlers)
 - **US6**: Monitor Execution ✅ (ExecutionHistory API, ExecutionHistoryService)

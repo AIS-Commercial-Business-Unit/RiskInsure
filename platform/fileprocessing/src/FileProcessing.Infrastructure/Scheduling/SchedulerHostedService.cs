@@ -180,7 +180,7 @@ public class SchedulerHostedService : BackgroundService
                                 // T101: Mark as in-progress
                                 _inProgressChecks.TryAdd(configuration.Id, DateTimeOffset.UtcNow);
 
-                                await TriggerFileCheckAsync(configuration, nextExecution.Value, cancellationToken);
+                                await TriggerRetrieveFileAsync(configuration, nextExecution.Value, cancellationToken);
                             }
                             catch (Exception ex)
                             {
@@ -247,7 +247,7 @@ public class SchedulerHostedService : BackgroundService
     /// <summary>
     /// Triggers a file check for a specific configuration.
     /// </summary>
-    private async Task TriggerFileCheckAsync(
+    private async Task TriggerRetrieveFileAsync(
         Domain.Entities.FileProcessingConfiguration configuration,
         DateTimeOffset scheduledTime,
         CancellationToken cancellationToken)

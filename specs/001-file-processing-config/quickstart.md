@@ -426,7 +426,7 @@ Use **Azure Storage Explorer** or **Cosmos DB Data Explorer**:
 Use **Service Bus Explorer**:
 - Connect to local Service Bus endpoint
 - View queues: `FileProcessing.Worker`, `WorkflowOrchestrator`
-- View topics/subscriptions: `FileDiscovered`, `FileCheckCompleted`, `FileCheckFailed`
+- View topics/subscriptions: `FileDiscovered`, `RetrieveFileCompleted`, `RetrieveFileFailed`
 
 ### Enable Verbose Logging
 
@@ -680,7 +680,7 @@ info: SchedulerHostedService[0]
       Evaluating schedules at 2025-01-24 13:00:00 UTC
 info: SchedulerHostedService[0]
       Found 1 configuration(s) due for execution
-info: FileCheckService[0]
+info: RetrieveFileService[0]
       Starting file check for configuration {ConfigurationId}
 ```
 
@@ -852,7 +852,7 @@ curl http://localhost:5000/api/v1/configuration/{client-B-config-id} \
 **Concurrent File Checks** (SC-004):
 ```bash
 cd test/FileProcessing.Integration.Tests
-dotnet test --filter "ConcurrentFileCheckTests"
+dotnet test --filter "ConcurrentRetrieveFileTests"
 ```
 
 **Expected**: 

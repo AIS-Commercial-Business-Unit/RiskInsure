@@ -3,10 +3,10 @@ using NServiceBus;
 namespace FileProcessing.Contracts.Events;
 
 /// <summary>
-/// Event published when a scheduled file check completes successfully.
-/// Subscribers: Monitoring systems, dashboards, operational alerts.
+/// Event published when a scheduled file check fails after retry attempts.
+/// Subscribers: Monitoring systems, operational alerts, incident management.
 /// </summary>
-public record FileCheckCompleted : IEvent
+public record RetrieveFileFailed : IEvent
 {
     public Guid MessageId { get; init; }
     public required string CorrelationId { get; init; }
@@ -22,10 +22,14 @@ public record FileCheckCompleted : IEvent
     
     // Execution results
     public DateTimeOffset ExecutionStartedAt { get; init; }
-    public DateTimeOffset ExecutionCompletedAt { get; init; }
-    public int FilesFound { get; init; }
-    public int FilesProcessed { get; init; }
+    public DateTimeOffset ExecutionFailedAt { get; init; }
     public long DurationMs { get; init; }
+    public int RetryCount { get; init; }
+    
+    // Error details
+    public required string ErrorMessage { get; init; }
+    public required string ErrorCategory { get; init; } // "AuthenticationFailure", "ConnectionTimeout", etc.
+    public string? StackTrace { get; init; } // Optional, for debugging
     
     // Resolved patterns (after token replacement)
     public required string ResolvedFilePathPattern { get; init; }

@@ -7,7 +7,7 @@
 
 ## Summary
 
-Add a manual trigger API endpoint to the existing File Processing service that allows support engineers to trigger file checks on-demand for any client configuration they have access to. The endpoint publishes the existing `RetrieveFile` command with `IsManualTrigger=true`. Enhance `RetrieveFileHandler` to publish a new `FileCheckTriggered` event at the start of processing to capture audit trail for both scheduled and manual executions. Maintains full client-scoped security trimming and idempotency guarantees.
+Add a manual trigger API endpoint to the existing File Processing service that allows support engineers to trigger file checks on-demand for any client configuration they have access to. The endpoint publishes the existing `RetrieveFile` command with `IsManualTrigger=true`. Enhance `RetrieveFileHandler` to publish a new `RetrieveFileTriggered` event at the start of processing to capture audit trail for both scheduled and manual executions. Maintains full client-scoped security trimming and idempotency guarantees.
 
 ## Technical Context (RiskInsure Stack)
 
@@ -75,7 +75,7 @@ Add a manual trigger API endpoint to the existing File Processing service that a
 
 ### Core Principle Compliance
 
-- [x] **I. Domain Language Consistency** - Uses existing domain language from `file-processing-standards.md`: FileProcessingConfiguration, FileCheck, RetrieveFile, FileCheckTriggered. No new domain terms introduced. All terminology consistent with existing standards.
+- [x] **I. Domain Language Consistency** - Uses existing domain language from `file-processing-standards.md`: FileProcessingConfiguration, RetrieveFile, RetrieveFile, RetrieveFileTriggered. No new domain terms introduced. All terminology consistent with existing standards.
 
 - [x] **II. Data Model Strategy** - Cosmos DB with `/clientId` partition key (existing). No new containers or partition strategies. Feature only adds API endpoint and event—no persistence changes required.
 
@@ -83,17 +83,17 @@ Add a manual trigger API endpoint to the existing File Processing service that a
 
 - [x] **IV. Idempotent Message Handlers** - Existing `RetrieveFileHandler` already idempotent (checks configuration existence, generates unique ExecutionId). Enhancement adds event publishing at start—idempotency ensured via `IdempotencyKey` format: `"{ClientId}:{ConfigurationId}:triggered:{ExecutionId}"`. Multiple replays publish same event once.
 
-- [x] **V. Structured Observability** - All logs include `CorrelationId`, `ClientId`, `ConfigurationId`. New `FileCheckTriggered` event includes same correlation fields. Existing handler already follows structured logging pattern.
+- [x] **V. Structured Observability** - All logs include `CorrelationId`, `ClientId`, `ConfigurationId`. New `RetrieveFileTriggered` event includes same correlation fields. Existing handler already follows structured logging pattern.
 
-- [x] **VI. Message-Based Integration** - API uses `context.Send()` for `RetrieveFile` command (unicast to Worker endpoint). Handler uses `context.Publish()` for `FileCheckTriggered` event (broadcast). No cross-service HTTP calls.
+- [x] **VI. Message-Based Integration** - API uses `context.Send()` for `RetrieveFile` command (unicast to Worker endpoint). Handler uses `context.Publish()` for `RetrieveFileTriggered` event (broadcast). No cross-service HTTP calls.
 
-- [x] **VII. Thin Message Handlers** - `RetrieveFileHandler` delegates to `FileCheckService` in Application layer (existing pattern). New event publishing is 3 lines: construct event, call `context.Publish()`. No business logic in handler.
+- [x] **VII. Thin Message Handlers** - `RetrieveFileHandler` delegates to `RetrieveFileService` in Application layer (existing pattern). New event publishing is 3 lines: construct event, call `context.Publish()`. No business logic in handler.
 
 - [x] **VIII. Test Coverage Requirements** - Plan includes: API integration tests (Playwright), handler unit tests (xUnit), event publishing tests, security tests. Target: Application 80%+ (handler + service).
 
 - [x] **IX. Technology Constraints** - Uses approved stack: .NET 10, C# 13, NServiceBus 9.x, Azure Service Bus transport, Cosmos DB, xUnit. No prohibited technologies (no EF Core, no distributed transactions).
 
-- [x] **X. Naming Conventions** - Command: `RetrieveFile` (verb+noun, already exists). Event: `FileCheckTriggered` (noun+verbPastTense). Follows naming standard.
+- [x] **X. Naming Conventions** - Command: `RetrieveFile` (verb+noun, already exists). Event: `RetrieveFileTriggered` (noun+verbPastTense). Follows naming standard.
 
 ### Violations Requiring Justification
 
@@ -113,7 +113,7 @@ services/file-processing/specs/001-file-processing-config/
 ├── data-model.md        # Phase 1 output (/speckit.plan command)
 ├── quickstart.md        # Phase 1 output (/speckit.plan command)
 ├── contracts/           # Phase 1 output (/speckit.plan command)
-│   └── FileCheckTriggered.md  # Event contract specification
+│   └── RetrieveFileTriggered.md  # Event contract specification
 └── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
 ```
 
@@ -126,10 +126,10 @@ services/file-processing/
 ├── src/
 │   ├── FileProcessing.API/
 │   │   ├── Controllers/
-│   │   │   ├── ConfigurationController.cs      # ✨ ADD: TriggerFileCheck endpoint
+│   │   │   ├── ConfigurationController.cs      # ✨ ADD: TriggerRetrieveFile endpoint
 │   │   │   └── ExecutionHistoryController.cs   # (existing, no changes)
 │   │   ├── Models/
-│   │   │   ├── TriggerFileCheckResponse.cs     # ✨ NEW response DTO
+│   │   │   ├── TriggerRetrieveFileResponse.cs     # ✨ NEW response DTO
 │   │   │   └── (existing models...)
 │   │   ├── Program.cs                          # (existing, no changes)
 │   │   └── FileProcessing.API.csproj
@@ -137,15 +137,15 @@ services/file-processing/
 │   │   ├── Commands/
 │   │   │   └── RetrieveFile.cs             # (existing, already has IsManualTrigger)
 │   │   ├── Events/
-│   │   │   ├── FileCheckTriggered.cs           # ✨ NEW event contract
-│   │   │   ├── FileCheckCompleted.cs           # (existing)
-│   │   │   └── FileCheckFailed.cs              # (existing)
+│   │   │   ├── RetrieveFileTriggered.cs           # ✨ NEW event contract
+│   │   │   ├── RetrieveFileCompleted.cs           # (existing)
+│   │   │   └── RetrieveFileFailed.cs              # (existing)
 │   │   └── FileProcessing.Contracts.csproj
 │   ├── FileProcessing.Application/
 │   │   ├── MessageHandlers/
-│   │   │   └── RetrieveFileHandler.cs      # ✨ MODIFY: Publish FileCheckTriggered
+│   │   │   └── RetrieveFileHandler.cs      # ✨ MODIFY: Publish RetrieveFileTriggered
 │   │   └── Services/
-│   │       └── FileCheckService.cs             # (existing, no changes)
+│   │       └── RetrieveFileService.cs             # (existing, no changes)
 │   ├── FileProcessing.Domain/
 │   │   ├── Entities/
 │   │   │   └── FileProcessingConfiguration.cs   # (existing, no changes)
@@ -171,8 +171,8 @@ services/file-processing/
 
 **Key Changes Summary**:
 - ✨ 1 new API endpoint in existing `ConfigurationController`
-- ✨ 1 new event contract: `FileCheckTriggered`
-- ✨ 1 new response DTO: `TriggerFileCheckResponse`
+- ✨ 1 new event contract: `RetrieveFileTriggered`
+- ✨ 1 new response DTO: `TriggerRetrieveFileResponse`
 - ✨ Modify existing handler to publish event
 - ✨ Tests for new endpoint and event publishing
 
@@ -202,11 +202,11 @@ services/file-processing/
 
 **R1 - Security Pattern**: Reuse existing `GetUserIdFromClaims()` helper method to extract user identity from JWT for audit trail. Priority: `ClaimTypes.NameIdentifier` → `"sub"` → `ClaimTypes.Email` → `"unknown-user"`.
 
-**R2 - Event Timing**: Publish `FileCheckTriggered` event immediately after loading configuration and validating IsActive, **before** calling `FileCheckService.ExecuteCheckAsync()`. This captures intention to execute, not result (separate events for completion/failure).
+**R2 - Event Timing**: Publish `RetrieveFileTriggered` event immediately after loading configuration and validating IsActive, **before** calling `RetrieveFileService.ExecuteCheckAsync()`. This captures intention to execute, not result (separate events for completion/failure).
 
 **R3 - Idempotency Strategy**: Generate `ExecutionId` in handler before any processing. Pass to service as parameter (requires service signature change). Use ExecutionId in IdempotencyKey format: `"{ClientId}:{ConfigurationId}:triggered:{ExecutionId}"`. This ensures stable key across handler retries.
 
-**R4 - API Response Model**: Create `TriggerFileCheckResponse` with 4 fields: ConfigurationId, ExecutionId, TriggeredAt, Message. Provides tracking ID for support engineers to monitor execution progress via existing ExecutionHistory API.
+**R4 - API Response Model**: Create `TriggerRetrieveFileResponse` with 4 fields: ConfigurationId, ExecutionId, TriggeredAt, Message. Provides tracking ID for support engineers to monitor execution progress via existing ExecutionHistory API.
 
 **R5 - Validation Strategy**: Two-step validation in API before sending command:
 1. Call `ConfigurationService.GetByIdAsync(clientId, configId)` - Returns null if not found OR wrong client (security trimming)
@@ -216,7 +216,7 @@ Error codes: 404 (not found OR wrong client), 400 (inactive), 500 (messaging err
 
 **R6 - User Identity Flow**: Add optional `TriggeredBy` field to `RetrieveFile` command. API populates with user ID from JWT. Handler defaults to "Scheduler" if null. Backward compatible (existing scheduled messages omit field).
 
-**R7 - ExecutionId Generation**: Generate in handler (not API, not service) to ensure stable ID across handler retries while allowing separate executions for separate API requests. Requires `FileCheckService.ExecuteCheckAsync` signature change to accept `executionId` parameter.
+**R7 - ExecutionId Generation**: Generate in handler (not API, not service) to ensure stable ID across handler retries while allowing separate executions for separate API requests. Requires `RetrieveFileService.ExecuteCheckAsync` signature change to accept `executionId` parameter.
 
 ### Technologies & Patterns Confirmed
 
@@ -235,7 +235,7 @@ Error codes: 404 (not found OR wrong client), 400 (inactive), 500 (messaging err
 ✅ What validation before sending command → Check existence + active status in API  
 ✅ How to extract user identity → Reuse existing GetUserIdFromClaims() helper  
 ✅ What error codes for different failure modes → 404 (not found/wrong client), 400 (inactive), 500 (system error)  
-✅ Where to publish FileCheckTriggered → In handler after loading config, before file check execution  
+✅ Where to publish RetrieveFileTriggered → In handler after loading config, before file check execution  
 
 **No blockers. All patterns exist in current codebase. Ready for Phase 1 design.**
 
@@ -244,7 +244,7 @@ Error codes: 404 (not found OR wrong client), 400 (inactive), 500 (messaging err
 ## Phase 1: Design & Contracts
 
 **Status**: ✅ Complete  
-**Documents**: [data-model.md](data-model.md), [contracts/FileCheckTriggered.md](contracts/FileCheckTriggered.md), [quickstart.md](quickstart.md)
+**Documents**: [data-model.md](data-model.md), [contracts/RetrieveFileTriggered.md](contracts/RetrieveFileTriggered.md), [quickstart.md](quickstart.md)
 
 ### Data Model Summary
 
@@ -260,22 +260,22 @@ Error codes: 404 (not found OR wrong client), 400 (inactive), 500 (messaging err
 - Purpose: Track user identity for manual triggers
 - Backward compatible: Scheduled executions omit field (null)
 
-**New Event**: `FileCheckTriggered`
+**New Event**: `RetrieveFileTriggered`
 - Purpose: Audit trail for all file check initiations
 - Published: Before file check execution begins
 - Fields: ClientId, ConfigurationId, ConfigurationName, Protocol, ExecutionId, ScheduledExecutionTime, IsManualTrigger, TriggeredBy
 - IdempotencyKey: `"{ClientId}:{ConfigurationId}:triggered:{ExecutionId}"`
 - Subscribers: Audit logs, monitoring dashboards, analytics systems
 
-**New API Response**: `TriggerFileCheckResponse`
+**New API Response**: `TriggerRetrieveFileResponse`
 - Fields: ConfigurationId, ExecutionId, TriggeredAt, Message
 - Purpose: Confirm acceptance and provide tracking ID
 
 ### Service Signature Change
 
-**FileCheckService.ExecuteCheckAsync**:
-- Old: `Task<FileCheckResult> ExecuteCheckAsync(FileProcessingConfiguration config, DateTimeOffset scheduledTime, CancellationToken ct)`
-- New: `Task<FileCheckResult> ExecuteCheckAsync(FileProcessingConfiguration config, DateTimeOffset scheduledTime, Guid executionId, CancellationToken ct)`
+**RetrieveFileService.ExecuteCheckAsync**:
+- Old: `Task<RetrieveFileResult> ExecuteCheckAsync(FileProcessingConfiguration config, DateTimeOffset scheduledTime, CancellationToken ct)`
+- New: `Task<RetrieveFileResult> ExecuteCheckAsync(FileProcessingConfiguration config, DateTimeOffset scheduledTime, Guid executionId, CancellationToken ct)`
 - Impact: Handler and tests must pass ExecutionId parameter
 
 ### Integration Points
@@ -285,8 +285,8 @@ Error codes: 404 (not found OR wrong client), 400 (inactive), 500 (messaging err
 - `IMessageSession.Send()` - Send RetrieveFile command
 
 **Application Layer**:
-- `RetrieveFileHandler` - Publish FileCheckTriggered event before processing
-- `FileCheckService` - Accept executionId parameter (signature change)
+- `RetrieveFileHandler` - Publish RetrieveFileTriggered event before processing
+- `RetrieveFileService` - Accept executionId parameter (signature change)
 
 **No new services or repositories required.**
 
@@ -321,7 +321,7 @@ Error codes: 404 (not found OR wrong client), 400 (inactive), 500 (messaging err
 
 ### Contract Specifications
 
-**Event**: `FileCheckTriggered` v1.0
+**Event**: `RetrieveFileTriggered` v1.0
 - 12 fields (4 metadata, 4 context, 2 tracking, 2 trigger)
 - Published by: `RetrieveFileHandler`
 - Subscribers: Audit, monitoring, analytics (to be implemented)
@@ -331,12 +331,12 @@ Error codes: 404 (not found OR wrong client), 400 (inactive), 500 (messaging err
 **API Endpoint**: `POST /api/configuration/{configurationId}/trigger`
 - Auth: JWT with clientId claim
 - Request: No body (configurationId in URL)
-- Response: 202 Accepted with TriggerFileCheckResponse
+- Response: 202 Accepted with TriggerRetrieveFileResponse
 - Errors: 400 (inactive), 404 (not found/wrong client), 401 (auth), 500 (system)
 
 **Full specifications in**:
 - [data-model.md](data-model.md) - Entity and DTO structures
-- [contracts/FileCheckTriggered.md](contracts/FileCheckTriggered.md) - Event contract details
+- [contracts/RetrieveFileTriggered.md](contracts/RetrieveFileTriggered.md) - Event contract details
 
 ---
 
@@ -346,17 +346,17 @@ Error codes: 404 (not found OR wrong client), 400 (inactive), 500 (messaging err
 
 **Expected Task Breakdown**:
 1. **Contracts** (2 tasks):
-   - Create `FileCheckTriggered` event contract
+   - Create `RetrieveFileTriggered` event contract
    - Add `TriggeredBy` field to `RetrieveFile` command
 
 2. **API Layer** (3 tasks):
-   - Add `TriggerFileCheckResponse` DTO
-   - Add `TriggerFileCheck` endpoint to `ConfigurationController`
+   - Add `TriggerRetrieveFileResponse` DTO
+   - Add `TriggerRetrieveFile` endpoint to `ConfigurationController`
    - Add integration tests for trigger endpoint
 
 3. **Application Layer** (3 tasks):
-   - Modify `RetrieveFileHandler` to publish `FileCheckTriggered` event
-   - Update `FileCheckService.ExecuteCheckAsync` signature to accept `executionId`
+   - Modify `RetrieveFileHandler` to publish `RetrieveFileTriggered` event
+   - Update `RetrieveFileService.ExecuteCheckAsync` signature to accept `executionId`
    - Add handler unit tests for event publishing
 
 4. **Documentation** (2 tasks):
@@ -376,11 +376,11 @@ Error codes: 404 (not found OR wrong client), 400 (inactive), 500 (messaging err
 ```text
 1. Add TriggeredBy to RetrieveFile command (enables user tracking)
    ↓
-2. Create FileCheckTriggered event contract (defines event schema)
+2. Create RetrieveFileTriggered event contract (defines event schema)
    ↓
 3. Modify RetrieveFileHandler to publish event (implements audit trail)
    ↓
-4. Update FileCheckService signature (enables ExecutionId passing)
+4. Update RetrieveFileService signature (enables ExecutionId passing)
    ↓
 5. Add API endpoint (exposes manual trigger capability)
    ↓
@@ -401,7 +401,7 @@ These can proceed in parallel once contracts are defined.
 **None.** All dependencies already exist:
 - RetrieveFile command ✓
 - RetrieveFileHandler ✓
-- FileCheckService ✓
+- RetrieveFileService ✓
 - ConfigurationController ✓
 - Security infrastructure ✓
 - Test projects ✓
@@ -484,7 +484,7 @@ These can proceed in parallel once contracts are defined.
 **Test Files**:
 - `test/FileProcessing.Integration.Tests/Controllers/ConfigurationController.TriggerTests.cs`
 - `test/FileProcessing.Application.Tests/MessageHandlers/RetrieveFileHandlerTests.cs` (extend existing)
-- `test/FileProcessing.Application.Tests/Services/FileCheckServiceTests.cs` (extend existing)
+- `test/FileProcessing.Application.Tests/Services/RetrieveFileServiceTests.cs` (extend existing)
 
 ---
 
@@ -498,7 +498,7 @@ These can proceed in parallel once contracts are defined.
 - ✅ **Measurement**: All trigger attempts logged with authorization result
 - ✅ **Test**: Integration test verifies 404 for wrong client (not 403 - no info disclosure)
 
-**SC-003**: Every file check publishes FileCheckTriggered event before processing
+**SC-003**: Every file check publishes RetrieveFileTriggered event before processing
 - ✅ **Measurement**: Event publishing metric matches handler invocation count
 - ✅ **Test**: Handler unit test verifies event published before service call
 
@@ -519,19 +519,19 @@ These can proceed in parallel once contracts are defined.
 **Application Insights Metrics**:
 - `FileProcessing.ManualTrigger.Count` - Total manual triggers
 - `FileProcessing.ManualTrigger.ByUser` - Per-user trigger frequency
-- `FileProcessing.FileCheckTriggered.Count` - All triggers (manual + scheduled)
+- `FileProcessing.RetrieveFileTriggered.Count` - All triggers (manual + scheduled)
 
 **KQL Queries** (for dashboards):
 ```kusto
 // Manual trigger frequency by day
 customEvents
-| where name == "FileCheckTriggered"
+| where name == "RetrieveFileTriggered"
 | where customDimensions.IsManualTrigger == "true"
 | summarize count() by bin(timestamp, 1d)
 
 // Top support engineers by triggers
 customEvents
-| where name == "FileCheckTriggered"
+| where name == "RetrieveFileTriggered"
 | where customDimensions.IsManualTrigger == "true"
 | summarize TriggerCount = count() by tostring(customDimensions.TriggeredBy)
 | order by TriggerCount desc
@@ -542,7 +542,7 @@ customEvents
 **New Log Statements** (4 locations):
 1. API endpoint start: "Triggering file check for configuration {ConfigurationId}"
 2. API validation failure: "Configuration {ConfigurationId} not found/inactive"
-3. Handler event publishing: "Publishing FileCheckTriggered event (ExecutionId: {ExecutionId})"
+3. Handler event publishing: "Publishing RetrieveFileTriggered event (ExecutionId: {ExecutionId})"
 4. API success: "File check triggered successfully (ExecutionId: {ExecutionId})"
 
 **Log Levels**:
@@ -586,8 +586,8 @@ customEvents
 ## Definition of Done (from spec.md)
 
 - [ ] All acceptance criteria have passing tests (xUnit unit + integration tests)
-- [ ] FileCheckTriggered event includes correlation IDs in all log statements
-- [ ] Idempotency verified (duplicate FileCheckTriggered event test passes)
+- [ ] RetrieveFileTriggered event includes correlation IDs in all log statements
+- [ ] Idempotency verified (duplicate RetrieveFileTriggered event test passes)
 - [ ] Domain test coverage ≥90%, handler coverage ≥80%
 - [ ] API endpoint follows existing security pattern (JWT claims extraction)
 - [ ] OpenAPI/Swagger documentation updated for new endpoint

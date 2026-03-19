@@ -93,7 +93,7 @@ Duration: 2.2 seconds
 | **Entities** | 3 | FileProcessingConfiguration, FileProcessingExecution, DiscoveredFile |
 | **Value Objects** | 7 | ProtocolSettings (3 types), ScheduleDefinition, EventDefinition, CommandDefinition, FilePattern |
 | **Enumerations** | 5 | ProtocolType, ExecutionStatus, DiscoveryStatus, AuthType, AzureAuthType |
-| **Services** | 5 | ConfigurationService, FileCheckService, TokenReplacementService, ExecutionHistoryService, ScheduleExecutionService |
+| **Services** | 5 | ConfigurationService, RetrieveFileService, TokenReplacementService, ExecutionHistoryService, ScheduleExecutionService |
 | **Repositories** | 3 | FileProcessingConfigurationRepository, FileProcessingExecutionRepository, DiscoveredFileRepository |
 | **Protocol Adapters** | 3 | FtpProtocolAdapter, HttpsProtocolAdapter, AzureBlobProtocolAdapter |
 | **Message Handlers** | 6 | RetrieveFileHandler, CreateConfigurationHandler, UpdateConfigurationHandler, DeleteConfigurationHandler, etc. |
@@ -217,7 +217,7 @@ Duration: 2.2 seconds
 - Telemetry SDK configured (API and Worker)
 - Adaptive sampling enabled
 - Quick Pulse Metric Stream enabled
-- Custom metrics: FileCheckDuration, FileCheckSuccess, FilesDiscovered, ProtocolErrors
+- Custom metrics: RetrieveFileDuration, RetrieveFileSuccess, FilesDiscovered, ProtocolErrors
 - Distributed tracing with correlation IDs
 
 ### T147: Constitution Compliance ✅
@@ -264,8 +264,8 @@ All 7 measurable success criteria from spec.md validated:
 
 **Events Implemented**:
 1. FileDiscovered (published by Worker)
-2. FileCheckCompleted (published by Worker)
-3. FileCheckFailed (published by Worker)
+2. RetrieveFileCompleted (published by Worker)
+3. RetrieveFileFailed (published by Worker)
 4. ConfigurationCreated (published by Worker)
 5. ConfigurationUpdated (published by Worker)
 6. ConfigurationDeleted (published by Worker)

@@ -4,7 +4,7 @@ namespace FileProcessing.Contracts.Commands;
 
 /// <summary>
 /// Command sent to the workflow orchestration platform to process a discovered file.
-/// Sent by FileCheckService when a file matching a configuration is found.
+/// Sent by RetrieveFileService when a file matching a configuration is found.
 /// </summary>
 public record ParseDiscoveredFile : ICommand
 {

@@ -533,7 +533,7 @@ FileProcessingConfiguration (1) ----< (M) DiscoveredFile (direct)
 
 1. **Credential Storage**: All passwords, tokens, connection strings stored in **Azure Key Vault**, not Cosmos DB
    - Configuration stores Key Vault secret name (e.g., `"acme-ftp-password"`)
-   - FileCheckService retrieves secret at execution time
+   - RetrieveFileService retrieves secret at execution time
    - Never log or expose credentials in error messages
 
 2. **Client Isolation**: Partition key `/clientId` enforces data isolation

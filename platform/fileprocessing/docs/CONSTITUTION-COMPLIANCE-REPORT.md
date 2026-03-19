@@ -25,9 +25,9 @@ This report validates that the implemented File Processing Configuration feature
 
 **Evidence**:
 1. **Entities**: FileProcessingConfiguration, FileProcessingExecution, DiscoveredFile (consistent naming)
-2. **Services**: ConfigurationService, FileCheckService, TokenReplacementService (no abbreviations)
+2. **Services**: ConfigurationService, RetrieveFileService, TokenReplacementService (no abbreviations)
 3. **Commands**: RetrieveFile, CreateConfiguration, UpdateConfiguration, DeleteConfiguration (imperative)
-4. **Events**: FileDiscovered, FileCheckCompleted, FileCheckFailed, ConfigurationCreated (past-tense)
+4. **Events**: FileDiscovered, RetrieveFileCompleted, RetrieveFileFailed, ConfigurationCreated (past-tense)
 5. **Value Objects**: ProtocolSettings, ScheduleDefinition, EventDefinition, CommandDefinition (descriptive)
 
 **Code Review**:
@@ -114,7 +114,7 @@ This report validates that the implemented File Processing Configuration feature
 1. **DiscoveredFile Idempotency**:
    - ✅ Unique key constraint: `(clientId, configurationId, fileUrl, discoveryDate)`
    - ✅ Duplicate file on same day → constraint violation → early return (idempotent)
-   - ✅ `FileCheckService` checks for existing DiscoveredFile before publishing event
+   - ✅ `RetrieveFileService` checks for existing DiscoveredFile before publishing event
 
 2. **Message-Level Idempotency**:
    - ✅ All commands include `IdempotencyKey` property
@@ -128,7 +128,7 @@ This report validates that the implemented File Processing Configuration feature
    - ✅ RetrieveFileHandler: Duplicate execution → checks existing record first
 
 **Code Review**:
-- ✅ FileCheckService.cs: `CheckForExistingDiscoveredFile()` method prevents duplicates
+- ✅ RetrieveFileService.cs: `CheckForExistingDiscoveredFile()` method prevents duplicates
 - ✅ DiscoveredFileRepository.cs: Try-catch on unique constraint violation (returns existing)
 - ✅ All handlers include structured logging with IdempotencyKey
 - ✅ Research.md section 6 documents idempotency strategy
@@ -153,8 +153,8 @@ This report validates that the implemented File Processing Configuration feature
    - ✅ `ErrorCategory` in all failure scenarios
 
 2. **Metrics Tracked** (Application Insights):
-   - ✅ `FileCheckDuration` (milliseconds)
-   - ✅ `FileCheckSuccess` (success/failure count)
+   - ✅ `RetrieveFileDuration` (milliseconds)
+   - ✅ `RetrieveFileSuccess` (success/failure count)
    - ✅ `FilesDiscovered` (count per execution)
    - ✅ `ProtocolErrors` (categorized by ErrorCategory)
 
@@ -167,7 +167,7 @@ This report validates that the implemented File Processing Configuration feature
 - ✅ All services include `ILogger<T>` dependency
 - ✅ Structured logging uses `LogInformation("...", param1, param2)` format (not string interpolation)
 - ✅ Error logs include exception context: `LogError(exception, "...")`
-- ✅ FileCheckService logs: execution start, file discoveries, completion, errors
+- ✅ RetrieveFileService logs: execution start, file discoveries, completion, errors
 - ✅ ConfigurationService logs: CRUD operations with before/after state
 
 ---
@@ -183,8 +183,8 @@ This report validates that the implemented File Processing Configuration feature
 **Evidence**:
 1. **Messages Published** (via NServiceBus):
    - ✅ `FileDiscovered` event (published when files found)
-   - ✅ `FileCheckCompleted` event (published after successful check)
-   - ✅ `FileCheckFailed` event (published after failed check)
+   - ✅ `RetrieveFileCompleted` event (published after successful check)
+   - ✅ `RetrieveFileFailed` event (published after failed check)
    - ✅ `ConfigurationCreated`, `ConfigurationUpdated`, `ConfigurationDeleted` events
 
 2. **Commands Sent** (via NServiceBus):
@@ -198,8 +198,8 @@ This report validates that the implemented File Processing Configuration feature
 
 **Code Review**:
 - ✅ No `HttpClient` calls to workflow platform (grep confirms)
-- ✅ FileCheckService uses `context.Publish()` for events
-- ✅ FileCheckService uses `context.Send()` for commands
+- ✅ RetrieveFileService uses `context.Publish()` for events
+- ✅ RetrieveFileService uses `context.Send()` for commands
 - ✅ All messages include standard metadata: MessageId, OccurredUtc, CorrelationId
 - ✅ NServiceBus conventions define commands and events by namespace
 
@@ -223,10 +223,10 @@ This report validates that the implemented File Processing Configuration feature
        ArgumentNullException.ThrowIfNull(command);
        
        // 2. Delegate to service
-       await _fileCheckService.ExecuteCheckAsync(command.ConfigurationId, command.ClientId);
+       await _retrieveFileService.ExecuteCheckAsync(command.ConfigurationId, command.ClientId);
        
        // 3. Publish events (results of service operation)
-       await context.Publish<FileCheckCompleted>(...);
+       await context.Publish<RetrieveFileCompleted>(...);
    }
    ```
 
@@ -234,7 +234,7 @@ This report validates that the implemented File Processing Configuration feature
    - ✅ Token replacement: `TokenReplacementService.ReplaceTokens()`
    - ✅ Protocol operations: `IProtocolAdapter.CheckForFilesAsync()`
    - ✅ Configuration CRUD: `ConfigurationService.CreateAsync/UpdateAsync/DeleteAsync()`
-   - ✅ File check orchestration: `FileCheckService.ExecuteCheckAsync()`
+   - ✅ File check orchestration: `RetrieveFileService.ExecuteCheckAsync()`
    - ✅ Schedule evaluation: `ScheduleEvaluator.GetNextExecutionTime()`
 
 **Code Review**:
@@ -334,15 +334,15 @@ Test summary: total: 24, failed: 0, succeeded: 24, skipped: 0, duration: 2.2s
 
 2. **Events** (past-tense):
    - FileDiscovered ✅
-   - FileCheckCompleted ✅
-   - FileCheckFailed ✅
+   - RetrieveFileCompleted ✅
+   - RetrieveFileFailed ✅
    - ConfigurationCreated ✅
    - ConfigurationUpdated ✅
    - ConfigurationDeleted ✅
 
 3. **Services** (descriptive, no abbreviations):
    - ConfigurationService (not ConfigService) ✅
-   - FileCheckService ✅
+   - RetrieveFileService ✅
    - TokenReplacementService ✅
    - ScheduleEvaluator ✅
 
@@ -373,7 +373,7 @@ Test summary: total: 24, failed: 0, succeeded: 24, skipped: 0, duration: 2.2s
 **Requirement**: File discovery to event publish latency < 5 seconds.
 
 ✅ **IMPLEMENTATION VERIFIED**:
-- FileCheckService.ExecuteCheckAsync() is fully async (no blocking)
+- RetrieveFileService.ExecuteCheckAsync() is fully async (no blocking)
 - Event publishing via NServiceBus is async (< 100ms typically)
 - No artificial delays in discovery pipeline
 - Typical end-to-end: Protocol check (1-3s) + Processing (< 1s) + Event publish (< 1s) = **< 5s total**
@@ -393,7 +393,7 @@ Duration: All 100 checks completed within target time
 
 ✅ **IMPLEMENTATION VERIFIED**:
 - Unique key constraint: `(clientId, configurationId, fileUrl, discoveryDate)`
-- FileCheckService checks for existing DiscoveredFile before publishing event
+- RetrieveFileService checks for existing DiscoveredFile before publishing event
 - Integration test validates: Duplicate file check on same day → single event
 - IdempotencyKey on all messages
 

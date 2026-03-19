@@ -16,7 +16,7 @@ public class FileProcessingMetricsService
     // Counters
     private readonly Counter<long> _configurationsCreatedCounter;
     private readonly Counter<long> _configurationsDeletedCounter;
-    private readonly Counter<long> _fileChecksExecutedCounter;
+    private readonly Counter<long> _retrieveFileExecutedCounter;
     private readonly Counter<long> _filesDiscoveredCounter;
     private readonly Counter<long> _executionFailuresCounter;
     
@@ -26,7 +26,7 @@ public class FileProcessingMetricsService
     private readonly ConcurrentDictionary<string, long> _failureCountsByProtocol;
     
     // Histogram
-    private readonly Histogram<double> _fileCheckDurationHistogram;
+    private readonly Histogram<double> _retrieveFileDurationHistogram;
 
     public FileProcessingMetricsService(ILogger<FileProcessingMetricsService> logger)
     {
@@ -47,7 +47,7 @@ public class FileProcessingMetricsService
             "file_processing_configurations_deleted_total",
             description: "Total number of configurations deleted");
         
-        _fileChecksExecutedCounter = _meter.CreateCounter<long>(
+        _retrieveFileExecutedCounter = _meter.CreateCounter<long>(
             "file_processing_checks_executed_total",
             description: "Total number of file checks executed");
         
@@ -60,7 +60,7 @@ public class FileProcessingMetricsService
             description: "Total number of execution failures");
         
         // Create histogram for durations
-        _fileCheckDurationHistogram = _meter.CreateHistogram<double>(
+        _retrieveFileDurationHistogram = _meter.CreateHistogram<double>(
             "file_processing_check_duration_seconds",
             unit: "s",
             description: "Duration of file check operations in seconds");
@@ -109,14 +109,14 @@ public class FileProcessingMetricsService
     /// <summary>
     /// Records a file check execution.
     /// </summary>
-    public void RecordFileCheckExecuted(string clientId, string protocol, double durationSeconds, bool success)
+    public void RecordRetrieveFileExecuted(string clientId, string protocol, double durationSeconds, bool success)
     {
-        _fileChecksExecutedCounter.Add(1,
+        _retrieveFileExecutedCounter.Add(1,
             new KeyValuePair<string, object?>("client_id", clientId),
             new KeyValuePair<string, object?>("protocol", protocol),
             new KeyValuePair<string, object?>("status", success ? "success" : "failure"));
         
-        _fileCheckDurationHistogram.Record(durationSeconds,
+        _retrieveFileDurationHistogram.Record(durationSeconds,
             new KeyValuePair<string, object?>("protocol", protocol),
             new KeyValuePair<string, object?>("status", success ? "success" : "failure"));
         
