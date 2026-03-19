@@ -323,7 +323,7 @@ public class FileCheckService
     /// <param name="correlationId">Correlation ID for distributed tracing (T093)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Number of files processed (events published)</returns>
-    public async Task<int> ProcessDiscoveredFilesAsync(
+    public async Task<int> ParseDiscoveredFilesAsync(
         IEnumerable<DiscoveredFileInfo> discoveredFiles,
         FileProcessingConfiguration configuration,
         Guid executionId,
@@ -403,8 +403,8 @@ public class FileCheckService
                     fileDiscoveredEvent.IdempotencyKey);
 
 
-                // T088: Send ProcessDiscoveredFile command
-                var processFileCommand = new ProcessDiscoveredFile
+                // T088: Send ParseDiscoveredFile command
+                var processFileCommand = new ParseDiscoveredFile
                 {
                     MessageId = Guid.NewGuid(),
                     CorrelationId = correlationId, // T093: Correlation ID propagation
@@ -426,7 +426,7 @@ public class FileCheckService
                 await messageContext.Send(processFileCommand);
 
                 _logger.LogInformation(
-                    "Sent ProcessDiscoveredFile command for {Filename} (IdempotencyKey: {IdempotencyKey})",
+                    "Sent ParseDiscoveredFile command for {Filename} (IdempotencyKey: {IdempotencyKey})",
                     fileInfo.Filename,
                     processFileCommand.IdempotencyKey);
 

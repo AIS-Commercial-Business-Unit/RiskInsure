@@ -51,7 +51,7 @@ A FileProcessingConfiguration is marked as `IsActive = true` but no scheduled ex
 
 4. **Check NServiceBus message queue**:
    - Open Azure Service Bus Explorer
-   - Check `FileProcessing.Worker` queue for pending `ExecuteFileCheck` messages
+   - Check `FileProcessing.Worker` queue for pending `RetrieveFile` messages
    - Look for dead-letter messages in `FileProcessing.Worker/$DeadLetterQueue`
 
 ### Common Causes
@@ -433,7 +433,7 @@ If duplicates occur, likely causes:
 | **Multiple Worker instances without coordination** | Implement distributed locking in SchedulerHostedService (Cosmos DB lease) |
 | **Clock skew causing date boundary issues** | File discovered at 23:59:59 and 00:00:01 = different `discoveryDate` = different record (expected) |
 | **IdempotencyKey collision** | Very rare - review idempotency key generation logic |
-| **Message handler not idempotent** | Review `ExecuteFileCheckHandler` - should check for existing DiscoveredFile before publishing |
+| **Message handler not idempotent** | Review `RetrieveFileHandler` - should check for existing DiscoveredFile before publishing |
 
 ### Resolution
 

@@ -624,7 +624,7 @@ public async Task Handle_ManualTrigger_PublishesTriggeredEvent()
 **Steps**:
 1. POST `/api/configuration/{id}/trigger` with valid JWT
 2. API validates configuration
-3. API sends `ExecuteFileCheck` command
+3. API sends `RetrieveFile` command
 4. API returns 202 Accepted
 5. Handler receives command
 6. Handler publishes `FileCheckTriggered` event

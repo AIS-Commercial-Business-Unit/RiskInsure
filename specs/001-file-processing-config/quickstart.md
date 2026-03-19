@@ -857,8 +857,8 @@ dotnet test --filter "ConcurrentFileCheckTests"
 
 **Expected**: 
 ```
-✅ ExecuteFileCheck_With100ConcurrentChecks_CompletesWithin30Seconds: PASSED
-✅ ExecuteFileCheck_With100ConcurrentChecks_MaintainsThroughput: PASSED
+✅ RetrieveFile_With100ConcurrentChecks_CompletesWithin30Seconds: PASSED
+✅ RetrieveFile_With100ConcurrentChecks_MaintainsThroughput: PASSED
 ```
 
 **Load Testing** (1000+ Configurations):

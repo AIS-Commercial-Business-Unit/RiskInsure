@@ -57,7 +57,7 @@ var host = Host.CreateDefaultBuilder(args)
         {
             // Configure message routing
             routing.RouteToEndpoint(
-                typeof(FileProcessing.Contracts.Commands.ProcessDiscoveredFile),
+                typeof(FileProcessing.Contracts.Commands.ParseDiscoveredFile),
                 "FileProcessing.Worker"
             );
 

@@ -93,11 +93,11 @@ Based on plan.md, the project uses:
 
 ### Message Contracts
 
-- [X] T045 Create ExecuteFileCheck command in services/file-processing/FileProcessing.Contracts/Commands/ExecuteFileCheck.cs
+- [X] T045 Create RetrieveFile command in services/file-processing/FileProcessing.Contracts/Commands/RetrieveFile.cs
 - [X] T046 [P] Create CreateConfiguration command in services/file-processing/FileProcessing.Contracts/Commands/CreateConfiguration.cs
 - [X] T047 [P] Create UpdateConfiguration command in services/file-processing/FileProcessing.Contracts/Commands/UpdateConfiguration.cs
 - [X] T048 [P] Create DeleteConfiguration command in services/file-processing/FileProcessing.Contracts/Commands/DeleteConfiguration.cs
-- [X] T049 [P] Create ProcessDiscoveredFile command in services/file-processing/FileProcessing.Contracts/Commands/ProcessDiscoveredFile.cs
+- [X] T049 [P] Create ParseDiscoveredFile command in services/file-processing/FileProcessing.Contracts/Commands/ParseDiscoveredFile.cs
 - [X] T050 Create FileDiscovered event in services/file-processing/FileProcessing.Contracts/Events/FileDiscovered.cs
 - [X] T051 [P] Create FileCheckCompleted event in services/file-processing/FileProcessing.Contracts/Events/FileCheckCompleted.cs
 - [X] T052 [P] Create FileCheckFailed event in services/file-processing/FileProcessing.Contracts/Events/FileCheckFailed.cs
@@ -155,7 +155,7 @@ Based on plan.md, the project uses:
 - [X] T075 [P] [US2] Implement HttpsProtocolAdapter in services/file-processing/FileProcessing.Application/Protocols/HttpsProtocolAdapter.cs using HttpClient
 - [X] T076 [P] [US2] Implement AzureBlobProtocolAdapter in services/file-processing/FileProcessing.Application/Protocols/AzureBlobProtocolAdapter.cs using Azure.Storage.Blobs
 - [X] T077 [US2] Implement FileCheckService in services/file-processing/FileProcessing.Application/Services/FileCheckService.cs with ExecuteCheck method
-- [X] T078 [US2] Implement ExecuteFileCheckHandler in services/file-processing/FileProcessing.Application/MessageHandlers/ExecuteFileCheckHandler.cs
+- [X] T078 [US2] Implement RetrieveFileHandler in services/file-processing/FileProcessing.Application/MessageHandlers/RetrieveFileHandler.cs
 - [X] T079 [US2] Implement ScheduleEvaluator in services/file-processing/FileProcessing.Infrastructure/Scheduling/ScheduleEvaluator.cs using NCrontab for cron expression parsing
 - [X] T080 [US2] Implement SchedulerHostedService in services/file-processing/FileProcessing.Infrastructure/Scheduling/SchedulerHostedService.cs as BackgroundService
 - [X] T081 [US2] Register SchedulerHostedService in Worker Program.cs
@@ -172,15 +172,15 @@ Based on plan.md, the project uses:
 
 **Goal**: When system finds a file matching a FileProcessingConfiguration, it executes configured actions: publishing events and/or sending commands to the workflow orchestration platform with file metadata (location, name, size).
 
-**Independent Test**: Create a configuration with specific event/command actions, trigger file discovery (manually or via schedule), and verify the expected FileDiscovered events are published to Service Bus and ProcessDiscoveredFile commands are sent with correct file metadata.
+**Independent Test**: Create a configuration with specific event/command actions, trigger file discovery (manually or via schedule), and verify the expected FileDiscovered events are published to Service Bus and ParseDiscoveredFile commands are sent with correct file metadata.
 
 ### Implementation for User Story 3
 
 - [X] T086 [US3] Implement file discovery event publishing logic in FileCheckService (check for duplicate DiscoveredFile before publishing)
 - [X] T087 [US3] Implement idempotency check using DiscoveredFile repository (unique key constraint on clientId, configurationId, fileUrl, discoveryDate)
-- [X] T088 [US3] Implement ProcessDiscoveredFile command sending logic in FileCheckService
-- [X] T089 [US3] Add FileCheckCompleted event publishing after successful check in ExecuteFileCheckHandler
-- [X] T090 [US3] Add FileCheckFailed event publishing after failed check in ExecuteFileCheckHandler
+- [X] T088 [US3] Implement ParseDiscoveredFile command sending logic in FileCheckService
+- [X] T089 [US3] Add FileCheckCompleted event publishing after successful check in RetrieveFileHandler
+- [X] T090 [US3] Add FileCheckFailed event publishing after failed check in RetrieveFileHandler
 - [X] T091 [US3] Implement ConfigurationCreated event publishing in CreateConfigurationHandler
 - [X] T092 [US3] Add validation that at least one EventDefinition exists in configuration during creation
 - [X] T093 [US3] Add correlation ID propagation across commands and events for distributed tracing

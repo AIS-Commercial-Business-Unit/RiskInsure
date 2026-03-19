@@ -13,12 +13,12 @@ namespace RiskInsure.FileProcessing.Infrastructure.Scheduling;
 
 /// <summary>
 /// Background service that periodically checks for scheduled file processing configurations
-/// and triggers ExecuteFileCheck commands when schedules are due.
+/// and triggers RetrieveFile commands when schedules are due.
 /// Polling interval is configurable via SchedulerOptions.
 /// </summary>
 public class SchedulerHostedService : BackgroundService
 {
-    private const string ExecuteFileCheckDestination = "FileProcessing.Worker";
+    private const string RetrieveFileDestination = "FileProcessing.Worker";
 
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ScheduleEvaluator _scheduleEvaluator;
@@ -99,7 +99,7 @@ public class SchedulerHostedService : BackgroundService
     }
 
     /// <summary>
-    /// Checks all active configurations and sends ExecuteFileCheck commands for those due to run.
+    /// Checks all active configurations and sends RetrieveFile commands for those due to run.
     /// </summary>
     private async Task CheckScheduledConfigurationsAsync(CancellationToken cancellationToken)
     {
@@ -259,8 +259,8 @@ public class SchedulerHostedService : BackgroundService
             configuration.Name,
             configuration.Protocol);
 
-        // Send ExecuteFileCheck command
-        var command = new ExecuteFileCheck
+        // Send RetrieveFile command
+        var command = new RetrieveFile
         {
             MessageId = Guid.NewGuid(),
             CorrelationId = $"scheduled-{configuration.ClientId}-{configuration.Id}-{DateTimeOffset.UtcNow:yyyyMMddHHmmss}",
@@ -272,14 +272,14 @@ public class SchedulerHostedService : BackgroundService
         };
 
         var sendOptions = new SendOptions();
-        sendOptions.SetDestination(ExecuteFileCheckDestination);
+        sendOptions.SetDestination(RetrieveFileDestination);
 
         await _messageSession.Send(command, sendOptions, cancellationToken);
 
         _logger.LogDebug(
-            "ExecuteFileCheck command sent for configuration {ConfigurationId} to endpoint {Destination}",
+            "RetrieveFile command sent for configuration {ConfigurationId} to endpoint {Destination}",
             configuration.Id,
-            ExecuteFileCheckDestination);
+            RetrieveFileDestination);
     }
 
     public override Task StartAsync(CancellationToken cancellationToken)

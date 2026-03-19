@@ -112,7 +112,7 @@ await context.Publish(new FileDiscovered
 
 **Purpose**: Notifies that a scheduled file check has completed successfully.
 
-**Published By**: `ExecuteFileCheckHandler` (after FileCheckService completes)  
+**Published By**: `RetrieveFileHandler` (after FileCheckService completes)  
 **Subscribers**: Monitoring systems, dashboard, operational alerts
 
 **Properties**:
@@ -182,7 +182,7 @@ await context.Publish(new FileCheckCompleted
 
 **Purpose**: Notifies that a scheduled file check has failed after retry attempts.
 
-**Published By**: `ExecuteFileCheckHandler` (after FileCheckService fails)  
+**Published By**: `RetrieveFileHandler` (after FileCheckService fails)  
 **Subscribers**: Monitoring systems, operational alerts, incident management
 
 **Properties**:
@@ -461,7 +461,7 @@ await context.Publish(new ConfigurationDeleted
 ### Example 1: Successful File Check with Discovery
 
 ```
-ExecuteFileCheck command received
+RetrieveFile command received
   ↓
 FileCheckService.ExecuteCheck()
   ↓
@@ -482,7 +482,7 @@ Subscribers:
 ### Example 2: Failed File Check (Connection Timeout)
 
 ```
-ExecuteFileCheck command received
+RetrieveFile command received
   ↓
 FileCheckService.ExecuteCheck()
   ↓

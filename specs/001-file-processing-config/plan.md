@@ -168,14 +168,14 @@ All 10 principles passed initial validation. See results below.
 **Assessment**: File processing integrates with workflow platform via Azure Service Bus messages.  
 **Design**:
 - Events: `FileDiscovered`, `FileCheckCompleted`, `FileCheckFailed`, `ConfigurationUpdated`
-- Commands: `ExecuteFileCheck`, `ProcessDiscoveredFile` (sent to workflow platform)
+- Commands: `RetrieveFile`, `ParseDiscoveredFile` (sent to workflow platform)
 - Use NServiceBus `context.Publish()` for file discovery events
 - Use NServiceBus `context.Send()` for commands to workflow platform
 - All messages include standard metadata (MessageId, OccurredUtc, clientId, configurationId, IdempotencyKey)
 - No direct HTTP calls to workflow platform
 
 **Post-Design Validation**: ✅ Contracts fully defined:
-- 5 commands: ExecuteFileCheck, CreateConfiguration, UpdateConfiguration, DeleteConfiguration, ProcessDiscoveredFile
+- 5 commands: RetrieveFile, CreateConfiguration, UpdateConfiguration, DeleteConfiguration, ParseDiscoveredFile
 - 6 events: FileDiscovered, FileCheckCompleted, FileCheckFailed, ConfigurationCreated, ConfigurationUpdated, ConfigurationDeleted
 - All messages use imperative (commands) or past-tense (events) naming
 - All messages include standard metadata fields
@@ -189,7 +189,7 @@ All 10 principles passed initial validation. See results below.
 - Delegate to `IFileCheckService`, `IConfigurationService`, `IProtocolAdapter`
 - Handlers publish resulting events
 - No business logic in handler classes
-- Example: `ExecuteFileCheckHandler` → validates → calls `fileCheckService.ExecuteCheck()` → publishes `FileDiscovered` events
+- Example: `RetrieveFileHandler` → validates → calls `fileCheckService.ExecuteCheck()` → publishes `FileDiscovered` events
 
 **Post-Design Validation**: ✅ Contracts document handler responsibilities:
 - Each command contract specifies: "Handled By: {Handler} → {Service}.{Method}()"
@@ -238,15 +238,15 @@ All 10 principles passed initial validation. See results below.
 **Status**: ✅ **PASS**  
 **Assessment**: Naming follows strict conventions.  
 **Commitment**:
-- Commands: `ExecuteFileCheck`, `UpdateConfiguration`, `DeleteConfiguration`
+- Commands: `RetrieveFile`, `UpdateConfiguration`, `DeleteConfiguration`
 - Events: `FileDiscovered`, `FileCheckCompleted`, `ConfigurationCreated`, `ConfigurationDeleted`
 - Services: `FileCheckService`, `ConfigurationService`, `ProtocolAdapterFactory`
 - Repositories: `IFileProcessingConfigurationRepository`, `IFileProcessingExecutionRepository`
-- Handlers: `ExecuteFileCheckHandler`, `FileDiscoveredHandler`
+- Handlers: `RetrieveFileHandler`, `FileDiscoveredHandler`
 - Avoid abbreviations: use `Configuration` not `Config`, `Discovered` not `Found`
 
 **Post-Design Validation**: ✅ All contracts follow naming conventions:
-- Commands: ExecuteFileCheck, CreateConfiguration, UpdateConfiguration, DeleteConfiguration, ProcessDiscoveredFile (all imperative)
+- Commands: RetrieveFile, CreateConfiguration, UpdateConfiguration, DeleteConfiguration, ParseDiscoveredFile (all imperative)
 - Events: FileDiscovered, FileCheckCompleted, FileCheckFailed, ConfigurationCreated, ConfigurationUpdated, ConfigurationDeleted (all past-tense)
 - Services/Repositories follow standard naming in project structure
 - Entities use full names (FileProcessingConfiguration, not FileProcessingConfig)
@@ -311,7 +311,7 @@ services/
 │   │   │   ├── HttpsProtocolAdapter.cs     # HTTPS implementation
 │   │   │   └── AzureBlobProtocolAdapter.cs # Azure Blob Storage implementation
 │   │   ├── MessageHandlers/                # NServiceBus message handlers (thin)
-│   │   │   ├── ExecuteFileCheckHandler.cs
+│   │   │   ├── RetrieveFileHandler.cs
 │   │   │   ├── ConfigurationCreatedHandler.cs
 │   │   │   └── ConfigurationDeletedHandler.cs
 │   │   └── Queries/                        # Query models for API
@@ -348,8 +348,8 @@ services/
 │   │
 │   ├── FileProcessing.Contracts/             # Shared message contracts
 │   │   ├── Commands/
-│   │   │   ├── ExecuteFileCheck.cs
-│   │   │   └── ProcessDiscoveredFile.cs
+│   │   │   ├── RetrieveFile.cs
+│   │   │   └── ParseDiscoveredFile.cs
 │   │   └── Events/
 │   │       ├── FileDiscovered.cs
 │   │       ├── FileCheckCompleted.cs

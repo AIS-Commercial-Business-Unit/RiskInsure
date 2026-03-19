@@ -384,7 +384,7 @@ FileProcessingConfiguration (1) ----< (M) DiscoveredFile (direct)
 
 | From State | To State | Trigger | Validation |
 |------------|----------|---------|------------|
-| Pending | InProgress | ExecuteFileCheck command received | Configuration is active |
+| Pending | InProgress | RetrieveFile command received | Configuration is active |
 | InProgress | Completed | File check succeeds | FilesFound >= 0, events published |
 | InProgress | Failed | File check fails (transient error) | Retry count < 3 (retry) |
 | InProgress | Failed | File check fails (terminal error) | Retry count >= 3 or non-retryable error |

@@ -6,7 +6,7 @@ namespace FileProcessing.Contracts.Commands;
 /// Command sent to the workflow orchestration platform to process a discovered file.
 /// Sent by FileCheckService when a file matching a configuration is found.
 /// </summary>
-public record ProcessDiscoveredFile : ICommand
+public record ParseDiscoveredFile : ICommand
 {
     public Guid MessageId { get; init; }
     public required string CorrelationId { get; init; }

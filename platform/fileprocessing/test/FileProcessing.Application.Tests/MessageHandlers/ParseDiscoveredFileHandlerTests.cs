@@ -13,7 +13,7 @@ using RiskInsure.FileProcessing.Domain.ValueObjects;
 
 namespace FileProcessing.Application.Tests.MessageHandlers;
 
-public class ProcessDiscoveredFileHandlerTests
+public class ParseDiscoveredFileHandlerTests
 {
     [Fact]
     public async Task Handle_WithNachaProcessingConfig_PublishesRowEventsAndSendsRowCommands()
@@ -28,7 +28,7 @@ public class ProcessDiscoveredFileHandlerTests
         var configurationRepository = new Mock<IFileProcessingConfigurationRepository>();
         var processedRepository = new Mock<IProcessedFileRecordRepository>();
         var httpClientFactory = new Mock<IHttpClientFactory>();
-        var logger = new Mock<ILogger<ProcessDiscoveredFileHandler>>();
+        var logger = new Mock<ILogger<ParseDiscoveredFileHandler>>();
         var downloadLogger = new Mock<ILogger<DiscoveredFileContentDownloadService>>();
         var context = new Mock<IMessageHandlerContext>();
 
@@ -58,13 +58,13 @@ public class ProcessDiscoveredFileHandlerTests
             .Returns(Task.CompletedTask);
 
         var downloadService = new DiscoveredFileContentDownloadService(httpClientFactory.Object, downloadLogger.Object);
-        var handler = new ProcessDiscoveredFileHandler(
+        var handler = new ParseDiscoveredFileHandler(
             configurationRepository.Object,
             processedRepository.Object,
             downloadService,
             logger.Object);
 
-        var command = new ProcessDiscoveredFile
+        var command = new ParseDiscoveredFile
         {
             MessageId = Guid.NewGuid(),
             CorrelationId = "corr-123",
@@ -107,7 +107,7 @@ public class ProcessDiscoveredFileHandlerTests
         var configurationRepository = new Mock<IFileProcessingConfigurationRepository>();
         var processedRepository = new Mock<IProcessedFileRecordRepository>();
         var httpClientFactory = new Mock<IHttpClientFactory>();
-        var logger = new Mock<ILogger<ProcessDiscoveredFileHandler>>();
+        var logger = new Mock<ILogger<ParseDiscoveredFileHandler>>();
         var downloadLogger = new Mock<ILogger<DiscoveredFileContentDownloadService>>();
         var context = new Mock<IMessageHandlerContext>();
 
@@ -133,13 +133,13 @@ public class ProcessDiscoveredFileHandlerTests
             .Returns(Task.CompletedTask);
 
         var downloadService = new DiscoveredFileContentDownloadService(httpClientFactory.Object, downloadLogger.Object);
-        var handler = new ProcessDiscoveredFileHandler(
+        var handler = new ParseDiscoveredFileHandler(
             configurationRepository.Object,
             processedRepository.Object,
             downloadService,
             logger.Object);
 
-        var command = new ProcessDiscoveredFile
+        var command = new ParseDiscoveredFile
         {
             MessageId = Guid.NewGuid(),
             CorrelationId = "corr-123",

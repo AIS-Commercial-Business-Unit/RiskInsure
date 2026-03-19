@@ -261,14 +261,14 @@ POST https://localhost:5001/api/configurations
 ### Successful File Check
 
 1. **Worker** evaluates schedules every minute
-2. **Worker** sends `ExecuteFileCheck` command when due
+2. **Worker** sends `RetrieveFile` command when due
 3. **Handler** receives command, calls `FileCheckService`
 4. **Service** replaces tokens: `test-{yyyy}{mm}{dd}.txt` → `test-20260223.txt`
 5. **Protocol Adapter** connects to FTP/HTTPS/Azure Blob
 6. **Service** finds matching files
 7. **Service** creates `DiscoveredFile` entity (idempotency check)
 8. **Service** publishes `FileDiscovered` event
-9. **Service** sends `ProcessDiscoveredFile` command to workflow platform
+9. **Service** sends `ParseDiscoveredFile` command to workflow platform
 10. **Service** publishes `FileCheckCompleted` event
 11. **Handler** returns success
 

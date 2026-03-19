@@ -96,7 +96,7 @@ Duration: 2.2 seconds
 | **Services** | 5 | ConfigurationService, FileCheckService, TokenReplacementService, ExecutionHistoryService, ScheduleExecutionService |
 | **Repositories** | 3 | FileProcessingConfigurationRepository, FileProcessingExecutionRepository, DiscoveredFileRepository |
 | **Protocol Adapters** | 3 | FtpProtocolAdapter, HttpsProtocolAdapter, AzureBlobProtocolAdapter |
-| **Message Handlers** | 6 | ExecuteFileCheckHandler, CreateConfigurationHandler, UpdateConfigurationHandler, DeleteConfigurationHandler, etc. |
+| **Message Handlers** | 6 | RetrieveFileHandler, CreateConfigurationHandler, UpdateConfigurationHandler, DeleteConfigurationHandler, etc. |
 | **Controllers** | 2 | ConfigurationController, ExecutionHistoryController |
 
 ### Documentation Deliverables
@@ -128,7 +128,7 @@ Duration: 2.2 seconds
 
 ### User Story 3: Trigger Workflows on File Discovery ✅
 - Publishes FileDiscovered events to Service Bus
-- Sends ProcessDiscoveredFile commands to workflow platform
+- Sends ParseDiscoveredFile commands to workflow platform
 - Idempotency enforcement (unique constraint on DiscoveredFile)
 - Correlation ID propagation for distributed tracing
 - Zero duplicate workflow triggers (SC-007 validated)
@@ -256,11 +256,11 @@ All 7 measurable success criteria from spec.md validated:
 
 ### Message Contracts
 **Commands Implemented**:
-1. ExecuteFileCheck (API → Worker)
+1. RetrieveFile (API → Worker)
 2. CreateConfiguration (API → Worker)
 3. UpdateConfiguration (API → Worker)
 4. DeleteConfiguration (API → Worker)
-5. ProcessDiscoveredFile (Worker → WorkflowOrchestrator)
+5. ParseDiscoveredFile (Worker → WorkflowOrchestrator)
 
 **Events Implemented**:
 1. FileDiscovered (published by Worker)

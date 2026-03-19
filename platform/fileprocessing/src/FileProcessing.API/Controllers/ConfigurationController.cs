@@ -401,7 +401,7 @@ public class ConfigurationController : ControllerBase
 
     /// <summary>
     /// Manually triggers a file check for an existing configuration.
-    /// Sends ExecuteFileCheck command with IsManualTrigger=true.
+    /// Sends RetrieveFile command with IsManualTrigger=true.
     /// </summary>
     /// <param name="id">Configuration ID</param>
     /// <param name="cancellationToken">Cancellation token</param>
@@ -449,8 +449,8 @@ public class ConfigurationController : ControllerBase
                 userId,
                 executionId);
 
-            // Send ExecuteFileCheck command via NServiceBus
-            var command = new ExecuteFileCheck
+            // Send RetrieveFile command via NServiceBus
+            var command = new RetrieveFile
             {
                 MessageId = Guid.NewGuid(),
                 CorrelationId = correlationId,

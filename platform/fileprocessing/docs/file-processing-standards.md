@@ -61,7 +61,7 @@ This document defines the domain terminology, coding standards, and architectura
 
 **ConfigurationExecution**
 - The process of scheduler triggering a file check based on schedule evaluation
-- Sends `ExecuteFileCheck` command via message bus
+- Sends `RetrieveFile` command via message bus
 - Ensures scheduled checks execute within 1 minute of scheduled time (SC-002)
 
 ### States and Status
@@ -119,7 +119,7 @@ This document defines the domain terminology, coding standards, and architectura
 - Explicit values for serialization stability
 
 **Commands/Events**
-- PascalCase imperative verbs (commands): `CreateConfiguration`, `ExecuteFileCheck`, `DeleteConfiguration`
+- PascalCase imperative verbs (commands): `CreateConfiguration`, `RetrieveFile`, `DeleteConfiguration`
 - PascalCase past tense (events): `ConfigurationCreated`, `FileCheckCompleted`, `FileDiscovered`
 - Suffix: `*Command` (optional), `*Event` (optional, use context)
 
@@ -190,7 +190,7 @@ catch (Exception ex)
 
 ### Message-Based Integration
 - All cross-boundary communication via Azure Service Bus / NServiceBus
-- Commands: Direct actions (`CreateConfiguration`, `ExecuteFileCheck`)
+- Commands: Direct actions (`CreateConfiguration`, `RetrieveFile`)
 - Events: Notifications (`ConfigurationCreated`, `FileDiscovered`)
 - Idempotency: Every message has `IdempotencyKey` for duplicate detection
 

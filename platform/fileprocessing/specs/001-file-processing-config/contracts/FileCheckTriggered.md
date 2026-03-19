@@ -13,7 +13,7 @@
 Notifies subscribers that a file check has been initiated for a specific FileProcessingConfiguration. Captures trigger context (manual vs scheduled), user identity, and execution tracking information for audit trail, monitoring, and analytics.
 
 **Published When**: 
-- Immediately after `ExecuteFileCheckHandler` loads and validates configuration
+- Immediately after `RetrieveFileHandler` loads and validates configuration
 - Before actual file check execution begins
 - Triggered by both scheduled executions (SchedulerHostedService) and manual API triggers
 
@@ -39,7 +39,7 @@ namespace FileProcessing.Contracts.Events;
 /// <summary>
 /// Event published when a file check is triggered (before execution begins).
 /// Captures trigger source (scheduled vs manual) and user context for audit trail.
-/// Published by ExecuteFileCheckHandler before calling FileCheckService.
+/// Published by RetrieveFileHandler before calling FileCheckService.
 /// </summary>
 public record FileCheckTriggered : IEvent
 {
@@ -74,7 +74,7 @@ public record FileCheckTriggered : IEvent
 | Field | Type | Required | Purpose | Source |
 |-------|------|----------|---------|--------|
 | `MessageId` | Guid | Yes | Unique event identifier for deduplication | `Guid.NewGuid()` |
-| `CorrelationId` | string | Yes | Trace ID across distributed operations | From `ExecuteFileCheck` command |
+| `CorrelationId` | string | Yes | Trace ID across distributed operations | From `RetrieveFile` command |
 | `OccurredUtc` | DateTimeOffset | Yes | When event was published | `DateTimeOffset.UtcNow` |
 | `IdempotencyKey` | string | Yes | Deduplication key for outbox | `"{ClientId}:{ConfigurationId}:triggered:{ExecutionId}"` |
 
@@ -82,8 +82,8 @@ public record FileCheckTriggered : IEvent
 
 | Field | Type | Required | Purpose | Source |
 |-------|------|----------|---------|--------|
-| `ClientId` | string | Yes | Client identifier (partition key) | From `ExecuteFileCheck` command |
-| `ConfigurationId` | Guid | Yes | Configuration being checked | From `ExecuteFileCheck` command |
+| `ClientId` | string | Yes | Client identifier (partition key) | From `RetrieveFile` command |
+| `ConfigurationId` | Guid | Yes | Configuration being checked | From `RetrieveFile` command |
 | `ConfigurationName` | string | Yes | Human-readable configuration name | From loaded `FileProcessingConfiguration` entity |
 | `Protocol` | string | Yes | Protocol type (FTP, HTTPS, AzureBlob) | From `configuration.ProtocolSettings.ProtocolType.ToString()` |
 
@@ -98,8 +98,8 @@ public record FileCheckTriggered : IEvent
 
 | Field | Type | Required | Purpose | Source |
 |-------|------|----------|---------|--------|
-| `IsManualTrigger` | bool | Yes | Distinguish manual (true) from scheduled (false) | From `ExecuteFileCheck.IsManualTrigger` |
-| `TriggeredBy` | string | Yes | User ID (manual) or "Scheduler" (scheduled) | From `ExecuteFileCheck.TriggeredBy ?? "Scheduler"` |
+| `IsManualTrigger` | bool | Yes | Distinguish manual (true) from scheduled (false) | From `RetrieveFile.IsManualTrigger` |
+| `TriggeredBy` | string | Yes | User ID (manual) or "Scheduler" (scheduled) | From `RetrieveFile.TriggeredBy ?? "Scheduler"` |
 
 ---
 
@@ -301,7 +301,7 @@ customEvents
 **Event**: `FileCheckTriggered`  
 **Namespace**: `FileProcessing.Contracts.Events`  
 **Version**: 1.0  
-**Publisher**: `ExecuteFileCheckHandler` (FileProcessing.Worker)  
+**Publisher**: `RetrieveFileHandler` (FileProcessing.Worker)  
 **Subscribers**: Audit systems, monitoring dashboards, analytics (to be implemented)  
 **Frequency**: Low (~100-200/day, mostly scheduled, ~10-20 manual)  
 **Size**: ~500 bytes per event  

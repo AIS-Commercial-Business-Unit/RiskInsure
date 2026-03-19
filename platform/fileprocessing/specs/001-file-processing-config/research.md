@@ -43,7 +43,7 @@ This document consolidates research findings for unknowns identified during Tech
 
 **Findings**:
 - Spec requirement (AC-4): "When the handler begins processing, then the system publishes a FileCheckTriggered event **before executing the file check**"
-- Existing handler structure (ExecuteFileCheckHandler.cs):
+- Existing handler structure (RetrieveFileHandler.cs):
   - Line 40-46: Load configuration
   - Line 48-87: Check IsActive
   - Line 89-93: Call `FileCheckService.ExecuteCheckAsync()` (the actual file check)
@@ -130,7 +130,7 @@ public record TriggerFileCheckResponse
 
 ### R5: Error Handling Strategy for Configuration Validation
 
-**Question**: What validation should occur before sending the `ExecuteFileCheck` command, and what error codes should be returned?
+**Question**: What validation should occur before sending the `RetrieveFile` command, and what error codes should be returned?
 
 **Findings**:
 - Spec defines error responses (spec.md lines 123-129):
@@ -140,7 +140,7 @@ public record TriggerFileCheckResponse
   - **500 Internal Server Error**: System error during command sending
 - Existing `ConfigurationService` has `GetByIdAsync(clientId, configurationId)` method
 - Returns null if not found OR if clientId doesn't match (security trimming at repository level)
-- Existing handler checks `IsActive` field (ExecuteFileCheckHandler.cs line 81-87)
+- Existing handler checks `IsActive` field (RetrieveFileHandler.cs line 81-87)
 
 **Decision**: API endpoint performs two validation steps before sending command:
 1. **Existence + Security**: Call `ConfigurationService.GetByIdAsync(clientId, configId)`
@@ -167,7 +167,7 @@ public record TriggerFileCheckResponse
 **Question**: How should user identity (support engineer) flow from API to event for "triggered by" field?
 
 **Findings**:
-- Existing `ExecuteFileCheck` command structure (ExecuteFileCheck.cs):
+- Existing `RetrieveFile` command structure (RetrieveFile.cs):
   - Standard fields: `MessageId`, `CorrelationId`, `OccurredUtc`, `IdempotencyKey`
   - Domain fields: `ClientId`, `ConfigurationId`, `ScheduledExecutionTime`, `IsManualTrigger`
   - No "user" or "triggeredBy" field currently
@@ -175,7 +175,7 @@ public record TriggerFileCheckResponse
 - For scheduled executions, triggered by = "Scheduler" (not a user)
 - For manual triggers, triggered by = support engineer user ID
 
-**Decision**: Add optional `TriggeredBy` field to `ExecuteFileCheck` command:
+**Decision**: Add optional `TriggeredBy` field to `RetrieveFile` command:
 ```csharp
 public string? TriggeredBy { get; init; } // null for scheduled, userId for manual
 ```
@@ -260,7 +260,7 @@ public string? TriggeredBy { get; init; } // null for scheduled, userId for manu
 ## Next Phase
 
 **Phase 1: Design & Contracts** - Ready to proceed with:
-- `data-model.md` - Document entity changes (ExecuteFileCheck command modification)
+- `data-model.md` - Document entity changes (RetrieveFile command modification)
 - `contracts/FileCheckTriggered.md` - Event contract specification
 - `quickstart.md` - Developer guide for adding similar manual trigger endpoints
 - Update agent context with new patterns

@@ -7,7 +7,7 @@
 
 ## Summary
 
-Add a manual trigger API endpoint to the existing File Processing service that allows support engineers to trigger file checks on-demand for any client configuration they have access to. The endpoint publishes the existing `ExecuteFileCheck` command with `IsManualTrigger=true`. Enhance `ExecuteFileCheckHandler` to publish a new `FileCheckTriggered` event at the start of processing to capture audit trail for both scheduled and manual executions. Maintains full client-scoped security trimming and idempotency guarantees.
+Add a manual trigger API endpoint to the existing File Processing service that allows support engineers to trigger file checks on-demand for any client configuration they have access to. The endpoint publishes the existing `RetrieveFile` command with `IsManualTrigger=true`. Enhance `RetrieveFileHandler` to publish a new `FileCheckTriggered` event at the start of processing to capture audit trail for both scheduled and manual executions. Maintains full client-scoped security trimming and idempotency guarantees.
 
 ## Technical Context (RiskInsure Stack)
 
@@ -75,25 +75,25 @@ Add a manual trigger API endpoint to the existing File Processing service that a
 
 ### Core Principle Compliance
 
-- [x] **I. Domain Language Consistency** - Uses existing domain language from `file-processing-standards.md`: FileProcessingConfiguration, FileCheck, ExecuteFileCheck, FileCheckTriggered. No new domain terms introduced. All terminology consistent with existing standards.
+- [x] **I. Domain Language Consistency** - Uses existing domain language from `file-processing-standards.md`: FileProcessingConfiguration, FileCheck, RetrieveFile, FileCheckTriggered. No new domain terms introduced. All terminology consistent with existing standards.
 
 - [x] **II. Data Model Strategy** - Cosmos DB with `/clientId` partition key (existing). No new containers or partition strategies. Feature only adds API endpoint and event—no persistence changes required.
 
 - [x] **III. Atomic State Transitions** - No entity state transitions in this feature. API validates configuration existence (read-only), sends command (stateless), returns 202. No ETags or concurrency concerns in API layer.
 
-- [x] **IV. Idempotent Message Handlers** - Existing `ExecuteFileCheckHandler` already idempotent (checks configuration existence, generates unique ExecutionId). Enhancement adds event publishing at start—idempotency ensured via `IdempotencyKey` format: `"{ClientId}:{ConfigurationId}:triggered:{ExecutionId}"`. Multiple replays publish same event once.
+- [x] **IV. Idempotent Message Handlers** - Existing `RetrieveFileHandler` already idempotent (checks configuration existence, generates unique ExecutionId). Enhancement adds event publishing at start—idempotency ensured via `IdempotencyKey` format: `"{ClientId}:{ConfigurationId}:triggered:{ExecutionId}"`. Multiple replays publish same event once.
 
 - [x] **V. Structured Observability** - All logs include `CorrelationId`, `ClientId`, `ConfigurationId`. New `FileCheckTriggered` event includes same correlation fields. Existing handler already follows structured logging pattern.
 
-- [x] **VI. Message-Based Integration** - API uses `context.Send()` for `ExecuteFileCheck` command (unicast to Worker endpoint). Handler uses `context.Publish()` for `FileCheckTriggered` event (broadcast). No cross-service HTTP calls.
+- [x] **VI. Message-Based Integration** - API uses `context.Send()` for `RetrieveFile` command (unicast to Worker endpoint). Handler uses `context.Publish()` for `FileCheckTriggered` event (broadcast). No cross-service HTTP calls.
 
-- [x] **VII. Thin Message Handlers** - `ExecuteFileCheckHandler` delegates to `FileCheckService` in Application layer (existing pattern). New event publishing is 3 lines: construct event, call `context.Publish()`. No business logic in handler.
+- [x] **VII. Thin Message Handlers** - `RetrieveFileHandler` delegates to `FileCheckService` in Application layer (existing pattern). New event publishing is 3 lines: construct event, call `context.Publish()`. No business logic in handler.
 
 - [x] **VIII. Test Coverage Requirements** - Plan includes: API integration tests (Playwright), handler unit tests (xUnit), event publishing tests, security tests. Target: Application 80%+ (handler + service).
 
 - [x] **IX. Technology Constraints** - Uses approved stack: .NET 10, C# 13, NServiceBus 9.x, Azure Service Bus transport, Cosmos DB, xUnit. No prohibited technologies (no EF Core, no distributed transactions).
 
-- [x] **X. Naming Conventions** - Command: `ExecuteFileCheck` (verb+noun, already exists). Event: `FileCheckTriggered` (noun+verbPastTense). Follows naming standard.
+- [x] **X. Naming Conventions** - Command: `RetrieveFile` (verb+noun, already exists). Event: `FileCheckTriggered` (noun+verbPastTense). Follows naming standard.
 
 ### Violations Requiring Justification
 
@@ -135,7 +135,7 @@ services/file-processing/
 │   │   └── FileProcessing.API.csproj
 │   ├── FileProcessing.Contracts/
 │   │   ├── Commands/
-│   │   │   └── ExecuteFileCheck.cs             # (existing, already has IsManualTrigger)
+│   │   │   └── RetrieveFile.cs             # (existing, already has IsManualTrigger)
 │   │   ├── Events/
 │   │   │   ├── FileCheckTriggered.cs           # ✨ NEW event contract
 │   │   │   ├── FileCheckCompleted.cs           # (existing)
@@ -143,7 +143,7 @@ services/file-processing/
 │   │   └── FileProcessing.Contracts.csproj
 │   ├── FileProcessing.Application/
 │   │   ├── MessageHandlers/
-│   │   │   └── ExecuteFileCheckHandler.cs      # ✨ MODIFY: Publish FileCheckTriggered
+│   │   │   └── RetrieveFileHandler.cs      # ✨ MODIFY: Publish FileCheckTriggered
 │   │   └── Services/
 │   │       └── FileCheckService.cs             # (existing, no changes)
 │   ├── FileProcessing.Domain/
@@ -160,7 +160,7 @@ services/file-processing/
 ├── test/
 │   ├── FileProcessing.Application.Tests/
 │   │   └── MessageHandlers/
-│   │       └── ExecuteFileCheckHandlerTests.cs # ✨ ADD: Event publishing tests
+│   │       └── RetrieveFileHandlerTests.cs # ✨ ADD: Event publishing tests
 │   ├── FileProcessing.Integration.Tests/
 │   │   └── Controllers/
 │   │       └── ConfigurationController.TriggerTests.cs  # ✨ NEW integration tests
@@ -214,7 +214,7 @@ services/file-processing/
 
 Error codes: 404 (not found OR wrong client), 400 (inactive), 500 (messaging error).
 
-**R6 - User Identity Flow**: Add optional `TriggeredBy` field to `ExecuteFileCheck` command. API populates with user ID from JWT. Handler defaults to "Scheduler" if null. Backward compatible (existing scheduled messages omit field).
+**R6 - User Identity Flow**: Add optional `TriggeredBy` field to `RetrieveFile` command. API populates with user ID from JWT. Handler defaults to "Scheduler" if null. Backward compatible (existing scheduled messages omit field).
 
 **R7 - ExecutionId Generation**: Generate in handler (not API, not service) to ensure stable ID across handler retries while allowing separate executions for separate API requests. Requires `FileCheckService.ExecuteCheckAsync` signature change to accept `executionId` parameter.
 
@@ -255,7 +255,7 @@ Error codes: 404 (not found OR wrong client), 400 (inactive), 500 (messaging err
 - `FileProcessingExecution` - Created by service (existing flow)
 - `DiscoveredFile` - Created by service (existing flow)
 
-**Modified Command**: `ExecuteFileCheck`
+**Modified Command**: `RetrieveFile`
 - ✨ Added: `string? TriggeredBy` field (nullable, optional)
 - Purpose: Track user identity for manual triggers
 - Backward compatible: Scheduled executions omit field (null)
@@ -282,10 +282,10 @@ Error codes: 404 (not found OR wrong client), 400 (inactive), 500 (messaging err
 
 **API Layer**:
 - `ConfigurationService.GetByIdAsync()` - Validate configuration existence and ownership
-- `IMessageSession.Send()` - Send ExecuteFileCheck command
+- `IMessageSession.Send()` - Send RetrieveFile command
 
 **Application Layer**:
-- `ExecuteFileCheckHandler` - Publish FileCheckTriggered event before processing
+- `RetrieveFileHandler` - Publish FileCheckTriggered event before processing
 - `FileCheckService` - Accept executionId parameter (signature change)
 
 **No new services or repositories required.**
@@ -323,7 +323,7 @@ Error codes: 404 (not found OR wrong client), 400 (inactive), 500 (messaging err
 
 **Event**: `FileCheckTriggered` v1.0
 - 12 fields (4 metadata, 4 context, 2 tracking, 2 trigger)
-- Published by: `ExecuteFileCheckHandler`
+- Published by: `RetrieveFileHandler`
 - Subscribers: Audit, monitoring, analytics (to be implemented)
 - Delivery: At-least-once with outbox deduplication
 - Size: ~500 bytes
@@ -347,7 +347,7 @@ Error codes: 404 (not found OR wrong client), 400 (inactive), 500 (messaging err
 **Expected Task Breakdown**:
 1. **Contracts** (2 tasks):
    - Create `FileCheckTriggered` event contract
-   - Add `TriggeredBy` field to `ExecuteFileCheck` command
+   - Add `TriggeredBy` field to `RetrieveFile` command
 
 2. **API Layer** (3 tasks):
    - Add `TriggerFileCheckResponse` DTO
@@ -355,7 +355,7 @@ Error codes: 404 (not found OR wrong client), 400 (inactive), 500 (messaging err
    - Add integration tests for trigger endpoint
 
 3. **Application Layer** (3 tasks):
-   - Modify `ExecuteFileCheckHandler` to publish `FileCheckTriggered` event
+   - Modify `RetrieveFileHandler` to publish `FileCheckTriggered` event
    - Update `FileCheckService.ExecuteCheckAsync` signature to accept `executionId`
    - Add handler unit tests for event publishing
 
@@ -374,11 +374,11 @@ Error codes: 404 (not found OR wrong client), 400 (inactive), 500 (messaging err
 ### Critical Path
 
 ```text
-1. Add TriggeredBy to ExecuteFileCheck command (enables user tracking)
+1. Add TriggeredBy to RetrieveFile command (enables user tracking)
    ↓
 2. Create FileCheckTriggered event contract (defines event schema)
    ↓
-3. Modify ExecuteFileCheckHandler to publish event (implements audit trail)
+3. Modify RetrieveFileHandler to publish event (implements audit trail)
    ↓
 4. Update FileCheckService signature (enables ExecutionId passing)
    ↓
@@ -399,8 +399,8 @@ These can proceed in parallel once contracts are defined.
 ### External Dependencies
 
 **None.** All dependencies already exist:
-- ExecuteFileCheck command ✓
-- ExecuteFileCheckHandler ✓
+- RetrieveFile command ✓
+- RetrieveFileHandler ✓
 - FileCheckService ✓
 - ConfigurationController ✓
 - Security infrastructure ✓
@@ -483,7 +483,7 @@ These can proceed in parallel once contracts are defined.
 
 **Test Files**:
 - `test/FileProcessing.Integration.Tests/Controllers/ConfigurationController.TriggerTests.cs`
-- `test/FileProcessing.Application.Tests/MessageHandlers/ExecuteFileCheckHandlerTests.cs` (extend existing)
+- `test/FileProcessing.Application.Tests/MessageHandlers/RetrieveFileHandlerTests.cs` (extend existing)
 - `test/FileProcessing.Application.Tests/Services/FileCheckServiceTests.cs` (extend existing)
 
 ---

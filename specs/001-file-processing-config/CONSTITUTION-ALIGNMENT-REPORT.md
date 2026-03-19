@@ -24,7 +24,7 @@
 
 ### ✅ IV. Idempotent Message Handlers
 - Update/Delete handlers check existing state
-- ExecuteFileCheckHandler validates configuration exists
+- RetrieveFileHandler validates configuration exists
 - ✅ CreateConfigurationHandler now checks if configuration exists before creating
 
 ### ✅ V. Structured Observability

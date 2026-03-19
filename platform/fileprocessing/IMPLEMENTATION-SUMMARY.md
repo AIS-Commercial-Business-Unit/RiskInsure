@@ -131,7 +131,7 @@ Successfully completed the implementation of **53 tasks (T096-T148)** across Pha
 - **Key Vault Integration**: Secrets never in code/config
 
 ### Message-Based Integration
-- **Commands**: `CreateConfiguration`, `UpdateConfiguration`, `DeleteConfiguration`, `ExecuteFileCheck`
+- **Commands**: `CreateConfiguration`, `UpdateConfiguration`, `DeleteConfiguration`, `RetrieveFile`
 - **Events**: `ConfigurationCreated`, `ConfigurationUpdated`, `ConfigurationDeleted`, `FileDiscovered`
 - **Idempotency**: Every message has `IdempotencyKey`
 - **Correlation**: Distributed tracing via `CorrelationId`

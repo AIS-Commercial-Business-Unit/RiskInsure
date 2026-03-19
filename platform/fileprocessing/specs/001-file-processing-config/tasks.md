@@ -20,7 +20,7 @@
 
 **Purpose**: Define the message contracts that all other layers depend on
 
-- [ ] T001 [P] Add TriggeredBy field to ExecuteFileCheck command in `services/file-processing/src/FileProcessing.Contracts/Commands/ExecuteFileCheck.cs`
+- [ ] T001 [P] Add TriggeredBy field to RetrieveFile command in `services/file-processing/src/FileProcessing.Contracts/Commands/RetrieveFile.cs`
 - [ ] T002 [P] Create FileCheckTriggered event contract in `services/file-processing/src/FileProcessing.Contracts/Events/FileCheckTriggered.cs`
 
 **Checkpoint**: Message contracts defined - can proceed with implementation layers
@@ -41,7 +41,7 @@
 ### Application Layer Changes
 
 - [ ] T003 Update FileCheckService.ExecuteCheckAsync signature to accept executionId parameter in `services/file-processing/src/FileProcessing.Application/Services/FileCheckService.cs`
-- [ ] T004 Modify ExecuteFileCheckHandler to generate ExecutionId and publish FileCheckTriggered event before processing in `services/file-processing/src/FileProcessing.Application/MessageHandlers/ExecuteFileCheckHandler.cs`
+- [ ] T004 Modify RetrieveFileHandler to generate ExecutionId and publish FileCheckTriggered event before processing in `services/file-processing/src/FileProcessing.Application/MessageHandlers/RetrieveFileHandler.cs`
 
 ### API Layer Implementation
 
@@ -50,7 +50,7 @@
 
 ### Unit Tests for Application Layer
 
-- [ ] T007 [P] Add unit tests for FileCheckTriggered event publishing in `services/file-processing/test/FileProcessing.Application.Tests/MessageHandlers/ExecuteFileCheckHandlerTests.cs`
+- [ ] T007 [P] Add unit tests for FileCheckTriggered event publishing in `services/file-processing/test/FileProcessing.Application.Tests/MessageHandlers/RetrieveFileHandlerTests.cs`
 - [ ] T008 [P] Add unit tests for FileCheckService executionId parameter in `services/file-processing/test/FileProcessing.Application.Tests/Services/FileCheckServiceTests.cs`
 
 ### Integration Tests for API Layer
@@ -107,7 +107,7 @@ Phase 3: Documentation & Polish (T014-T016)
 ### Dependency Graph
 
 ```text
-                    ┌─ T001 (ExecuteFileCheck) ─┐
+                    ┌─ T001 (RetrieveFile) ─┐
                     │                            ├─→ T004 (Handler) ─→ T006 (API) ─→ T009-T013 (Integration Tests)
                     └─ T002 (FileCheckTriggered) ┘         ↑
                                                            │
@@ -208,8 +208,8 @@ If issues arise after deployment:
 
 ## Task Details
 
-### T001: Add TriggeredBy field to ExecuteFileCheck command
-**File**: `services/file-processing/src/FileProcessing.Contracts/Commands/ExecuteFileCheck.cs`  
+### T001: Add TriggeredBy field to RetrieveFile command
+**File**: `services/file-processing/src/FileProcessing.Contracts/Commands/RetrieveFile.cs`  
 **Changes**: Add `public string? TriggeredBy { get; init; }` field  
 **Validation**: Field is nullable (backward compatible)  
 **Estimated time**: 15 minutes
@@ -226,8 +226,8 @@ If issues arise after deployment:
 **Impact**: Breaking change for 2 callers (handler + tests)  
 **Estimated time**: 30 minutes
 
-### T004: Modify ExecuteFileCheckHandler
-**File**: `services/file-processing/src/FileProcessing.Application/MessageHandlers/ExecuteFileCheckHandler.cs`  
+### T004: Modify RetrieveFileHandler
+**File**: `services/file-processing/src/FileProcessing.Application/MessageHandlers/RetrieveFileHandler.cs`  
 **Changes**:
 1. Generate `executionId = Guid.NewGuid()` after loading configuration
 2. Publish FileCheckTriggered event before calling FileCheckService
@@ -248,13 +248,13 @@ If issues arise after deployment:
 1. Extract clientId and userId from JWT claims
 2. Validate configuration exists and is active
 3. Generate executionId
-4. Send ExecuteFileCheck command with IsManualTrigger=true
+4. Send RetrieveFile command with IsManualTrigger=true
 5. Return 202 Accepted with TriggerFileCheckResponse
 **Security**: Client-scoped validation via existing ConfigurationService  
 **Estimated time**: 1 hour
 
 ### T007: Add handler event publishing tests
-**File**: `services/file-processing/test/FileProcessing.Application.Tests/MessageHandlers/ExecuteFileCheckHandlerTests.cs`  
+**File**: `services/file-processing/test/FileProcessing.Application.Tests/MessageHandlers/RetrieveFileHandlerTests.cs`  
 **Scenarios**:
 - Verify FileCheckTriggered published before service call
 - Verify event includes correct trigger context (manual vs scheduled)
@@ -390,7 +390,7 @@ This feature consists of a single user story (Support Engineer Manually Triggers
 ## Risk Mitigation
 
 ### Risk 1: Service signature change breaks existing callers
-**Mitigation**: Only 2 callers (ExecuteFileCheckHandler + unit tests), both updated in same PR  
+**Mitigation**: Only 2 callers (RetrieveFileHandler + unit tests), both updated in same PR  
 **Validation**: Build must pass before PR approval
 
 ### Risk 2: Event publishing increases handler latency
@@ -430,9 +430,9 @@ Per spec.md (lines 190-198):
 **Critical Path**: T001/T002 → T003 → T004 → T006 → T009-T013 (integration tests)
 
 **Key Files Modified/Created**:
-- ✨ 1 command modified (ExecuteFileCheck - add TriggeredBy field)
+- ✨ 1 command modified (RetrieveFile - add TriggeredBy field)
 - ✨ 1 event created (FileCheckTriggered)
-- ✨ 1 handler modified (ExecuteFileCheckHandler - publish event)
+- ✨ 1 handler modified (RetrieveFileHandler - publish event)
 - ✨ 1 service modified (FileCheckService - accept executionId parameter)
 - ✨ 1 controller modified (ConfigurationController - add trigger endpoint)
 - ✨ 1 response DTO created (TriggerFileCheckResponse)

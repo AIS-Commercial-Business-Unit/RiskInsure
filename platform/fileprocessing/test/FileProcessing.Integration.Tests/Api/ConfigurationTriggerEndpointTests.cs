@@ -67,10 +67,10 @@ public class ConfigurationTriggerEndpointTests
     }
 
     [Fact]
-    public void ExecuteFileCheckCommand_SupportsManualTriggerFlag()
+    public void RetrieveFileCommand_SupportsManualTriggerFlag()
     {
         // Arrange & Act
-        var command = new FileProcessing.Contracts.Commands.ExecuteFileCheck
+        var command = new FileProcessing.Contracts.Commands.RetrieveFile
         {
             MessageId = Guid.NewGuid(),
             CorrelationId = "test-correlation",

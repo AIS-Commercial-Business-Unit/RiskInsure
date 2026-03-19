@@ -27,7 +27,7 @@ public class ConcurrentFileCheckTests
     }
 
     [Fact]
-    public async Task ExecuteFileCheck_With100ConcurrentChecks_CompletesWithin30Seconds()
+    public async Task RetrieveFile_With100ConcurrentChecks_CompletesWithin30Seconds()
     {
         // Arrange
         var mockConfigRepo = new Mock<IFileProcessingConfigurationRepository>();
@@ -113,7 +113,7 @@ public class ConcurrentFileCheckTests
     }
 
     [Fact]
-    public async Task ExecuteFileCheck_With100ConcurrentChecks_MaintainsThroughput()
+    public async Task RetrieveFile_With100ConcurrentChecks_MaintainsThroughput()
     {
         // Arrange
         var mockConfigRepo = new Mock<IFileProcessingConfigurationRepository>();

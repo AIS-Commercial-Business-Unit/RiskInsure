@@ -3,7 +3,7 @@
 **Feature Branch**: `001-file-processing-config`  
 **Created**: 2025-01-24  
 **Status**: Draft  
-**Input**: User description: "I'd like to add an API endpoint to FileProcessing.API that will trigger the ExecuteFileCheck command for an existing configuration. It should be security trimmed so that a client can only trigger the ExecuteFileCheck command for that client's configurations. Also, any time the ExecuteFileCheck command is issued, we should also trigger an event showing that the command was issued."
+**Input**: User description: "I'd like to add an API endpoint to FileProcessing.API that will trigger the RetrieveFile command for an existing configuration. It should be security trimmed so that a client can only trigger the RetrieveFile command for that client's configurations. Also, any time the RetrieveFile command is issued, we should also trigger an event showing that the command was issued."
 
 > **Quick Spec Template**: Use this when domain docs already exist. Focus on scenarios, messages, and acceptance criteria only. Reference existing docs for patterns/standards.
 
@@ -34,10 +34,10 @@
 **So that** I can immediately verify whether files are present and diagnose integration problems in real-time
 
 **Acceptance Criteria**:
-1. **Given** a client has an active file processing configuration, **When** a support engineer calls the trigger API with valid clientId and configurationId from their JWT, **Then** the system sends an ExecuteFileCheck command with IsManualTrigger=true and returns 202 Accepted immediately
+1. **Given** a client has an active file processing configuration, **When** a support engineer calls the trigger API with valid clientId and configurationId from their JWT, **Then** the system sends an RetrieveFile command with IsManualTrigger=true and returns 202 Accepted immediately
 2. **Given** a support engineer attempts to trigger a file check for another client's configuration, **When** the API validates security, **Then** the system returns 403 Forbidden without sending any command
 3. **Given** a support engineer attempts to trigger a file check for a non-existent or inactive configuration, **When** the API validates the configuration, **Then** the system returns 404 Not Found or 400 Bad Request without sending any command
-4. **Given** any ExecuteFileCheck command is issued (scheduled or manual), **When** the handler begins processing, **Then** the system publishes a FileCheckTriggered event before executing the file check
+4. **Given** any RetrieveFile command is issued (scheduled or manual), **When** the handler begins processing, **Then** the system publishes a FileCheckTriggered event before executing the file check
 5. **Given** multiple support engineers trigger the same configuration simultaneously, **When** commands are processed, **Then** each execution is tracked independently with unique ExecutionIds and correlation IDs
 
 ---
@@ -57,7 +57,7 @@
 - **What if** a configuration is triggered manually while a scheduled execution is already in progress?
   - **Answer**: Both execute independently with separate ExecutionIds. Concurrency semaphore (100 limit) prevents system overload. Idempotency in file discovery prevents duplicate workflow triggers.
 
-- **What if** the ExecuteFileCheckHandler fails after receiving the command but before publishing FileCheckTriggered?
+- **What if** the RetrieveFileHandler fails after receiving the command but before publishing FileCheckTriggered?
   - **Answer**: NServiceBus retry policy will retry the handler. FileCheckTriggered event will be published on first successful handling. Idempotency ensures no duplicate events.
 
 - **What if** a support engineer's JWT token lacks the clientId claim?
@@ -79,7 +79,7 @@
 
 **Purpose**: Notify subscribers that a file check has been initiated, capturing whether it was manually triggered or scheduled.
 
-**When Published**: Immediately when ExecuteFileCheck command is received and validated, before file check execution begins.
+**When Published**: Immediately when RetrieveFile command is received and validated, before file check execution begins.
 
 **Key Information Captured**:
 - Client identifier and configuration identifier
@@ -96,9 +96,9 @@
 
 ---
 
-### Commands (Modified - existing ExecuteFileCheck)
+### Commands (Modified - existing RetrieveFile)
 
-The existing ExecuteFileCheck command already supports the IsManualTrigger flag. No structural changes needed.
+The existing RetrieveFile command already supports the IsManualTrigger flag. No structural changes needed.
 
 **API Usage**: When sending command from the new API endpoint, IsManualTrigger will be set to true to distinguish from scheduler-initiated checks.
 
@@ -157,7 +157,7 @@ The existing ExecuteFileCheck command already supports the IsManualTrigger flag.
 - ExecutionId is unique per file check execution (generated in handler)
 - Ensures exactly one FileCheckTriggered event per execution, even if message is replayed
 
-**For ExecuteFileCheck command (existing)**:
+**For RetrieveFile command (existing)**:
 - Already has IdempotencyKey in command: `"{clientId}:{configurationId}:{timestamp}"`
 - Handler is idempotent: checks if configuration exists before processing
 - Multiple triggers create separate executions (by design for testing/support scenarios)
@@ -215,7 +215,7 @@ The existing ExecuteFileCheck command already supports the IsManualTrigger flag.
 ## Notes / Open Questions
 
 **Dependencies**: 
-- Requires existing ExecuteFileCheck command and handler (already implemented)
+- Requires existing RetrieveFile command and handler (already implemented)
 - Requires existing security trimming pattern with JWT claims (already implemented)
 - Requires configuration existence validation (already available)
 

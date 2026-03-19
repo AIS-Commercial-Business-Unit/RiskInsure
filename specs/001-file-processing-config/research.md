@@ -60,9 +60,9 @@ SchedulerHostedService : BackgroundService
 ScheduleEvaluator (uses NCrontab)
   ↓ (checks all configurations)
 For each due configuration:
-  Send ExecuteFileCheck command via NServiceBus
+  Send RetrieveFile command via NServiceBus
     ↓
-ExecuteFileCheckHandler (NServiceBus handler)
+RetrieveFileHandler (NServiceBus handler)
   ↓
 FileCheckService.ExecuteCheck()
   ↓ (delegates to protocol adapter)
@@ -77,7 +77,7 @@ Publishes FileDiscovered events
 2. Polls active FileProcessingConfigurations every minute (configurable interval)
 3. Uses **NCrontab** to parse cron expressions and determine next run time
 4. Tracks last execution time in `FileProcessingExecution` records
-5. Publishes `ExecuteFileCheck` command for each due configuration
+5. Publishes `RetrieveFile` command for each due configuration
 6. **Horizontal scaling**: Multiple worker instances can run concurrently
    - Use distributed lock (Cosmos DB lease) to prevent duplicate checks
    - OR rely on idempotent handlers (check for existing execution before processing)
