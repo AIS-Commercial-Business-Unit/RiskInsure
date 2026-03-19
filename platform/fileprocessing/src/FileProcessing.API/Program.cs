@@ -143,18 +143,6 @@ builder.Host.NServiceBusEnvironmentConfiguration(
 
         // Configure message routing - send commands to Worker
         routing.RouteToEndpoint(
-            typeof(FileProcessing.Contracts.Commands.CreateConfiguration),
-            "FileProcessing.Worker"
-        );
-        routing.RouteToEndpoint(
-            typeof(FileProcessing.Contracts.Commands.UpdateConfiguration),
-            "FileProcessing.Worker"
-        );
-        routing.RouteToEndpoint(
-            typeof(FileProcessing.Contracts.Commands.DeleteConfiguration),
-            "FileProcessing.Worker"
-        );
-        routing.RouteToEndpoint(
             typeof(FileProcessing.Contracts.Commands.ExecuteFileCheck),
             "FileProcessing.Worker"
         );
