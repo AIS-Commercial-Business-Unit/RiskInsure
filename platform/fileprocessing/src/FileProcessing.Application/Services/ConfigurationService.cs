@@ -32,11 +32,6 @@ public class ConfigurationService
         FileProcessingConfiguration configuration,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation(
-            "Creating configuration {ConfigurationId} for client {ClientId}",
-            configuration.Id,
-            configuration.ClientId);
-
         // Validate business rules
         configuration.Validate();
 
@@ -52,26 +47,7 @@ public class ConfigurationService
             configuration.IsActive = true;
         }
 
-        try
-        {
-            var created = await _repository.CreateAsync(configuration, cancellationToken);
-
-            _logger.LogInformation(
-                "Successfully created configuration {ConfigurationId} for client {ClientId}",
-                created.Id,
-                created.ClientId);
-
-            return created;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(
-                ex,
-                "Failed to create configuration {ConfigurationId} for client {ClientId}",
-                configuration.Id,
-                configuration.ClientId);
-            throw;
-        }
+        return await _repository.CreateAsync(configuration, cancellationToken);
     }
 
     /// <summary>
