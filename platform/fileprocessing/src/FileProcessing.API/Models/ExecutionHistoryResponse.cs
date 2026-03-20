@@ -75,8 +75,6 @@ public class ProcessedFileResponse
     public required string FileUrl { get; init; }
     public required string Protocol { get; init; }
     public required long DownloadedSizeBytes { get; init; }
-    public required string ChecksumAlgorithm { get; init; }
-    public required string ChecksumHex { get; init; }
     public required DateTimeOffset ProcessedAt { get; init; }
 }
 

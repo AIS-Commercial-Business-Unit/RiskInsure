@@ -27,24 +27,24 @@ public class DiscoveredFileContentDownloadService
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    public async Task<byte[]> DownloadToMemoryAsync(
+    public async Task<Stream> Download(
         FileProcessingConfiguration configuration,
-        ParseDiscoveredFile command,
+        string fileUrl,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(configuration);
-        ArgumentNullException.ThrowIfNull(command);
+        ArgumentNullException.ThrowIfNull(fileUrl);
 
         return configuration.ProtocolSettings switch
         {
-            FtpProtocolSettings ftpSettings => await DownloadFromFtpAsync(ftpSettings, command.FileUrl, cancellationToken),
-            HttpsProtocolSettings httpsSettings => await DownloadFromHttpsAsync(httpsSettings, command.FileUrl, cancellationToken),
-            AzureBlobProtocolSettings azureBlobSettings => await DownloadFromAzureBlobAsync(azureBlobSettings, command.FileUrl, cancellationToken),
+            FtpProtocolSettings ftpSettings => await DownloadFromFtpAsync(ftpSettings, fileUrl, cancellationToken),
+            HttpsProtocolSettings httpsSettings => await DownloadFromHttpsAsync(httpsSettings, fileUrl, cancellationToken),
+            AzureBlobProtocolSettings azureBlobSettings => await DownloadFromAzureBlobAsync(azureBlobSettings, fileUrl, cancellationToken),
             _ => throw new InvalidOperationException($"Unsupported protocol settings type: {configuration.ProtocolSettings.GetType().Name}")
         };
     }
 
-    private async Task<byte[]> DownloadFromFtpAsync(
+    private async Task<Stream> DownloadFromFtpAsync(
         FtpProtocolSettings settings,
         string fileUrl,
         CancellationToken cancellationToken)
@@ -81,17 +81,19 @@ public class DiscoveredFileContentDownloadService
             throw new InvalidOperationException($"Downloaded FTP content was empty for {fileUrl}");
         }
 
-        return bytes;
+        var stream = new MemoryStream(bytes);
+        stream.Position = 0;
+        return stream;
     }
 
-    private async Task<byte[]> DownloadFromHttpsAsync(
+    private async Task<Stream> DownloadFromHttpsAsync(
         HttpsProtocolSettings settings,
         string fileUrl,
         CancellationToken cancellationToken)
     {
         _logger.LogDebug("Downloading HTTPS file content from {FileUrl}", fileUrl);
 
-        using var httpClient = _httpClientFactory.CreateClient("FileProcessingHttpsDownload");
+        var httpClient = _httpClientFactory.CreateClient("FileProcessingHttpsDownload");
         httpClient.Timeout = settings.ConnectionTimeout;
 
         switch (settings.AuthenticationType)
@@ -127,13 +129,14 @@ public class DiscoveredFileContentDownloadService
                 break;
         }
 
-        using var response = await httpClient.GetAsync(fileUrl, cancellationToken);
+        var response = await httpClient.GetAsync(fileUrl, cancellationToken);
         response.EnsureSuccessStatusCode();
 
-        return await response.Content.ReadAsByteArrayAsync(cancellationToken);
+        var stream = await response.Content.ReadAsStreamAsync(cancellationToken: cancellationToken);
+        return stream;
     }
 
-    private async Task<byte[]> DownloadFromAzureBlobAsync(
+    private async Task<Stream> DownloadFromAzureBlobAsync(
         AzureBlobProtocolSettings settings,
         string fileUrl,
         CancellationToken cancellationToken)
@@ -147,10 +150,7 @@ public class DiscoveredFileContentDownloadService
         var blobClient = containerClient.GetBlobClient(blobName);
 
         var response = await blobClient.DownloadStreamingAsync(cancellationToken: cancellationToken);
-        await using var contentStream = response.Value.Content;
-        using var memoryStream = new MemoryStream();
-        await contentStream.CopyToAsync(memoryStream, cancellationToken);
-        return memoryStream.ToArray();
+        return response.Value.Content;
     }
 
     private static BlobContainerClient CreateBlobContainerClient(AzureBlobProtocolSettings settings)

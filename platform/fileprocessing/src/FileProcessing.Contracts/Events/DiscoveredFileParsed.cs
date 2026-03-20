@@ -5,7 +5,7 @@ namespace FileProcessing.Contracts.Events;
 /// <summary>
 /// Event published after a discovered file has been processed in memory for downstream processing.
 /// </summary>
-public record DiscoveredFileProcessed : IEvent
+public record DiscoveredFileParsed : IEvent
 {
     public Guid MessageId { get; init; }
     public required string CorrelationId { get; init; }
@@ -17,10 +17,9 @@ public record DiscoveredFileProcessed : IEvent
     public Guid ExecutionId { get; init; }
     public Guid DiscoveredFileId { get; init; }
     public required string FileUrl { get; init; }
+    public required string BlobStorageUrl { get; init; }
     public required string Filename { get; init; }
     public required string Protocol { get; init; }
 
     public long DownloadedSizeBytes { get; init; }
-    public required string ChecksumAlgorithm { get; init; }
-    public required string ChecksumHex { get; init; }
 }

@@ -55,6 +55,7 @@ services:
       - ConnectionStrings__CosmosDb=${COSMOSDB_CONNECTION_STRING}
       - ConnectionStrings__RabbitMQ=${MESSAGING_CONNECTION_STRING}
       - ConnectionStrings__ServiceBus=${MESSAGING_CONNECTION_STRING}
+      - ConnectionStrings__BlobStorage=${BLOB_STORAGE_CONNECTION_STRING}
       - Messaging__MessageBroker=${MESSAGE_BROKER}
       - CosmosDb__DatabaseName=RiskInsure
       - CosmosDb__ContainerName=file-processing

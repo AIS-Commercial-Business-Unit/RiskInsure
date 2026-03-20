@@ -20,6 +20,10 @@ public record RetrieveFileCompleted : IEvent
     public required string ConfigurationName { get; init; }
     public required string Protocol { get; init; }
     
+    // File details
+    public string? FileName { get; init; }
+    public string? BlobStorageUrl { get; init; }
+    
     // Execution results
     public DateTimeOffset ExecutionStartedAt { get; init; }
     public DateTimeOffset ExecutionCompletedAt { get; init; }

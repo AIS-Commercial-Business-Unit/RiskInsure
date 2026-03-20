@@ -90,7 +90,7 @@ public class ParseDiscoveredFileHandlerTests
         rowEvents[0].Row.TraceNumber.Should().EndWith("0000001");
         rowEvents[1].Row.TraceNumber.Should().EndWith("0000002");
 
-        published.OfType<DiscoveredFileProcessed>().Should().ContainSingle();
+        published.OfType<DiscoveredFileParsed>().Should().ContainSingle();
 
         var rowCommands = sent.OfType<ProcessFileChunk>().ToList();
         rowCommands.Count.Should().Be(2);

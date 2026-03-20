@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 using NServiceBus;
-using RiskInsure.FileProcessing.Application.Services;
+using Azure.Storage.Blobs;
 using FileProcessing.Contracts.Commands;
 using FileProcessing.Contracts.Events;
 using FileProcessing.Contracts.DTOs;
@@ -16,33 +17,35 @@ using System.Text.Json;
 namespace RiskInsure.FileProcessing.Application.MessageHandlers;
 
 /// <summary>
-/// Handles ParseDiscoveredFile commands to process discovered files.
+/// Handles ParseDiscoveredFile commands to process a single discovered file.
+/// Downloads the file from blob storage and parses its contents.
 /// </summary>
 public class ParseDiscoveredFileHandler : IHandleMessages<ParseDiscoveredFile>
 {
     private readonly IFileProcessingConfigurationRepository _configurationRepository;
     private readonly IProcessedFileRecordRepository _processedRecordRepository;
-    private readonly DiscoveredFileContentDownloadService _discoveredFileContentDownloadService;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<ParseDiscoveredFileHandler> _logger;
 
     public ParseDiscoveredFileHandler(
         IFileProcessingConfigurationRepository configurationRepository,
         IProcessedFileRecordRepository processedRecordRepository,
-        DiscoveredFileContentDownloadService discoveredFileContentDownloadService,
+        IConfiguration configuration,
         ILogger<ParseDiscoveredFileHandler> logger)
     {
         _configurationRepository = configurationRepository;
         _processedRecordRepository = processedRecordRepository;
-        _discoveredFileContentDownloadService = discoveredFileContentDownloadService;
+        _configuration = configuration;
         _logger = logger;
     }
 
     public async Task Handle(ParseDiscoveredFile message, IMessageHandlerContext context)
     {
         _logger.LogInformation(
-            "Handling ParseDiscoveredFile command for client {ClientId}, configuration {ConfigurationId}",
+            "Handling ParseDiscoveredFile command for client {ClientId}, configuration {ConfigurationId}, file {Filename}",
             message.ClientId,
-            message.ConfigurationId);
+            message.ConfigurationId,
+            message.Filename);
 
         try
         {
@@ -57,10 +60,25 @@ public class ParseDiscoveredFileHandler : IHandleMessages<ParseDiscoveredFile>
                     $"FileProcessingConfiguration {message.ConfigurationId} was not found for client {message.ClientId}.");
             }
 
-            var fileContent = await _discoveredFileContentDownloadService.DownloadToMemoryAsync(
-                configuration,
-                message,
-                CancellationToken.None);
+            var blobStorageConnectionString = _configuration.GetConnectionString("BlobStorage");
+            if (string.IsNullOrWhiteSpace(blobStorageConnectionString))
+            {
+                throw new InvalidOperationException("ConnectionStrings:BlobStorage is not configured.");
+            }
+
+            var blobUri = new BlobUriBuilder(new Uri(message.BlobStorageUrl));
+            var blobServiceClient = new BlobServiceClient(blobStorageConnectionString);
+            var blobContainerClient = blobServiceClient.GetBlobContainerClient(blobUri.BlobContainerName);
+            var blobClient = blobContainerClient.GetBlobClient(blobUri.BlobName);
+
+            // Download file from blob storage as stream
+            var blobDownload = await blobClient.DownloadStreamingAsync(cancellationToken: CancellationToken.None);
+            await using var fileStream = blobDownload.Value.Content;
+
+            // Convert stream to byte array for processing
+            using var memoryStream = new MemoryStream();
+            await fileStream.CopyToAsync(memoryStream, context.CancellationToken);
+            var fileContent = memoryStream.ToArray();
 
             _logger.LogInformation(
                 "Downloaded discovered file {Filename} ({ByteCount} bytes) for client {ClientId}, configuration {ConfigurationId}",
@@ -68,8 +86,6 @@ public class ParseDiscoveredFileHandler : IHandleMessages<ParseDiscoveredFile>
                 fileContent.Length,
                 message.ClientId,
                 message.ConfigurationId);
-
-            var checksumHex = Convert.ToHexString(SHA256.HashData(fileContent));
 
             var processedAt = DateTimeOffset.UtcNow;
             var processedIdempotencyKey = $"{message.IdempotencyKey}:processed";
@@ -82,11 +98,10 @@ public class ParseDiscoveredFileHandler : IHandleMessages<ParseDiscoveredFile>
                 ExecutionId = message.ExecutionId,
                 DiscoveredFileId = message.DiscoveredFileId,
                 FileUrl = message.FileUrl,
+                BlobStorageUrl = message.BlobStorageUrl,
                 Filename = message.Filename,
                 Protocol = message.Protocol,
                 DownloadedSizeBytes = fileContent.LongLength,
-                ChecksumAlgorithm = "SHA-256",
-                ChecksumHex = checksumHex,
                 CorrelationId = message.CorrelationId,
                 IdempotencyKey = processedIdempotencyKey,
                 ProcessedAt = processedAt
@@ -109,8 +124,7 @@ public class ParseDiscoveredFileHandler : IHandleMessages<ParseDiscoveredFile>
 
             await ProcessFileByTypeAsync(configuration, message, fileContent, context);
 
-
-            await context.Publish(new DiscoveredFileProcessed
+            await context.Publish(new DiscoveredFileParsed
             {
                 MessageId = Guid.NewGuid(),
                 CorrelationId = message.CorrelationId,
@@ -121,26 +135,23 @@ public class ParseDiscoveredFileHandler : IHandleMessages<ParseDiscoveredFile>
                 ExecutionId = message.ExecutionId,
                 DiscoveredFileId = message.DiscoveredFileId,
                 FileUrl = message.FileUrl,
+                BlobStorageUrl = message.BlobStorageUrl,
                 Filename = message.Filename,
                 Protocol = message.Protocol,
-                DownloadedSizeBytes = fileContent.LongLength,
-                ChecksumAlgorithm = "SHA-256",
-                ChecksumHex = checksumHex
+                DownloadedSizeBytes = fileContent.LongLength
             });
 
             _logger.LogInformation(
-                "Processed discovered file {Filename} for client {ClientId}, configuration {ConfigurationId}; checksum ({Algorithm})={Checksum}",
+                "Processed discovered file {Filename} for client {ClientId}, configuration {ConfigurationId}",
                 message.Filename,
                 message.ClientId,
-                message.ConfigurationId,
-                "SHA-256",
-                checksumHex);
+                message.ConfigurationId);
         }
         catch (Exception ex)
         {
             _logger.LogError(
                 ex,
-                "Failed to process discovered files for client {ClientId}, configuration {ConfigurationId}",
+                "Failed to process discovered file for client {ClientId}, configuration {ConfigurationId}",
                 message.ClientId,
                 message.ConfigurationId);
 
