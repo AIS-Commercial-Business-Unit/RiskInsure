@@ -338,8 +338,6 @@ public class ExecutionHistoryController : ControllerBase
                 FileUrl = record.FileUrl,
                 Protocol = record.Protocol,
                 DownloadedSizeBytes = record.DownloadedSizeBytes,
-                ChecksumAlgorithm = record.ChecksumAlgorithm,
-                ChecksumHex = record.ChecksumHex,
                 ProcessedAt = record.ProcessedAt
             }).ToList();
 

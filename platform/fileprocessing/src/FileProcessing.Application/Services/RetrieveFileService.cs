@@ -3,9 +3,11 @@ using RiskInsure.FileProcessing.Domain.Enums;
 using RiskInsure.FileProcessing.Domain.Repositories;
 using FileProcessing.Application.Protocols;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 using NServiceBus;
 using FileProcessing.Contracts.Events;
 using FileProcessing.Contracts.Commands;
+using Azure.Storage.Blobs;
 
 namespace RiskInsure.FileProcessing.Application.Services;
 
@@ -17,8 +19,10 @@ public class RetrieveFileService
 {
     private readonly ProtocolAdapterFactory _protocolAdapterFactory;
     private readonly TokenReplacementService _tokenReplacementService;
+    private readonly DiscoveredFileContentDownloadService _discoveredFileContentDownloadService;
     private readonly IFileProcessingExecutionRepository _executionRepository;
     private readonly IDiscoveredFileRepository _discoveredFileRepository;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<RetrieveFileService> _logger;
 
     // Error categories for structured error handling (T083)
@@ -40,14 +44,18 @@ public class RetrieveFileService
     public RetrieveFileService(
         ProtocolAdapterFactory protocolAdapterFactory,
         TokenReplacementService tokenReplacementService,
+        DiscoveredFileContentDownloadService discoveredFileContentDownloadService,
         IFileProcessingExecutionRepository executionRepository,
         IDiscoveredFileRepository discoveredFileRepository,
+        IConfiguration configuration,
         ILogger<RetrieveFileService> logger)
     {
         _protocolAdapterFactory = protocolAdapterFactory ?? throw new ArgumentNullException(nameof(protocolAdapterFactory));
         _tokenReplacementService = tokenReplacementService ?? throw new ArgumentNullException(nameof(tokenReplacementService));
+        _discoveredFileContentDownloadService = discoveredFileContentDownloadService ?? throw new ArgumentNullException(nameof(discoveredFileContentDownloadService));
         _executionRepository = executionRepository ?? throw new ArgumentNullException(nameof(executionRepository));
         _discoveredFileRepository = discoveredFileRepository ?? throw new ArgumentNullException(nameof(discoveredFileRepository));
+        _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -61,7 +69,7 @@ public class RetrieveFileService
     /// <param name="executionId">Optional execution ID for tracking (generates new if not provided)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Execution result with discovered files</returns>
-    public async Task<RetrieveFileResult> ExecuteCheckAsync(
+    public async Task<RetrieveFileResult> CheckForFilesAsync(
         FileProcessingConfiguration configuration,
         DateTimeOffset? executionDate = null,
         Guid? executionId = null,
@@ -313,7 +321,7 @@ public class RetrieveFileService
     }
 
     /// <summary>
-    /// Processes discovered files with idempotency checks and publishes events/commands (T086, T087, T088).
+    /// Downloads discovered files with idempotency checks and publishes events/commands (T086, T087, T088).
     /// Implements zero-duplicate workflow triggers per SC-007.
     /// </summary>
     /// <param name="discoveredFiles">Files discovered during check</param>
@@ -323,7 +331,7 @@ public class RetrieveFileService
     /// <param name="correlationId">Correlation ID for distributed tracing (T093)</param>
     /// <param name="cancellationToken">Cancellation token</param>
     /// <returns>Number of files processed (events published)</returns>
-    public async Task<int> ParseDiscoveredFilesAsync(
+    public async Task<int> DownloadDiscoveredFilesAsync(
         IEnumerable<DiscoveredFileInfo> discoveredFiles,
         FileProcessingConfiguration configuration,
         Guid executionId,
@@ -402,6 +410,21 @@ public class RetrieveFileService
                     fileInfo.Filename,
                     fileDiscoveredEvent.IdempotencyKey);
 
+                var fileRetrieved = await DownloadFileAndSaveToBlobStorage(
+                    fileInfo,
+                    discoveredFile,
+                    configuration,
+                    executionId,
+                    correlationId,
+                    CancellationToken.None);
+
+                // Publish FileRetrieved event
+                await messageContext.Publish(fileRetrieved);
+
+                _logger.LogInformation(
+                    "FileRetrieved event published for {Filename} (BlobUrl: {BlobUrl})",
+                    fileInfo.Filename,
+                    fileRetrieved.BlobStorageUrl);
 
                 // T088: Send ParseDiscoveredFile command
                 var processFileCommand = new ParseDiscoveredFile
@@ -414,6 +437,7 @@ public class RetrieveFileService
                     ConfigurationId = configuration.Id,
                     ExecutionId = executionId,
                     DiscoveredFileId = discoveredFile.Id,
+                    BlobStorageUrl = fileRetrieved.BlobStorageUrl,
                     FileUrl = fileInfo.FileUrl,
                     Filename = fileInfo.Filename,
                     FileSize = fileInfo.FileSize,
@@ -441,9 +465,33 @@ public class RetrieveFileService
             {
                 _logger.LogError(
                     ex,
-                    "Error processing discovered file {FileUrl}: {ErrorMessage}",
-                    fileInfo.FileUrl,
+                    "Error downloading discovered file {Filename}: {ErrorMessage}",
+                    fileInfo.Filename,
                     ex.Message);
+
+                // Publish RetrieveFileFailed event
+                await messageContext.Publish(new RetrieveFileFailed
+                {
+                    MessageId = Guid.NewGuid(),
+                    CorrelationId = correlationId,
+                    OccurredUtc = DateTimeOffset.UtcNow,
+                    IdempotencyKey = $"{configuration.ClientId}:{configuration.Id}:{fileInfo.FileUrl}:failed",
+                    ClientId = configuration.ClientId,
+                    ConfigurationId = configuration.Id,
+                    ExecutionId = executionId,
+                    ConfigurationName = configuration.Name,
+                    Protocol = configuration.ProtocolSettings.ProtocolType.ToString(),
+                    FileName = fileInfo.Filename,
+                    ExecutionStartedAt = DateTimeOffset.UtcNow,
+                    ExecutionFailedAt = DateTimeOffset.UtcNow,
+                    ErrorMessage = ex.Message,
+                    ErrorCategory = "FileDownloadError",
+                    ResolvedFilePathPattern = string.Empty,
+                    ResolvedFilenamePattern = string.Empty,
+                    DurationMs = 0,
+                    RetryCount = 0
+                });
+
                 // Continue processing other files - don't fail entire batch
             }
         }
@@ -455,6 +503,93 @@ public class RetrieveFileService
             executionId);
 
         return filesProcessed;
+    }
+
+    /// <summary>
+    /// Downloads discovered files, stores them to blob storage, and sends parse commands.
+    /// </summary>
+    /// <returns>FileRetrieved event</returns>
+    private async Task<FileRetrieved> DownloadFileAndSaveToBlobStorage(
+        DiscoveredFileInfo fileInfo,
+        DiscoveredFile discoveredFile,
+        FileProcessingConfiguration configuration,
+        Guid executionId,
+        string correlationId,
+        CancellationToken cancellationToken = default)
+    {
+        var blobConnectionString = _configuration.GetConnectionString("BlobStorage");
+        var containerName = _configuration["BlobStorage:ContainerNameForDownloadedFiles"];        
+        if (string.IsNullOrEmpty(blobConnectionString) || string.IsNullOrEmpty(containerName))
+        {
+            _logger.LogError("BlobStorage connection string or container name not configured");
+            throw new InvalidOperationException("BlobStorage configuration is missing");
+        }
+        if (containerName != containerName.ToLowerInvariant())
+        {
+            _logger.LogWarning(
+                "Blob container names must be lowercase. Converting '{ContainerName}' to lowercase for blob client initialization.",
+                containerName);
+            containerName = containerName.ToLowerInvariant();
+        }
+
+
+        var blobContainerClient = new BlobContainerClient(blobConnectionString, containerName);
+        await blobContainerClient.CreateIfNotExistsAsync(cancellationToken: cancellationToken);
+
+        // Download file as stream
+        using var fileStream = await _discoveredFileContentDownloadService.Download(
+            configuration,
+            fileInfo.FileUrl,
+            cancellationToken);
+
+        // Store to blob storage
+        var blobPath = GenerateBlobPath(
+            configuration.ClientId,
+            configuration.Id,
+            fileInfo.Filename);
+
+        var blobClient = blobContainerClient.GetBlobClient(blobPath);
+        
+        _logger.LogInformation(
+            "Uploading file {Filename} to blob storage at {BlobPath}",
+            fileInfo.Filename,
+            blobPath);
+
+        await blobClient.UploadAsync(fileStream, overwrite: true, cancellationToken);
+
+        var blobStorageUrl = blobClient.Uri.ToString();
+
+        _logger.LogInformation(
+            "File {Filename} uploaded successfully to {BlobUrl}",
+            fileInfo.Filename,
+            blobStorageUrl);
+
+        var discoveredFileId = Guid.NewGuid();
+        
+        return new FileRetrieved
+        {
+            MessageId = Guid.NewGuid(),
+            CorrelationId = correlationId,
+            OccurredUtc = DateTimeOffset.UtcNow,
+            IdempotencyKey = $"{configuration.ClientId}:{configuration.Id}:{fileInfo.FileUrl}:retrieved",
+            ClientId = configuration.ClientId,
+            ConfigurationId = configuration.Id,
+            FileName = fileInfo.Filename,
+            BlobStorageUrl = blobStorageUrl,
+            ExecutionId = executionId,
+            DiscoveredFileId = discoveredFile.Id,
+            FileUrl = fileInfo.FileUrl,
+            Protocol = configuration.ProtocolSettings.ProtocolType.ToString()
+        };
+    }
+
+    /// <summary>
+    /// Generates a blob storage path in the format: {clientid}/{configurationid}/{DateTime}___{FileName}
+    /// </summary>
+    private string GenerateBlobPath(string clientId, Guid configurationId, string fileName)
+    {
+        var timestamp = DateTime.UtcNow.ToString("yyyy-MM-dd\\THH-mm-ss_fff\\Z");
+        return $"{clientId}/{configurationId}/{timestamp}___{fileName}";
     }
 }
 

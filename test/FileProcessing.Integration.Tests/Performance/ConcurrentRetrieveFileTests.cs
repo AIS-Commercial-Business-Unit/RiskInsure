@@ -92,7 +92,7 @@ public class ConcurrentRetrieveFileTests
         var stopwatch = Stopwatch.StartNew();
         
         var tasks = configurations.Select(config => 
-            RetrieveFileService.ExecuteCheckAsync(config.Id, config.ClientId, CancellationToken.None)
+            RetrieveFileService.CheckForFilesAsync(config.Id, config.ClientId, CancellationToken.None)
         ).ToList();
 
         await Task.WhenAll(tasks);
@@ -170,7 +170,7 @@ public class ConcurrentRetrieveFileTests
         var stopwatch = Stopwatch.StartNew();
         
         var tasks = configurations.Select(config => 
-            RetrieveFileService.ExecuteCheckAsync(config.Id, config.ClientId, CancellationToken.None)
+            RetrieveFileService.CheckForFilesAsync(config.Id, config.ClientId, CancellationToken.None)
         ).ToList();
 
         await Task.WhenAll(tasks);

@@ -1,7 +1,7 @@
 namespace RiskInsure.FileProcessing.Domain.Entities;
 
 /// <summary>
-/// Persisted record for file processing outcomes (download + checksum metadata).
+/// Persisted record for file processing outcomes (download metadata).
 /// </summary>
 public class ProcessedFileRecord
 {
@@ -11,11 +11,10 @@ public class ProcessedFileRecord
     public Guid ExecutionId { get; set; }
     public Guid DiscoveredFileId { get; set; }
     public required string FileUrl { get; set; }
+    public required string BlobStorageUrl { get; set; }
     public required string Filename { get; set; }
     public required string Protocol { get; set; }
     public long DownloadedSizeBytes { get; set; }
-    public required string ChecksumAlgorithm { get; set; }
-    public required string ChecksumHex { get; set; }
     public required string CorrelationId { get; set; }
     public required string IdempotencyKey { get; set; }
     public required DateTimeOffset ProcessedAt { get; set; }
@@ -46,12 +45,6 @@ public class ProcessedFileRecord
 
         if (DownloadedSizeBytes < 0)
             throw new ArgumentException("DownloadedSizeBytes cannot be negative", nameof(DownloadedSizeBytes));
-
-        if (string.IsNullOrWhiteSpace(ChecksumAlgorithm))
-            throw new ArgumentException("ChecksumAlgorithm must not be empty", nameof(ChecksumAlgorithm));
-
-        if (string.IsNullOrWhiteSpace(ChecksumHex))
-            throw new ArgumentException("ChecksumHex must not be empty", nameof(ChecksumHex));
 
         if (string.IsNullOrWhiteSpace(CorrelationId))
             throw new ArgumentException("CorrelationId must not be empty", nameof(CorrelationId));

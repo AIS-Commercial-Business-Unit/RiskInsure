@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import * as fs from 'node:fs/promises';
 import http from 'node:http';
 import https from 'node:https';
+import { logDetail, logInfo, logStep, logSuccess } from '../helpers/test-logger';
 
 const execFileAsync = promisify(execFile);
 
@@ -355,12 +356,13 @@ export async function waitForProcessedFileRecord(
   const deadline = Date.now() + timeoutMs;
   let lastBody = '';
 
+  const encodedFileName = expectedFileName ? encodeURIComponent(expectedFileName) : null;
+  const encodedExecutionId = executionId ? encodeURIComponent(executionId) : null;
+  const processedFilesUrl = encodedFileName
+    ? `${config.apiBaseUrl}/api/v1/configuration/${configurationId}/executionhistory/processedfiles?pageSize=50&fileName=${encodedFileName}${encodedExecutionId ? `&executionId=${encodedExecutionId}` : ''}`
+    : `${config.apiBaseUrl}/api/v1/configuration/${configurationId}/executionhistory/processedfiles?pageSize=50${encodedExecutionId ? `&executionId=${encodedExecutionId}` : ''}`;
+
   while (Date.now() < deadline) {
-    const encodedFileName = expectedFileName ? encodeURIComponent(expectedFileName) : null;
-    const encodedExecutionId = executionId ? encodeURIComponent(executionId) : null;
-    const processedFilesUrl = encodedFileName
-      ? `${config.apiBaseUrl}/api/v1/configuration/${configurationId}/executionhistory/processedfiles?pageSize=50&fileName=${encodedFileName}${encodedExecutionId ? `&executionId=${encodedExecutionId}` : ''}`
-      : `${config.apiBaseUrl}/api/v1/configuration/${configurationId}/executionhistory/processedfiles?pageSize=50${encodedExecutionId ? `&executionId=${encodedExecutionId}` : ''}`;
 
     const response = await request.get(
       processedFilesUrl,
@@ -382,9 +384,8 @@ export async function waitForProcessedFileRecord(
       }>;
 
       const processedFileRecordObserved = (payload || []).some((record) => {
-        const hasChecksum = !!record.checksumAlgorithm && !!record.checksumHex;
         const fileMatches = !expectedFileName || record.fileName === expectedFileName;
-        return hasChecksum && fileMatches;
+        return fileMatches;
       });
 
       if (processedFileRecordObserved) {

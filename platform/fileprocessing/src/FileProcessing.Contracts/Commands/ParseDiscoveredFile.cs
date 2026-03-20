@@ -19,6 +19,7 @@ public record ParseDiscoveredFile : ICommand
     public Guid ExecutionId { get; init; }
     public Guid DiscoveredFileId { get; init; }
     public required string FileUrl { get; init; }
+    public required string BlobStorageUrl { get; init; }
     public required string Filename { get; init; }
     public long? FileSize { get; init; }
     public DateTimeOffset? LastModified { get; init; }

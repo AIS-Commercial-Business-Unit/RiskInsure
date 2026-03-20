@@ -20,6 +20,9 @@ public record RetrieveFileFailed : IEvent
     public required string ConfigurationName { get; init; }
     public required string Protocol { get; init; }
     
+    // File details
+    public string? FileName { get; init; }
+    
     // Execution results
     public DateTimeOffset ExecutionStartedAt { get; init; }
     public DateTimeOffset ExecutionFailedAt { get; init; }

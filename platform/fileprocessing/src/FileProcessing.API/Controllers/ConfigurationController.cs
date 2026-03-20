@@ -101,6 +101,11 @@ public class ConfigurationController : ControllerBase
 
             var created = await _configurationService.CreateAsync(configuration, cancellationToken);
 
+            _logger.LogInformation(
+                "Successfully created configuration {ConfigurationId} for client {ClientId}",
+                created.Id,
+                created.ClientId);
+
             return CreatedAtAction(
                 nameof(GetConfiguration),
                 new { id = created.Id },

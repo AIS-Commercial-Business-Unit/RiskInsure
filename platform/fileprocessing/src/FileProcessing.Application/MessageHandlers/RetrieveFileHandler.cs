@@ -4,26 +4,37 @@ using FileProcessing.Contracts.Events;
 using RiskInsure.FileProcessing.Application.Services;
 using RiskInsure.FileProcessing.Domain.Repositories;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
+using Azure.Storage.Blobs;
+using System.Security.Cryptography;
+using System.Runtime.InteropServices.Marshalling;
 
 namespace RiskInsure.FileProcessing.Application.MessageHandlers;
 
 /// <summary>
 /// Handles RetrieveFile command by delegating to RetrieveFileService.
+/// Downloads discovered files, stores them in blob storage, and sends ParseDiscoveredFile commands.
 /// Thin handler pattern - validates message, delegates to service, publishes events.
 /// </summary>
 public class RetrieveFileHandler : IHandleMessages<RetrieveFile>
 {
     private readonly RetrieveFileService _RetrieveFileService;
+    private readonly DiscoveredFileContentDownloadService _discoveredFileContentDownloadService;
     private readonly IFileProcessingConfigurationRepository _configurationRepository;
+    private readonly IConfiguration _configuration;
     private readonly ILogger<RetrieveFileHandler> _logger;
 
     public RetrieveFileHandler(
         RetrieveFileService RetrieveFileService,
+        DiscoveredFileContentDownloadService discoveredFileContentDownloadService,
         IFileProcessingConfigurationRepository configurationRepository,
+        IConfiguration configuration,
         ILogger<RetrieveFileHandler> logger)
     {
         _RetrieveFileService = RetrieveFileService ?? throw new ArgumentNullException(nameof(RetrieveFileService));
+        _discoveredFileContentDownloadService = discoveredFileContentDownloadService ?? throw new ArgumentNullException(nameof(discoveredFileContentDownloadService));
         _configurationRepository = configurationRepository ?? throw new ArgumentNullException(nameof(configurationRepository));
+        _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -89,31 +100,8 @@ public class RetrieveFileHandler : IHandleMessages<RetrieveFile>
             // Generate execution ID for this file check
             var executionId = Guid.NewGuid();
 
-            // Publish RetrieveFileTriggered event (audit trail for both manual and scheduled triggers)
-            await context.Publish(new RetrieveFileTriggered
-            {
-                MessageId = Guid.NewGuid(),
-                CorrelationId = message.CorrelationId,
-                OccurredUtc = DateTimeOffset.UtcNow,
-                IdempotencyKey = $"{message.ClientId}:{message.ConfigurationId}:triggered:{executionId}",
-                ClientId = message.ClientId,
-                ConfigurationId = message.ConfigurationId,
-                ConfigurationName = configuration.Name,
-                Protocol = configuration.ProtocolSettings.ProtocolType.ToString(),
-                ExecutionId = executionId,
-                ScheduledExecutionTime = message.ScheduledExecutionTime,
-                IsManualTrigger = message.IsManualTrigger,
-                TriggeredBy = message.IsManualTrigger ? "manual-api" : "scheduler"
-            });
-
-            _logger.LogInformation(
-                "RetrieveFileTriggered event published for configuration {ConfigurationId} (ExecutionId: {ExecutionId}, IsManual: {IsManual})",
-                message.ConfigurationId,
-                executionId,
-                message.IsManualTrigger);
-
-            // Execute file check via service
-            var result = await _RetrieveFileService.ExecuteCheckAsync(
+            // Execute file check via service to discover files
+            var result = await _RetrieveFileService.CheckForFilesAsync(
                 configuration,
                 message.ScheduledExecutionTime,
                 executionId,
@@ -121,11 +109,10 @@ public class RetrieveFileHandler : IHandleMessages<RetrieveFile>
 
             if (result.Success)
             {
-                // Process discovered files with idempotency checks and event publishing (T086, T087, T088)
-                int filesProcessed = 0;
+                // Process discovered files: download, store to blob storage, and send parse commands
                 if (result.DiscoveredFiles.Any())
                 {
-                    filesProcessed = await _RetrieveFileService.ParseDiscoveredFilesAsync(
+                    await _RetrieveFileService.DownloadDiscoveredFilesAsync(
                         result.DiscoveredFiles,
                         configuration,
                         result.ExecutionId,
@@ -149,34 +136,22 @@ public class RetrieveFileHandler : IHandleMessages<RetrieveFile>
                     ExecutionStartedAt = result.StartTime,
                     ExecutionCompletedAt = DateTimeOffset.UtcNow,
                     FilesFound = result.DiscoveredFiles.Count,
-                    FilesProcessed = filesProcessed,
+                    FilesProcessed = 0, // Not used anymore - ParseDiscoveredFileHandler will count processed
                     DurationMs = result.DurationMs,
                     ResolvedFilePathPattern = result.ResolvedFilePathPattern ?? string.Empty,
                     ResolvedFilenamePattern = result.ResolvedFilenamePattern ?? string.Empty
                 });
 
                 _logger.LogInformation(
-                    "File check completed for configuration {ConfigurationId}: {FilesFound} files discovered, {FilesProcessed} processed (CorrelationId: {CorrelationId})",
+                    "File check completed for configuration {ConfigurationId}: {FilesFound} files discovered (CorrelationId: {CorrelationId})",
                     message.ConfigurationId,
                     result.DiscoveredFiles.Count,
-                    filesProcessed,
                     message.CorrelationId);
-
-                // File discovery event publishing will be handled in Phase 5 (US3)
-                // For now, we just log the discovered files
-                foreach (var file in result.DiscoveredFiles)
-                {
-                    _logger.LogDebug(
-                        "Discovered file: {Filename} at {Url} (Size: {Size} bytes)",
-                        file.Filename,
-                        file.FileUrl,
-                        file.FileSize);
-                }
             }
             else
             {
                 // Publish RetrieveFileFailed event (T090)
-                await context.Publish(new   RetrieveFileFailed
+                await context.Publish(new RetrieveFileFailed
                 {
                     MessageId = Guid.NewGuid(),
                     CorrelationId = message.CorrelationId,
@@ -212,7 +187,7 @@ public class RetrieveFileHandler : IHandleMessages<RetrieveFile>
                 message.ConfigurationId);
 
             // Publish RetrieveFileFailed event
-            await context.Publish(new   RetrieveFileFailed
+            await context.Publish(new RetrieveFileFailed
             {
                 MessageId = Guid.NewGuid(),
                 CorrelationId = message.CorrelationId,
@@ -236,4 +211,18 @@ public class RetrieveFileHandler : IHandleMessages<RetrieveFile>
             throw; // Re-throw to trigger NServiceBus retry policy
         }
     }
+
+
+}
+
+/// <summary>
+/// Placeholder for discovered file information (used for type safety in the handler).
+/// </summary>
+public class DiscoveredFileInfo
+{
+    public string FileUrl { get; set; } = string.Empty;
+    public string Filename { get; set; } = string.Empty;
+    public long FileSize { get; set; }
+    public DateTimeOffset LastModified { get; set; }
+    public DateTimeOffset DiscoveredAt { get; set; }
 }

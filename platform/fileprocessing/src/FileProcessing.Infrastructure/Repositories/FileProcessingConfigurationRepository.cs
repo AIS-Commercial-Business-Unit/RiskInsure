@@ -27,11 +27,6 @@ public class FileProcessingConfigurationRepository : IFileProcessingConfiguratio
         FileProcessingConfiguration configuration,
         CancellationToken cancellationToken = default)
     {
-        _logger.LogInformation(
-            "Creating configuration {ConfigurationId} for client {ClientId}",
-            configuration.Id,
-            configuration.ClientId);
-
         var response = await _context.ConfigurationsContainer.CreateItemAsync(
             configuration,
             new PartitionKey(configuration.ClientId),
