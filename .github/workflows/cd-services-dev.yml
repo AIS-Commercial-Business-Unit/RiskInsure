@@ -83,12 +83,16 @@ jobs:
       - name: Decide services + image_tag
         id: out
         shell: bash
+        env:
+          GH_EVENT_NAME: ${{ github.event_name }}
+          INPUT_IMAGE_TAG: ${{ github.event.inputs.image_tag }}
+          INPUT_SERVICES: ${{ github.event.inputs.services }}
         run: |
           set -euo pipefail
 
           source .github/scripts/managed-services.sh
 
-          if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
+          if [[ "$GH_EVENT_NAME" == "workflow_run" ]]; then
             METADATA_FILE=".cd-inputs/deployment-inputs.json"
 
             if [[ ! -s "$METADATA_FILE" ]]; then
@@ -132,7 +136,7 @@ jobs:
             exit 0
           fi
 
-          IMAGE_TAG_RAW="${{ github.event.inputs.image_tag }}"
+          IMAGE_TAG_RAW="$INPUT_IMAGE_TAG"
           IMAGE_TAG="$(echo "$IMAGE_TAG_RAW" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')"
 
           if [[ -z "$IMAGE_TAG" ]]; then
@@ -151,7 +155,7 @@ jobs:
             exit 1
           fi
 
-          services_input="${{ github.event.inputs.services }}"
+          services_input="$INPUT_SERVICES"
           normalized_input=$(echo "$services_input" | tr '[:upper:]' '[:lower:]')
           SERVICES_JSON="$(parse_dispatch_services_input "$services_input")"
           MATRIX_EMPTY=$(echo "$SERVICES_JSON" | jq -r 'if length == 0 then "true" else "false" end')
@@ -169,18 +173,27 @@ jobs:
 
       - name: Summary
         shell: bash
+        env:
+          GH_EVENT_NAME: ${{ github.event_name }}
+          WF_RUN_NAME: ${{ github.event.workflow_run.name }}
+          WF_RUN_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          WF_RUN_ID: ${{ github.event.workflow_run.id }}
+          OUT_IMAGE_TAG: ${{ steps.out.outputs.image_tag }}
+          OUT_SERVICES: ${{ steps.out.outputs.services }}
+          OUT_MATRIX_EMPTY: ${{ steps.out.outputs.matrix_empty }}
+          OUT_TRIGGER_REASON: ${{ steps.out.outputs.trigger_reason }}
         run: |
           echo "### 🚀 CD Deployment Inputs" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Trigger:** \`${{ github.event_name }}\`" >> "$GITHUB_STEP_SUMMARY"
-          if [[ "${{ github.event_name }}" == "workflow_run" ]]; then
-            echo "**Upstream workflow:** \`${{ github.event.workflow_run.name }}\`" >> "$GITHUB_STEP_SUMMARY"
-            echo "**Upstream status:** \`${{ github.event.workflow_run.conclusion }}\`" >> "$GITHUB_STEP_SUMMARY"
-            echo "**Upstream run-id:** \`${{ github.event.workflow_run.id }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Trigger:** \`$GH_EVENT_NAME\`" >> "$GITHUB_STEP_SUMMARY"
+          if [[ "$GH_EVENT_NAME" == "workflow_run" ]]; then
+            echo "**Upstream workflow:** \`$WF_RUN_NAME\`" >> "$GITHUB_STEP_SUMMARY"
+            echo "**Upstream status:** \`$WF_RUN_CONCLUSION\`" >> "$GITHUB_STEP_SUMMARY"
+            echo "**Upstream run-id:** \`$WF_RUN_ID\`" >> "$GITHUB_STEP_SUMMARY"
           fi
-          echo "**image_tag:** \`${{ steps.out.outputs.image_tag }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "**services:** \`${{ steps.out.outputs.services }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "**matrix_empty:** \`${{ steps.out.outputs.matrix_empty }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "**trigger_reason:** \`${{ steps.out.outputs.trigger_reason }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**image_tag:** \`$OUT_IMAGE_TAG\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**services:** \`$OUT_SERVICES\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**matrix_empty:** \`$OUT_MATRIX_EMPTY\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**trigger_reason:** \`$OUT_TRIGGER_REASON\`" >> "$GITHUB_STEP_SUMMARY"
 
   # ==============================================================================
   # CRITICAL: Verify infrastructure exists before deploying services
@@ -353,10 +366,11 @@ jobs:
       - name: Build Terraform Targets
         id: targets
         shell: bash
+        env:
+          SERVICES: ${{ needs.determine.outputs.services }}
         run: |
           set -euo pipefail
 
-          SERVICES='${{ needs.determine.outputs.services }}'
           TARGETS=""
 
           for s in $(echo "$SERVICES" | jq -r '.[]'); do
@@ -416,8 +430,8 @@ jobs:
         run: |
           terraform plan \
             -var="environment=${{ env.ENVIRONMENT }}" \
-            -var="image_tag=${{ needs.determine.outputs.image_tag }}" \
-            ${{ steps.targets.outputs.targets }} \
+            -var="image_tag=$IMAGE_TAG" \
+            $TF_TARGETS \
             -out=tfplan \
             -input=false
         env:
@@ -425,6 +439,8 @@ jobs:
           ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          IMAGE_TAG: ${{ needs.determine.outputs.image_tag }}
+          TF_TARGETS: ${{ steps.targets.outputs.targets }}
 
       - name: Terraform Apply
         run: terraform apply -auto-approve tfplan
@@ -446,16 +462,25 @@ jobs:
     steps:
       - name: Generate Summary
         shell: bash
+        env:
+          IMAGE_TAG: ${{ needs.determine.outputs.image_tag }}
+          SERVICES: ${{ needs.determine.outputs.services }}
+          MATRIX_EMPTY: ${{ needs.determine.outputs.matrix_empty }}
+          TRIGGER_REASON: ${{ needs.determine.outputs.trigger_reason }}
+          DETERMINE_RESULT: ${{ needs.determine.result }}
+          VERIFY_INFRA_RESULT: ${{ needs.verify-infra.result }}
+          VERIFY_IMAGES_RESULT: ${{ needs.verify-images.result }}
+          DEPLOY_RESULT: ${{ needs.deploy.result }}
         run: |
           echo "# 🚀 CD Services Dev Summary" >> "$GITHUB_STEP_SUMMARY"
-          echo "**image_tag:** \`${{ needs.determine.outputs.image_tag }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "**services:** \`${{ needs.determine.outputs.services }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "**matrix_empty:** \`${{ needs.determine.outputs.matrix_empty }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "**trigger_reason:** \`${{ needs.determine.outputs.trigger_reason }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**image_tag:** \`$IMAGE_TAG\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**services:** \`$SERVICES\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**matrix_empty:** \`$MATRIX_EMPTY\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**trigger_reason:** \`$TRIGGER_REASON\`" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "| Job | Status |" >> "$GITHUB_STEP_SUMMARY"
           echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Determine | ${{ needs.determine.result }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Verify Infra | ${{ needs.verify-infra.result }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Verify Images | ${{ needs.verify-images.result }} |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| Deploy | ${{ needs.deploy.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Determine | $DETERMINE_RESULT |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Verify Infra | $VERIFY_INFRA_RESULT |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Verify Images | $VERIFY_IMAGES_RESULT |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Deploy | $DEPLOY_RESULT |" >> "$GITHUB_STEP_SUMMARY"

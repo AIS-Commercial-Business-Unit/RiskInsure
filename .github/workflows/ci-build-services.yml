@@ -66,16 +66,21 @@ jobs:
       - name: Determine Changed Services
         id: determine
         shell: bash
+        env:
+          GH_EVENT_NAME: ${{ github.event_name }}
+          GH_SHA: ${{ github.sha }}
+          GH_EVENT_BEFORE: ${{ github.event.before }}
+          INPUT_SERVICES: ${{ github.event.inputs.services }}
         run: |
           set -euo pipefail
 
           source .github/scripts/managed-services.sh
 
           ALL_SERVICES="$(managed_services_json)"
-          echo "image_tag=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          echo "image_tag=$GH_SHA" >> "$GITHUB_OUTPUT"
 
-          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
-            services_input="${{ github.event.inputs.services }}"
+          if [[ "$GH_EVENT_NAME" == "workflow_dispatch" ]]; then
+            services_input="$INPUT_SERVICES"
             normalized_input=$(echo "$services_input" | tr '[:upper:]' '[:lower:]')
             services_json="$(parse_dispatch_services_input "$services_input")"
 
@@ -90,8 +95,8 @@ jobs:
             exit 0
           fi
 
-          BEFORE="${{ github.event.before }}"
-          SHA="${{ github.sha }}"
+          BEFORE="$GH_EVENT_BEFORE"
+          SHA="$GH_SHA"
 
           # Handle edge case where BEFORE is all zeros (first push / unusual push scenario)
           if [[ "$BEFORE" =~ ^0+$ ]]; then
@@ -158,16 +163,24 @@ jobs:
 
       - name: Summary
         shell: bash
+        env:
+          GH_EVENT_NAME: ${{ github.event_name }}
+          GH_SHA: ${{ github.sha }}
+          OUT_IMAGE_TAG: ${{ steps.determine.outputs.image_tag }}
+          OUT_SERVICES: ${{ steps.determine.outputs.services }}
+          OUT_MATRIX_EMPTY: ${{ steps.determine.outputs.matrix_empty }}
+          OUT_INFRA_CHANGED: ${{ steps.determine.outputs.infra_changed }}
+          OUT_TRIGGER_REASON: ${{ steps.determine.outputs.trigger_reason }}
         run: |
           echo "### 🏗️ Services to Build" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Trigger:** \`${{ github.event_name }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Commit:** \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Image tag:** \`${{ steps.determine.outputs.image_tag }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Services:** \`${{ steps.determine.outputs.services }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Matrix empty:** \`${{ steps.determine.outputs.matrix_empty }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Infra changed:** \`${{ steps.determine.outputs.infra_changed }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Trigger reason:** \`${{ steps.determine.outputs.trigger_reason }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Trigger:** \`$GH_EVENT_NAME\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Commit:** \`$GH_SHA\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Image tag:** \`$OUT_IMAGE_TAG\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Services:** \`$OUT_SERVICES\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Matrix empty:** \`$OUT_MATRIX_EMPTY\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Infra changed:** \`$OUT_INFRA_CHANGED\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Trigger reason:** \`$OUT_TRIGGER_REASON\`" >> "$GITHUB_STEP_SUMMARY"
 
   # --------------------------------------------------------------------------
   # Wait For Infra
@@ -477,19 +490,21 @@ jobs:
     steps:
       - name: Create metadata file
         shell: bash
+        env:
+          IMAGE_TAG: ${{ needs.determine-services.outputs.image_tag }}
+          SERVICES: ${{ needs.determine-services.outputs.services }}
+          MATRIX_EMPTY: ${{ needs.determine-services.outputs.matrix_empty }}
+          TRIGGER_REASON: ${{ needs.determine-services.outputs.trigger_reason }}
         run: |
           set -euo pipefail
           mkdir -p .cd-metadata
-
-          cat > .cd-metadata/deployment-inputs.json <<EOF
-          {
-            "image_tag": "${{ needs.determine-services.outputs.image_tag }}",
-            "services": ${{ needs.determine-services.outputs.services }},
-            "matrix_empty": ${{ needs.determine-services.outputs.matrix_empty }},
-            "trigger_reason": "${{ needs.determine-services.outputs.trigger_reason }}"
-          }
-          EOF
-
+          jq -n \
+            --arg image_tag "$IMAGE_TAG" \
+            --argjson services "$SERVICES" \
+            --argjson matrix_empty "$([ "$MATRIX_EMPTY" = 'true' ] && echo 'true' || echo 'false')" \
+            --arg trigger_reason "$TRIGGER_REASON" \
+            '{"image_tag":$image_tag,"services":$services,"matrix_empty":$matrix_empty,"trigger_reason":$trigger_reason}' \
+            > .cd-metadata/deployment-inputs.json
           cat .cd-metadata/deployment-inputs.json
 
       - name: Upload CD metadata artifact
@@ -513,13 +528,21 @@ jobs:
     steps:
       - name: Generate Summary
         shell: bash
+        env:
+          GH_SHA: ${{ github.sha }}
+          IMAGE_TAG: ${{ needs.determine-services.outputs.image_tag }}
+          SERVICES: ${{ needs.determine-services.outputs.services }}
+          MATRIX_EMPTY: ${{ needs.determine-services.outputs.matrix_empty }}
+          TRIGGER_REASON: ${{ needs.determine-services.outputs.trigger_reason }}
+          BUILD_RESULT: ${{ needs.build.result }}
+          METADATA_RESULT: ${{ needs.publish-cd-metadata.result }}
         run: |
           echo "# 🏗️ CI Build Summary" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Commit:** \`${{ github.sha }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Image tag:** \`${{ needs.determine-services.outputs.image_tag }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Services:** \`${{ needs.determine-services.outputs.services }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Matrix empty:** \`${{ needs.determine-services.outputs.matrix_empty }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Trigger reason:** \`${{ needs.determine-services.outputs.trigger_reason }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Build result:** \`${{ needs.build.result }}\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Metadata artifact:** \`${{ needs.publish-cd-metadata.result }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Commit:** \`$GH_SHA\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Image tag:** \`$IMAGE_TAG\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Services:** \`$SERVICES\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Matrix empty:** \`$MATRIX_EMPTY\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Trigger reason:** \`$TRIGGER_REASON\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Build result:** \`$BUILD_RESULT\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Metadata artifact:** \`$METADATA_RESULT\`" >> "$GITHUB_STEP_SUMMARY"
