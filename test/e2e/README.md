@@ -1,6 +1,6 @@
 # RiskInsure E2E Integration Tests
 
-**End-to-end tests for cross-domain workflows** spanning Customer, Rating & Underwriting, Policy, Billing, and Funds Transfer Management domains.
+**End-to-end tests for cross-domain workflows** spanning Customer, Rating & Underwriting, Policy, Policy Equity & Invoicing Management, and Funds Transfer Management domains.
 
 ---
 
@@ -25,8 +25,8 @@ These tests verify **complete business flows** that cross multiple bounded conte
 - Customer API: `http://127.0.0.1:7073`
 - Rating & Underwriting API: `http://127.0.0.1:7079`
 - Policy API: `http://127.0.0.1:7077`
-- Billing API: `http://127.0.0.1:7071`
 - Funds Transfer API: `http://127.0.0.1:7075`
+- Policy Equity & Invoicing Mgt API: `http://127.0.0.1:7081`
 
 > **Note**: Tests use `127.0.0.1` instead of `localhost` to force IPv4 resolution (Playwright on Windows may prefer IPv6 `::1` which can cause connection issues).
 
@@ -155,8 +155,8 @@ Configure API endpoints via environment variables or `.env` file:
 CUSTOMER_API_URL=http://127.0.0.1:7073
 RATING_API_URL=http://127.0.0.1:7079
 POLICY_API_URL=http://127.0.0.1:7077
-BILLING_API_URL=http://127.0.0.1:7071
 FUNDS_TRANSFER_API_URL=http://127.0.0.1:7075
+POLICY_EQUITY_AND_INVOICING_MGT_API_URL=http://127.0.0.1:7081
 
 # Test Timeouts (milliseconds)
 EVENTUAL_CONSISTENCY_TIMEOUT=10000
@@ -179,8 +179,8 @@ TEST_QUOTE_PREFIX=E2E-TEST-QUOTE-
     CUSTOMER_API_URL: https://riskinsure-customer-api-dev.azurewebsites.net
     RATING_API_URL: https://riskinsure-rating-api-dev.azurewebsites.net
     POLICY_API_URL: https://riskinsure-policy-api-dev.azurewebsites.net
-    BILLING_API_URL: https://riskinsure-billing-api-dev.azurewebsites.net
     FUNDS_TRANSFER_API_URL: https://riskinsure-funds-api-dev.azurewebsites.net
+    POLICY_EQUITY_AND_INVOICING_MGT_API_URL: https://riskinsure-peimgt-api-dev.azurewebsites.net
     EVENTUAL_CONSISTENCY_TIMEOUT: 15000
   inputs:
     targetType: 'inline'
@@ -237,8 +237,8 @@ jobs:
         CUSTOMER_API_URL: ${{ secrets.DEV_CUSTOMER_API_URL }}
         RATING_API_URL: ${{ secrets.DEV_RATING_API_URL }}
         POLICY_API_URL: ${{ secrets.DEV_POLICY_API_URL }}
-        BILLING_API_URL: ${{ secrets.DEV_BILLING_API_URL }}
         FUNDS_TRANSFER_API_URL: ${{ secrets.DEV_FUNDS_API_URL }}
+        POLICY_EQUITY_AND_INVOICING_MGT_API_URL: ${{ secrets.DEV_POLICY_EQUITY_AND_INVOICING_MGT_API_URL }}
       run: npm test
     
     - name: Upload test results
@@ -263,7 +263,7 @@ test/e2e/
 │   ├── customer-api.ts            # Customer domain API helpers
 │   ├── rating-api.ts              # Rating & Underwriting API helpers
 │   ├── policy-api.ts              # Policy domain API helpers (+ wait helper)
-│   ├── billing-api.ts             # Billing domain API helpers (future)
+│   ├── policyequityandinvoicingmgt-api.ts  # Policy equity and invoicing helpers (future)
 │   └── funds-transfer-api.ts      # Funds Transfer API helpers (future)
 ├── tests/
 │   ├── quote-to-policy-flow.spec.ts      # Quote → Policy workflow
@@ -433,10 +433,10 @@ SELECT * FROM c WHERE CONTAINS(c.email, 'E2E-TEST-CUST-')
 ### Step 1: Create Helper Functions
 
 ```typescript
-// helpers/billing-api.ts
+// helpers/policyequityandinvoicingmgt-api.ts
 export async function createInvoice(request: APIRequestContext, data) {
   const response = await request.post(
-    `${config.apis.billing}/api/invoices`,
+    `${config.apis.policyequityandinvoicingmgt}/api/policyequityandinvoicingmgt/payments`,
     { data, timeout: config.timeouts.apiRequest }
   );
   expect(response.status()).toBe(201);
@@ -451,7 +451,7 @@ export async function createInvoice(request: APIRequestContext, data) {
 import { test, expect } from '@playwright/test';
 import { getTestConfig, validateConfig } from '../config/api-endpoints';
 import { createCustomer } from '../helpers/customer-api';
-import { createInvoice } from '../helpers/billing-api';
+import { createInvoice } from '../helpers/policyequityandinvoicingmgt-api';
 
 test.describe('New Business Flow', () => {
   test.beforeAll(() => {

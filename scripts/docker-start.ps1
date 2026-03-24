@@ -82,7 +82,6 @@ try {
     
     Write-Host ""
     Write-Host "[API] API Endpoints:" -ForegroundColor Cyan
-    Write-Host "   Billing:                     http://localhost:7071" -ForegroundColor White
     Write-Host "   Customer:                    http://localhost:7073" -ForegroundColor White
     Write-Host "   Funds Transfer:              http://localhost:7075" -ForegroundColor White
     Write-Host "   Policy:                      http://localhost:7077" -ForegroundColor White
@@ -92,7 +91,7 @@ try {
     Write-Host ""
     Write-Host "[COMMANDS] Useful Commands:" -ForegroundColor Cyan
     Write-Host "   View logs:      docker-compose logs -f" -ForegroundColor Gray
-    Write-Host "   View specific:  docker-compose logs -f billing-api" -ForegroundColor Gray
+    Write-Host "   View specific:  docker-compose logs -f customer-api" -ForegroundColor Gray
     Write-Host "   Stop all:       .\scripts\docker-stop.ps1" -ForegroundColor Gray
     Write-Host "   Restart:        docker-compose restart" -ForegroundColor Gray
     Write-Host "   Rebuild:        .\scripts\docker-rebuild.ps1" -ForegroundColor Gray

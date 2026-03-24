@@ -64,7 +64,7 @@
 **Review the plan** for:
 - [ ] Persistence choice is correct (Cosmos DB or PostgreSQL)
 - [ ] All 9 constitution principles pass (or violations justified)
-- [ ] Service location correct (e.g., `services/billing/`)
+- [ ] Service location correct (e.g., `services/<service>/`)
 
 ---
 

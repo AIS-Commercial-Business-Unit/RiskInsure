@@ -57,8 +57,8 @@ variable "tags" {
   description = "Tags to apply to all resources"
   type        = map(string)
   default = {
-    Project     = "RiskInsure"
-    ManagedBy   = "Terraform"
+    Project   = "RiskInsure"
+    ManagedBy = "Terraform"
     # Environment = var.environment
   }
 }

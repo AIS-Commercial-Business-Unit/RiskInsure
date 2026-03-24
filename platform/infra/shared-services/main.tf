@@ -45,8 +45,8 @@ data "terraform_remote_state" "foundation" {
 # ==========================================================================
 
 locals {
-  resource_group_name       = var.resource_group_name
-  location                  = var.location
+  resource_group_name = var.resource_group_name
+  location            = var.location
 
   # Generate names if not provided
   cosmosdb_account_name     = var.cosmosdb_account_name != "" ? var.cosmosdb_account_name : "riskinsure-${var.environment}-cosmos"
@@ -82,9 +82,9 @@ resource "azurerm_user_assigned_identity" "apps_shared" {
 
 # Grant AcrPull role for image pulling
 resource "azurerm_role_assignment" "apps_shared_acr" {
-  scope              = data.terraform_remote_state.foundation.outputs.acr_id
+  scope                = data.terraform_remote_state.foundation.outputs.acr_id
   role_definition_name = "AcrPull"
-  principal_id       = azurerm_user_assigned_identity.apps_shared.principal_id
+  principal_id         = azurerm_user_assigned_identity.apps_shared.principal_id
 }
 
 # Grant Service Bus Data Owner role for messaging
@@ -104,7 +104,7 @@ resource "azurerm_cosmosdb_sql_role_assignment" "apps_shared_cosmos" {
 }
 
 resource "azurerm_role_assignment" "uami_kv_secrets_user" {
-  scope              = data.terraform_remote_state.foundation.outputs.key_vault_id
+  scope                = data.terraform_remote_state.foundation.outputs.key_vault_id
   role_definition_name = "Key Vault Secrets User"
-  principal_id       = azurerm_user_assigned_identity.apps_shared.principal_id  # UAMI
+  principal_id         = azurerm_user_assigned_identity.apps_shared.principal_id # UAMI
 }

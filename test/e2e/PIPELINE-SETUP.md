@@ -20,8 +20,8 @@ Variables:
 - CUSTOMER_API_URL: https://riskinsure-customer-api-dev.azurewebsites.net
 - RATING_API_URL: https://riskinsure-rating-api-dev.azurewebsites.net
 - POLICY_API_URL: https://riskinsure-policy-api-dev.azurewebsites.net
-- BILLING_API_URL: https://riskinsure-billing-api-dev.azurewebsites.net
 - FUNDS_TRANSFER_API_URL: https://riskinsure-funds-api-dev.azurewebsites.net
+- POLICY_EQUITY_AND_INVOICING_MGT_API_URL: https://riskinsure-peimgt-api-dev.azurewebsites.net
 - EVENTUAL_CONSISTENCY_TIMEOUT: 15000
 ```
 
@@ -33,8 +33,8 @@ Secrets:
 - DEV_CUSTOMER_API_URL
 - DEV_RATING_API_URL
 - DEV_POLICY_API_URL
-- DEV_BILLING_API_URL
 - DEV_FUNDS_API_URL
+- DEV_POLICY_EQUITY_AND_INVOICING_MGT_API_URL
 ```
 
 ### 3. Run Tests (Pipeline Step 2)
@@ -79,8 +79,8 @@ npm test
 export CUSTOMER_API_URL=https://dev.riskinsure.com/customer
 export RATING_API_URL=https://dev.riskinsure.com/rating
 export POLICY_API_URL=https://dev.riskinsure.com/policy
-export BILLING_API_URL=https://dev.riskinsure.com/billing
 export FUNDS_TRANSFER_API_URL=https://dev.riskinsure.com/funds
+export POLICY_EQUITY_AND_INVOICING_MGT_API_URL=https://dev.riskinsure.com/policyequityandinvoicingmgt
 npm test
 ```
 
@@ -89,8 +89,8 @@ npm test
 export CUSTOMER_API_URL=https://staging.riskinsure.com/customer
 export RATING_API_URL=https://staging.riskinsure.com/rating
 export POLICY_API_URL=https://staging.riskinsure.com/policy
-export BILLING_API_URL=https://staging.riskinsure.com/billing
 export FUNDS_TRANSFER_API_URL=https://staging.riskinsure.com/funds
+export POLICY_EQUITY_AND_INVOICING_MGT_API_URL=https://staging.riskinsure.com/policyequityandinvoicingmgt
 export EVENTUAL_CONSISTENCY_TIMEOUT=20000
 npm test
 ```
@@ -145,8 +145,8 @@ stages:
         CUSTOMER_API_URL: $(CUSTOMER_API_URL)
         RATING_API_URL: $(RATING_API_URL)
         POLICY_API_URL: $(POLICY_API_URL)
-        BILLING_API_URL: $(BILLING_API_URL)
         FUNDS_TRANSFER_API_URL: $(FUNDS_TRANSFER_API_URL)
+        POLICY_EQUITY_AND_INVOICING_MGT_API_URL: $(POLICY_EQUITY_AND_INVOICING_MGT_API_URL)
         EVENTUAL_CONSISTENCY_TIMEOUT: $(EVENTUAL_CONSISTENCY_TIMEOUT)
     
     - task: PublishTestResults@2
@@ -206,8 +206,8 @@ jobs:
         CUSTOMER_API_URL: ${{ secrets.DEV_CUSTOMER_API_URL }}
         RATING_API_URL: ${{ secrets.DEV_RATING_API_URL }}
         POLICY_API_URL: ${{ secrets.DEV_POLICY_API_URL }}
-        BILLING_API_URL: ${{ secrets.DEV_BILLING_API_URL }}
         FUNDS_TRANSFER_API_URL: ${{ secrets.DEV_FUNDS_API_URL }}
+        POLICY_EQUITY_AND_INVOICING_MGT_API_URL: ${{ secrets.DEV_POLICY_EQUITY_AND_INVOICING_MGT_API_URL }}
         EVENTUAL_CONSISTENCY_TIMEOUT: 15000
       run: npm test
     
@@ -309,6 +309,6 @@ View test trends over time:
 CUSTOMER_API_URL
 RATING_API_URL
 POLICY_API_URL
-BILLING_API_URL
 FUNDS_TRANSFER_API_URL
+POLICY_EQUITY_AND_INVOICING_MGT_API_URL
 ```

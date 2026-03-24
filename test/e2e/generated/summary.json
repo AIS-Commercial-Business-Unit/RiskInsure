@@ -1,11 +1,11 @@
 {
   "mode": "generate",
   "changedFiles": [
-    "services/billing/docs/business/billing-account.md",
-    "services/billing/docs/business/billing-payment.md",
-    "services/billing/docs/business/multi-policy-billing.md",
-    "services/billing/docs/technical/highlevel-tech.md",
-    "services/billing/docs/technical/multi-policy-billing-technical-spec.md",
+    "services/legacy/billing/docs/business/billing-account.md",
+    "services/legacy/billing/docs/business/billing-payment.md",
+    "services/legacy/billing/docs/business/multi-policy-billing.md",
+    "services/legacy/billing/docs/technical/highlevel-tech.md",
+    "services/legacy/billing/docs/technical/multi-policy-billing-technical-spec.md",
     "services/customer/docs/business/customer-management.md",
     "services/customer/docs/technical/customer-technical-spec.md",
     "services/customerrelationshipsmgt/docs/business/relationship-management.md",
@@ -35,11 +35,11 @@
     "services/riskratingandunderwriting/docs/technical/rating-underwriting-technical-spec.md"
   ],
   "requirementFiles": [
-    "services/billing/docs/business/billing-account.md",
-    "services/billing/docs/business/billing-payment.md",
-    "services/billing/docs/business/multi-policy-billing.md",
-    "services/billing/docs/technical/highlevel-tech.md",
-    "services/billing/docs/technical/multi-policy-billing-technical-spec.md",
+    "services/legacy/billing/docs/business/billing-account.md",
+    "services/legacy/billing/docs/business/billing-payment.md",
+    "services/legacy/billing/docs/business/multi-policy-billing.md",
+    "services/legacy/billing/docs/technical/highlevel-tech.md",
+    "services/legacy/billing/docs/technical/multi-policy-billing-technical-spec.md",
     "services/customer/docs/business/customer-management.md",
     "services/customer/docs/technical/customer-technical-spec.md",
     "services/customerrelationshipsmgt/docs/business/relationship-management.md",
@@ -84,11 +84,11 @@
     {
       "service": "billing",
       "sourceDocs": [
-        "services/billing/docs/business/billing-account.md",
-        "services/billing/docs/business/billing-payment.md",
-        "services/billing/docs/business/multi-policy-billing.md",
-        "services/billing/docs/technical/highlevel-tech.md",
-        "services/billing/docs/technical/multi-policy-billing-technical-spec.md"
+        "services/legacy/billing/docs/business/billing-account.md",
+        "services/legacy/billing/docs/business/billing-payment.md",
+        "services/legacy/billing/docs/business/multi-policy-billing.md",
+        "services/legacy/billing/docs/technical/highlevel-tech.md",
+        "services/legacy/billing/docs/technical/multi-policy-billing-technical-spec.md"
       ],
       "scenarios": [
         "api-health-endpoint",

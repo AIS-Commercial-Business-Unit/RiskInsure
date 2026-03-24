@@ -65,30 +65,32 @@ resource "azurerm_cosmosdb_sql_database" "riskinsure" {
 # Cosmos DB Containers (Data Containers)
 # ==========================================================================
 
-resource "azurerm_cosmosdb_sql_container" "billing" {
-  name                  = "Billing"
-  resource_group_name   = local.resource_group_name
-  account_name          = azurerm_cosmosdb_account.riskinsure.name
-  database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
-  partition_key_paths   = ["/accountId"]    # ← NOT orderId! Use accountId
-  partition_key_version = 1
-  throughput            = var.cosmosdb_throughput
-
-  indexing_policy {
-    indexing_mode = "consistent"
-
-    included_path {
-      path = "/*"
-    }
-  }
-}
+# Legacy Billing Cosmos container disabled after migration to PolicyEquityAndInvoicingMgt.
+# Uncomment to restore the legacy Billing data container.
+# resource "azurerm_cosmosdb_sql_container" "billing" {
+#   name                  = "Billing"
+#   resource_group_name   = local.resource_group_name
+#   account_name          = azurerm_cosmosdb_account.riskinsure.name
+#   database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
+#   partition_key_paths   = ["/accountId"]    # ← NOT orderId! Use accountId
+#   partition_key_version = 1
+#   throughput            = var.cosmosdb_throughput
+#
+#   indexing_policy {
+#     indexing_mode = "consistent"
+#
+#     included_path {
+#       path = "/*"
+#     }
+#   }
+# }
 
 resource "azurerm_cosmosdb_sql_container" "customer" {
   name                  = "customer"
   resource_group_name   = local.resource_group_name
   account_name          = azurerm_cosmosdb_account.riskinsure.name
   database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
-  partition_key_paths   = ["/customerId"]   # ← Correct ✅
+  partition_key_paths   = ["/customerId"] # ← Correct ✅
   partition_key_version = 1
   throughput            = var.cosmosdb_throughput
 
@@ -106,7 +108,7 @@ resource "azurerm_cosmosdb_sql_container" "policy" {
   resource_group_name   = local.resource_group_name
   account_name          = azurerm_cosmosdb_account.riskinsure.name
   database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
-  partition_key_paths   = ["/policyId"]     # ← Correct ✅
+  partition_key_paths   = ["/policyId"] # ← Correct ✅
   partition_key_version = 1
   throughput            = var.cosmosdb_throughput
 
@@ -124,7 +126,7 @@ resource "azurerm_cosmosdb_sql_container" "ratingunderwriting" {
   resource_group_name   = local.resource_group_name
   account_name          = azurerm_cosmosdb_account.riskinsure.name
   database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
-  partition_key_paths   = ["/quoteId"]      # ← NOT id! Use quoteId
+  partition_key_paths   = ["/quoteId"] # ← NOT id! Use quoteId
   partition_key_version = 1
   throughput            = var.cosmosdb_throughput
 
@@ -177,23 +179,25 @@ resource "azurerm_cosmosdb_sql_container" "customerrelationships" {
 # Cosmos DB Saga Containers (for NServiceBus)
 # ==========================================================================
 
-resource "azurerm_cosmosdb_sql_container" "billing_sagas" {
-  name                  = "billing-sagas"
-  resource_group_name   = local.resource_group_name
-  account_name          = azurerm_cosmosdb_account.riskinsure.name
-  database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
-  partition_key_paths   = ["/accountId"]
-  partition_key_version = 1
-  throughput            = var.cosmosdb_throughput
-
-  indexing_policy {
-    indexing_mode = "consistent"
-
-    included_path {
-      path = "/*"
-    }
-  }
-}
+# Legacy Billing saga container disabled after migration to PolicyEquityAndInvoicingMgt.
+# Uncomment to restore the legacy Billing saga persistence container.
+# resource "azurerm_cosmosdb_sql_container" "billing_sagas" {
+#   name                  = "billing-sagas"
+#   resource_group_name   = local.resource_group_name
+#   account_name          = azurerm_cosmosdb_account.riskinsure.name
+#   database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
+#   partition_key_paths   = ["/accountId"]
+#   partition_key_version = 1
+#   throughput            = var.cosmosdb_throughput
+#
+#   indexing_policy {
+#     indexing_mode = "consistent"
+#
+#     included_path {
+#       path = "/*"
+#     }
+#   }
+# }
 
 resource "azurerm_cosmosdb_sql_container" "customer_sagas" {
   name                  = "customer-sagas"

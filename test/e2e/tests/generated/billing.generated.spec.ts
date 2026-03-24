@@ -88,11 +88,11 @@ test.describe('[Generated] billing requirements regression', () => {
 test.describe('[Generated] metadata for billing', () => {
   test('source documents snapshot', async () => {
     const snapshot = [
-      '- services/billing/docs/business/billing-account.md',
-      '- services/billing/docs/business/billing-payment.md',
-      '- services/billing/docs/business/multi-policy-billing.md',
-      '- services/billing/docs/technical/highlevel-tech.md',
-      '- services/billing/docs/technical/multi-policy-billing-technical-spec.md',
+      '- services/legacy/billing/docs/business/billing-account.md',
+      '- services/legacy/billing/docs/business/billing-payment.md',
+      '- services/legacy/billing/docs/business/multi-policy-billing.md',
+      '- services/legacy/billing/docs/technical/highlevel-tech.md',
+      '- services/legacy/billing/docs/technical/multi-policy-billing-technical-spec.md',
     ];
 
     expect(snapshot.length).toBeGreaterThan(0);

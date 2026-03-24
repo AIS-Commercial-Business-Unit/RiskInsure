@@ -158,7 +158,7 @@ dotnet tool install --global NServiceBus.Transport.AzureServiceBus.CommandLine
 export AzureServiceBus_ConnectionString="YOUR-SERVICEBUS-CONNECTION-STRING-FROM-STEP-3"
 
 # Run the queue setup script for each service
-./services/billing/src/Infrastructure/queues.sh
+./services/customer/src/Infrastructure/queues.sh
 
 # Or create queues manually:
 # Create shared infrastructure queues (run once)
@@ -300,7 +300,7 @@ Run the smoke test to verify all services are healthy:
 
 If you see any failures, check:
 1. Environment variables are set: `echo $COSMOSDB_CONNECTION_STRING`
-2. Containers have correct config: `docker inspect riskinsure-billing-api-1 | grep ConnectionStrings`
+2. Containers have correct config: `docker inspect riskinsure-customer-api-1 | grep ConnectionStrings`
 3. Azure resources are accessible: `az cosmosdb show -n riskinsure-cosmosdb -g riskinsure-dev`
 
 ---
@@ -365,13 +365,13 @@ Your development environment is fully configured:
 docker compose up -d
 
 # Start specific service
-docker compose up -d billing-api billing-endpoint
+docker compose up -d customer-api customer-endpoint
 
 # View logs
-docker compose logs -f billing-api
+docker compose logs -f customer-api
 
 # Restart after code changes
-docker compose restart billing-api
+docker compose restart customer-api
 ```
 
 ### Stopping Services
@@ -391,8 +391,8 @@ docker compose down -v
 
 ```bash
 # Rebuild specific service
-docker compose build billing-api
-docker compose up -d billing-api
+docker compose build customer-api
+docker compose up -d customer-api
 
 # Rebuild all services
 docker compose down
@@ -415,7 +415,7 @@ sleep 30 && ./scripts/smoke-test.sh
 
 **Check logs:**
 ```bash
-docker logs riskinsure-billing-api-1
+docker logs riskinsure-customer-api-1
 ```
 
 **Common causes:**
@@ -425,7 +425,7 @@ docker logs riskinsure-billing-api-1
 
 **Verify env vars in container:**
 ```bash
-docker inspect riskinsure-billing-api-1 --format '{{range .Config.Env}}{{println .}}{{end}}' | grep ConnectionStrings
+docker inspect riskinsure-customer-api-1 --format '{{range .Config.Env}}{{println .}}{{end}}' | grep ConnectionStrings
 ```
 
 ### Issue: "Name or service not known (cosmos-emulator:8081)"
@@ -661,8 +661,8 @@ public class PolicyBoundHandler : IHandleMessages<PolicyBound>
 
 ```bash
 cd ../../../../
-dotnet sln add services/billing/src/Domain/RiskInsure.Billing.Domain.csproj
-dotnet sln add services/billing/src/Infrastructure/RiskInsure.Billing.Infrastructure.csproj
+dotnet sln add services/customer/src/Domain/Domain.csproj
+dotnet sln add services/customer/src/Infrastructure/Infrastructure.csproj
 dotnet build
 ```
 
@@ -687,7 +687,7 @@ Add service definitions to `docker-compose.yml` following existing patterns.
 docker compose logs -f
 
 # Specific service
-docker compose logs -f billing-api
+docker compose logs -f customer-api
 
 # Last 100 lines
 docker compose logs --tail=100 billing-endpoint
@@ -731,7 +731,7 @@ az monitor app-insights component create \
 dotnet test
 
 # Specific service
-dotnet test services/billing/test/Unit.Tests
+dotnet test services/customer/test/Unit.Tests
 
 # With coverage
 dotnet test --collect:"XPlat Code Coverage"
@@ -843,10 +843,10 @@ echo "host=localhost;username=guest;password=guest"
 docker ps
 
 # Check environment variables in container
-docker inspect riskinsure-billing-api-1 --format '{{range .Config.Env}}{{println .}}{{end}}'
+docker inspect riskinsure-customer-api-1 --format '{{range .Config.Env}}{{println .}}{{end}}'
 
 # Execute command in container
-docker exec -it riskinsure-billing-api-1 bash
+docker exec -it riskinsure-customer-api-1 bash
 
 # Clean up everything
 docker compose down -v

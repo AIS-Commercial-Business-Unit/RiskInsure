@@ -2,11 +2,11 @@
   {
     "service": "billing",
     "sourceDocs": [
-      "services/billing/docs/business/billing-account.md",
-      "services/billing/docs/business/billing-payment.md",
-      "services/billing/docs/business/multi-policy-billing.md",
-      "services/billing/docs/technical/highlevel-tech.md",
-      "services/billing/docs/technical/multi-policy-billing-technical-spec.md"
+      "services/legacy/billing/docs/business/billing-account.md",
+      "services/legacy/billing/docs/business/billing-payment.md",
+      "services/legacy/billing/docs/business/multi-policy-billing.md",
+      "services/legacy/billing/docs/technical/highlevel-tech.md",
+      "services/legacy/billing/docs/technical/multi-policy-billing-technical-spec.md"
     ],
     "scenarios": [
       "api-health-endpoint",

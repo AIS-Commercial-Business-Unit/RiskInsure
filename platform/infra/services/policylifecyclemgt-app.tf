@@ -194,7 +194,7 @@ resource "azurerm_container_app" "policylifecyclemgt_endpoint" {
         name  = "APPLICATIONINSIGHTS_CONNECTION_STRING"
         value = data.terraform_remote_state.foundation.outputs.application_insights_connection_string
       }
- 
+
     }
 
   }

@@ -1,15 +1,15 @@
 # Agentic E2E Generation Plan
 
-Generated at: 2026-03-11T19:28:19.875Z
+Generated at: 2026-03-23T00:00:00.000Z
 
 ## Services Analyzed
 
-- billing
-  - services/billing/docs/business/billing-account.md
-  - services/billing/docs/business/billing-payment.md
-  - services/billing/docs/business/multi-policy-billing.md
-  - services/billing/docs/technical/highlevel-tech.md
-  - services/billing/docs/technical/multi-policy-billing-technical-spec.md
+- legacy/billing
+  - services/legacy/billing/docs/business/billing-account.md
+  - services/legacy/billing/docs/business/billing-payment.md
+  - services/legacy/billing/docs/business/multi-policy-billing.md
+  - services/legacy/billing/docs/technical/highlevel-tech.md
+  - services/legacy/billing/docs/technical/multi-policy-billing-technical-spec.md
 - customer
   - services/customer/docs/business/customer-management.md
   - services/customer/docs/technical/customer-technical-spec.md

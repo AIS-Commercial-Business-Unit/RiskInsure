@@ -38,8 +38,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - service: billing
-            path: services/billing/test/Unit.Tests
           - service: customer
             path: services/customer/test/Unit.Tests
           - service: customerrelationshipsmgt

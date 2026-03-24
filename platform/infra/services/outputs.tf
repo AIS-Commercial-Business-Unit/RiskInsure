@@ -1,7 +1,8 @@
-output "billing_api_url" {
-  description = "Billing API URL"
-  value       = "https://${azurerm_container_app.billing_api.ingress[0].fqdn}"
-}
+# Legacy Billing output disabled after migration to PolicyEquityAndInvoicingMgt.
+# output "billing_api_url" {
+#   description = "Billing API URL"
+#   value       = "https://${azurerm_container_app.billing_api.ingress[0].fqdn}"
+# }
 
 output "cosmosdb_connection_string" {
   description = "Cosmos DB connection string (passed through from shared-services)"

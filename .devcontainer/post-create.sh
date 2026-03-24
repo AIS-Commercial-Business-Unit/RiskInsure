@@ -26,7 +26,7 @@ echo "🔗 Service URLs (after starting):"
 echo "  Customer API: http://localhost:7073"
 echo "  Rating API: http://localhost:7079"
 echo "  Policy API: http://localhost:7077"
-echo "  Billing API: http://localhost:7071"
+echo "  PolicyEquityAndInvoicingMgt API: http://localhost:7081"
 echo "  Cosmos DB: https://localhost:8081/_explorer"
 
 # Always exit successfully

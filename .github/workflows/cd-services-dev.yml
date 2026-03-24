@@ -376,10 +376,6 @@ jobs:
           for s in $(echo "$SERVICES" | jq -r '.[]'); do
             # Map service name to Terraform resource name
             case "$s" in
-              billing)
-                TARGETS="$TARGETS -target=azurerm_container_app.billing_api"
-                TARGETS="$TARGETS -target=azurerm_container_app.billing_endpoint"
-                ;;
               customer)
                 TARGETS="$TARGETS -target=azurerm_container_app.customer_api"
                 TARGETS="$TARGETS -target=azurerm_container_app.customer_endpoint"

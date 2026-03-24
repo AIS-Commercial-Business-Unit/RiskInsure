@@ -16,13 +16,14 @@ import { defineConfig, devices } from '@playwright/test';
  * - CUSTOMER_API_URL: Customer domain API base URL
  * - RATING_API_URL: Rating & Underwriting domain API base URL
  * - POLICY_API_URL: Policy domain API base URL
- * - BILLING_API_URL: Billing domain API base URL
  * - FUNDS_TRANSFER_API_URL: Funds Transfer Management domain API base URL
+ * - POLICY_EQUITY_AND_INVOICING_MGT_API_URL: Policy Equity and Invoicing Management API base URL
  * - EVENTUAL_CONSISTENCY_TIMEOUT: Max wait time for async events (ms)
  * - API_REQUEST_TIMEOUT: Max wait time for API requests (ms)
  */
 export default defineConfig({
   testDir: './tests',
+  testIgnore: ['**/generated/billing.generated.spec.ts'],
   fullyParallel: false, // Run tests sequentially to avoid eventual consistency conflicts
   forbidOnly: !!process.env.CI, // Fail CI if test.only() is left in
   retries: process.env.CI ? 2 : 0, // Retry failed tests in CI for transient issues

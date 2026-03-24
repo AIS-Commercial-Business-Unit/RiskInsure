@@ -41,7 +41,7 @@ RiskInsure/
 │   ├── ui/                      # Shared UI components
 │   └── infra/                   # Infrastructure templates (Bicep, Terraform)
 ├── services/                    # Business-specific bounded contexts
-│   ├── billing/                 # Billing domain service
+│   ├── legacy/                  # Archived bounded contexts kept for recovery/reference
 │   ├── payments/                # Payments domain service
 │   └── [your-service]/          # Add your services here
 ├── copilot-instructions/        # Architectural governance
@@ -179,7 +179,6 @@ docker-compose up -d --build
 
 ### Access Services
 
-- **Billing API**: http://localhost:7071
 - **Customer API**: http://localhost:7073
 - **Funds Transfer API**: http://localhost:7075
 - **Policy API**: http://localhost:7077

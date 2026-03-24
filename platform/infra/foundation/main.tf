@@ -235,9 +235,9 @@ resource "azurerm_storage_account" "riskinsure" {
   min_tls_version          = "TLS1_2"
 
   # Security features
-  https_traffic_only_enabled      = true
+  https_traffic_only_enabled = true
   # Enable for initial deployment; disable after deployment completes
-  shared_access_key_enabled       = true
+  shared_access_key_enabled = true
 
   tags = var.tags
 }
