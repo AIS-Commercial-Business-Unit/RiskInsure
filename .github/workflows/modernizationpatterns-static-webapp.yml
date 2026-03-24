@@ -25,13 +25,11 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: "npm"
-          cache-dependency-path: "platform/modernizationpatterns/package-lock.json"
 
       - name: Install dependencies and build
         working-directory: platform/modernizationpatterns
         run: |
-          rm -rf node_modules
+          rm -rf node_modules package-lock.json
           npm install
           npm run build
 
@@ -43,4 +41,5 @@ jobs:
           action: "upload"
           app_location: "platform/modernizationpatterns"
           output_location: "dist"
+          skip_app_build: true
           skip_app_build: true
