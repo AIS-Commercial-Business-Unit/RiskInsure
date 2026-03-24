@@ -208,8 +208,8 @@ jobs:
             const owner = context.repo.owner;
             const repo = context.repo.repo;
 
-            const maxAttempts = 45;
-            const delayMs = 60000;
+            const maxAttempts = 3;
+            const delayMs = 50000;
 
             for (let attempt = 1; attempt <= maxAttempts; attempt++) {
               const { data } = await github.rest.actions.listWorkflowRuns({
