@@ -1,0 +1,372 @@
+[
+  {
+    "title": "Strategy & Mobilize",
+    "slug": "strategy-mobilize",
+    "summary": "Aligns business outcomes, modernization priorities, governance posture, and organizational readiness before large-scale agentic delivery begins.",
+    "whyItMatters": "Enterprise modernization fails when strategy, sponsorship, governance, and delivery expectations are vague. This phase establishes the value case, decision model, and mobilization plan so agentic engineering is anchored in business priorities rather than tool enthusiasm.",
+    "keyDecisions": [
+      "What business outcomes and modernization goals matter most?",
+      "Which domains, products, or value streams are the right entry point?",
+      "What governance posture and risk tiering are required?",
+      "What operating model will govern the work?",
+      "What capabilities must be in place before execution scales?"
+    ],
+    "majorActivities": [
+      "Define the business case and target outcomes",
+      "Assess modernization scope and domain candidates",
+      "Establish executive sponsorship and decision rights",
+      "Set governance posture, policies, and autonomy boundaries",
+      "Create rollout waves, success criteria, and mobilization roadmap"
+    ],
+    "humanRoles": [
+      "Executive sponsor",
+      "Portfolio or product lead",
+      "Modernization lead",
+      "Domain architect",
+      "Platform owner",
+      "Risk/compliance lead"
+    ],
+    "agentRoles": [
+      "Assessment agent",
+      "Knowledge retrieval agent",
+      "Planning agent"
+    ],
+    "inputs": [
+      "Business strategy",
+      "Current-state architecture",
+      "Delivery pain points",
+      "Risk obligations",
+      "Talent readiness"
+    ],
+    "outputs": [
+      "Transformation charter",
+      "Target use-case portfolio",
+      "Governance posture",
+      "Mobilization roadmap",
+      "Success measures"
+    ],
+    "artifacts": [
+      "Business case",
+      "Wave plan",
+      "Decision-rights matrix",
+      "Readiness assessment",
+      "Success metric baseline"
+    ],
+    "controls": [
+      "Executive approvals",
+      "Portfolio gates",
+      "Risk acceptance decisions",
+      "Initial policy guardrails"
+    ],
+    "metrics": [
+      "Time to mobilize",
+      "Stakeholder alignment",
+      "Readiness score",
+      "Approved use-case count",
+      "Baseline metric coverage"
+    ],
+    "relatedPillars": [
+      "governance-risk",
+      "people-enablement",
+      "measurement-value"
+    ]
+  },
+  {
+    "title": "Design",
+    "slug": "design",
+    "summary": "Uses domain-driven design, event storming, modernization patterns, and agent design to understand the system, define boundaries, and shape the target-state solution.",
+    "whyItMatters": "Design is where large-system modernization becomes intentional instead of reactive. This phase defines the business capabilities, boundaries, flows, interfaces, modernization patterns, and agent roles that guide everything downstream.",
+    "keyDecisions": [
+      "What are the bounded contexts, capabilities, and seams for modernization?",
+      "What inputs, outputs, events, screens, and workflows define the domain?",
+      "What modernization patterns apply to each part of the system?",
+      "What roles will humans and agents play in the target process?",
+      "What artifacts are required for implementation and governance?"
+    ],
+    "majorActivities": [
+      "Run DDD and event storming workshops",
+      "Document user journeys, screens, inputs, outputs, and events",
+      "Define bounded contexts and integration patterns",
+      "Select target architectures and modernization patterns",
+      "Design agent roles, handoffs, and review requirements"
+    ],
+    "humanRoles": [
+      "Business owner",
+      "Domain architect",
+      "Product owner",
+      "Solution architect",
+      "Security/compliance lead"
+    ],
+    "agentRoles": [
+      "Knowledge retrieval agent",
+      "Documentation agent",
+      "Planning agent"
+    ],
+    "inputs": [
+      "Current-state workflows",
+      "Business goals",
+      "System inventory",
+      "Architecture standards",
+      "Governance rules"
+    ],
+    "outputs": [
+      "Domain model",
+      "Event model",
+      "Context map",
+      "Target architecture",
+      "Agent role design"
+    ],
+    "artifacts": [
+      "Event storm outputs",
+      "Capability map",
+      "Context map",
+      "Architecture decision records",
+      "Agent role catalog"
+    ],
+    "controls": [
+      "Architecture review",
+      "Pattern selection governance",
+      "Traceability to business outcomes",
+      "Approval for high-risk design choices"
+    ],
+    "metrics": [
+      "Design decision throughput",
+      "Coverage of business capabilities",
+      "Boundary clarity",
+      "Architecture review rework"
+    ],
+    "relatedPillars": [
+      "governance-risk",
+      "platform-tooling",
+      "human-agent-collaboration"
+    ]
+  },
+  {
+    "title": "Build",
+    "slug": "build",
+    "summary": "Implements the solution through structured human-agent collaboration across code, tests, security, documentation, and architecture conformance.",
+    "whyItMatters": "Build is where the operating model turns into repeatable engineering work. It must balance acceleration with reviewability, traceability, quality, and control.",
+    "keyDecisions": [
+      "What work can be delegated to agents and what must remain human-led?",
+      "What artifacts will structure work decomposition and review?",
+      "What standards govern code, tests, security, and documentation?",
+      "How will context be supplied consistently to humans and agents?",
+      "What evidence is required before work is considered ready?"
+    ],
+    "majorActivities": [
+      "Decompose work into structured implementation packets",
+      "Generate and refine code, tests, and documentation",
+      "Run architecture conformance and security checks",
+      "Perform human review on risk-tiered changes",
+      "Capture evidence packs for release readiness"
+    ],
+    "humanRoles": [
+      "Engineer",
+      "Architect",
+      "Reviewer",
+      "Security engineer",
+      "Platform engineer"
+    ],
+    "agentRoles": [
+      "Coordinator agent",
+      "Implementation agent",
+      "Testing agent",
+      "Security review agent",
+      "Documentation agent"
+    ],
+    "inputs": [
+      "Design artifacts",
+      "Task briefs",
+      "Architecture standards",
+      "Context sources",
+      "Tool access"
+    ],
+    "outputs": [
+      "Working software",
+      "Tests",
+      "Security findings",
+      "Documentation",
+      "Evidence pack"
+    ],
+    "artifacts": [
+      "Spec packets",
+      "Test suites",
+      "Review packets",
+      "Code scans",
+      "Traceability records"
+    ],
+    "controls": [
+      "Branch protections",
+      "Required reviews",
+      "Static analysis",
+      "Dependency scanning",
+      "Evidence requirements"
+    ],
+    "metrics": [
+      "Cycle time",
+      "Review rework",
+      "Test coverage",
+      "Security issue discovery",
+      "Agent-assisted completion rate"
+    ],
+    "relatedPillars": [
+      "platform-tooling",
+      "human-agent-collaboration",
+      "measurement-value"
+    ]
+  },
+  {
+    "title": "Release & Adopt",
+    "slug": "release-adopt",
+    "summary": "Transitions work into production with governed pipelines, evidence-based approvals, progressive rollout, and adoption support for teams and users.",
+    "whyItMatters": "Release is where speed and trust are tested. This phase ensures that delivery is observable, controlled, and ready for real users without collapsing under governance or handoff friction.",
+    "keyDecisions": [
+      "What approvals are required by release risk tier?",
+      "What evidence is needed before promotion?",
+      "What rollout and rollback strategy should be used?",
+      "How will end users and client teams be onboarded?",
+      "What signals determine whether a release is healthy?"
+    ],
+    "majorActivities": [
+      "Provision environments and validate readiness",
+      "Run gated CI/CD and deployment workflows",
+      "Collect and review evidence for approval",
+      "Execute progressive rollout and rollback plans",
+      "Train users, operators, and client teams on the release"
+    ],
+    "humanRoles": [
+      "Release manager",
+      "Product owner",
+      "Platform engineer",
+      "Reviewer",
+      "Operations lead",
+      "Enablement lead"
+    ],
+    "agentRoles": [
+      "Release governance agent",
+      "Testing agent",
+      "Evidence pack agent",
+      "Documentation agent",
+      "Release health agent"
+    ],
+    "inputs": [
+      "Build artifacts",
+      "Evidence pack",
+      "Environment configuration",
+      "Change requests",
+      "Adoption materials"
+    ],
+    "outputs": [
+      "Production release",
+      "Release approvals",
+      "Operational readiness",
+      "User onboarding assets",
+      "Release health status"
+    ],
+    "artifacts": [
+      "Release checklist",
+      "Approval records",
+      "Rollback plan",
+      "Runbooks",
+      "Onboarding guide"
+    ],
+    "controls": [
+      "Approval gates",
+      "Environment promotion rules",
+      "Canary and rollback",
+      "Operational readiness review",
+      "Separation of duties"
+    ],
+    "metrics": [
+      "Deployment frequency",
+      "Lead time to production",
+      "Change failure rate",
+      "Rollback frequency",
+      "Adoption readiness",
+      "Release approval cycle time"
+    ],
+    "relatedPillars": [
+      "governance-risk",
+      "platform-tooling",
+      "people-enablement",
+      "measurement-value"
+    ]
+  },
+  {
+    "title": "Operate & Evolve",
+    "slug": "operate-evolve",
+    "summary": "Runs the system with observability, SRE automation, incident learning, backlog refinement, and continuous modernization rather than treating go-live as the finish line.",
+    "whyItMatters": "The model only becomes credible when it improves live-system performance and continuously evolves the product, platform, and governance. Operations are where long-term value and trust are proven.",
+    "keyDecisions": [
+      "What runtime telemetry and health signals matter most?",
+      "Which operational tasks should be agent-assisted?",
+      "How will incidents, drift, and defects feed the backlog?",
+      "When should autonomy be reduced, expanded, or requalified?",
+      "How will modernization continue after the first release?"
+    ],
+    "majorActivities": [
+      "Monitor reliability, cost, compliance, and agent behavior",
+      "Use SRE and triage agents for anomaly detection and incident support",
+      "Feed incidents and telemetry into backlog refinement",
+      "Refactor, remediate, and modernize based on evidence",
+      "Requalify agents, controls, and operating procedures over time"
+    ],
+    "humanRoles": [
+      "SRE lead",
+      "Operations engineer",
+      "Product owner",
+      "Platform owner",
+      "Compliance lead",
+      "Architect"
+    ],
+    "agentRoles": [
+      "SRE agent",
+      "Incident triage agent",
+      "Drift detection agent",
+      "Release health agent",
+      "Documentation agent"
+    ],
+    "inputs": [
+      "Telemetry",
+      "Incidents",
+      "Support tickets",
+      "Release history",
+      "Adoption and value data"
+    ],
+    "outputs": [
+      "Operational insights",
+      "Improvement backlog",
+      "Updated controls",
+      "Runbook changes",
+      "Modernization roadmap updates"
+    ],
+    "artifacts": [
+      "Dashboards",
+      "Incident summaries",
+      "Postmortems",
+      "Refactoring backlog",
+      "Control review reports"
+    ],
+    "controls": [
+      "Monitoring thresholds",
+      "Operational approvals for risky remediation",
+      "Incident review",
+      "Control verification",
+      "Periodic requalification"
+    ],
+    "metrics": [
+      "Availability",
+      "Mean time to detect",
+      "Mean time to recover",
+      "Control violations",
+      "Defect recurrence",
+      "Operational toil reduction"
+    ],
+    "relatedPillars": [
+      "governance-risk",
+      "platform-tooling",
+      "human-agent-collaboration",
+      "measurement-value"
+    ]
+  }
+]

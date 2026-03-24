@@ -1,0 +1,41 @@
+{
+  "brandDirection": {
+    "tone": "premium consulting, modern enterprise, executive-ready",
+    "positioning": "strategy-led, governed, platform-enabled, human-and-agent delivery at enterprise scale",
+    "visualKeywords": [
+      "refined",
+      "editorial",
+      "executive",
+      "minimal",
+      "structured",
+      "high-trust",
+      "diagrammatic"
+    ]
+  },
+  "palette": {
+    "background": "#F6F3ED",
+    "surface": "#FFFFFF",
+    "ink": "#0F172A",
+    "muted": "#64748B",
+    "brandPrimary": "#0F172A",
+    "brandAccent": "#B89D67",
+    "brandAccentSoft": "#D9D2C3",
+    "supportSoft": "#EEF5F0",
+    "line": "#E2E8F0"
+  },
+  "typography": {
+    "headlineStyle": "large, tight tracking, high contrast, restrained",
+    "bodyStyle": "clean and readable with generous leading",
+    "eyebrowStyle": "uppercase, high letter spacing, subtle",
+    "cardTitleStyle": "concise and executive"
+  },
+  "components": [
+    "premiumHero",
+    "sectionAnchorRail",
+    "strategyBand",
+    "operatingModelStrip",
+    "diagramPanel",
+    "insightCard",
+    "ctaPanel"
+  ]
+}

@@ -1,0 +1,78 @@
+{
+  "sections": [
+    {
+      "title": "Home",
+      "href": "/agentic-home"
+    },
+    {
+      "title": "Operating Model",
+      "href": "/agentic"
+    },
+    {
+      "title": "Pillars",
+      "children": [
+        {
+          "title": "Governance & Risk",
+          "href": "/agentic/pillar/governance-risk"
+        },
+        {
+          "title": "Platform & Tooling",
+          "href": "/agentic/pillar/platform-tooling"
+        },
+        {
+          "title": "People & Enablement",
+          "href": "/agentic/pillar/people-enablement"
+        },
+        {
+          "title": "Human-Agent Collaboration",
+          "href": "/agentic/pillar/human-agent-collaboration"
+        },
+        {
+          "title": "Measurement & Value",
+          "href": "/agentic/pillar/measurement-value"
+        }
+      ]
+    },
+    {
+      "title": "Lifecycle",
+      "children": [
+        {
+          "title": "Strategy & Mobilize",
+          "href": "/agentic/lifecycle/strategy-mobilize"
+        },
+        {
+          "title": "Design",
+          "href": "/agentic/lifecycle/design"
+        },
+        {
+          "title": "Build",
+          "href": "/agentic/lifecycle/build"
+        },
+        {
+          "title": "Release & Adopt",
+          "href": "/agentic/lifecycle/release-adopt"
+        },
+        {
+          "title": "Operate & Evolve",
+          "href": "/agentic/lifecycle/operate-evolve"
+        }
+      ]
+    },
+    {
+      "title": "Offerings",
+      "href": "/agentic/offerings"
+    },
+    {
+      "title": "Roles",
+      "href": "/agentic/roles"
+    },
+    {
+      "title": "Artifacts",
+      "href": "/agentic/artifacts"
+    },
+    {
+      "title": "Use Cases",
+      "href": "/agentic/use-cases"
+    }
+  ]
+}

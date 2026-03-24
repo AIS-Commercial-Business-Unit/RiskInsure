@@ -1,0 +1,467 @@
+[
+  {
+    "title": "Governance & Risk",
+    "slug": "governance-risk",
+    "summary": "Defines where agents may act, how humans remain accountable, what controls are enforced, and how autonomy expands safely over time.",
+    "whyItMatters": "Without governance, agentic delivery creates unmanaged operational, security, compliance, and business risk. Governance provides the boundaries, approvals, evidence, and escalation design that let autonomy scale inside enterprise controls.",
+    "executiveQuestions": [
+      "What use cases are permitted for agentic execution?",
+      "What level of autonomy is acceptable by risk tier?",
+      "What requires human approval, escalation, or exception handling?",
+      "What tools, environments, and data may each agent access?",
+      "What evidence must be preserved for audit, compliance, and incident review?"
+    ],
+    "keyDecisions": [
+      "Risk-tier each agentic use case based on impact, reversibility, and data sensitivity",
+      "Define allowed actions, prohibited actions, and approval thresholds",
+      "Assign accountable business, technical, risk, and operational owners",
+      "Set identity, access, and blast-radius boundaries for agents and tools",
+      "Decide how autonomy can expand as control evidence matures"
+    ],
+    "modelComponents": [
+      "Risk & use-case governance",
+      "Human accountability & decision rights",
+      "Technical controls & assurance",
+      "Transparency, evidence & compliance",
+      "Workforce enablement & responsible use",
+      "Learning & governance adaptation"
+    ],
+    "majorActivities": [
+      "Create AI and agent acceptable-use policies",
+      "Map approval points across design, build, release, operate, and evolve",
+      "Implement policy as code, least privilege, and tool guardrails",
+      "Establish audit trails, decision logs, and compliance evidence packs",
+      "Run governance reviews after incidents, escalations, or control failures"
+    ],
+    "humanRoles": [
+      "Executive sponsor",
+      "Business owner",
+      "Domain architect",
+      "Security/compliance lead",
+      "Platform owner",
+      "SRE/operations lead"
+    ],
+    "agentRoles": [
+      "Coordinator agent",
+      "Release governance agent",
+      "Compliance watch agent",
+      "Evidence pack agent",
+      "SRE triage agent"
+    ],
+    "inputs": [
+      "Enterprise policies",
+      "Regulatory obligations",
+      "Architecture standards",
+      "Identity and access model",
+      "Operational risk appetite"
+    ],
+    "outputs": [
+      "Governance operating model",
+      "Decision-rights matrix",
+      "Agent permission model",
+      "Approval workflow map",
+      "Audit and evidence requirements"
+    ],
+    "artifacts": [
+      "AI policy",
+      "Risk tiering matrix",
+      "RACI / decision rights",
+      "Approval gates",
+      "Control library",
+      "Exception process"
+    ],
+    "controls": [
+      "Least privilege",
+      "Human approval for high-impact actions",
+      "Policy as code",
+      "Audit trails",
+      "Continuous monitoring",
+      "Rollback and containment"
+    ],
+    "metrics": [
+      "Policy violations",
+      "Approval turnaround time",
+      "Escalation rate",
+      "Audit completeness",
+      "Control coverage",
+      "Incidents involving autonomous actions"
+    ],
+    "relatedLifecyclePhases": [
+      "strategy-mobilize",
+      "design",
+      "build",
+      "release-adopt",
+      "operate-evolve"
+    ]
+  },
+  {
+    "title": "Platform & Tooling",
+    "slug": "platform-tooling",
+    "summary": "Provides the engineering substrate that makes agentic delivery repeatable, observable, secure, and scalable across teams.",
+    "whyItMatters": "Agentic engineering only scales when the underlying platform supplies clean environments, reusable pipelines, trusted context, tool access boundaries, and operational telemetry. Otherwise every team improvises and the model becomes fragile.",
+    "executiveQuestions": [
+      "What platform capabilities are required before agents can be trusted in delivery?",
+      "How will teams get consistent environments, pipelines, and controls?",
+      "Where will agents retrieve trusted context and system knowledge?",
+      "How will platform services enforce standards without slowing teams down?",
+      "What parts of the platform should be productized for reuse?"
+    ],
+    "keyDecisions": [
+      "Choose the engineering workbench and runtime surfaces for humans and agents",
+      "Standardize CI/CD, IaC, security scanning, testing, and observability services",
+      "Define context sources, knowledge boundaries, and retrieval patterns",
+      "Create reference architectures, templates, and reusable automation",
+      "Determine what becomes part of the internal developer platform"
+    ],
+    "modelComponents": [
+      "Developer workbench",
+      "Agent workbench",
+      "CI/CD and release platform",
+      "IaC and environment management",
+      "Knowledge and context services",
+      "Observability and operations platform"
+    ],
+    "majorActivities": [
+      "Create reusable repos, templates, prompts, and environment baselines",
+      "Build secure tool integrations for source control, testing, cloud, and ticketing",
+      "Establish artifact, evidence, and runbook storage patterns",
+      "Implement telemetry for agents, workflows, approvals, and releases",
+      "Productize the most repeatable capabilities into the platform"
+    ],
+    "humanRoles": [
+      "Platform engineer",
+      "Enterprise architect",
+      "Security engineer",
+      "Developer experience lead",
+      "Operations engineer"
+    ],
+    "agentRoles": [
+      "Planning agent",
+      "Implementation agent",
+      "Testing agent",
+      "Documentation agent",
+      "Operations agent"
+    ],
+    "inputs": [
+      "Cloud landing zone",
+      "Identity platform",
+      "Source control standards",
+      "Environment model",
+      "Integration services"
+    ],
+    "outputs": [
+      "Internal developer platform capabilities",
+      "Reusable templates",
+      "Context services",
+      "Standard pipelines",
+      "Observability standards"
+    ],
+    "artifacts": [
+      "Reference architecture",
+      "Tool integration map",
+      "Prompt/pattern library",
+      "Platform service catalog",
+      "Environment blueprint"
+    ],
+    "controls": [
+      "Signed pipelines",
+      "Secrets management",
+      "Service authentication boundaries",
+      "Environment promotion rules",
+      "Telemetry standards"
+    ],
+    "metrics": [
+      "Provisioning time",
+      "Pipeline reuse rate",
+      "Environment consistency",
+      "Platform adoption",
+      "Failed deployment rate",
+      "Agent success rate by tool"
+    ],
+    "relatedLifecyclePhases": [
+      "design",
+      "build",
+      "release-adopt",
+      "operate-evolve"
+    ]
+  },
+  {
+    "title": "People & Enablement",
+    "slug": "people-enablement",
+    "summary": "Builds the organizational capability to adopt, supervise, and scale agentic engineering rather than treating it as a one-time implementation.",
+    "whyItMatters": "Most organizations want to learn this model while delivering with it. People and enablement make the difference between a successful pilot and an enduring operating capability that clients can run themselves.",
+    "executiveQuestions": [
+      "What roles need to change as agentic delivery matures?",
+      "How will teams learn to supervise, review, and collaborate with agents?",
+      "What communities, coaching, and change practices are required?",
+      "How do we preserve deep engineering and domain judgment while increasing automation?",
+      "How will adoption and proficiency be measured?"
+    ],
+    "keyDecisions": [
+      "Define the future-state role model for business, engineering, platform, and operations",
+      "Choose the training, coaching, and paired-delivery approach",
+      "Set learning paths for developers, architects, reviewers, and operators",
+      "Establish communities of practice and stewardship roles",
+      "Determine how adoption and proficiency will be measured and reinforced"
+    ],
+    "modelComponents": [
+      "Role evolution",
+      "Training and coaching",
+      "Change management",
+      "Community of practice",
+      "Stewardship and ownership",
+      "Adoption measurement"
+    ],
+    "majorActivities": [
+      "Create role-based enablement tracks",
+      "Deliver paired implementation with client teams",
+      "Publish playbooks, office hours, and reusable examples",
+      "Run communities of practice around prompts, patterns, and controls",
+      "Track usage, confidence, proficiency, and workflow adoption"
+    ],
+    "humanRoles": [
+      "Executive sponsor",
+      "Enablement lead",
+      "Product owner",
+      "Domain architect",
+      "Engineering manager",
+      "Platform owner"
+    ],
+    "agentRoles": [
+      "Coach agent",
+      "Knowledge retrieval agent",
+      "Documentation agent",
+      "Assessment agent"
+    ],
+    "inputs": [
+      "Operating model",
+      "Skill assessments",
+      "Delivery roadmap",
+      "Platform capabilities",
+      "Governance policies"
+    ],
+    "outputs": [
+      "Training plan",
+      "Role maps",
+      "Learning assets",
+      "Change communications",
+      "Adoption dashboard"
+    ],
+    "artifacts": [
+      "Competency model",
+      "Playbooks",
+      "Office-hours plan",
+      "Certification path",
+      "Community charter"
+    ],
+    "controls": [
+      "Role-based access",
+      "Required training for sensitive actions",
+      "Review standards",
+      "Steward ownership for shared assets"
+    ],
+    "metrics": [
+      "Training completion",
+      "Active usage",
+      "Role readiness",
+      "Community participation",
+      "Time to proficiency",
+      "Change adoption sentiment"
+    ],
+    "relatedLifecyclePhases": [
+      "strategy-mobilize",
+      "design",
+      "build",
+      "release-adopt",
+      "operate-evolve"
+    ]
+  },
+  {
+    "title": "Human-Agent Collaboration",
+    "slug": "human-agent-collaboration",
+    "summary": "Defines how humans and specialized agents coordinate work, exchange context, and maintain accountability across the engineering lifecycle.",
+    "whyItMatters": "The core operating challenge is not just having agents. It is designing how work is decomposed, supervised, handed off, reviewed, escalated, and learned from. Collaboration design turns isolated AI usage into a governed production system.",
+    "executiveQuestions": [
+      "What work should remain primarily human-led versus agent-led?",
+      "How are tasks decomposed and coordinated across agents?",
+      "What artifacts structure handoffs between humans and agents?",
+      "When must humans intervene, approve, or redirect work?",
+      "How will we prevent context loss, duplication, and uncontrolled autonomy?"
+    ],
+    "keyDecisions": [
+      "Define the coordinator or supervisor pattern",
+      "Assign specialist agent roles across planning, implementation, testing, release, and operations",
+      "Standardize work products such as briefs, specs, review packets, and evidence packs",
+      "Design escalation paths and exception handling between humans and agents",
+      "Determine where collaboration data and memory should be stored"
+    ],
+    "modelComponents": [
+      "Coordinator model",
+      "Specialist agent roles",
+      "Structured handoff artifacts",
+      "Escalation and intervention rules",
+      "Context and memory strategy",
+      "Review and acceptance workflow"
+    ],
+    "majorActivities": [
+      "Define agent responsibilities and non-goals",
+      "Create structured briefs and acceptance criteria for handoffs",
+      "Build work decomposition patterns for parallel and sequential tasks",
+      "Instrument collaboration flows for traceability and learning",
+      "Tune the interaction model based on review bottlenecks and failure modes"
+    ],
+    "humanRoles": [
+      "Product owner",
+      "Architect",
+      "Engineer",
+      "Reviewer",
+      "SRE lead",
+      "Compliance lead"
+    ],
+    "agentRoles": [
+      "Coordinator agent",
+      "Planning agent",
+      "Implementation agent",
+      "Testing agent",
+      "Security review agent",
+      "Release agent",
+      "SRE agent",
+      "Documentation agent"
+    ],
+    "inputs": [
+      "Requirements",
+      "Domain model",
+      "Architecture standards",
+      "Governance rules",
+      "Platform tool access"
+    ],
+    "outputs": [
+      "Structured briefs",
+      "Task plans",
+      "Review packets",
+      "Evidence packs",
+      "Runbooks",
+      "Knowledge updates"
+    ],
+    "artifacts": [
+      "Agent role catalog",
+      "Handoff templates",
+      "Escalation matrix",
+      "Prompt library",
+      "Context model"
+    ],
+    "controls": [
+      "Human review thresholds",
+      "Agent action boundaries",
+      "Structured approval evidence",
+      "Conversation and action logs"
+    ],
+    "metrics": [
+      "Handoff quality",
+      "Review rework",
+      "Agent task completion rate",
+      "Escalation frequency",
+      "Cycle-time improvement",
+      "Context reuse"
+    ],
+    "relatedLifecyclePhases": [
+      "design",
+      "build",
+      "release-adopt",
+      "operate-evolve"
+    ]
+  },
+  {
+    "title": "Measurement & Value",
+    "slug": "measurement-value",
+    "summary": "Connects agentic engineering to business outcomes, delivery performance, risk reduction, and capability adoption so the model can be governed and scaled.",
+    "whyItMatters": "If value is not measured, agentic engineering will be judged by anecdotes. Measurement creates the fact base for investment, governance, prioritization, and gradual expansion of autonomy.",
+    "executiveQuestions": [
+      "What business outcomes justify the investment?",
+      "How will we measure speed, quality, reliability, and risk?",
+      "What evidence shows the organization is becoming more capable?",
+      "How will we distinguish real improvement from novelty effects?",
+      "What signals determine where to scale next?"
+    ],
+    "keyDecisions": [
+      "Select the core delivery, quality, reliability, and adoption metrics",
+      "Define baselines and comparison periods",
+      "Establish how to measure agent effectiveness and human oversight quality",
+      "Map metrics to executive, delivery, and operational dashboards",
+      "Use evidence to govern expansion, remediation, and prioritization"
+    ],
+    "modelComponents": [
+      "Business value measurement",
+      "Delivery performance",
+      "Quality and reliability",
+      "Risk and control health",
+      "Adoption and proficiency",
+      "Continuous feedback loops"
+    ],
+    "majorActivities": [
+      "Define baseline metrics before major rollout",
+      "Create executive and operational dashboards",
+      "Measure human and agent performance together rather than separately",
+      "Feed results back into governance, platform, and enablement improvements",
+      "Use value data to shape commercialization and scale-up decisions"
+    ],
+    "humanRoles": [
+      "Executive sponsor",
+      "Product owner",
+      "Engineering leader",
+      "Platform owner",
+      "Operations lead",
+      "Finance or portfolio lead"
+    ],
+    "agentRoles": [
+      "Metrics aggregation agent",
+      "Release health agent",
+      "Operations insights agent",
+      "Documentation agent"
+    ],
+    "inputs": [
+      "Baseline metrics",
+      "Telemetry",
+      "Pipeline data",
+      "Incident data",
+      "Adoption data",
+      "Business KPIs"
+    ],
+    "outputs": [
+      "Executive dashboard",
+      "Operational dashboard",
+      "Value realization view",
+      "Improvement backlog",
+      "Scale-up recommendations"
+    ],
+    "artifacts": [
+      "Metric glossary",
+      "Baseline report",
+      "Dashboard spec",
+      "Quarterly value review",
+      "Improvement scorecard"
+    ],
+    "controls": [
+      "Metric definition governance",
+      "Data quality checks",
+      "Consistent reporting cadence",
+      "Threshold-based escalation"
+    ],
+    "metrics": [
+      "Lead time",
+      "Deployment frequency",
+      "Change failure rate",
+      "Service reliability",
+      "Control exceptions",
+      "Adoption rate",
+      "Time to proficiency",
+      "Business outcome KPIs"
+    ],
+    "relatedLifecyclePhases": [
+      "strategy-mobilize",
+      "build",
+      "release-adopt",
+      "operate-evolve"
+    ]
+  }
+]
