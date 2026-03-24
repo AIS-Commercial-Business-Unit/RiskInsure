@@ -1,0 +1,92 @@
+{
+  "agenticHome": [
+    {
+      "id": "overview",
+      "label": "Overview"
+    },
+    {
+      "id": "operating-model",
+      "label": "Operating model"
+    },
+    {
+      "id": "pillars",
+      "label": "Pillars"
+    },
+    {
+      "id": "lifecycle",
+      "label": "Lifecycle"
+    },
+    {
+      "id": "offerings",
+      "label": "Offerings"
+    },
+    {
+      "id": "use-cases",
+      "label": "Use cases"
+    },
+    {
+      "id": "cta",
+      "label": "Next step"
+    }
+  ],
+  "pillarPage": [
+    {
+      "id": "why-it-matters",
+      "label": "Why it matters"
+    },
+    {
+      "id": "key-decisions",
+      "label": "Key decisions"
+    },
+    {
+      "id": "model-components",
+      "label": "Model components"
+    },
+    {
+      "id": "roles",
+      "label": "Roles"
+    },
+    {
+      "id": "controls",
+      "label": "Controls"
+    },
+    {
+      "id": "artifacts",
+      "label": "Artifacts"
+    },
+    {
+      "id": "metrics",
+      "label": "Metrics"
+    }
+  ],
+  "lifecyclePage": [
+    {
+      "id": "summary",
+      "label": "Summary"
+    },
+    {
+      "id": "why-it-matters",
+      "label": "Why it matters"
+    },
+    {
+      "id": "activities",
+      "label": "Activities"
+    },
+    {
+      "id": "inputs-outputs",
+      "label": "Inputs & outputs"
+    },
+    {
+      "id": "roles",
+      "label": "Roles"
+    },
+    {
+      "id": "controls",
+      "label": "Controls"
+    },
+    {
+      "id": "related-pillars",
+      "label": "Related pillars"
+    }
+  ]
+}

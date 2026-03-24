@@ -1,0 +1,94 @@
+{
+  "operatingModelVisual": {
+    "title": "Agentic Engineering Transformation Model",
+    "style": "single-slide consulting graphic",
+    "bands": [
+      {
+        "label": "Cross-cutting pillars",
+        "items": [
+          "Governance & Risk",
+          "Platform & Tooling",
+          "People & Enablement",
+          "Human-Agent Collaboration",
+          "Measurement & Value"
+        ]
+      },
+      {
+        "label": "Five-phase lifecycle",
+        "items": [
+          "Strategy & Mobilize",
+          "Design",
+          "Build",
+          "Release & Adopt",
+          "Operate & Evolve"
+        ]
+      },
+      {
+        "label": "Core",
+        "items": [
+          "Human + Agent System"
+        ]
+      },
+      {
+        "label": "Foundation",
+        "items": [
+          "Cloud + security foundation",
+          "Internal developer platform",
+          "Data, integration, and context",
+          "Reference patterns and runbooks"
+        ]
+      }
+    ]
+  },
+  "governanceVisual": {
+    "title": "Agentic Governance Operating Model",
+    "style": "stacked drill-down",
+    "bands": [
+      {
+        "label": "Risk & use-case governance",
+        "items": [
+          "Suitability",
+          "Risk tiering",
+          "Allowed actions",
+          "Identity and blast radius"
+        ]
+      },
+      {
+        "label": "Human accountability",
+        "items": [
+          "Owners",
+          "Approval points",
+          "Escalation",
+          "Override authority"
+        ]
+      },
+      {
+        "label": "Technical controls",
+        "items": [
+          "Policy as code",
+          "Least privilege",
+          "Evaluations",
+          "Rollback and containment"
+        ]
+      },
+      {
+        "label": "Transparency & compliance",
+        "items": [
+          "Audit trails",
+          "Decision reconstruction",
+          "Dashboards",
+          "Verification"
+        ]
+      },
+      {
+        "label": "Enablement & adaptation",
+        "items": [
+          "Training",
+          "Responsible use",
+          "Incident learning",
+          "Re-qualification"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,141 @@
+[
+  {
+    "title": "Agentic Engineering Strategy Workshop",
+    "slug": "strategy-workshop",
+    "summary": "An executive and architecture workshop that defines the business case, target operating model, governance posture, pilot scope, and roadmap for enterprise agentic engineering.",
+    "whoItsFor": [
+      "CIO and CTO leadership teams",
+      "Enterprise architecture groups",
+      "Modernization portfolio owners",
+      "Platform engineering leaders"
+    ],
+    "outcomes": [
+      "Executive-aligned transformation narrative",
+      "Target operating model and phase model",
+      "Initial governance and risk posture",
+      "Prioritized pilot candidates",
+      "90-day action roadmap"
+    ],
+    "deliverables": [
+      "Workshop readout",
+      "Operating model summary",
+      "Governance starter model",
+      "Pilot shortlist",
+      "Initial roadmap"
+    ],
+    "duration": "1-2 weeks",
+    "relatedPillars": [
+      "governance-risk",
+      "people-enablement",
+      "measurement-value"
+    ],
+    "relatedLifecyclePhases": [
+      "strategy-mobilize",
+      "design"
+    ]
+  },
+  {
+    "title": "Agentic Engineering Foundation Build",
+    "slug": "foundation-build",
+    "summary": "A delivery engagement to establish the platform, governance controls, workflows, reusable assets, and first implementation patterns needed to support governed agentic delivery.",
+    "whoItsFor": [
+      "Organizations moving from experimentation to repeatability",
+      "Teams with GitHub Copilot or similar tools already in place",
+      "Modernization programs requiring architectural discipline"
+    ],
+    "outcomes": [
+      "Initial agentic delivery platform",
+      "Reusable prompts, specs, and review artifacts",
+      "Pilot workflows and engineering patterns",
+      "Baseline observability and operational controls",
+      "Defined roles and approval paths"
+    ],
+    "deliverables": [
+      "Platform blueprint",
+      "Control stack",
+      "Reference implementation",
+      "Role matrix",
+      "Runbooks and templates"
+    ],
+    "duration": "6-12 weeks",
+    "relatedPillars": [
+      "platform-tooling",
+      "governance-risk",
+      "human-agent-collaboration"
+    ],
+    "relatedLifecyclePhases": [
+      "design",
+      "build",
+      "release-adopt"
+    ]
+  },
+  {
+    "title": "Agentic Modernization Implementation",
+    "slug": "modernization-implementation",
+    "summary": "A hands-on delivery engagement that applies the model to a real modernization initiative, pairing with client teams to deliver software, uplift ways of working, and transfer capability.",
+    "whoItsFor": [
+      "Large-system modernization programs",
+      "Domain and product teams",
+      "Organizations seeking paired delivery and knowledge transfer"
+    ],
+    "outcomes": [
+      "Delivered pilot or production workload",
+      "Established human-agent workflows",
+      "Modernization patterns applied in context",
+      "Working governance in practice",
+      "Client capability uplift"
+    ],
+    "deliverables": [
+      "Solution artifacts",
+      "Working code and pipelines",
+      "Operational dashboards",
+      "Training assets",
+      "Backlog and next-wave roadmap"
+    ],
+    "duration": "12+ weeks",
+    "relatedPillars": [
+      "human-agent-collaboration",
+      "people-enablement",
+      "measurement-value"
+    ],
+    "relatedLifecyclePhases": [
+      "design",
+      "build",
+      "release-adopt",
+      "operate-evolve"
+    ]
+  },
+  {
+    "title": "Managed Evolution and Optimization",
+    "slug": "managed-evolution",
+    "summary": "An ongoing service that tunes the platform, refines agents, improves controls, and expands adoption using operational evidence and measured business value.",
+    "whoItsFor": [
+      "Teams that launched an agentic pilot",
+      "Enterprises scaling adoption across portfolios",
+      "Organizations needing ongoing governance and SRE oversight"
+    ],
+    "outcomes": [
+      "Continuous control tuning",
+      "Expanded autonomy where evidence supports it",
+      "Improved reliability and developer experience",
+      "Prioritized improvements and new use cases",
+      "Sustained adoption"
+    ],
+    "deliverables": [
+      "Quarterly maturity review",
+      "Control and incident reports",
+      "Agent tuning backlog",
+      "Expansion roadmap",
+      "Operational recommendations"
+    ],
+    "duration": "Recurring",
+    "relatedPillars": [
+      "measurement-value",
+      "governance-risk",
+      "platform-tooling"
+    ],
+    "relatedLifecyclePhases": [
+      "operate-evolve"
+    ]
+  }
+]

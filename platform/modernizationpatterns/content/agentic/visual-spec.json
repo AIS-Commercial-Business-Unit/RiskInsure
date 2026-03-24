@@ -1,0 +1,52 @@
+{
+  "pagePatterns": [
+    {
+      "pageType": "Agentic landing page",
+      "sections": [
+        "HeroBand",
+        "SectionAnchorNav",
+        "Operating model band",
+        "Pillar cards",
+        "Lifecycle cards",
+        "Offerings strip",
+        "Use-case cards",
+        "CTA band"
+      ]
+    },
+    {
+      "pageType": "Pillar detail page",
+      "sections": [
+        "HeroBand",
+        "SectionAnchorNav",
+        "Why it matters",
+        "Key decisions",
+        "Model components",
+        "Roles",
+        "Controls",
+        "Artifacts",
+        "Metrics",
+        "Related lifecycle links"
+      ]
+    },
+    {
+      "pageType": "Lifecycle detail page",
+      "sections": [
+        "HeroBand",
+        "SectionAnchorNav",
+        "Why it matters",
+        "Major activities",
+        "Inputs and outputs",
+        "Roles",
+        "Controls",
+        "Metrics",
+        "Related pillars"
+      ]
+    }
+  ],
+  "uxNotes": [
+    "Use anchor links on long pages to improve scanability",
+    "Use 2- or 3-column card grids instead of dense prose walls",
+    "Reserve the dark band treatment for headers, north stars, and key callouts",
+    "Keep supporting copy concise and readable, more slide than article"
+  ]
+}

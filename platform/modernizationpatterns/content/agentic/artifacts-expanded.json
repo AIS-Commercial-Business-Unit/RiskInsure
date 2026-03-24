@@ -1,0 +1,77 @@
+[
+  {
+    "title": "Operating Model Deck",
+    "slug": "operating-model-deck",
+    "summary": "Executive-level summary of the target model, lifecycle, pillars, roles, and adoption path.",
+    "producedIn": [
+      "strategy-mobilize"
+    ],
+    "usedBy": [
+      "Executive Sponsor",
+      "Business / Product Owner"
+    ]
+  },
+  {
+    "title": "Governance Control Matrix",
+    "slug": "governance-control-matrix",
+    "summary": "Maps agent types, actions, approval thresholds, policies, evidence requirements, and escalation paths.",
+    "producedIn": [
+      "design",
+      "release-adopt"
+    ],
+    "usedBy": [
+      "Security / Compliance Lead",
+      "Platform Engineer"
+    ]
+  },
+  {
+    "title": "Domain & Capability Map",
+    "slug": "domain-capability-map",
+    "summary": "Visual representation of business capabilities, bounded contexts, key events, screens, inputs, outputs, and interfaces.",
+    "producedIn": [
+      "design"
+    ],
+    "usedBy": [
+      "Domain Architect",
+      "Business / Product Owner"
+    ]
+  },
+  {
+    "title": "Agent Role Catalog",
+    "slug": "agent-role-catalog",
+    "summary": "Defines each agent\u2019s purpose, inputs, outputs, limits, tools, and review expectations.",
+    "producedIn": [
+      "design",
+      "build"
+    ],
+    "usedBy": [
+      "Platform Engineer",
+      "Enablement Lead"
+    ]
+  },
+  {
+    "title": "Evidence Pack",
+    "slug": "evidence-pack",
+    "summary": "Collection of test results, approvals, policy evaluations, and release evidence used to support governed delivery.",
+    "producedIn": [
+      "build",
+      "release-adopt"
+    ],
+    "usedBy": [
+      "Security / Compliance Lead",
+      "SRE / Operations Lead"
+    ]
+  },
+  {
+    "title": "Operational Runbook",
+    "slug": "operational-runbook",
+    "summary": "Procedures for monitoring, incident handling, rollback, drift detection, and escalation in production.",
+    "producedIn": [
+      "operate-evolve"
+    ],
+    "usedBy": [
+      "SRE / Operations Lead",
+      "Enablement Lead"
+    ]
+  }
+]

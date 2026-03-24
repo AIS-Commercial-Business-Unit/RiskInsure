@@ -1,0 +1,94 @@
+{
+  "sections": [
+    {
+      "title": "Overview",
+      "items": [
+        {
+          "title": "Operating Model",
+          "slug": "agentic-home",
+          "path": "/agentic"
+        }
+      ]
+    },
+    {
+      "title": "Pillars",
+      "items": [
+        {
+          "title": "Governance & Risk",
+          "slug": "governance-risk",
+          "path": "/agentic/pillar/governance-risk"
+        },
+        {
+          "title": "Platform & Tooling",
+          "slug": "platform-tooling",
+          "path": "/agentic/pillar/platform-tooling"
+        },
+        {
+          "title": "People & Enablement",
+          "slug": "people-enablement",
+          "path": "/agentic/pillar/people-enablement"
+        },
+        {
+          "title": "Human-Agent Collaboration",
+          "slug": "human-agent-collaboration",
+          "path": "/agentic/pillar/human-agent-collaboration"
+        },
+        {
+          "title": "Measurement & Value",
+          "slug": "measurement-value",
+          "path": "/agentic/pillar/measurement-value"
+        }
+      ]
+    },
+    {
+      "title": "Lifecycle",
+      "items": [
+        {
+          "title": "Strategy & Mobilize",
+          "slug": "strategy-mobilize",
+          "path": "/agentic/lifecycle/strategy-mobilize"
+        },
+        {
+          "title": "Design",
+          "slug": "design",
+          "path": "/agentic/lifecycle/design"
+        },
+        {
+          "title": "Build",
+          "slug": "build",
+          "path": "/agentic/lifecycle/build"
+        },
+        {
+          "title": "Release & Adopt",
+          "slug": "release-adopt",
+          "path": "/agentic/lifecycle/release-adopt"
+        },
+        {
+          "title": "Operate & Evolve",
+          "slug": "operate-evolve",
+          "path": "/agentic/lifecycle/operate-evolve"
+        }
+      ]
+    },
+    {
+      "title": "Commercial",
+      "items": [
+        {
+          "title": "Offerings",
+          "slug": "offerings",
+          "path": "/agentic/offerings"
+        },
+        {
+          "title": "Artifacts",
+          "slug": "artifacts",
+          "path": "/agentic/artifacts"
+        },
+        {
+          "title": "Roles",
+          "slug": "roles",
+          "path": "/agentic/roles"
+        }
+      ]
+    }
+  ]
+}

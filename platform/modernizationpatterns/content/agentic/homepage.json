@@ -1,0 +1,55 @@
+{
+  "title": "Agentic Engineering",
+  "slug": "agentic-home",
+  "hero": {
+    "eyebrow": "Enterprise modernization operating model",
+    "headline": "Modernize complex systems with governed human-and-agent delivery",
+    "summary": "A practical model for using domain-driven design, modernization patterns, agent orchestration, platform engineering, and governance to accelerate enterprise software modernization without losing control.",
+    "primaryCta": {
+      "label": "Explore the Operating Model",
+      "href": "/agentic"
+    },
+    "secondaryCta": {
+      "label": "View Offerings",
+      "href": "/agentic/offerings"
+    }
+  },
+  "proofPoints": [
+    "Frames agentic engineering as an enterprise operating model, not just coding acceleration",
+    "Combines DDD, event storming, modernization patterns, platform engineering, governance, and enablement",
+    "Supports advisory, implementation, enablement, and managed evolution offerings",
+    "Designed to scale across complex modernization programs and regulated environments"
+  ],
+  "sections": [
+    {
+      "title": "Why this matters",
+      "body": "Most organizations do not need more disconnected AI experiments. They need a governed way to redesign how software is planned, built, delivered, operated, and improved. Agentic engineering becomes valuable when it is tied to architecture, operating model, quality, and business outcomes."
+    },
+    {
+      "title": "What makes this different",
+      "body": "This model combines human accountability with agent acceleration. It starts with domain understanding and modernization design, then extends through build, release, operations, and continuous evolution. Governance, platform, enablement, and measurement cut across the full lifecycle."
+    }
+  ],
+  "featuredLinks": [
+    {
+      "title": "Operating Model",
+      "href": "/agentic",
+      "summary": "See the top-level model and how the pieces fit together."
+    },
+    {
+      "title": "Governance & Risk",
+      "href": "/agentic/pillar/governance-risk",
+      "summary": "Understand how autonomy is bounded and trust is maintained."
+    },
+    {
+      "title": "Offerings",
+      "href": "/agentic/offerings",
+      "summary": "Review workshops, advisory, implementation, and managed evolution."
+    },
+    {
+      "title": "Artifacts",
+      "href": "/agentic/artifacts",
+      "summary": "See the deliverables and reusable outputs clients receive."
+    }
+  ]
+}

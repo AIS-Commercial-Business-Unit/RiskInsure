@@ -1,0 +1,34 @@
+{
+  "homepageSections": [
+    "hero",
+    "why-now",
+    "operating-model-diagram",
+    "pillars",
+    "lifecycle",
+    "offerings-preview",
+    "artifacts-preview",
+    "call-to-action"
+  ],
+  "diagramTargets": [
+    {
+      "slug": "operating-model-premium",
+      "title": "Agentic Engineering Transformation Model",
+      "intent": "single-slide consulting visual",
+      "style": "horizontal transformation spine with premium bands and side rails"
+    },
+    {
+      "slug": "governance-premium",
+      "title": "Agentic Governance Operating Model",
+      "intent": "drill-down consulting visual",
+      "style": "layered governance model with control stack and lifecycle overlay"
+    }
+  ],
+  "uxEnhancements": [
+    "sticky section anchors",
+    "premium card rhythm",
+    "improved whitespace",
+    "stronger visual hierarchy",
+    "subtle hover states",
+    "clean icon treatment"
+  ]
+}
