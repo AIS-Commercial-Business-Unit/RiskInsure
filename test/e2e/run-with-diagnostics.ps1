@@ -28,10 +28,11 @@ Write-Host ""
 # Check if APIs are running
 Write-Host "[1/4] Checking API availability..." -ForegroundColor Cyan
 $apiCheck = @(
-    @{Name="Customer"; Port=7073}
-    @{Name="Rating"; Port=7079}
-    @{Name="Policy"; Port=7077}
     @{Name="FundsTransfer"; Port=7075}
+    @{Name="PolicyEquityAndInvoicing"; Port=7081}
+    @{Name="CustomerRelationships"; Port=7083}
+    @{Name="PolicyLifecycle"; Port=7085}
+    @{Name="RiskRatingAndUnderwriting"; Port=7087}
 )
 
 $allUp = $true
@@ -92,10 +93,11 @@ if ($testExitCode -ne 0) {
     # Capture API logs
     Write-Host "  Capturing API container logs..." -ForegroundColor Gray
     $services = @(
-        "riskinsure-customer-api-1",
-        "riskinsure-ratingandunderwriting-api-1",
-        "riskinsure-policy-api-1",
-        "riskinsure-fundstransfermgt-api-1"
+        "riskinsure-fundstransfermgt-api-1",
+        "riskinsure-peimgt-api-1",
+        "riskinsure-crmgt-api-1",
+        "riskinsure-policylifecyclemgt-api-1",
+        "riskinsure-rru-api-1"
     )
     
     foreach ($service in $services) {

@@ -62,14 +62,14 @@ Write-Host ""
 Write-Host "[CONTAINER STATUS]" -ForegroundColor Cyan
 
 $expectedContainers = @(
-    "riskinsure-customer-api-1",
-    "riskinsure-customer-endpoint-1",
     "riskinsure-fundstransfermgt-api-1",
     "riskinsure-fundstransfermgt-endpoint-1",
-    "riskinsure-policy-api-1",
-    "riskinsure-policy-endpoint-1",
-    "riskinsure-ratingandunderwriting-api-1",
-    "riskinsure-ratingandunderwriting-endpoint-1",
+    "riskinsure-peimgt-api-1",
+    "riskinsure-peimgt-endpoint-1",
+    "riskinsure-crmgt-api-1",
+    "riskinsure-crmgt-endpoint-1",
+    "riskinsure-policylifecyclemgt-api-1",
+    "riskinsure-policylifecyclemgt-endpoint-1",
     "riskinsure-rru-api-1",
     "riskinsure-rru-endpoint-1"
 )
@@ -123,10 +123,11 @@ Write-Host ""
 Write-Host "[API CONNECTIVITY]" -ForegroundColor Cyan
 
 $apiEndpoints = @{
-    "Customer" = "http://127.0.0.1:7073"
     "FundsTransferMgt" = "http://127.0.0.1:7075"
-    "Policy" = "http://127.0.0.1:7077"
-    "RatingAndUnderwriting" = "http://127.0.0.1:7079"
+    "PolicyEquityAndInvoicingMgt" = "http://127.0.0.1:7081"
+    "CustomerRelationshipsMgt" = "http://127.0.0.1:7083"
+    "PolicyLifecycleMgt" = "http://127.0.0.1:7085"
+    "RiskRatingAndUnderwriting" = "http://127.0.0.1:7087"
 }
 
 $apiPassCount = 0
@@ -157,7 +158,7 @@ foreach ($api in $apiEndpoints.GetEnumerator() | Sort-Object Name) {
 }
 
 Write-Host ""
-Write-Host "  Summary: $apiPassCount/4 APIs responding" -ForegroundColor $(if ($apiPassCount -eq 4) { "Green" } elseif ($apiPassCount -ge 3) { "Yellow" } else { "Red" })
+Write-Host "  Summary: $apiPassCount/5 APIs responding" -ForegroundColor $(if ($apiPassCount -eq 5) { "Green" } elseif ($apiPassCount -ge 4) { "Yellow" } else { "Red" })
 Write-Host ""
 
 # Step 4: Check Configuration
