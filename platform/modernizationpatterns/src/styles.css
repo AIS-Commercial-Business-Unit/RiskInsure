@@ -1966,6 +1966,30 @@ a {
   align-items: center;
 }
 
+/* Interactive band label — hoverable for governance tooltips */
+.ae-band-label--interactive {
+  cursor: pointer;
+  position: relative;
+  transition: background 0.15s, color 0.15s;
+}
+.ae-band-label--interactive:hover {
+  background: rgba(245, 158, 11, 0.08);
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+}
+
+/* Interactive chip — hoverable for governance tooltips */
+.ae-chip--interactive {
+  cursor: pointer;
+  position: relative;
+}
+.ae-chip--interactive:hover {
+  border-color: var(--ae-accent);
+  background: rgba(245, 158, 11, 0.10);
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.15);
+}
+
 .ae-chip {
   padding: 0.4rem 0.9rem;
   background: var(--ae-surface-alt);
@@ -2936,6 +2960,15 @@ a {
   max-width: 52rem;
 }
 
+.ae-dp-hero-why {
+  margin: 1rem 0 0;
+  color: #64748B;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  font-style: italic;
+  max-width: 52rem;
+}
+
 /* Dark strategy card (Why It Matters) */
 .ae-dp-strategy {
   background: #020617;
@@ -3054,6 +3087,77 @@ a {
   border: 1px solid #D1FAE5;
 }
 
+/* Interactive chips (click to show tooltip) */
+.ae-dp-chip--interactive {
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+}
+
+.ae-dp-chip--interactive:hover {
+  background: #E2E8F0;
+  transform: translateY(-1px);
+}
+
+.ae-dp-chip--active {
+  background: #10B981;
+  color: #fff;
+  border-color: #059669;
+}
+
+.ae-dp-chip--active:hover {
+  background: #059669;
+}
+
+/* Item tooltip (portal-based) */
+.ae-dp-item-tooltip {
+  background: #020617;
+  color: #F8FAFC;
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+  max-width: 22rem;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
+  pointer-events: none;
+  animation: ae-dp-tooltip-fade 0.15s ease-out;
+}
+
+@keyframes ae-dp-tooltip-fade {
+  from { opacity: 0; transform: translateX(-50%) translateY(-4px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.ae-dp-item-tooltip-title {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #10B981;
+  margin-bottom: 0.35rem;
+}
+
+.ae-dp-item-tooltip-desc {
+  font-size: 0.8rem;
+  color: #CBD5E1;
+  line-height: 1.5;
+  margin: 0 0 0.5rem;
+}
+
+.ae-dp-item-tooltip-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ae-dp-item-tooltip-list li {
+  font-size: 0.78rem;
+  line-height: 1.5;
+  padding: 0.15rem 0;
+  color: #94A3B8;
+}
+
+.ae-dp-item-tooltip-list li::before {
+  content: "→ ";
+  color: #10B981;
+  font-weight: 600;
+}
+
 /* Two-column row */
 .ae-dp-two-col {
   display: grid;
@@ -3123,6 +3227,35 @@ a {
 
 .ae-dp-back:hover {
   text-decoration: underline;
+}
+
+/* Custom content sections — deep dives per pillar */
+.ae-dp-custom-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: 1rem;
+  margin-top: 0.75rem;
+}
+
+.ae-dp-custom-item {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+}
+
+.ae-dp-custom-item-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #0F172A;
+  margin-bottom: 0.35rem;
+}
+
+.ae-dp-custom-item-desc {
+  font-size: 0.825rem;
+  color: #64748B;
+  line-height: 1.6;
+  margin: 0 0 0.5rem;
 }
 
 /* Responsive — Tablet */
