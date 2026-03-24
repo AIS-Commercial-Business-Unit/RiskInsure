@@ -1,0 +1,146 @@
+{
+  "humanRoles": [
+    {
+      "title": "Executive Sponsor",
+      "purpose": "Sets direction, sponsors the change, clears blockers, and aligns the effort to measurable business value.",
+      "responsibilities": [
+        "Approve strategic objectives",
+        "Champion cross-functional alignment",
+        "Review value realization",
+        "Support operating model adoption"
+      ]
+    },
+    {
+      "title": "Business / Product Owner",
+      "purpose": "Defines outcomes, prioritizes capabilities, and validates whether the solution meets business intent.",
+      "responsibilities": [
+        "Clarify goals and constraints",
+        "Prioritize scope",
+        "Approve key business decisions",
+        "Validate user and domain fit"
+      ]
+    },
+    {
+      "title": "Domain Architect",
+      "purpose": "Shapes domain boundaries, modernization patterns, and architectural guardrails that guide both humans and agents.",
+      "responsibilities": [
+        "Define bounded contexts",
+        "Select patterns and integration approaches",
+        "Review architecture conformance",
+        "Guide decomposition and interfaces"
+      ]
+    },
+    {
+      "title": "Platform Engineer",
+      "purpose": "Builds the technical substrate for agentic delivery, including workflows, environments, access controls, and telemetry.",
+      "responsibilities": [
+        "Provision platform components",
+        "Implement CI/CD and policy controls",
+        "Enable observability",
+        "Support reusable engineering paths"
+      ]
+    },
+    {
+      "title": "Security / Compliance Lead",
+      "purpose": "Ensures that governance requirements are translated into actionable controls and verified over time.",
+      "responsibilities": [
+        "Define policies and thresholds",
+        "Review high-risk scenarios",
+        "Validate controls",
+        "Support audit and evidence needs"
+      ]
+    },
+    {
+      "title": "SRE / Operations Lead",
+      "purpose": "Ensures the system can be run safely, observed clearly, and improved through operational feedback.",
+      "responsibilities": [
+        "Define reliability standards",
+        "Oversee incident handling",
+        "Review operational telemetry",
+        "Drive runbook maturity"
+      ]
+    },
+    {
+      "title": "Enablement Lead",
+      "purpose": "Transfers knowledge, shapes training, and helps the organization adopt new human-agent ways of working.",
+      "responsibilities": [
+        "Design enablement plans",
+        "Run training and coaching",
+        "Measure adoption readiness",
+        "Support communities of practice"
+      ]
+    }
+  ],
+  "agentRoles": [
+    {
+      "title": "Coordinator Agent",
+      "purpose": "Orchestrates specialist agents, manages workflow state, and routes work based on defined goals and boundaries.",
+      "responsibilities": [
+        "Decompose work",
+        "Trigger specialist agents",
+        "Collect evidence",
+        "Escalate when thresholds are met"
+      ]
+    },
+    {
+      "title": "Planning Agent",
+      "purpose": "Transforms goals and requirements into structured briefs, task breakdowns, and execution plans.",
+      "responsibilities": [
+        "Create draft plans",
+        "Map dependencies",
+        "Identify missing context",
+        "Suggest next actions"
+      ]
+    },
+    {
+      "title": "Implementation Agent",
+      "purpose": "Produces and refines code, configuration, and documentation under constrained instructions and review expectations.",
+      "responsibilities": [
+        "Generate implementation candidates",
+        "Refactor within rules",
+        "Update documentation",
+        "Prepare review-ready changes"
+      ]
+    },
+    {
+      "title": "Testing Agent",
+      "purpose": "Generates and executes tests, validates expected behavior, and surfaces issues with evidence.",
+      "responsibilities": [
+        "Create test scenarios",
+        "Run validation flows",
+        "Document defects",
+        "Produce test evidence"
+      ]
+    },
+    {
+      "title": "Security Review Agent",
+      "purpose": "Applies policy checks, scans outputs, and identifies security or compliance concerns before changes move forward.",
+      "responsibilities": [
+        "Run security checks",
+        "Flag violations",
+        "Recommend mitigations",
+        "Attach evidence to reviews"
+      ]
+    },
+    {
+      "title": "SRE Agent",
+      "purpose": "Monitors health, interprets signals, and proposes or executes low-risk operational responses within approved limits.",
+      "responsibilities": [
+        "Summarize incidents",
+        "Detect drift or anomalies",
+        "Recommend remediations",
+        "Escalate high-risk conditions"
+      ]
+    },
+    {
+      "title": "Documentation Agent",
+      "purpose": "Packages outputs into understandable artifacts for delivery, audit, enablement, and handoff.",
+      "responsibilities": [
+        "Summarize work",
+        "Generate handoff artifacts",
+        "Update runbooks",
+        "Capture lessons learned"
+      ]
+    }
+  ]
+}

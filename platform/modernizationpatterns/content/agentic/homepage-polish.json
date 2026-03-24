@@ -1,0 +1,21 @@
+{
+  "hero": {
+    "eyebrow": "Enterprise modernization operating model",
+    "title": "Agentic engineering for enterprise modernization",
+    "summary": "A governed, platform-enabled, human-and-agent operating model for modernizing, delivering, operating, and continuously evolving software systems at enterprise scale.",
+    "signalTitle": "North star",
+    "signalText": "Scalable, governed agentic delivery"
+  },
+  "proofPoints": [
+    "Combines DDD, event storming, modernization patterns, and agent-enabled engineering into one model",
+    "Treats governance, enablement, and platform design as first-class concerns",
+    "Designed to support both delivery and capability transfer to client teams"
+  ],
+  "sectionIntros": {
+    "operatingModel": "The operating model ties together lifecycle phases, cross-cutting pillars, human roles, agent roles, and enterprise foundations.",
+    "pillars": "The pillars define the cross-cutting capabilities needed to govern, enable, and scale agentic engineering.",
+    "lifecycle": "The lifecycle shows how modernization work moves from direction setting through managed evolution.",
+    "offerings": "Offerings translate the operating model into sellable work packages and delivery motions.",
+    "useCases": "Use cases make the model concrete for modernization, platform engineering, and operational transformation."
+  }
+}

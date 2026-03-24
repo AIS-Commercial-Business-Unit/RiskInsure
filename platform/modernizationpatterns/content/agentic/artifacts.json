@@ -1,0 +1,17 @@
+[
+  {
+    "title": "Client Deliverables",
+    "slug": "client-deliverables",
+    "summary": "Reusable outputs that make the operating model tangible and commercially credible.",
+    "items": [
+      "Transformation charter and business case",
+      "Domain model, context map, and event storm outputs",
+      "Governance operating model and decision-rights matrix",
+      "Agent role catalog and handoff templates",
+      "Platform blueprint and reference architecture",
+      "Release evidence pack and operational readiness artifacts",
+      "Training plan, playbooks, and change communications",
+      "Dashboards, baselines, and value-realization views"
+    ]
+  }
+]

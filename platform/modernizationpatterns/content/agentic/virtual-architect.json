@@ -1,0 +1,123 @@
+{
+  "title": "AIS Virtual Architect",
+  "slug": "virtual-architect",
+  "tagline": "From idea to deployable Azure plan in minutes, not months.",
+  "summary": "An agent-driven architecture experience that guides users from concept to costed, deployable Azure architecture — applying Microsoft and AIS best practices in real time.",
+  "problem": "Architecture design has drifted from proactive customer collaboration to reactive documentation of what's already deployed. The whiteboard is gone. Sellers lack a fast path from idea to structured Azure consumption plan.",
+  "vision": "A 360° engine: Design → Cost → Deploy → Consume → Align with Microsoft. Not just a tool — a new front door into AIS and an Azure Marketplace opportunity.",
+  "workflow": [
+    {
+      "step": 1,
+      "title": "Design",
+      "summary": "Progressive discovery through guided questioning and diagram ingestion",
+      "details": [
+        "Natural language and diagram-based input",
+        "Progressive architecture questioning",
+        "Azure Well-Architected Framework alignment",
+        "AIS reference architecture matching"
+      ]
+    },
+    {
+      "step": 2,
+      "title": "Cost",
+      "summary": "Real-time pricing across all services using current Azure Retail Prices",
+      "details": [
+        "SKU sizing across AKS, Fabric, Firewall, Defender, and more",
+        "Hourly, monthly, and yearly cost breakdowns",
+        "Azure Retail Prices API integration",
+        "Discount modeling: EA, MACC, partner structures"
+      ]
+    },
+    {
+      "step": 3,
+      "title": "Deploy",
+      "summary": "Architecture diagrams and IaC-ready deployment plans",
+      "details": [
+        "Auto-generated architecture diagrams",
+        "Deployment topology and sequencing",
+        "Infrastructure as Code templates",
+        "Environment and subscription strategy"
+      ]
+    },
+    {
+      "step": 4,
+      "title": "Consume",
+      "summary": "FinOps views aligned to FOCUS spec and optimization scenarios",
+      "details": [
+        "Run rate projections and trend analysis",
+        "Optimization scenarios: reserved instances, scaling, right-sizing",
+        "FinOps maturity alignment: Inform → Optimize → Operate",
+        "Budget alerts and anomaly detection guidance"
+      ]
+    },
+    {
+      "step": 5,
+      "title": "Align",
+      "summary": "Microsoft program alignment for ACR, MACC, and partner structures",
+      "details": [
+        "ACR (Azure Consumed Revenue) tracking",
+        "MACC (Microsoft Azure Consumption Commitment) burn-down",
+        "Partner incentive alignment",
+        "Quarterly business review data packs"
+      ]
+    }
+  ],
+  "outputs": [
+    {
+      "category": "Architecture",
+      "items": ["Solution architecture diagrams", "Component topology", "Data flow maps", "Security boundary overlays"]
+    },
+    {
+      "category": "Sizing",
+      "items": ["SKU recommendations per service", "Compute and storage tiers", "Scaling profiles", "Regional deployment strategy"]
+    },
+    {
+      "category": "Cost",
+      "items": ["Hourly / monthly / yearly projections", "Discount-adjusted estimates", "Scenario comparisons", "Total cost of ownership"]
+    },
+    {
+      "category": "FinOps",
+      "items": ["Run rate dashboards", "Reserved instance modeling", "Optimization recommendations", "Budget and alert configuration"]
+    },
+    {
+      "category": "Microsoft Alignment",
+      "items": ["ACR consumption forecast", "MACC burn-down projection", "EA / CSP comparison", "QBR-ready data packs"]
+    }
+  ],
+  "audiences": [
+    {
+      "role": "Microsoft Sellers",
+      "value": "Move from idea to structured Azure consumption plan in a single session"
+    },
+    {
+      "role": "Solution Architects",
+      "value": "Generate Well-Architected designs with real-time cost validation"
+    },
+    {
+      "role": "Engineering Teams",
+      "value": "Receive deployment-ready architecture and IaC artifacts"
+    },
+    {
+      "role": "Finance & FinOps",
+      "value": "Scenario-model costs with discount structures and optimization paths"
+    },
+    {
+      "role": "Account Executives",
+      "value": "Present costed proposals aligned to MACC and ACR commitments"
+    }
+  ],
+  "differentiators": [
+    "Applies AIS delivery experience and Microsoft best practices — not generic cloud advice",
+    "Real-time Azure pricing via Retail Prices API — not stale spreadsheets",
+    "FinOps-native from day one — aligned to FOCUS spec and FinOps Foundation phases",
+    "Outputs usable by engineering, finance, and sales — single source of truth",
+    "MACC and ACR awareness built in — connects architecture to Microsoft program goals",
+    "Progressive design, not big-bang — start with a napkin sketch, end with a deployment plan"
+  ],
+  "azureServices": [
+    "AKS", "App Service", "Azure Functions", "Cosmos DB", "SQL Database",
+    "Fabric", "Azure OpenAI", "Firewall", "Front Door", "Defender for Cloud",
+    "Key Vault", "Monitor", "Storage", "Service Bus", "Event Grid",
+    "Container Apps", "API Management", "Virtual Network", "Entra ID"
+  ]
+}

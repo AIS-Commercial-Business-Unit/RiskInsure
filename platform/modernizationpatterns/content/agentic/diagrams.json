@@ -1,0 +1,88 @@
+{
+  "operatingModelDiagram": {
+    "title": "Agentic Engineering Transformation Model",
+    "headline": "From modernization strategy to managed evolution",
+    "pillars": [
+      "Governance & Risk",
+      "Platform & Tooling",
+      "People & Enablement",
+      "Human-Agent Collaboration",
+      "Measurement & Value"
+    ],
+    "phases": [
+      {
+        "slug": "strategy-mobilize",
+        "title": "Strategy & Mobilize",
+        "summary": "Set direction, value, and adoption approach."
+      },
+      {
+        "slug": "design",
+        "title": "Design",
+        "summary": "Model domains, flows, boundaries, and agent roles."
+      },
+      {
+        "slug": "build",
+        "title": "Build",
+        "summary": "Engineer with human-agent collaboration, testing, and security."
+      },
+      {
+        "slug": "release-adopt",
+        "title": "Release & Adopt",
+        "summary": "Deploy through governed pipelines and transition to usage."
+      },
+      {
+        "slug": "operate-evolve",
+        "title": "Operate & Evolve",
+        "summary": "Run, observe, improve, and modernize continuously."
+      }
+    ],
+    "leftRail": [
+      "Executive sponsor",
+      "Business owner",
+      "Domain architect",
+      "Modernization lead"
+    ],
+    "rightRail": [
+      "Coordinator agent",
+      "Engineering agents",
+      "Ops agents",
+      "Knowledge agents"
+    ],
+    "foundation": [
+      "Cloud and security foundation",
+      "Internal developer platform",
+      "Data, integration, and context layer",
+      "Reference patterns and runbooks"
+    ]
+  },
+  "governanceDiagram": {
+    "title": "Agentic Governance Operating Model",
+    "principle": "Autonomy inside boundaries",
+    "layers": [
+      {
+        "title": "Risk & Use-Case Governance",
+        "summary": "Decide what should be agentic and how much autonomy is allowed."
+      },
+      {
+        "title": "Human Accountability & Decision Rights",
+        "summary": "Define owners, approvals, and escalation paths."
+      },
+      {
+        "title": "Technical Controls & Assurance",
+        "summary": "Enforce policy, testing, rollout controls, and containment."
+      },
+      {
+        "title": "Transparency, Evidence & Compliance",
+        "summary": "Preserve auditability, evidence, and decision reconstruction."
+      },
+      {
+        "title": "Workforce Enablement & Responsible Use",
+        "summary": "Train people to use, supervise, and improve agentic systems."
+      },
+      {
+        "title": "Learning & Governance Adaptation",
+        "summary": "Continuously recalibrate policy and autonomy based on evidence."
+      }
+    ]
+  }
+}

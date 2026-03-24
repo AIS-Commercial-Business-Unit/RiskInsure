@@ -1,0 +1,45 @@
+{
+  "title": "Agentic Engineering Use Cases",
+  "summary": "Representative ways to position the model across enterprise software modernization.",
+  "items": [
+    {
+      "slug": "legacy-modernization",
+      "title": "Legacy modernization",
+      "industry": "Cross-industry",
+      "problem": "Large legacy systems are costly to change, difficult to understand, and constrained by undocumented dependencies.",
+      "approach": "Use DDD and event storming to rediscover the domain, apply modernization patterns, and introduce governed human-agent delivery across design, build, release, and operations.",
+      "outcomes": [
+        "Faster understanding of large systems",
+        "Cleaner modernization sequencing",
+        "Improved quality and observability",
+        "Transferable operating model for future waves"
+      ]
+    },
+    {
+      "slug": "regulated-delivery",
+      "title": "Regulated software delivery",
+      "industry": "Financial services, healthcare, public sector",
+      "problem": "Teams want AI-enabled delivery, but risk, audit, and compliance requirements limit uncontrolled autonomy.",
+      "approach": "Apply the governance model to define risk tiers, human checkpoints, evidence packs, and policy-based controls while using agents in lower-risk, high-volume engineering work.",
+      "outcomes": [
+        "Safe expansion of autonomy",
+        "Clearer auditability",
+        "Evidence-based approvals",
+        "Reduced friction between delivery and control functions"
+      ]
+    },
+    {
+      "slug": "platform-enabled-modernization",
+      "title": "Platform-enabled modernization",
+      "industry": "Enterprise IT organizations",
+      "problem": "Modernization programs stall because each team assembles its own tooling, patterns, and prompts with little reuse.",
+      "approach": "Establish an internal developer platform with reusable workflows, context assets, templates, agent guardrails, and runbooks aligned to the operating model.",
+      "outcomes": [
+        "Higher reuse across programs",
+        "Faster onboarding",
+        "More consistent engineering quality",
+        "Scalable enablement model"
+      ]
+    }
+  ]
+}

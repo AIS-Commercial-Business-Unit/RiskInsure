@@ -1,0 +1,38 @@
+{
+  "title": "Get started with Agentic Engineering",
+  "summary": "Choose an entry point based on where the client is in its modernization and AI adoption journey.",
+  "cards": [
+    {
+      "title": "Executive strategy session",
+      "audience": "Leaders exploring the model",
+      "description": "A short advisory session to align on why agentic engineering matters, where it fits, and what outcomes to target.",
+      "ctaLabel": "Start with strategy"
+    },
+    {
+      "title": "Foundation workshop",
+      "audience": "Architecture and engineering teams",
+      "description": "A hands-on workshop to define the operating model, governance approach, and platform requirements.",
+      "ctaLabel": "Run a workshop"
+    },
+    {
+      "title": "Implementation pilot",
+      "audience": "Programs ready to build",
+      "description": "A pilot modernization effort that proves the model in delivery with paired execution and capability transfer.",
+      "ctaLabel": "Launch a pilot"
+    },
+    {
+      "title": "Managed evolution",
+      "audience": "Teams scaling adoption",
+      "description": "Ongoing support for operations, governance tuning, enablement, and new modernization waves.",
+      "ctaLabel": "Scale the model"
+    },
+    {
+      "title": "AIS Virtual Architect",
+      "audience": "Sellers, architects, and finance teams",
+      "description": "Agent-driven architecture design that produces costed, deployable Azure plans aligned to MACC and ACR goals.",
+      "ctaLabel": "Explore the product",
+      "link": "/agentic/virtual-architect",
+      "featured": true
+    }
+  ]
+}

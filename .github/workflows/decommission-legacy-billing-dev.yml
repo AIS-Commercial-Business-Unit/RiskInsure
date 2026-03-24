@@ -63,7 +63,7 @@ jobs:
           terraform_version: ${{ env.TERRAFORM_VERSION }}
           terraform_wrapper: false
 
-      - name: Preflight: Ensure legacy billing blocks are restored in this run
+      - name: Preflight Ensure legacy billing blocks are restored in this run
         run: |
           set -euo pipefail
 
@@ -85,7 +85,7 @@ jobs:
             exit 1
           fi
 
-      - name: Preflight: Ensure Billing Service Bus/Cosmos remain decommissioned
+      - name: Preflight Ensure Billing Service Bus/Cosmos remain decommissioned
         run: |
           set -euo pipefail
 
@@ -128,12 +128,17 @@ jobs:
           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Backup remote state snapshot
+        id: backup
         run: |
           set -euo pipefail
           SNAPSHOT="pre-billing-decommission-$(date +%Y%m%d-%H%M%S).tfstate"
           terraform state pull > "$SNAPSHOT"
           echo "snapshot=$SNAPSHOT" >> "$GITHUB_OUTPUT"
-        id: backup
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Upload state snapshot artifact
         uses: actions/upload-artifact@v4
@@ -142,7 +147,12 @@ jobs:
           path: platform/infra/services/${{ steps.backup.outputs.snapshot }}
           retention-days: 14
 
-      - name: Preflight: Confirm state has billing bindings
+      - name: Preflight Confirm state has billing bindings
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         run: |
           set -euo pipefail
           terraform state list | tee /tmp/state-list.txt
@@ -201,6 +211,11 @@ jobs:
 
       - name: Verify state bindings removed
         if: github.event.inputs.action == 'apply'
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         run: |
           set -euo pipefail
           terraform state list > /tmp/state-after.txt
