@@ -2,14 +2,11 @@
 set -euo pipefail
 
 MANAGED_SERVICES=(
-  customer
   customerrelationshipsmgt
   fundstransfermgt
   modernizationpatterns
-  policy
   policylifecyclemgt
   policyequityandinvoicingmgt
-  ratingandunderwriting
   riskratingandunderwriting
 )
 
@@ -101,7 +98,7 @@ detect_services_from_changed_files() {
   local changed_files="${1:-}"
   local changed_services=()
 
-  for service in customer customerrelationshipsmgt fundstransfermgt policy policylifecyclemgt policyequityandinvoicingmgt ratingandunderwriting riskratingandunderwriting; do
+  for service in customerrelationshipsmgt fundstransfermgt policylifecyclemgt policyequityandinvoicingmgt riskratingandunderwriting; do
     if echo "$changed_files" | grep -q "^services/$service/"; then
       changed_services+=("$service")
     fi

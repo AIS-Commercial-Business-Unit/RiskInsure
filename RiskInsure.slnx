@@ -12,16 +12,6 @@
     <Project Path="platform/RiskInsure.PublicContracts/RiskInsure.PublicContracts.csproj" />
   </Folder>
   <Folder Name="/services/" />
-  <Folder Name="/services/customer/" />
-  <Folder Name="/services/customer/src/">
-    <Project Path="services/customer/src/Api/Api.csproj" />
-    <Project Path="services/customer/src/Domain/Domain.csproj" />
-    <Project Path="services/customer/src/Endpoint.In/Endpoint.In.csproj" />
-    <Project Path="services/customer/src/Infrastructure/Infrastructure.csproj" />
-  </Folder>
-  <Folder Name="/services/customer/test/">
-    <Project Path="services/customer/test/Unit.Tests/Unit.Tests.csproj" />
-  </Folder>
   <Folder Name="/services/customerrelationshipsmgt/" />
   <Folder Name="/services/customerrelationshipsmgt/src/">
     <Project Path="services/customerrelationshipsmgt/src/Api/Api.csproj" />
@@ -41,16 +31,6 @@
   </Folder>
   <Folder Name="/services/fundstransfermgt/test/">
     <Project Path="services/fundstransfermgt/test/Unit.Tests/Unit.Tests.csproj" />
-  </Folder>
-  <Folder Name="/services/policy/" />
-  <Folder Name="/services/policy/src/">
-    <Project Path="services/policy/src/Api/Api.csproj" />
-    <Project Path="services/policy/src/Domain/Domain.csproj" />
-    <Project Path="services/policy/src/Endpoint.In/Endpoint.In.csproj" />
-    <Project Path="services/policy/src/Infrastructure/Infrastructure.csproj" />
-  </Folder>
-  <Folder Name="/services/policy/test/">
-    <Project Path="services/policy/test/Unit.Tests/Unit.Tests.csproj" />
   </Folder>
   <Folder Name="/services/policylifecyclemgt/" />
   <Folder Name="/services/policylifecyclemgt/src/">
@@ -72,16 +52,6 @@
   </Folder>
   <Folder Name="/services/policyequityandinvoicingmgt/test/">
     <Project Path="services/policyequityandinvoicingmgt/test/Unit.Tests/Unit.Tests.csproj" />
-  </Folder>
-  <Folder Name="/services/ratingandunderwriting/" />
-  <Folder Name="/services/ratingandunderwriting/src/">
-    <Project Path="services/ratingandunderwriting/src/Api/Api.csproj" />
-    <Project Path="services/ratingandunderwriting/src/Domain/Domain.csproj" />
-    <Project Path="services/ratingandunderwriting/src/Endpoint.In/Endpoint.In.csproj" />
-    <Project Path="services/ratingandunderwriting/src/Infrastructure/Infrastructure.csproj" />
-  </Folder>
-  <Folder Name="/services/ratingandunderwriting/test/">
-    <Project Path="services/ratingandunderwriting/test/Unit.Tests/Unit.Tests.csproj" />
   </Folder>
   <Folder Name="/services/riskratingandunderwriting/" />
   <Folder Name="/services/riskratingandunderwriting/src/">
