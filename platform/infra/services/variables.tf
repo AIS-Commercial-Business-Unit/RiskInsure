@@ -155,24 +155,24 @@ variable "services" {
   default = {
     # Legacy Billing service disabled after migration to PolicyEquityAndInvoicingMgt.
     # Uncomment to restore the legacy service container settings.
-    # "billing" = {
-    #   api = {
-    #   enabled        = true
-    #   cpu            = 0.25
-    #   memory         = "0.5Gi"
-    #   min_replicas   = 1
-    #   max_replicas   = 5
-    #   container_name = "Billing"
-    #   }
-    #   endpoint = {
-    #   enabled        = true
-    #   cpu            = 0.25
-    #   memory         = "0.5Gi"
-    #   min_replicas   = 1
-    #   max_replicas   = 3
-    #   container_name = "Billing"
-    #   }
-    # }
+    "billing" = {
+      api = {
+        enabled        = true
+        cpu            = 0.25
+        memory         = "0.5Gi"
+        min_replicas   = 1
+        max_replicas   = 5
+        container_name = "Billing"
+      }
+      endpoint = {
+        enabled        = true
+        cpu            = 0.25
+        memory         = "0.5Gi"
+        min_replicas   = 1
+        max_replicas   = 3
+        container_name = "Billing"
+      }
+    }
     "customer" = {
       api = {
         enabled        = true
