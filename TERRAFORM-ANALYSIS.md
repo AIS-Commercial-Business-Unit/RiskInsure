@@ -4,6 +4,8 @@
 **Analysis Scope**: `platform/infra/shared-services/`  
 **Status**: ⚠️ **ISSUES FOUND - Review Required Before Apply**
 
+> Note: legacy Billing examples in this document refer to the retired service that has been superseded by PolicyEquityAndInvoicingMgt.
+
 ---
 
 ## Executive Summary
@@ -26,7 +28,7 @@ The shared-services Terraform configuration has **5 critical red flags** and **8
 **Issue**:
 The `premium` service is defined in the repository with business documentation and integration points:
 - Domain exists: `services/premium/docs/override.md`
-- Defined interactions with Policy, Rating, Billing, and Accounting domains
+- Defined interactions with Policy, Rating, PolicyEquityAndInvoicingMgt, and Accounting domains
 - **NO corresponding Cosmos container created**
 
 **Why This Matters**:

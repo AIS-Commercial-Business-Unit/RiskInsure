@@ -31,7 +31,6 @@ $apiCheck = @(
     @{Name="Customer"; Port=7073}
     @{Name="Rating"; Port=7079}
     @{Name="Policy"; Port=7077}
-    @{Name="Billing"; Port=7071}
     @{Name="FundsTransfer"; Port=7075}
 )
 
@@ -96,7 +95,6 @@ if ($testExitCode -ne 0) {
         "riskinsure-customer-api-1",
         "riskinsure-ratingandunderwriting-api-1",
         "riskinsure-policy-api-1",
-        "riskinsure-billing-api-1",
         "riskinsure-fundstransfermgt-api-1"
     )
     

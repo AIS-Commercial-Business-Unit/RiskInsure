@@ -85,7 +85,7 @@ resource "azurerm_container_app" "ratingandunderwriting_api" {
         value = data.terraform_remote_state.foundation.outputs.application_insights_connection_string
       }
       env {
-        name = "Messaging__MessageBroker"
+        name  = "Messaging__MessageBroker"
         value = "AzureServiceBus"
       }
 
@@ -189,7 +189,7 @@ resource "azurerm_container_app" "ratingandunderwriting_endpoint" {
         value = data.terraform_remote_state.foundation.outputs.application_insights_connection_string
       }
       env {
-        name = "Messaging__MessageBroker"
+        name  = "Messaging__MessageBroker"
         value = "AzureServiceBus"
       }
 

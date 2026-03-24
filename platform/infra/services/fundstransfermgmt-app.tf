@@ -86,7 +86,7 @@ resource "azurerm_container_app" "fundstransfermgt_api" {
       }
 
       env {
-        name = "Messaging__MessageBroker"
+        name  = "Messaging__MessageBroker"
         value = "AzureServiceBus"
       }
 
@@ -191,7 +191,7 @@ resource "azurerm_container_app" "fundstransfermgt_endpoint" {
       }
 
       env {
-        name = "Messaging__MessageBroker"
+        name  = "Messaging__MessageBroker"
         value = "AzureServiceBus"
       }
 

@@ -85,13 +85,13 @@ variable "container_registry_name" {
 variable "services" {
   description = "Map of microservices to deploy"
   type = map(object({
-    api_port           = number
-    container_name     = string
-    cpu                = number
-    memory             = string
-    min_replicas       = number
-    max_replicas       = number
-    has_endpoint       = bool
+    api_port       = number
+    container_name = string
+    cpu            = number
+    memory         = string
+    min_replicas   = number
+    max_replicas   = number
+    has_endpoint   = bool
   }))
   default = {
     billing = {

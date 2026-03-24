@@ -38,7 +38,6 @@ try {
     
     # Test each API endpoint
     $apis = @(
-        @{Name="Billing"; Url="http://localhost:7071/health"},
         @{Name="Customer"; Url="http://localhost:7073/health"},
         @{Name="Funds Transfer"; Url="http://localhost:7075/health"},
         @{Name="Policy"; Url="http://localhost:7077/health"},

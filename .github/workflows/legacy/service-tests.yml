@@ -17,7 +17,6 @@ on:
       - main
       - Dev
     paths:
-      - "services/billing/**"
       - "services/customer/**"
       - "services/fundstransfermgt/**"
       - "services/policy/**"
@@ -32,7 +31,6 @@ on:
       - main
       - Dev
     paths:
-      - "services/billing/**"
       - "services/customer/**"
       - "services/fundstransfermgt/**"
       - "services/policy/**"
@@ -57,8 +55,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - service: billing
-            unit_tests_path: services/billing/test/Unit.Tests
           - service: customer
             unit_tests_path: services/customer/test/Unit.Tests
           - service: fundstransfermgt
@@ -145,7 +141,6 @@ jobs:
     environment: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || 'dev' }}
 
     env:
-      API_BILLING_BASE_URL: ${{ vars.API_BILLING_BASE_URL }}
       API_CUSTOMER_BASE_URL: ${{ vars.API_CUSTOMER_BASE_URL }}
       API_FUNDSTRANSFERMGT_BASE_URL: ${{ vars.API_FUNDSTRANSFERMGT_BASE_URL }}
       API_POLICY_BASE_URL: ${{ vars.API_POLICY_BASE_URL }}
@@ -155,9 +150,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - service: billing
-            integration_tests_path: services/billing/test/Integration.Tests
-            api_var: API_BILLING_BASE_URL
           - service: customer
             integration_tests_path: services/customer/test/Integration.Tests
             api_var: API_CUSTOMER_BASE_URL
@@ -227,7 +219,6 @@ jobs:
       environment: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || 'dev' }}
 
       env:
-        API_BILLING_BASE_URL: ${{ vars.API_BILLING_BASE_URL }}
         API_CUSTOMER_BASE_URL: ${{ vars.API_CUSTOMER_BASE_URL }}
         API_FUNDSTRANSFERMGT_BASE_URL: ${{ vars.API_FUNDSTRANSFERMGT_BASE_URL }}
         API_POLICY_BASE_URL: ${{ vars.API_POLICY_BASE_URL }}
@@ -257,7 +248,6 @@ jobs:
             echo "CUSTOMER_API_URL=${{ env.API_CUSTOMER_BASE_URL }}" >> "$GITHUB_ENV"
             echo "RATINGANDUNDERWRITING_API_URL=${{ env.API_RATINGANDUNDERWRITING_BASE_URL }}" >> "$GITHUB_ENV"
             echo "POLICY_API_URL=${{ env.API_POLICY_BASE_URL }}" >> "$GITHUB_ENV"
-            echo "BILLING_API_URL=${{ env.API_BILLING_BASE_URL }}" >> "$GITHUB_ENV"
             echo "FUNDS_TRANSFER_API_URL=${{ env.API_FUNDSTRANSFERMGT_BASE_URL }}" >> "$GITHUB_ENV"
 
         - name: Debug E2E Configuration
@@ -266,7 +256,6 @@ jobs:
             echo "CUSTOMER_API_URL=$CUSTOMER_API_URL"
             echo "RATINGANDUNDERWRITING_API_URL=$RATINGANDUNDERWRITING_API_URL"
             echo "POLICY_API_URL=$POLICY_API_URL"
-            echo "BILLING_API_URL=$BILLING_API_URL"
             echo "FUNDS_TRANSFER_API_URL=$FUNDS_TRANSFER_API_URL"
 
         - name: Run E2E Tests

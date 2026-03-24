@@ -25,7 +25,7 @@ RiskInsure maintains two complementary but distinct types of documentation:
 **Examples**:
 - [services/policy/docs/overview.md](../services/policy/docs/overview.md)
 - [services/customer/docs/overview.md](../services/customer/docs/overview.md)
-- [services/billing/docs/business/](../services/billing/docs/business/)
+- [services/legacy/billing/docs/business/](../services/legacy/billing/docs/business/)
 
 ---
 
@@ -143,16 +143,16 @@ Each domain maintains its own **feature index** at `services/<domain>/docs/specs
 - Developers update when creating/shipping features
 - Keeps domain view clean and discoverable
 
-**Example**: [services/billing/docs/specs/README.md](../services/billing/docs/specs/README.md)
+**Example**: [services/legacy/billing/docs/specs/README.md](../services/legacy/billing/docs/specs/README.md)
 
 ---
 
 ## Navigation Patterns
 
 ### "I want to understand the current Billing domain"
-1. Start: `services/billing/docs/overview.md`
-2. Dive into: `services/billing/docs/business/` for rules
-3. Check: `services/billing/docs/technical/` for implementation
+1. Start: `services/legacy/billing/docs/overview.md`
+2. Dive into: `services/legacy/billing/docs/business/` for rules
+3. Check: `services/legacy/billing/docs/technical/` for implementation
 
 ### "I want to see what features are being worked on for Policy"
 1. Go to: `services/policy/docs/specs/README.md`
@@ -160,9 +160,9 @@ Each domain maintains its own **feature index** at `services/<domain>/docs/specs
 3. Click through to: `/specs/###-feature-name/spec.md` for details
 
 ### "I want to understand why invoice cancellation works the way it does"
-1. Find in: `services/billing/docs/specs/README.md` (shipped features)
+1. Find in: `services/legacy/billing/docs/specs/README.md` (shipped features)
 2. Read: `/specs/###-invoice-cancellation/spec.md` for original intent
-3. Compare: Current behavior in `services/billing/docs/business/` (may have evolved)
+3. Compare: Current behavior in `services/legacy/billing/docs/business/` (may have evolved)
 
 ### "I'm adding a new feature to Customer domain"
 1. Read: `services/customer/docs/overview.md` (understand current state)

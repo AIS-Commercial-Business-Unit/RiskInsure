@@ -70,7 +70,7 @@ Restart Rancher Desktop after DNS configuration.
 | **Rebuild after code changes** | `.\scripts\docker-rebuild.ps1` |
 | **Run smoke test** | `.\scripts\smoke-test.ps1` |
 | **View all logs** | `.\scripts\docker-logs.ps1` |
-| **View specific service logs** | `.\scripts\docker-logs.ps1 -Service billing-api` |
+| **View specific service logs** | `.\scripts\docker-logs.ps1 -Service customer-api` |
 | **Check service status** | `.\scripts\docker-status.ps1` |
 | **Force clean rebuild** | `.\scripts\docker-rebuild.ps1 -CleanBuild` |
 | **Stop and remove containers** | `.\scripts\docker-stop.ps1 -Remove` |
@@ -83,13 +83,13 @@ Restart Rancher Desktop after DNS configuration.
 
 | Domain | API Port | Endpoint.In | Purpose |
 |--------|----------|-------------|---------|
-| **Billing** | [localhost:7071](http://localhost:7071) | Running in background | Invoice and billing operations |
 | **Customer** | [localhost:7073](http://localhost:7073) | Running in background | Customer management |
 | **Funds Transfer** | [localhost:7075](http://localhost:7075) | Running in background | Payment processing |
 | **Policy** | [localhost:7077](http://localhost:7077) | Running in background | Policy management |
 | **Rating & Underwriting** | [localhost:7079](http://localhost:7079) | Running in background | Quote and underwriting |
+| **Policy Equity & Invoicing Mgt** | [localhost:7081](http://localhost:7081) | Running in background | Billing and invoicing operations |
 
-All APIs support Scalar documentation at `/scalar/v1` (e.g., http://localhost:7071/scalar/v1)
+All APIs support Scalar documentation at `/scalar/v1` (e.g., http://localhost:7081/scalar/v1)
 
 ---
 
@@ -107,7 +107,7 @@ wsl docker ps
 wsl docker ps -a
 
 # View logs
-wsl docker logs riskinsure-billing-api-1
+wsl docker logs riskinsure-customer-api-1
 
 # Check resource usage
 wsl docker stats
@@ -126,7 +126,7 @@ wsl docker stats
 
 ```powershell
 # Rebuild just one service
-wsl docker-compose up -d --build billing-api
+wsl docker-compose up -d --build customer-api
 
 # Or use the script (rebuilds all)
 .\scripts\docker-rebuild.ps1
@@ -142,17 +142,17 @@ wsl docker-compose logs --tail=100
 wsl docker-compose logs --tail=50 policy-api
 
 # Follow logs in real-time
-wsl docker-compose logs -f billing-api
+wsl docker-compose logs -f customer-api
 ```
 
 ### Restart Individual Service
 
 ```powershell
 # Restart without rebuilding (e.g., after .env change)
-wsl docker-compose restart billing-api
+wsl docker-compose restart customer-api
 
 # Restart all APIs
-wsl docker-compose restart billing-api customer-api fundstransfermgt-api policy-api ratingandunderwriting-api
+wsl docker-compose restart customer-api fundstransfermgt-api policy-api ratingandunderwriting-api peimgt-api
 ```
 
 ---
@@ -268,7 +268,7 @@ WSL2 (Linux)
   ↓
   Docker Engine (dockerd/moby)
   ↓
-  Containers (billing-api, customer-api, etc.)
+  Containers (customer-api, peimgt-api, etc.)
 ```
 
 **Key Points**:
@@ -282,7 +282,7 @@ WSL2 (Linux)
 ```
 docker-compose.yml
 │
-├── billing-api (7071) ──────┐
+├── peimgt-api (7081) ───────┐
 ├── billing-endpoint ────────┤
 │                             ├──> Shared Network
 ├── customer-api (7073) ─────┤    (riskinsure)
@@ -436,26 +436,26 @@ No configuration changes needed - tests use `localhost:707X` by default.
 wsl docker stats
 
 # Specific container
-wsl docker stats riskinsure-billing-api-1
+wsl docker stats riskinsure-customer-api-1
 ```
 
 ### Debug Container Issues
 
 ```powershell
 # View logs
-wsl docker logs riskinsure-billing-api-1 --tail 50
+wsl docker logs riskinsure-customer-api-1 --tail 50
 
 # Follow logs in real-time
-wsl docker logs -f riskinsure-billing-api-1
+wsl docker logs -f riskinsure-customer-api-1
 
 # Execute command inside container
-wsl docker exec -it riskinsure-billing-api-1 /bin/bash
+wsl docker exec -it riskinsure-customer-api-1 /bin/bash
 
 # View environment variables
-wsl docker exec riskinsure-billing-api-1 env
+wsl docker exec riskinsure-customer-api-1 env
 
 # Inspect container
-wsl docker inspect riskinsure-billing-api-1
+wsl docker inspect riskinsure-customer-api-1
 ```
 
 ---
@@ -516,7 +516,7 @@ After starting services, verify everything is running:
 
 1. ✅ **Try it now**: `.\scripts\docker-start.ps1`
 2. 🧪 **Run smoke test**: `.\scripts\smoke-test.ps1`
-3. 🔍 **Check logs**: `wsl docker logs riskinsure-billing-api-1`
+3. 🔍 **Check logs**: `wsl docker logs riskinsure-customer-api-1`
 4. 🔧 **Configure DNS**: Follow troubleshooting if DNS issues occur
 5. 📚 **Share this guide** with your team
 

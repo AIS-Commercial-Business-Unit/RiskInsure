@@ -61,13 +61,14 @@ locals {
     "servicecontrol.throughputdata",
 
     # RiskInsure Application Endpoints (NServiceBus message processors)
-    "RiskInsure.Billing.Endpoint",
+    # Legacy Billing endpoint disabled after migration to PolicyEquityAndInvoicingMgt.
+    # "RiskInsure.Billing.Endpoint",
     "RiskInsure.Customer.Endpoint",
     "RiskInsure.FundTransferMgt.Endpoint",
     "RiskInsure.Policy.Endpoint",
     "RiskInsure.RatingAndUnderwriting.Endpoint",
     "RiskInsure.PolicyLifeCycleMgt.Endpoint",
-    "RiskInsure.PolicyEquityAndInvoicingMgt.Endpoint", 
+    "RiskInsure.PolicyEquityAndInvoicingMgt.Endpoint",
     "RiskInsure.RiskRatingAndUnderwriting.Endpoint",
     "RiskInsure.CustomerRelationshipsMgt.Endpoint",
 
@@ -82,13 +83,13 @@ locals {
     # Legacy/existing topic
     "bundle-1",
 
-    # RiskInsure Billing Domain Events
-    "RiskInsure.Billing.Domain.Contracts.Events.AccountActivated",
-    "RiskInsure.Billing.Domain.Contracts.Events.AccountClosed",
-    "RiskInsure.Billing.Domain.Contracts.Events.AccountSuspended",
-    "RiskInsure.Billing.Domain.Contracts.Events.BillingAccountCreated",
-    "RiskInsure.Billing.Domain.Contracts.Events.BillingCycleUpdated",
-    "RiskInsure.Billing.Domain.Contracts.Events.PremiumOwedUpdated",
+    # Legacy Billing domain events disabled after migration to PolicyEquityAndInvoicingMgt.
+    # "RiskInsure.Billing.Domain.Contracts.Events.AccountActivated",
+    # "RiskInsure.Billing.Domain.Contracts.Events.AccountClosed",
+    # "RiskInsure.Billing.Domain.Contracts.Events.AccountSuspended",
+    # "RiskInsure.Billing.Domain.Contracts.Events.BillingAccountCreated",
+    # "RiskInsure.Billing.Domain.Contracts.Events.BillingCycleUpdated",
+    # "RiskInsure.Billing.Domain.Contracts.Events.PremiumOwedUpdated",
 
     # RiskInsure Customer Domain Events
     "RiskInsure.Customer.Domain.Contracts.Events.CustomerClosed",
@@ -148,17 +149,18 @@ locals {
   # ========================================================================
   # Format: "unique_key" = { topic_name, subscription_name, forward_to_queue }
   subscriptions = {
-    "funds_refunded_to_billing" = {
-      topic_name        = "RiskInsure.PublicContracts.Events.FundsRefunded"
-      subscription_name = "RiskInsure.Billing.Endpoint"
-      forward_to_queue  = "RiskInsure.Billing.Endpoint"
-    }
+    # Legacy Billing subscriptions disabled after migration to PolicyEquityAndInvoicingMgt.
+    # "funds_refunded_to_billing" = {
+    #   topic_name        = "RiskInsure.PublicContracts.Events.FundsRefunded"
+    #   subscription_name = "RiskInsure.Billing.Endpoint"
+    #   forward_to_queue  = "RiskInsure.Billing.Endpoint"
+    # }
 
-    "funds_settled_to_billing" = {
-      topic_name        = "RiskInsure.PublicContracts.Events.FundsSettled"
-      subscription_name = "RiskInsure.Billing.Endpoint"
-      forward_to_queue  = "RiskInsure.Billing.Endpoint"
-    }
+    # "funds_settled_to_billing" = {
+    #   topic_name        = "RiskInsure.PublicContracts.Events.FundsSettled"
+    #   subscription_name = "RiskInsure.Billing.Endpoint"
+    #   forward_to_queue  = "RiskInsure.Billing.Endpoint"
+    # }
 
     "funds_refunded_to_policyequityandinvoicingmgt" = {
       topic_name        = "RiskInsure.PublicContracts.Events.FundsRefunded"
