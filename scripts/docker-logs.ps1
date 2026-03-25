@@ -6,12 +6,12 @@
     Press Ctrl+C to exit.
 .EXAMPLE
     .\scripts\docker-logs.ps1
-    .\scripts\docker-logs.ps1 -Service billing-api
-    .\scripts\docker-logs.ps1 -Service billing-api -Follow:$false
+    .\scripts\docker-logs.ps1 -Service crmgt-api
+    .\scripts\docker-logs.ps1 -Service fundstransfermgt-api -Follow:$false
 #>
 
 param(
-    [string]$Service = "",  # Specific service name (e.g., "billing-api")
+    [string]$Service = "",  # Specific service name (e.g., "crmgt-api")
     [switch]$Follow = $true # Follow logs in real-time
 )
 

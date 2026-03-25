@@ -19,7 +19,7 @@ terraform {
     storage_account_name = "riskinsuretfstate"
     container_name       = "tfstate"
     key                  = "riskinsure.tfstate"
-    use_oidc            = true
+    use_oidc             = true
   }
 }
 

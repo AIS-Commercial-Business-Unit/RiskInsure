@@ -246,7 +246,7 @@ resource "azurerm_container_app" "modernizationpatterns_reindex_worker" {
     # Without this, container won't scale up on incoming HTTP requests
     http_scale_rule {
       name                = "http-scaling"
-      concurrent_requests = 10  # Scale up when 10+ concurrent requests
+      concurrent_requests = 10 # Scale up when 10+ concurrent requests
     }
 
     container {
@@ -330,7 +330,7 @@ resource "azurerm_container_app" "modernizationpatterns_reindex_worker" {
 
   # Reindex worker has HTTP endpoint for triggering reindex via API
   ingress {
-    external_enabled = true  # External access required for GitHub Actions workflow
+    external_enabled = true # External access required for GitHub Actions workflow
     target_port      = 5010
 
     traffic_weight {

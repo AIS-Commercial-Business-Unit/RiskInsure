@@ -38,22 +38,14 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - service: billing
-            path: services/billing/test/Unit.Tests
-          - service: customer
-            path: services/customer/test/Unit.Tests
           - service: customerrelationshipsmgt
             path: services/customerrelationshipsmgt/test/Unit.Tests
           - service: fundstransfermgt
             path: services/fundstransfermgt/test/Unit.Tests
-          - service: policy
-            path: services/policy/test/Unit.Tests
           - service: policyequityandinvoicingmgt
             path: services/policyequityandinvoicingmgt/test/Unit.Tests
           - service: policylifecyclemgt
             path: services/policylifecyclemgt/test/Unit.Tests
-          - service: ratingandunderwriting
-            path: services/ratingandunderwriting/test/Unit.Tests
           - service: riskratingandunderwriting
             path: services/riskratingandunderwriting/test/Unit.Tests
     

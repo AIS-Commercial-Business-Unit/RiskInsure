@@ -49,21 +49,21 @@
   "postCreateCommand": "bash -lc 'bash .devcontainer/post-create.sh 2>&1 | tee /tmp/post-create.log || true'",
   
   "forwardPorts": [
-    7071, // Billing API
     7073, // Customer API
     7075, // FundsTransferMgt API
     7077, // Policy API
     7079, // Rating API
+    7081, // PolicyEquityAndInvoicingMgt API
     8081, // Cosmos DB Emulator
     5672  // RabbitMQ
   ],
 
   "portsAttributes": {
-    "7071": { "label": "Billing API", "onAutoForward": "notify" },
     "7073": { "label": "Customer API", "onAutoForward": "notify" },
     "7075": { "label": "FundsTransferMgt API", "onAutoForward": "notify" },
     "7077": { "label": "Policy API", "onAutoForward": "notify" },
     "7079": { "label": "Rating API", "onAutoForward": "notify" },
+    "7081": { "label": "PolicyEquityAndInvoicingMgt API", "onAutoForward": "notify" },
     "8081": { "label": "Cosmos DB Emulator", "onAutoForward": "silent" },
     "5672": { "label": "RabbitMQ", "onAutoForward": "silent" }
   },

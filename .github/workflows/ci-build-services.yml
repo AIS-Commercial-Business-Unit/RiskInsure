@@ -12,7 +12,6 @@ on:
   push:
     branches:
       - main
-      - Dev
     paths:
       - 'services/**'
       - 'platform/RiskInsure.PublicContracts/**'
@@ -208,8 +207,8 @@ jobs:
             const owner = context.repo.owner;
             const repo = context.repo.repo;
 
-            const maxAttempts = 3;
-            const delayMs = 50000;
+            const maxAttempts = 4;
+            const delayMs = 90000;
 
             for (let attempt = 1; attempt <= maxAttempts; attempt++) {
               const { data } = await github.rest.actions.listWorkflowRuns({

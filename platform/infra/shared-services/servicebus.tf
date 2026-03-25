@@ -60,14 +60,9 @@ locals {
     "particular.servicecontrol.staging",
     "servicecontrol.throughputdata",
 
-    # RiskInsure Application Endpoints (NServiceBus message processors)
-    "RiskInsure.Billing.Endpoint",
-    "RiskInsure.Customer.Endpoint",
     "RiskInsure.FundTransferMgt.Endpoint",
-    "RiskInsure.Policy.Endpoint",
-    "RiskInsure.RatingAndUnderwriting.Endpoint",
     "RiskInsure.PolicyLifeCycleMgt.Endpoint",
-    "RiskInsure.PolicyEquityAndInvoicingMgt.Endpoint", 
+    "RiskInsure.PolicyEquityAndInvoicingMgt.Endpoint",
     "RiskInsure.RiskRatingAndUnderwriting.Endpoint",
     "RiskInsure.CustomerRelationshipsMgt.Endpoint",
 
@@ -82,25 +77,6 @@ locals {
     # Legacy/existing topic
     "bundle-1",
 
-    # RiskInsure Billing Domain Events
-    "RiskInsure.Billing.Domain.Contracts.Events.AccountActivated",
-    "RiskInsure.Billing.Domain.Contracts.Events.AccountClosed",
-    "RiskInsure.Billing.Domain.Contracts.Events.AccountSuspended",
-    "RiskInsure.Billing.Domain.Contracts.Events.BillingAccountCreated",
-    "RiskInsure.Billing.Domain.Contracts.Events.BillingCycleUpdated",
-    "RiskInsure.Billing.Domain.Contracts.Events.PremiumOwedUpdated",
-
-    # RiskInsure Customer Domain Events
-    "RiskInsure.Customer.Domain.Contracts.Events.CustomerClosed",
-    "RiskInsure.Customer.Domain.Contracts.Events.CustomerCreated",
-    "RiskInsure.Customer.Domain.Contracts.Events.CustomerInformationUpdated",
-
-    # RiskInsure Policy Domain Events
-    "RiskInsure.Policy.Domain.Contracts.Events.PolicyBound",
-    "RiskInsure.Policy.Domain.Contracts.Events.PolicyCancelled",
-    "RiskInsure.Policy.Domain.Contracts.Events.PolicyIssued",
-    "RiskInsure.Policy.Domain.Contracts.Events.PolicyReinstated",
-
     # RiskInsure PolicyLifeCycleMgt Domain Events
     "RiskInsure.PolicyLifeCycleMgt.Domain.Contracts.Events.LifeCycleInitiated",
     "RiskInsure.PolicyLifeCycleMgt.Domain.Contracts.Events.LifeCycleCancelled",
@@ -111,12 +87,6 @@ locals {
     "RiskInsure.PublicContracts.Events.FundsRefunded",
     "RiskInsure.PublicContracts.Events.FundsSettled",
     "RiskInsure.PublicContracts.Events.QuoteAccepted",
-
-    # RiskInsure RatingAndUnderwriting Domain Events
-    "RiskInsure.RatingAndUnderwriting.Domain.Contracts.Events.QuoteCalculated",
-    "RiskInsure.RatingAndUnderwriting.Domain.Contracts.Events.QuoteDeclined",
-    "RiskInsure.RatingAndUnderwriting.Domain.Contracts.Events.QuoteStarted",
-    "RiskInsure.RatingAndUnderwriting.Domain.Contracts.Events.UnderwritingSubmitted",
 
     # RiskInsure RiskRatingAndUnderwriting Domain Events
     "RiskInsure.RiskRatingAndUnderwriting.Domain.Contracts.Events.RiskQuoteCalculated",
@@ -148,17 +118,6 @@ locals {
   # ========================================================================
   # Format: "unique_key" = { topic_name, subscription_name, forward_to_queue }
   subscriptions = {
-    "funds_refunded_to_billing" = {
-      topic_name        = "RiskInsure.PublicContracts.Events.FundsRefunded"
-      subscription_name = "RiskInsure.Billing.Endpoint"
-      forward_to_queue  = "RiskInsure.Billing.Endpoint"
-    }
-
-    "funds_settled_to_billing" = {
-      topic_name        = "RiskInsure.PublicContracts.Events.FundsSettled"
-      subscription_name = "RiskInsure.Billing.Endpoint"
-      forward_to_queue  = "RiskInsure.Billing.Endpoint"
-    }
 
     "funds_refunded_to_policyequityandinvoicingmgt" = {
       topic_name        = "RiskInsure.PublicContracts.Events.FundsRefunded"
@@ -170,12 +129,6 @@ locals {
       topic_name        = "RiskInsure.PublicContracts.Events.FundsSettled"
       subscription_name = "RiskInsure.PolicyEquityAndInvoicingMgt.Endpoint"
       forward_to_queue  = "RiskInsure.PolicyEquityAndInvoicingMgt.Endpoint"
-    }
-
-    "quote_accepted_to_policy" = {
-      topic_name        = "RiskInsure.PublicContracts.Events.QuoteAccepted"
-      subscription_name = "RiskInsure.Policy.Endpoint"
-      forward_to_queue  = "RiskInsure.Policy.Endpoint"
     }
 
     "quote_accepted_to_policylifecyclemgt" = {

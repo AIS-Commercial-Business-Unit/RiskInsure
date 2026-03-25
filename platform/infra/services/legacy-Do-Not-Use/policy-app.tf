@@ -1,9 +1,9 @@
 # ==========================================================================
-# Customer API (HTTP REST)
+# Policy API (HTTP REST)
 # ==========================================================================
 
-resource "azurerm_container_app" "customer_api" {
-  name                         = "customer-api"
+resource "azurerm_container_app" "policy_api" {
+  name                         = "policy-api"
   container_app_environment_id = azurerm_container_app_environment.riskinsure.id
   resource_group_name          = data.terraform_remote_state.foundation.outputs.resource_group_name
   revision_mode                = "Single"
@@ -31,14 +31,14 @@ resource "azurerm_container_app" "customer_api" {
   }
 
   template {
-    min_replicas = var.services["customer"].api.min_replicas
-    max_replicas = var.services["customer"].api.max_replicas
+    min_replicas = var.services["policy"].api.min_replicas
+    max_replicas = var.services["policy"].api.max_replicas
 
     container {
-      name   = "customer-api"
-      image  = "${data.terraform_remote_state.foundation.outputs.acr_login_server}/customer-api:${var.image_tag}"
-      cpu    = var.services["customer"].api.cpu
-      memory = var.services["customer"].api.memory
+      name   = "policy-api"
+      image  = "${data.terraform_remote_state.foundation.outputs.acr_login_server}/policy-api:${var.image_tag}"
+      cpu    = var.services["policy"].api.cpu
+      memory = var.services["policy"].api.memory
 
       env {
         name  = "ASPNETCORE_ENVIRONMENT"
@@ -67,7 +67,7 @@ resource "azurerm_container_app" "customer_api" {
 
       env {
         name  = "CosmosDb__ContainerName"
-        value = "customer"
+        value = "policy"
       }
 
       env {
@@ -84,8 +84,9 @@ resource "azurerm_container_app" "customer_api" {
         name  = "APPLICATIONINSIGHTS_CONNECTION_STRING"
         value = data.terraform_remote_state.foundation.outputs.application_insights_connection_string
       }
+
       env {
-        name = "Messaging__MessageBroker"
+        name  = "Messaging__MessageBroker"
         value = "AzureServiceBus"
       }
 
@@ -105,14 +106,14 @@ resource "azurerm_container_app" "customer_api" {
   tags = var.tags
 }
 
-# Note: Customer API uses shared UAMI which already has Cosmos DB and Service Bus roles assigned
+# Note: Policy API uses shared UAMI which already has Cosmos DB and Service Bus roles assigned
 
 # ==========================================================================
-# Customer Endpoint (NServiceBus)
+# Policy Endpoint (NServiceBus)
 # ==========================================================================
 
-resource "azurerm_container_app" "customer_endpoint" {
-  name                         = "customer-endpoint"
+resource "azurerm_container_app" "policy_endpoint" {
+  name                         = "policy-endpoint"
   container_app_environment_id = azurerm_container_app_environment.riskinsure.id
   resource_group_name          = data.terraform_remote_state.foundation.outputs.resource_group_name
   revision_mode                = "Single"
@@ -140,14 +141,14 @@ resource "azurerm_container_app" "customer_endpoint" {
   }
 
   template {
-    min_replicas = var.services["customer"].endpoint.min_replicas
-    max_replicas = var.services["customer"].endpoint.max_replicas
+    min_replicas = var.services["policy"].endpoint.min_replicas
+    max_replicas = var.services["policy"].endpoint.max_replicas
 
     container {
-      name   = "customer-endpoint"
-      image  = "${data.terraform_remote_state.foundation.outputs.acr_login_server}/customer-endpoint:${var.image_tag}"
-      cpu    = var.services["customer"].endpoint.cpu
-      memory = var.services["customer"].endpoint.memory
+      name   = "policy-endpoint"
+      image  = "${data.terraform_remote_state.foundation.outputs.acr_login_server}/policy-endpoint:${var.image_tag}"
+      cpu    = var.services["policy"].endpoint.cpu
+      memory = var.services["policy"].endpoint.memory
 
       env {
         name  = "DOTNET_ENVIRONMENT"
@@ -171,7 +172,7 @@ resource "azurerm_container_app" "customer_endpoint" {
 
       env {
         name  = "CosmosDb__ContainerName"
-        value = "customer"
+        value = "policy"
       }
 
       env {
@@ -190,7 +191,7 @@ resource "azurerm_container_app" "customer_endpoint" {
       }
 
       env {
-        name = "Messaging__MessageBroker"
+        name  = "Messaging__MessageBroker"
         value = "AzureServiceBus"
       }
 
@@ -201,5 +202,4 @@ resource "azurerm_container_app" "customer_endpoint" {
   tags = var.tags
 }
 
-# Note: Customer Endpoint uses shared UAMI which already has Cosmos DB and Service Bus roles assigned
-
+# Note: Policy Endpoint uses shared UAMI which already has Cosmos DB and Service Bus roles assigned

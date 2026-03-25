@@ -17,7 +17,6 @@ test.describe('Quote to Policy Flow', () => {
       // rating: config.apis.rating,
       ratingandunderwriting: config.apis.ratingandunderwriting,
       policy: config.apis.policy,
-      billing: config.apis.billing,
       fundsTransfer: config.apis.fundsTransfer,
       eventualConsistencyTimeout: config.timeouts.eventualConsistency,
     }, null, 2));

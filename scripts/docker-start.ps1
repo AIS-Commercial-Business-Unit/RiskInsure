@@ -2,7 +2,7 @@
 .SYNOPSIS
     Start all RiskInsure services with Docker Compose
 .DESCRIPTION
-    Builds and starts all 10 services (5 domains × 2 services each) with a single command.
+    Builds and starts all active domain services with a single command.
     All services will be visible in Docker Desktop with logs consolidated.
 .EXAMPLE
     .\scripts\docker-start.ps1
@@ -82,17 +82,16 @@ try {
     
     Write-Host ""
     Write-Host "[API] API Endpoints:" -ForegroundColor Cyan
-    Write-Host "   Billing:                     http://localhost:7071" -ForegroundColor White
-    Write-Host "   Customer:                    http://localhost:7073" -ForegroundColor White
     Write-Host "   Funds Transfer:              http://localhost:7075" -ForegroundColor White
-    Write-Host "   Policy:                      http://localhost:7077" -ForegroundColor White
-    Write-Host "   Rating & Underwriting:       http://localhost:7079" -ForegroundColor White
+    Write-Host "   Policy Equity & Invoicing:   http://localhost:7081" -ForegroundColor White
+    Write-Host "   Customer Relationships:      http://localhost:7083" -ForegroundColor White
+    Write-Host "   Policy Lifecycle:            http://localhost:7085" -ForegroundColor White
     Write-Host "   Risk Rating & Underwriting:  http://localhost:7087" -ForegroundColor White
     
     Write-Host ""
     Write-Host "[COMMANDS] Useful Commands:" -ForegroundColor Cyan
     Write-Host "   View logs:      docker-compose logs -f" -ForegroundColor Gray
-    Write-Host "   View specific:  docker-compose logs -f billing-api" -ForegroundColor Gray
+    Write-Host "   View specific:  docker-compose logs -f customer-api" -ForegroundColor Gray
     Write-Host "   Stop all:       .\scripts\docker-stop.ps1" -ForegroundColor Gray
     Write-Host "   Restart:        docker-compose restart" -ForegroundColor Gray
     Write-Host "   Rebuild:        .\scripts\docker-rebuild.ps1" -ForegroundColor Gray

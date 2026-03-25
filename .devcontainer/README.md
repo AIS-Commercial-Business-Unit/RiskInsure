@@ -33,7 +33,7 @@ docker-compose up -d
 ```
 
 This starts:
-- 5 API containers (Customer, Rating, Policy, Billing, FundsTransferMgt)
+- 5 API containers (Customer, Rating, Policy, FundsTransferMgt, PolicyEquityAndInvoicingMgt)
 - 5 NServiceBus Endpoint containers
 - RabbitMQ broker (already running)
 - Cosmos DB Emulator (already running)
@@ -73,8 +73,8 @@ All ports are automatically forwarded and accessible:
 | Customer API | 7073 | http://localhost:7073/swagger |
 | Rating API | 7079 | http://localhost:7079/swagger |
 | Policy API | 7077 | http://localhost:7077/swagger |
-| Billing API | 7071 | http://localhost:7071/swagger |
 | FundsTransferMgt API | 7075 | http://localhost:7075/swagger |
+| PolicyEquityAndInvoicingMgt API | 7081 | http://localhost:7081/swagger |
 | Cosmos DB Explorer | 8081 | https://localhost:8081/_explorer |
 | RabbitMQ | 5672 | (AMQP protocol) |
 

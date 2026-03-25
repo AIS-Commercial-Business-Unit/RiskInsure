@@ -1,7 +1,7 @@
 # Azure Provider
 provider "azurerm" {
   features {}
-  
+
   # For local development: subscription_id can be hardcoded or set via Azure CLI
   # For GitHub Actions: ARM_SUBSCRIPTION_ID environment variable is used automatically
   # Uncomment below for local development if Azure CLI doesn't work:
@@ -135,23 +135,23 @@ resource "azurerm_container_app" "api" {
 
       # Environment variables matching docker-compose.yml
       env {
-        name        = "ASPNETCORE_ENVIRONMENT"
-        value       = var.environment == "prod" ? "Production" : "Development"
+        name  = "ASPNETCORE_ENVIRONMENT"
+        value = var.environment == "prod" ? "Production" : "Development"
       }
 
       env {
-        name        = "ASPNETCORE_URLS"
-        value       = "http://+:8080"
+        name  = "ASPNETCORE_URLS"
+        value = "http://+:8080"
       }
 
       env {
-        name        = "CosmosDb__DatabaseName"
-        value       = var.cosmos_database_name
+        name  = "CosmosDb__DatabaseName"
+        value = var.cosmos_database_name
       }
 
       env {
-        name        = "CosmosDb__ContainerName"
-        value       = each.value.container_name
+        name  = "CosmosDb__ContainerName"
+        value = each.value.container_name
       }
 
       # Secrets referenced as environment variables
@@ -167,22 +167,22 @@ resource "azurerm_container_app" "api" {
 
       # Liveness probe
       liveness_probe {
-        transport = "HTTP"
-        path      = "/health"
-        port      = 8080
-        initial_delay    = 10
-        interval_seconds = 30
-        timeout          = 3
+        transport               = "HTTP"
+        path                    = "/health"
+        port                    = 8080
+        initial_delay           = 10
+        interval_seconds        = 30
+        timeout                 = 3
         failure_count_threshold = 3
       }
 
       # Readiness probe
       readiness_probe {
-        transport = "HTTP"
-        path      = "/health"
-        port      = 8080
-        interval_seconds = 10
-        timeout          = 3
+        transport               = "HTTP"
+        path                    = "/health"
+        port                    = 8080
+        interval_seconds        = 10
+        timeout                 = 3
         failure_count_threshold = 3
       }
     }
@@ -305,15 +305,15 @@ resource "azurerm_container_app" "endpoint" {
       name             = "servicebus-queue-scaling"
       custom_rule_type = "azure-servicebus"
       metadata = {
-        queueName      = "riskinsure.${each.key}.endpoint"
-        messageCount   = "5"
-        namespace      = azurerm_servicebus_namespace.main.name
+        queueName    = "riskinsure.${each.key}.endpoint"
+        messageCount = "5"
+        namespace    = azurerm_servicebus_namespace.main.name
       }
     }
   }
 
   # No ingress for message processors (internal only)
-  
+
   secret {
     name  = "cosmosdb-connection-string"
     value = azurerm_cosmosdb_account.main.primary_sql_connection_string

@@ -83,11 +83,7 @@ jobs:
           
           # Check endpoint queues only
           REQUIRED_QUEUES=(
-            "riskinsure.billing.endpoint"
-            "riskinsure.customer.endpoint"
             "riskinsure.fundtransfermgt.endpoint"
-            "riskinsure.policy.endpoint"
-            "riskinsure.ratingandunderwriting.endpoint"
             "riskinsure.customerrelationshipsmgt.endpoint"
             "riskinsure.policyequityandinvoicingmgt.endpoint"
             "riskinsure.policylifecyclemgt.endpoint"
@@ -116,14 +112,6 @@ jobs:
           # Check Cosmos DB containers
           COSMOS_DB="RiskInsure"
           REQUIRED_CONTAINERS=(
-            "Billing"
-            "Billing-Sagas"
-            "customer"
-            "Customer-Sagas"
-            "policy"
-            "Policy-Sagas"
-            "RatingUnderwriting"
-            "ratingunderwriting-sagas"
             "fundstransfermgt"
             "fundstransfermgt-sagas"
             "customerrelationships"
@@ -150,7 +138,7 @@ jobs:
           done
           
           # Check Container Apps are running
-          SERVICES=("billing" "customer" "crmgt" "fundstransfermgt" "policy" "peimgt" "policylifecyclemgt" "ratingandunderwriting" "rru")
+          SERVICES=("crmgt" "fundstransfermgt" "peimgt" "policylifecyclemgt" "rru")
           for service in "${SERVICES[@]}"; do
             API_NAME="$service-api"
             ENDPOINT_NAME="$service-endpoint"
@@ -214,7 +202,7 @@ jobs:
 
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             if [[ "${{ github.event.inputs.services }}" == "all" ]]; then
-              echo 'services=[{"name":"billing","path":"billing"},{"name":"customer","path":"customer"},{"name":"crmgt","path":"customerrelationshipsmgt"},{"name":"fundstransfermgt","path":"fundstransfermgt"},{"name":"policy","path":"policy"},{"name":"peimgt","path":"policyequityandinvoicingmgt"},{"name":"policylifecyclemgt","path":"policylifecyclemgt"},{"name":"ratingandunderwriting","path":"ratingandunderwriting"},{"name":"rru","path":"riskratingandunderwriting"}]' >> "$GITHUB_OUTPUT"
+              echo 'services=[{"name":"crmgt","path":"customerrelationshipsmgt"},{"name":"fundstransfermgt","path":"fundstransfermgt"},{"name":"peimgt","path":"policyequityandinvoicingmgt"},{"name":"policylifecyclemgt","path":"policylifecyclemgt"},{"name":"rru","path":"riskratingandunderwriting"}]' >> "$GITHUB_OUTPUT"
             else
               services_input="${{ github.event.inputs.services }}"
               services_json=$(echo "$services_input" | to_service_matrix)
@@ -222,7 +210,7 @@ jobs:
             fi
           else
             # Test all services after deployment
-            echo 'services=[{"name":"billing","path":"billing"},{"name":"customer","path":"customer"},{"name":"crmgt","path":"customerrelationshipsmgt"},{"name":"fundstransfermgt","path":"fundstransfermgt"},{"name":"policy","path":"policy"},{"name":"peimgt","path":"policyequityandinvoicingmgt"},{"name":"policylifecyclemgt","path":"policylifecyclemgt"},{"name":"ratingandunderwriting","path":"ratingandunderwriting"},{"name":"rru","path":"riskratingandunderwriting"}]' >> "$GITHUB_OUTPUT"
+            echo 'services=[{"name":"crmgt","path":"customerrelationshipsmgt"},{"name":"fundstransfermgt","path":"fundstransfermgt"},{"name":"peimgt","path":"policyequityandinvoicingmgt"},{"name":"policylifecyclemgt","path":"policylifecyclemgt"},{"name":"rru","path":"riskratingandunderwriting"}]' >> "$GITHUB_OUTPUT"
           fi
 
   # ==========================================================================

@@ -1,9 +1,9 @@
 # ==========================================================================
-# Policy API (HTTP REST)
+# Rating & Underwriting API (HTTP REST)
 # ==========================================================================
 
-resource "azurerm_container_app" "policy_api" {
-  name                         = "policy-api"
+resource "azurerm_container_app" "ratingandunderwriting_api" {
+  name                         = "ratingandunderwriting-api"
   container_app_environment_id = azurerm_container_app_environment.riskinsure.id
   resource_group_name          = data.terraform_remote_state.foundation.outputs.resource_group_name
   revision_mode                = "Single"
@@ -31,14 +31,14 @@ resource "azurerm_container_app" "policy_api" {
   }
 
   template {
-    min_replicas = var.services["policy"].api.min_replicas
-    max_replicas = var.services["policy"].api.max_replicas
+    min_replicas = var.services["ratingandunderwriting"].api.min_replicas
+    max_replicas = var.services["ratingandunderwriting"].api.max_replicas
 
     container {
-      name   = "policy-api"
-      image  = "${data.terraform_remote_state.foundation.outputs.acr_login_server}/policy-api:${var.image_tag}"
-      cpu    = var.services["policy"].api.cpu
-      memory = var.services["policy"].api.memory
+      name   = "ratingandunderwriting-api"
+      image  = "${data.terraform_remote_state.foundation.outputs.acr_login_server}/ratingandunderwriting-api:${var.image_tag}"
+      cpu    = var.services["ratingandunderwriting"].api.cpu
+      memory = var.services["ratingandunderwriting"].api.memory
 
       env {
         name  = "ASPNETCORE_ENVIRONMENT"
@@ -67,7 +67,7 @@ resource "azurerm_container_app" "policy_api" {
 
       env {
         name  = "CosmosDb__ContainerName"
-        value = "policy"
+        value = "ratingunderwriting"
       }
 
       env {
@@ -84,9 +84,8 @@ resource "azurerm_container_app" "policy_api" {
         name  = "APPLICATIONINSIGHTS_CONNECTION_STRING"
         value = data.terraform_remote_state.foundation.outputs.application_insights_connection_string
       }
-
       env {
-        name = "Messaging__MessageBroker"
+        name  = "Messaging__MessageBroker"
         value = "AzureServiceBus"
       }
 
@@ -106,14 +105,14 @@ resource "azurerm_container_app" "policy_api" {
   tags = var.tags
 }
 
-# Note: Policy API uses shared UAMI which already has Cosmos DB and Service Bus roles assigned
+# Note: Rating & Underwriting API uses shared UAMI which already has Cosmos DB and Service Bus roles assigned
 
 # ==========================================================================
-# Policy Endpoint (NServiceBus)
+# Rating & Underwriting Endpoint (NServiceBus)
 # ==========================================================================
 
-resource "azurerm_container_app" "policy_endpoint" {
-  name                         = "policy-endpoint"
+resource "azurerm_container_app" "ratingandunderwriting_endpoint" {
+  name                         = "ratingandunderwriting-endpoint"
   container_app_environment_id = azurerm_container_app_environment.riskinsure.id
   resource_group_name          = data.terraform_remote_state.foundation.outputs.resource_group_name
   revision_mode                = "Single"
@@ -141,14 +140,14 @@ resource "azurerm_container_app" "policy_endpoint" {
   }
 
   template {
-    min_replicas = var.services["policy"].endpoint.min_replicas
-    max_replicas = var.services["policy"].endpoint.max_replicas
+    min_replicas = var.services["ratingandunderwriting"].endpoint.min_replicas
+    max_replicas = var.services["ratingandunderwriting"].endpoint.max_replicas
 
     container {
-      name   = "policy-endpoint"
-      image  = "${data.terraform_remote_state.foundation.outputs.acr_login_server}/policy-endpoint:${var.image_tag}"
-      cpu    = var.services["policy"].endpoint.cpu
-      memory = var.services["policy"].endpoint.memory
+      name   = "ratingandunderwriting-endpoint"
+      image  = "${data.terraform_remote_state.foundation.outputs.acr_login_server}/ratingandunderwriting-endpoint:${var.image_tag}"
+      cpu    = var.services["ratingandunderwriting"].endpoint.cpu
+      memory = var.services["ratingandunderwriting"].endpoint.memory
 
       env {
         name  = "DOTNET_ENVIRONMENT"
@@ -172,7 +171,7 @@ resource "azurerm_container_app" "policy_endpoint" {
 
       env {
         name  = "CosmosDb__ContainerName"
-        value = "policy"
+        value = "ratingunderwriting"
       }
 
       env {
@@ -189,9 +188,8 @@ resource "azurerm_container_app" "policy_endpoint" {
         name  = "APPLICATIONINSIGHTS_CONNECTION_STRING"
         value = data.terraform_remote_state.foundation.outputs.application_insights_connection_string
       }
-
       env {
-        name = "Messaging__MessageBroker"
+        name  = "Messaging__MessageBroker"
         value = "AzureServiceBus"
       }
 
@@ -202,4 +200,4 @@ resource "azurerm_container_app" "policy_endpoint" {
   tags = var.tags
 }
 
-# Note: Policy Endpoint uses shared UAMI which already has Cosmos DB and Service Bus roles assigned
+# Note: Rating & Underwriting Endpoint uses shared UAMI which already has Cosmos DB and Service Bus roles assigned
