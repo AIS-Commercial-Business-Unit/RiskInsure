@@ -1,0 +1,246 @@
+name: 'Decommission: Legacy RatingAndUnderwriting Dev'
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Terraform action to run'
+        required: true
+        default: 'plan'
+        type: choice
+        options:
+          - plan
+          - apply
+      image_tag:
+        description: 'Any valid immutable tag (required for variable evaluation)'
+        required: true
+        type: string
+      delete_acr:
+        description: 'Delete ratingandunderwriting ACR repositories after successful apply'
+        required: true
+        default: true
+        type: boolean
+
+env:
+  TERRAFORM_VERSION: '1.11.4'
+  ENVIRONMENT: 'dev'
+  RG: 'CAIS-010-RiskInsure'
+  ACR_NAME: 'riskinsuredevacr'
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  # Serialize with the regular services deployment workflow to protect remote state locking.
+  group: riskinsure-services-dev
+  cancel-in-progress: false
+
+jobs:
+  decommission:
+    name: 'Destroy legacy RatingAndUnderwriting container apps'
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: platform/infra/services
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TERRAFORM_VERSION }}
+          terraform_wrapper: false
+
+      - name: Preflight Ensure legacy ratingandunderwriting blocks are restored in this run
+        run: |
+          set -euo pipefail
+
+          if ! grep -Eq '^resource "azurerm_container_app" "ratingandunderwriting_api"' ratingunderwriting-app.tf; then
+            echo "Missing active resource block azurerm_container_app.ratingandunderwriting_api in ratingunderwriting-app.tf." >&2
+            echo "Temporarily uncomment the ratingandunderwriting_api block before running this workflow." >&2
+            exit 1
+          fi
+
+          if ! grep -Eq '^resource "azurerm_container_app" "ratingandunderwriting_endpoint"' ratingunderwriting-app.tf; then
+            echo "Missing active resource block azurerm_container_app.ratingandunderwriting_endpoint in ratingunderwriting-app.tf." >&2
+            echo "Temporarily uncomment the ratingandunderwriting_endpoint block before running this workflow." >&2
+            exit 1
+          fi
+
+          if ! grep -Eq '^\s*"ratingandunderwriting"\s*=' variables.tf; then
+            echo "Missing active ratingandunderwriting entry under var.services in variables.tf." >&2
+            echo "Temporarily uncomment the ratingandunderwriting services map before running this workflow." >&2
+            exit 1
+          fi
+
+      - name: Preflight Ensure RatingAndUnderwriting Service Bus/Cosmos remain decommissioned
+        run: |
+          set -euo pipefail
+
+          if grep -Eq '^\s*"RiskInsure\.RatingAndUnderwriting\.Endpoint",' ../shared-services/servicebus.tf; then
+            echo "RatingAndUnderwriting Service Bus queue entry is uncommented in shared-services/servicebus.tf." >&2
+            echo "Keep RatingAndUnderwriting Service Bus artifacts commented for this container-app-only decommission run." >&2
+            exit 1
+          fi
+
+          if grep -Eq '^\s*"RiskInsure\.RatingAndUnderwriting\.Domain\.Contracts\.Events\.' ../shared-services/servicebus.tf; then
+            echo "One or more RatingAndUnderwriting Service Bus topic entries are uncommented in shared-services/servicebus.tf." >&2
+            echo "Keep RatingAndUnderwriting Service Bus artifacts commented for this container-app-only decommission run." >&2
+            exit 1
+          fi
+
+          if grep -Eq '^resource\s+"azurerm_cosmosdb_sql_container"\s+"ratingunderwriting"' ../shared-services/cosmosdb.tf; then
+            echo "RatingAndUnderwriting Cosmos container is uncommented in shared-services/cosmosdb.tf." >&2
+            echo "Keep RatingAndUnderwriting Cosmos artifacts commented for this container-app-only decommission run." >&2
+            exit 1
+          fi
+
+          if grep -Eq '^resource\s+"azurerm_cosmosdb_sql_container"\s+"ratingunderwriting_sagas"' ../shared-services/cosmosdb.tf; then
+            echo "RatingAndUnderwriting Cosmos saga container is uncommented in shared-services/cosmosdb.tf." >&2
+            echo "Keep RatingAndUnderwriting Cosmos artifacts commented for this container-app-only decommission run." >&2
+            exit 1
+          fi
+
+      - name: Terraform Init
+        run: terraform init -input=false -lock-timeout=5m
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Backup remote state snapshot
+        id: backup
+        run: |
+          set -euo pipefail
+          SNAPSHOT="pre-ratingandunderwriting-decommission-$(date +%Y%m%d-%H%M%S).tfstate"
+          terraform state pull > "$SNAPSHOT"
+          echo "snapshot=$SNAPSHOT" >> "$GITHUB_OUTPUT"
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Upload state snapshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfstate-backup-ratingandunderwriting-pre-decommission
+          path: platform/infra/services/${{ steps.backup.outputs.snapshot }}
+          retention-days: 14
+
+      - name: Preflight Confirm state has ratingandunderwriting bindings
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: |
+          set -euo pipefail
+          terraform state list | tee /tmp/state-list.txt
+
+          if ! grep -qx 'azurerm_container_app.ratingandunderwriting_api' /tmp/state-list.txt; then
+            echo "State does not contain azurerm_container_app.ratingandunderwriting_api." >&2
+            echo "If Azure app was manually deleted, use controlled state cleanup separately." >&2
+            exit 1
+          fi
+
+          if ! grep -qx 'azurerm_container_app.ratingandunderwriting_endpoint' /tmp/state-list.txt; then
+            echo "State does not contain azurerm_container_app.ratingandunderwriting_endpoint." >&2
+            echo "If Azure app was manually deleted, use controlled state cleanup separately." >&2
+            exit 1
+          fi
+
+      - name: Terraform Destroy Plan (targeted)
+        run: |
+          set -euo pipefail
+          terraform plan -destroy \
+            -target=azurerm_container_app.ratingandunderwriting_api \
+            -target=azurerm_container_app.ratingandunderwriting_endpoint \
+            -var="environment=${{ env.ENVIRONMENT }}" \
+            -var="image_tag=${{ github.event.inputs.image_tag }}" \
+            -out=tfplan \
+            -input=false \
+            -lock-timeout=5m
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Terraform Apply Planned Destroy
+        if: github.event.inputs.action == 'apply'
+        run: terraform apply -auto-approve tfplan
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Verify RatingAndUnderwriting container apps are removed
+        if: github.event.inputs.action == 'apply'
+        working-directory: .
+        run: |
+          set -euo pipefail
+          for app in ratingandunderwriting-api ratingandunderwriting-endpoint; do
+            if az containerapp show --name "$app" --resource-group "${{ env.RG }}" >/dev/null 2>&1; then
+              echo "Container App still exists: $app" >&2
+              exit 1
+            else
+              echo "Confirmed removed: $app"
+            fi
+          done
+
+      - name: Verify state bindings removed
+        if: github.event.inputs.action == 'apply'
+        env:
+          ARM_USE_OIDC: true
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: |
+          set -euo pipefail
+          terraform state list > /tmp/state-after.txt
+          if grep -qx 'azurerm_container_app.ratingandunderwriting_api' /tmp/state-after.txt; then
+            echo "State still contains azurerm_container_app.ratingandunderwriting_api after apply." >&2
+            exit 1
+          fi
+          if grep -qx 'azurerm_container_app.ratingandunderwriting_endpoint' /tmp/state-after.txt; then
+            echo "State still contains azurerm_container_app.ratingandunderwriting_endpoint after apply." >&2
+            exit 1
+          fi
+
+      - name: Delete RatingAndUnderwriting ACR repositories
+        if: github.event.inputs.action == 'apply' && github.event.inputs.delete_acr == 'true'
+        working-directory: .
+        run: |
+          set -euo pipefail
+          for repo in ratingandunderwriting-api ratingandunderwriting-endpoint; do
+            if az acr repository show --name "${{ env.ACR_NAME }}" --repository "$repo" >/dev/null 2>&1; then
+              az acr repository delete --name "${{ env.ACR_NAME }}" --repository "$repo" --yes
+              echo "Deleted ACR repository: $repo"
+            else
+              echo "Repository not found, skipping: $repo"
+            fi
+          done
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "# Legacy RatingAndUnderwriting Decommission Summary" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Action: ${{ github.event.inputs.action }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Environment: ${{ env.ENVIRONMENT }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- ACR delete requested: ${{ github.event.inputs.delete_acr }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- State backup artifact: tfstate-backup-ratingandunderwriting-pre-decommission" >> "$GITHUB_STEP_SUMMARY"
