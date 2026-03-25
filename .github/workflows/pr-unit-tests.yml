@@ -77,7 +77,7 @@ jobs:
         working-directory: ${{ matrix.path }}
       
       - name: Upload Test Results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: unit-test-results-${{ matrix.service }}
@@ -85,7 +85,7 @@ jobs:
           if-no-files-found: warn
       
       - name: Upload Code Coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: always()
         with:
           name: code-coverage-${{ matrix.service }}
