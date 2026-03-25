@@ -300,7 +300,7 @@ Run the smoke test to verify all services are healthy:
 
 If you see any failures, check:
 1. Environment variables are set: `echo $COSMOSDB_CONNECTION_STRING`
-2. Containers have correct config: `docker inspect riskinsure-customer-api-1 | grep ConnectionStrings`
+2. Containers have correct config: `docker inspect riskinsure-crmgt-api-1 | grep ConnectionStrings`
 3. Azure resources are accessible: `az cosmosdb show -n riskinsure-cosmosdb -g riskinsure-dev`
 
 ---
@@ -348,11 +348,11 @@ Your development environment is fully configured:
 
 | Service | API Port | OpenAPI Docs |
 |---------|----------|--------------|
-| Billing | 7071 | http://127.0.0.1:7071/scalar/v1 |
-| Customer | 7073 | http://127.0.0.1:7073/scalar/v1 |
 | Funds Transfer | 7075 | http://127.0.0.1:7075/scalar/v1 |
-| Policy | 7077 | http://127.0.0.1:7077/scalar/v1 |
-| Rating & Underwriting | 7079 | http://127.0.0.1:7079/scalar/v1 |
+| Policy Equity & Invoicing Mgt | 7081 | http://127.0.0.1:7081/scalar/v1 |
+| Customer Relationships Mgt | 7083 | http://127.0.0.1:7083/scalar/v1 |
+| Policy Lifecycle Mgt | 7085 | http://127.0.0.1:7085/scalar/v1 |
+| Risk Rating & Underwriting | 7087 | http://127.0.0.1:7087/scalar/v1 |
 
 ---
 
@@ -365,13 +365,13 @@ Your development environment is fully configured:
 docker compose up -d
 
 # Start specific service
-docker compose up -d customer-api customer-endpoint
+docker compose up -d crmgt-api crmgt-endpoint
 
 # View logs
-docker compose logs -f customer-api
+docker compose logs -f crmgt-api
 
 # Restart after code changes
-docker compose restart customer-api
+docker compose restart crmgt-api
 ```
 
 ### Stopping Services
@@ -391,8 +391,8 @@ docker compose down -v
 
 ```bash
 # Rebuild specific service
-docker compose build customer-api
-docker compose up -d customer-api
+docker compose build crmgt-api
+docker compose up -d crmgt-api
 
 # Rebuild all services
 docker compose down
@@ -416,6 +416,7 @@ sleep 30 && ./scripts/smoke-test.sh
 **Check logs:**
 ```bash
 docker logs riskinsure-customer-api-1
+docker logs riskinsure-crmgt-api-1
 ```
 
 **Common causes:**
@@ -425,7 +426,7 @@ docker logs riskinsure-customer-api-1
 
 **Verify env vars in container:**
 ```bash
-docker inspect riskinsure-customer-api-1 --format '{{range .Config.Env}}{{println .}}{{end}}' | grep ConnectionStrings
+docker inspect riskinsure-crmgt-api-1 --format '{{range .Config.Env}}{{println .}}{{end}}' | grep ConnectionStrings
 ```
 
 ### Issue: "Name or service not known (cosmos-emulator:8081)"
@@ -687,7 +688,7 @@ Add service definitions to `docker-compose.yml` following existing patterns.
 docker compose logs -f
 
 # Specific service
-docker compose logs -f customer-api
+docker compose logs -f crmgt-api
 
 # Last 100 lines
 docker compose logs --tail=100 billing-endpoint
@@ -843,10 +844,10 @@ echo "host=localhost;username=guest;password=guest"
 docker ps
 
 # Check environment variables in container
-docker inspect riskinsure-customer-api-1 --format '{{range .Config.Env}}{{println .}}{{end}}'
+docker inspect riskinsure-crmgt-api-1 --format '{{range .Config.Env}}{{println .}}{{end}}'
 
 # Execute command in container
-docker exec -it riskinsure-customer-api-1 bash
+docker exec -it riskinsure-crmgt-api-1 bash
 
 # Clean up everything
 docker compose down -v

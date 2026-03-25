@@ -370,101 +370,15 @@ jobs:
           echo "apply_performed=$apply_performed" >> "$GITHUB_OUTPUT"
   
   # ==========================================================================
-  # Wait for RBAC Propagation
-  # ==========================================================================
-  rbac-propagation:
-    name: 'Wait for RBAC Propagation'
-    needs: [foundation, shared-services]
-    if: |
-      always() &&
-      needs.shared-services.result == 'success' &&
-      (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply')) &&
-      (needs.foundation.outputs.apply_performed == 'true' || needs.shared-services.outputs.apply_performed == 'true')
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Poll RBAC propagation readiness
-        shell: bash
-        env:
-          RESOURCE_GROUP_NAME: ${{ needs.shared-services.outputs.resource_group_name }}
-          SHARED_APPLY_PERFORMED: ${{ needs.shared-services.outputs.apply_performed }}
-          ENVIRONMENT_NAME: ${{ env.ENVIRONMENT }}
-        run: |
-          set -euo pipefail
-
-          RG="$RESOURCE_GROUP_NAME"
-          if [[ -z "$RG" || "$RG" == "null" ]]; then
-            RG="CAIS-010-RiskInsure"
-          fi
-
-          if [[ "$SHARED_APPLY_PERFORMED" != "true" ]]; then
-            echo "Shared-services apply not performed; skipping RBAC polling."
-            exit 0
-          fi
-
-          UAMI_NAME="riskinsure-${ENVIRONMENT_NAME}-app-mi"
-          MAX_ATTEMPTS=5
-          SLEEP_SECONDS=30
-          principal_found="false"
-          role_assignment_seen="false"
-
-          echo "Polling RBAC propagation for UAMI: $UAMI_NAME (RG: $RG)"
-
-          for attempt in $(seq 1 "$MAX_ATTEMPTS"); do
-            principal_id=$(az identity show -n "$UAMI_NAME" -g "$RG" --query "principalId" -o tsv 2>/dev/null || echo "")
-
-            if [[ -n "$principal_id" && "$principal_id" != "null" ]]; then
-              principal_found="true"
-              role_count=$(az role assignment list --assignee-object-id "$principal_id" --assignee-principal-type ServicePrincipal --query "length(@)" -o tsv 2>/dev/null || echo "0")
-
-              if ! [[ "$role_count" =~ ^[0-9]+$ ]]; then
-                role_count="0"
-              fi
-
-              echo "Attempt $attempt/$MAX_ATTEMPTS: principal resolved, role assignments=$role_count"
-
-              if [[ "$role_count" -gt 0 ]]; then
-                role_assignment_seen="true"
-                break
-              fi
-            else
-              echo "Attempt $attempt/$MAX_ATTEMPTS: UAMI principal not visible yet."
-            fi
-
-            if [[ "$attempt" -lt "$MAX_ATTEMPTS" ]]; then
-              sleep "$SLEEP_SECONDS"
-            fi
-          done
-
-          if [[ "$principal_found" != "true" ]]; then
-            echo "UAMI principal for $UAMI_NAME did not become available within polling window." >&2
-            exit 1
-          fi
-
-          if [[ "$role_assignment_seen" == "true" ]]; then
-            echo "RBAC propagation ready: role assignment detected."
-          else
-            echo "No role assignment observed during polling window; continuing to verification checks."
-          fi
-  
-  # ==========================================================================
   # Verify Infrastructure & Permissions (matches infrastructure.yml pattern)
   # ==========================================================================
   verify:
     name: 'Verify Infrastructure'
-    needs: [shared-services, rbac-propagation]
+    needs: [shared-services]
     if: |
       always() &&
       needs.shared-services.result == 'success' &&
-      (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply')) &&
-      (needs.rbac-propagation.result == 'success' || needs.rbac-propagation.result == 'skipped')
+      (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply'))
     runs-on: ubuntu-latest
     
     permissions:
@@ -575,7 +489,7 @@ jobs:
   # ==========================================================================
   summary:
     name: 'Deployment Summary'
-    needs: [foundation, shared-services, rbac-propagation, verify]
+    needs: [foundation, shared-services, verify]
     if: always()
     runs-on: ubuntu-latest
     
@@ -605,5 +519,4 @@ jobs:
           echo "|-------|--------|--------|--------|" >> "$GITHUB_STEP_SUMMARY"
           echo "| Foundation | ${{ needs.foundation.result }} | $FOUNDATION_CHANGES | $FOUNDATION_APPLY_STATUS |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Shared Services | ${{ needs.shared-services.result }} | $SHARED_CHANGES | $SHARED_APPLY_STATUS |" >> "$GITHUB_STEP_SUMMARY"
-          echo "| RBAC Propagation | ${{ needs.rbac-propagation.result }} | n/a | n/a |" >> "$GITHUB_STEP_SUMMARY"
           echo "| Verification | ${{ needs.verify.result }} | n/a | n/a |" >> "$GITHUB_STEP_SUMMARY"

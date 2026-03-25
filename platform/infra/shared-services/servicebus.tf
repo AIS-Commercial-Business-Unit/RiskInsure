@@ -137,12 +137,7 @@ locals {
       forward_to_queue  = "RiskInsure.PolicyLifeCycleMgt.Endpoint"
     }
 
-    # Add new subscriptions here:
-    # "payment_received_to_billing" = {
-    #   topic_name        = "RiskInsure.PublicContracts.Events.PaymentReceived"
-    #   subscription_name = "RiskInsure.Billing.Endpoint"
-    #   forward_to_queue  = "RiskInsure.Billing.Endpoint"
-    # }
+    # Add new subscriptions here.
   }
 
   # Create lookup maps for resource references

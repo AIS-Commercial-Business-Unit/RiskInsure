@@ -292,6 +292,5 @@ services:
     networks:
       - riskinsure
 
-
 networks:
   riskinsure:

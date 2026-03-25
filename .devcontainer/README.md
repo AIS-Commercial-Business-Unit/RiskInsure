@@ -33,7 +33,7 @@ docker-compose up -d
 ```
 
 This starts:
-- 5 API containers (Customer, Rating, Policy, FundsTransferMgt, PolicyEquityAndInvoicingMgt)
+- 5 API containers (FundsTransferMgt, PolicyEquityAndInvoicingMgt, CustomerRelationshipsMgt, PolicyLifecycleMgt, RiskRatingAndUnderwriting)
 - 5 NServiceBus Endpoint containers
 - RabbitMQ broker (already running)
 - Cosmos DB Emulator (already running)
@@ -45,7 +45,7 @@ This starts:
 docker-compose logs -f
 
 # Specific service
-docker logs riskinsure-policy-api-1 -f
+docker logs riskinsure-policylifecyclemgt-api-1 -f
 ```
 
 ### 4. Run Tests
@@ -70,11 +70,11 @@ All ports are automatically forwarded and accessible:
 
 | Service | Port | URL |
 |---------|------|-----|
-| Customer API | 7073 | http://localhost:7073/swagger |
-| Rating API | 7079 | http://localhost:7079/swagger |
-| Policy API | 7077 | http://localhost:7077/swagger |
 | FundsTransferMgt API | 7075 | http://localhost:7075/swagger |
 | PolicyEquityAndInvoicingMgt API | 7081 | http://localhost:7081/swagger |
+| CustomerRelationshipsMgt API | 7083 | http://localhost:7083/swagger |
+| PolicyLifecycleMgt API | 7085 | http://localhost:7085/swagger |
+| RiskRatingAndUnderwriting API | 7087 | http://localhost:7087/swagger |
 | Cosmos DB Explorer | 8081 | https://localhost:8081/_explorer |
 | RabbitMQ | 5672 | (AMQP protocol) |
 
@@ -98,17 +98,17 @@ All ports are automatically forwarded and accessible:
 1. **Make code changes** in VS Code
 2. **Rebuild specific service**:
    ```bash
-   docker-compose build policy-api --no-cache
-   docker-compose up -d policy-api
+   docker-compose build policylifecyclemgt-api --no-cache
+   docker-compose up -d policylifecyclemgt-api
    ```
 3. **Test changes**:
    ```bash
    cd test/e2e
-   npx playwright test --grep "policy"
+   npx playwright test --grep "policylifecycle"
    ```
 4. **View updated logs**:
    ```bash
-   docker logs riskinsure-policy-api-1 --tail 50
+   docker logs riskinsure-policylifecyclemgt-api-1 --tail 50
    ```
 
 ## Troubleshooting
@@ -132,7 +132,7 @@ If ports are already in use:
 
 ```bash
 # Find what's using the port
-lsof -i :7077
+lsof -i :7085
 
 # Or stop all containers and restart
 docker-compose down

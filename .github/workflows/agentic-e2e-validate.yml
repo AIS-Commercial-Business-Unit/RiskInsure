@@ -48,9 +48,6 @@ jobs:
         if: ${{ inputs.run_mode == 'execute' }}
         working-directory: test/e2e
         env:
-          CUSTOMER_API_URL: ${{ vars.API_CUSTOMER_BASE_URL }}
-          RATING_API_URL: ${{ vars.API_RATINGANDUNDERWRITING_BASE_URL }}
-          POLICY_API_URL: ${{ vars.API_POLICY_BASE_URL }}
           FUNDS_TRANSFER_API_URL: ${{ vars.API_FUNDSTRANSFERMGT_BASE_URL }}
           CUSTOMER_RELATIONSHIPS_MGT_API_URL: ${{ vars.API_CUSTOMER_RELATIONSHIPS_MGT_BASE_URL }}
           POLICY_EQUITY_AND_INVOICING_MGT_API_URL: ${{ vars.API_POLICY_EQUITY_AND_INVOICING_MGT_BASE_URL }}

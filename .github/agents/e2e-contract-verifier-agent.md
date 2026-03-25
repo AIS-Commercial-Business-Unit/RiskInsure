@@ -263,10 +263,10 @@ Run verification for all domains:
    - API: `services/customer/src/Api/`
    - Endpoints: `POST /api/customers`, `GET /api/customers/{id}`
 
-2. **Rating & Underwriting Domain**
-   - Helper: `test/e2e/helpers/rating-api.ts`
-   - API: `services/ratingandunderwriting/src/Api/`
-   - Endpoints: `POST /api/quotes/start`, `POST /api/quotes/{id}/submit-underwriting`, `POST /api/quotes/{id}/accept`
+2. **Risk Rating & Underwriting Domain**
+   - Helper: `test/e2e/helpers/riskratingandunderwriting-api.ts`
+   - API: `services/riskratingandunderwriting/src/Api/`
+   - Endpoints: `POST /api/risk-quotes/start`, `POST /api/risk-quotes/{id}/submit-underwriting`, `POST /api/risk-quotes/{id}/accept`
 
 3. **Policy Domain**
    - Helper: `test/e2e/helpers/policy-api.ts`
@@ -324,13 +324,13 @@ Run verification for all domains:
 ## E2E Contract Verification Summary
 
 - ✅ Customer: 2 issues fixed
-- ⚠️ Rating: 3 issues found, 1 requires design decision
+- ⚠️ RiskRatingAndUnderwriting: 3 issues found, 1 requires design decision
 - ✅ Policy: Aligned
 - ❓ Billing: No E2E tests found
 - ❓ FundsTransfer: No E2E tests found
 
 ### Action Items
-1. Rebuild customer-api and ratingandunderwriting-api Docker images
+1. Rebuild crmgt-api and rru-api Docker images
 2. Re-run E2E tests to verify fixes
 3. Create E2E tests for Billing and FundsTransfer domains
 ```
