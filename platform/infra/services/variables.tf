@@ -155,60 +155,7 @@ variable "services" {
   default = {
     # Legacy Billing service disabled after migration to PolicyEquityAndInvoicingMgt.
     # Uncomment to restore the legacy service container settings.
-    "billing" = {
-      api = {
-        enabled        = true
-        cpu            = 0.25
-        memory         = "0.5Gi"
-        min_replicas   = 1
-        max_replicas   = 5
-        container_name = "Billing"
-      }
-      endpoint = {
-        enabled        = true
-        cpu            = 0.25
-        memory         = "0.5Gi"
-        min_replicas   = 1
-        max_replicas   = 3
-        container_name = "Billing"
-      }
-    }
-    "customer" = {
-      api = {
-        enabled        = true
-        cpu            = 0.25
-        memory         = "0.5Gi"
-        min_replicas   = 1
-        max_replicas   = 10
-        container_name = "customer"
-      }
-      endpoint = {
-        enabled        = true
-        cpu            = 0.25
-        memory         = "0.5Gi"
-        min_replicas   = 1
-        max_replicas   = 5
-        container_name = "customer"
-      }
-    }
-    "policy" = {
-      api = {
-        enabled        = true
-        cpu            = 0.25
-        memory         = "0.5Gi"
-        min_replicas   = 1
-        max_replicas   = 10
-        container_name = "policy"
-      }
-      endpoint = {
-        enabled        = true
-        cpu            = 0.25
-        memory         = "0.5Gi"
-        min_replicas   = 1
-        max_replicas   = 5
-        container_name = "policy"
-      }
-    }
+
     "policylifecyclemgt" = {
       api = {
         enabled        = true
@@ -225,24 +172,6 @@ variable "services" {
         min_replicas   = 1
         max_replicas   = 5
         container_name = "policylifecyclemgt"
-      }
-    }
-    "ratingandunderwriting" = {
-      api = {
-        enabled        = true
-        cpu            = 0.25
-        memory         = "0.5Gi"
-        min_replicas   = 1
-        max_replicas   = 10
-        container_name = "ratingunderwriting"
-      }
-      endpoint = {
-        enabled        = true
-        cpu            = 0.25
-        memory         = "0.5Gi"
-        min_replicas   = 1
-        max_replicas   = 5
-        container_name = "ratingunderwriting"
       }
     }
     "fundstransfermgt" = {

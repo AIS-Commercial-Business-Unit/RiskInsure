@@ -65,83 +65,6 @@ resource "azurerm_cosmosdb_sql_database" "riskinsure" {
 # Cosmos DB Containers (Data Containers)
 # ==========================================================================
 
-# Legacy Billing Cosmos container disabled after migration to PolicyEquityAndInvoicingMgt.
-# Uncomment to restore the legacy Billing data container.
-# resource "azurerm_cosmosdb_sql_container" "billing" {
-#   name                  = "Billing"
-#   resource_group_name   = local.resource_group_name
-#   account_name          = azurerm_cosmosdb_account.riskinsure.name
-#   database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
-#   partition_key_paths   = ["/accountId"]    # ← NOT orderId! Use accountId
-#   partition_key_version = 1
-#   throughput            = var.cosmosdb_throughput
-#
-#   indexing_policy {
-#     indexing_mode = "consistent"
-#
-#     included_path {
-#       path = "/*"
-#     }
-#   }
-# }
-
-# Legacy Customer Cosmos container disabled after migration to CustomerRelationshipsMgt.
-# resource "azurerm_cosmosdb_sql_container" "customer" {
-#   name                  = "customer"
-#   resource_group_name   = local.resource_group_name
-#   account_name          = azurerm_cosmosdb_account.riskinsure.name
-#   database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
-#   partition_key_paths   = ["/customerId"] # ← Correct ✅
-#   partition_key_version = 1
-#   throughput            = var.cosmosdb_throughput
-#
-#   indexing_policy {
-#     indexing_mode = "consistent"
-#
-#     included_path {
-#       path = "/*"
-#     }
-#   }
-# }
-
-# Legacy Policy Cosmos container disabled after migration to PolicyLifeCycleMgt/PolicyEquityAndInvoicingMgt.
-# resource "azurerm_cosmosdb_sql_container" "policy" {
-#   name                  = "policy"
-#   resource_group_name   = local.resource_group_name
-#   account_name          = azurerm_cosmosdb_account.riskinsure.name
-#   database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
-#   partition_key_paths   = ["/policyId"] # ← Correct ✅
-#   partition_key_version = 1
-#   throughput            = var.cosmosdb_throughput
-#
-#   indexing_policy {
-#     indexing_mode = "consistent"
-#
-#     included_path {
-#       path = "/*"
-#     }
-#   }
-# }
-
-# Legacy RatingAndUnderwriting Cosmos container disabled after migration to RiskRatingAndUnderwriting.
-# resource "azurerm_cosmosdb_sql_container" "ratingunderwriting" {
-#   name                  = "ratingunderwriting"
-#   resource_group_name   = local.resource_group_name
-#   account_name          = azurerm_cosmosdb_account.riskinsure.name
-#   database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
-#   partition_key_paths   = ["/quoteId"] # ← NOT id! Use quoteId
-#   partition_key_version = 1
-#   throughput            = var.cosmosdb_throughput
-#
-#   indexing_policy {
-#     indexing_mode = "consistent"
-#
-#     included_path {
-#       path = "/*"
-#     }
-#   }
-# }
-
 resource "azurerm_cosmosdb_sql_container" "fundstransfermgt" {
   name                  = "fundstransfermgt"
   resource_group_name   = local.resource_group_name
@@ -181,64 +104,6 @@ resource "azurerm_cosmosdb_sql_container" "customerrelationships" {
 # ==========================================================================
 # Cosmos DB Saga Containers (for NServiceBus)
 # ==========================================================================
-
-# Legacy Billing saga container disabled after migration to PolicyEquityAndInvoicingMgt.
-# Uncomment to restore the legacy Billing saga persistence container.
-# resource "azurerm_cosmosdb_sql_container" "billing_sagas" {
-#   name                  = "billing-sagas"
-#   resource_group_name   = local.resource_group_name
-#   account_name          = azurerm_cosmosdb_account.riskinsure.name
-#   database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
-#   partition_key_paths   = ["/accountId"]
-#   partition_key_version = 1
-#   throughput            = var.cosmosdb_throughput
-#
-#   indexing_policy {
-#     indexing_mode = "consistent"
-#
-#     included_path {
-#       path = "/*"
-#     }
-#   }
-# }
-
-# Legacy Customer saga container disabled after migration to CustomerRelationshipsMgt.
-# resource "azurerm_cosmosdb_sql_container" "customer_sagas" {
-#   name                  = "customer-sagas"
-#   resource_group_name   = local.resource_group_name
-#   account_name          = azurerm_cosmosdb_account.riskinsure.name
-#   database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
-#   partition_key_paths   = ["/customerId"]
-#   partition_key_version = 1
-#   throughput            = var.cosmosdb_throughput
-#
-#   indexing_policy {
-#     indexing_mode = "consistent"
-#
-#     included_path {
-#       path = "/*"
-#     }
-#   }
-# }
-
-# Legacy Policy saga container disabled after migration to PolicyLifeCycleMgt/PolicyEquityAndInvoicingMgt.
-# resource "azurerm_cosmosdb_sql_container" "policy_sagas" {
-#   name                  = "policy-sagas"
-#   resource_group_name   = local.resource_group_name
-#   account_name          = azurerm_cosmosdb_account.riskinsure.name
-#   database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
-#   partition_key_paths   = ["/policyId"]
-#   partition_key_version = 1
-#   throughput            = var.cosmosdb_throughput
-#
-#   indexing_policy {
-#     indexing_mode = "consistent"
-#
-#     included_path {
-#       path = "/*"
-#     }
-#   }
-# }
 
 resource "azurerm_cosmosdb_sql_container" "policylifecycle" {
   name                  = "policylifecycle"
@@ -293,25 +158,6 @@ resource "azurerm_cosmosdb_sql_container" "fundstransfermgt_sagas" {
     }
   }
 }
-
-# Legacy RatingAndUnderwriting saga container disabled after migration to RiskRatingAndUnderwriting.
-# resource "azurerm_cosmosdb_sql_container" "ratingunderwriting_sagas" {
-#   name                  = "ratingunderwriting-sagas"
-#   resource_group_name   = local.resource_group_name
-#   account_name          = azurerm_cosmosdb_account.riskinsure.name
-#   database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
-#   partition_key_paths   = ["/quoteId"] # ← NOT id! Use quoteId
-#   partition_key_version = 1
-#   throughput            = var.cosmosdb_throughput
-#
-#   indexing_policy {
-#     indexing_mode = "consistent"
-#
-#     included_path {
-#       path = "/*"
-#     }
-#   }
-# }
 
 resource "azurerm_cosmosdb_sql_container" "customerrelationshipsmgt_sagas" {
   name                  = "customerrelationshipsmgt-sagas"

@@ -411,8 +411,8 @@ jobs:
           fi
 
           UAMI_NAME="riskinsure-${ENVIRONMENT_NAME}-app-mi"
-          MAX_ATTEMPTS=18
-          SLEEP_SECONDS=20
+          MAX_ATTEMPTS=5
+          SLEEP_SECONDS=30
           principal_found="false"
           role_assignment_seen="false"
 
