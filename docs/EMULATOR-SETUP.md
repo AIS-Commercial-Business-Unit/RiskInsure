@@ -63,7 +63,7 @@ See [.devcontainer/README.md](.devcontainer/README.md) for full documentation.
 docker-compose logs -f
 
 # Specific service
-docker logs riskinsure-policy-api-1 -f
+docker logs riskinsure-policylifecyclemgt-api-1 -f
 
 # Emulators
 docker logs rabbitmq -f
@@ -203,8 +203,8 @@ docker-compose up -d
 
 Only rebuild changed services:
 ```bash
-docker-compose build policy-api --no-cache
-docker-compose up -d policy-api
+docker-compose build policylifecyclemgt-api --no-cache
+docker-compose up -d policylifecyclemgt-api
 ```
 
 ### Faster Tests
@@ -219,8 +219,8 @@ npx playwright test --grep "Class A"
 
 Run only services you need:
 ```bash
-# Just Customer and Rating APIs
-docker-compose up -d customer-api ratingandunderwriting-api
+# Just active APIs you need
+docker-compose up -d crmgt-api rru-api
 
 # Just emulators
 docker-compose up -d rabbitmq cosmos-emulator

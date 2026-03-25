@@ -153,9 +153,6 @@ variable "services" {
   }))
 
   default = {
-    # Legacy Billing service disabled after migration to PolicyEquityAndInvoicingMgt.
-    # Uncomment to restore the legacy service container settings.
-
     "policylifecyclemgt" = {
       api = {
         enabled        = true

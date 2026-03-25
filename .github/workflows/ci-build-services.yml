@@ -183,67 +183,6 @@ jobs:
           echo "**Trigger reason:** \`$OUT_TRIGGER_REASON\`" >> "$GITHUB_STEP_SUMMARY"
 
   # --------------------------------------------------------------------------
-  # Wait For Infra
-  # Purpose: On commits that modify shared foundation infra, wait for the
-  # infrastructure CD workflow for this same commit SHA before building images.
-  # --------------------------------------------------------------------------
-  wait-for-infra:
-    name: 'Wait: Infra Ready'
-    needs: determine-services
-    if: github.event_name == 'push' && needs.determine-services.outputs.infra_changed == 'true' && needs.determine-services.outputs.matrix_empty == 'false'
-    runs-on: ubuntu-latest
-
-    permissions:
-      actions: read
-      contents: read
-
-    steps:
-      - name: 'Wait for CD: Infrastructure Dev workflow'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const workflowId = 'cd-infra-dev.yml';
-            const targetSha = context.sha;
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-
-            const maxAttempts = 4;
-            const delayMs = 90000;
-
-            for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-              const { data } = await github.rest.actions.listWorkflowRuns({
-                owner,
-                repo,
-                workflow_id: workflowId,
-                event: 'push',
-                branch: 'main',
-                per_page: 50,
-              });
-
-              const run = data.workflow_runs.find(r => r.head_sha === targetSha);
-
-              if (!run) {
-                core.info(`Attempt ${attempt}/${maxAttempts}: infra workflow run not visible yet for ${targetSha}.`);
-              } else {
-                core.info(`Attempt ${attempt}/${maxAttempts}: infra run ${run.id} status=${run.status}, conclusion=${run.conclusion ?? 'n/a'}.`);
-
-                if (run.status === 'completed') {
-                  if (run.conclusion === 'success') {
-                    core.info('Infrastructure workflow completed successfully for this commit.');
-                    return;
-                  }
-
-                  core.setFailed(`Infrastructure workflow completed with conclusion='${run.conclusion}'.`);
-                  return;
-                }
-              }
-
-              await new Promise(resolve => setTimeout(resolve, delayMs));
-            }
-
-            core.setFailed(`Timed out waiting for ${workflowId} to complete for commit ${targetSha}.`);
-
-  # --------------------------------------------------------------------------
   # Build
   # Purpose: Build, tag, and push Docker images for each service in the
   # matrix. Uses the `image_tag` determined above and pushes both SHA and
@@ -252,8 +191,8 @@ jobs:
   # --------------------------------------------------------------------------
   build:
     name: 'Build: ${{ matrix.service }}'
-    needs: [determine-services, wait-for-infra]
-    if: always() && needs.determine-services.result == 'success' && needs.determine-services.outputs.matrix_empty == 'false' && (needs.wait-for-infra.result == 'success' || needs.wait-for-infra.result == 'skipped')
+    needs: [determine-services]
+    if: always() && needs.determine-services.result == 'success' && needs.determine-services.outputs.matrix_empty == 'false'
     runs-on: ubuntu-latest
 
     strategy:
@@ -460,20 +399,6 @@ jobs:
           echo "- API latest: \`${{ steps.tags.outputs.api_image_latest }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- Endpoint: \`${{ steps.tags.outputs.endpoint_image_sha }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- Endpoint latest: \`${{ steps.tags.outputs.endpoint_image_latest }}\`" >> "$GITHUB_STEP_SUMMARY"
-
-      - name: Generate SBOM for API Image
-        uses: anchore/sbom-action@v0
-        with:
-          image: ${{ steps.tags.outputs.api_image_sha }}
-          format: spdx-json
-          output-file: sbom-${{ matrix.service }}.spdx.json
-
-      - name: Upload SBOM
-        uses: actions/upload-artifact@v4
-        with:
-          name: sbom-${{ matrix.service }}
-          path: sbom-${{ matrix.service }}.spdx.json
-          retention-days: 7
 
   # --------------------------------------------------------------------------
   # Publish CD Metadata

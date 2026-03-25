@@ -48,13 +48,11 @@ Each service consists of **two containers**:
 
 | Service | API Container | Endpoint Container | Purpose |
 |---------|---------------|-------------------|---------|
-| **Customer** | customer-api | customer-endpoint | Customer profiles |
-| **Policy** | policy-api | policy-endpoint | Insurance policies |
 | **FundsTransferMgt** | fundstransfermgt-api | fundstransfermgt-endpoint | Fund transfers |
-| **RatingUnderwriting** | ratingandunderwriting-api | ratingandunderwriting-endpoint | Risk assessment |
+| **CustomerRelationshipsMgt** | crmgt-api | crmgt-endpoint | Customer relationship management |
+| **PolicyLifeCycleMgt** | policylifecyclemgt-api | policylifecyclemgt-endpoint | Policy lifecycle management |
 | **PolicyEquityAndInvoicingMgt** | peimgt-api | peimgt-endpoint | Billing and invoicing |
-
-Legacy Billing container apps are intentionally disabled in Terraform and preserved only as commented recovery configuration.
+| **RiskRatingAndUnderwriting** | rru-api | rru-endpoint | Risk rating and underwriting |
 
 ## 🔐 Authentication
 
@@ -143,9 +141,10 @@ After deployment, access services via:
 
 ```bash
 # Get API URLs
-terraform output customer_api_url
-terraform output policy_api_url
+terraform output customerrelationshipsmgt_api_url
+terraform output policylifecyclemgt_api_url
 terraform output peimgt_api_url
+terraform output riskratingandunderwriting_api_url
 
 # Example output:
 # https://peimgt-api.redbeach-12345.eastus2.azurecontainerapps.io
@@ -217,10 +216,11 @@ After deployment, services are accessible at:
 
 ```
 https://customer-api.<unique-id>.eastus2.azurecontainerapps.io
-https://policy-api.<unique-id>.eastus2.azurecontainerapps.io
 https://fundstransfermgt-api.<unique-id>.eastus2.azurecontainerapps.io
-https://ratingandunderwriting-api.<unique-id>.eastus2.azurecontainerapps.io
+https://crmgt-api.<unique-id>.eastus2.azurecontainerapps.io
+https://policylifecyclemgt-api.<unique-id>.eastus2.azurecontainerapps.io
 https://peimgt-api.<unique-id>.eastus2.azurecontainerapps.io
+https://rru-api.<unique-id>.eastus2.azurecontainerapps.io
 ```
 
 Swagger UI available at: `https://<service-url>/swagger`

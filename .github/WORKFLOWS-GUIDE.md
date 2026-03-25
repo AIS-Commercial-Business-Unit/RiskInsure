@@ -122,20 +122,10 @@ working-directory: platform/infra/shared-services  # ✅ Correct directory
 
 ---
 
-#### Bug #4: Missing Policy Service (Added)
-**Problem**: The `policy` service exists in the repository with complete code, tests, and documentation, but was not included in the deployment workflow. When users selected "all" services, only 5 out of 6 services were deployed.
+#### Bug #4: Managed Service List Alignment (Updated)
+**Problem**: Deployment documentation drifted from the active service set and still described retired legacy services as deployable.
 
-**Before**:
-```bash
-SERVICES_INPUT="billing,customer,file-processing,fundstransfermgt,ratingunderwriting"  # 5 services
-```
-
-**After**:
-```bash
-SERVICES_INPUT="billing,customer,file-processing,fundstransfermgt,policy,ratingunderwriting"  # 6 services
-```
-
-**Impact**: All 6 microservices now deploy when "all" is selected.
+**Impact**: Documentation now matches the current active microservice set.
 
 ---
 
@@ -208,14 +198,14 @@ Creates Container Apps for each microservice:
 
 ### Microservices Deployment
 
-The workflows build and deploy 6 microservices:
+The workflows build and deploy active microservices:
 
-1. **billing** - Billing management and invoicing
-2. **customer** - Customer data and profile management
-3. **file-processing** - Document and file processing service
-4. **fundstransfermgt** - Funds transfer management
-5. **policy** - Policy lifecycle management (quote → issue → cancel → reinstate)
-6. **ratingunderwriting** - Rating calculations and underwriting decisions
+1. **customerrelationshipsmgt** - Customer relationship management
+2. **fundstransfermgt** - Funds transfer management
+3. **modernizationpatterns** - Modernization patterns workloads
+4. **policyequityandinvoicingmgt** - Billing and invoicing
+5. **policylifecyclemgt** - Policy lifecycle management
+6. **riskratingandunderwriting** - Risk rating and underwriting
 
 Each service is packaged as 2 Docker containers:
 - **API Container**: Handles HTTP REST API requests
@@ -231,7 +221,7 @@ Each service is packaged as 2 Docker containers:
 
 **✅ Full Deployments**: Deploy both infrastructure and services in one workflow run
 
-**✅ Granular Service Control**: Deploy all services or specific services (e.g., only `billing,customer`)
+**✅ Granular Service Control**: Deploy all services or specific services (e.g., only `fundstransfermgt,policylifecyclemgt`)
 
 **✅ Layer Selection**: Deploy all infrastructure layers or specific layers (e.g., only `shared-services`)
 
@@ -288,9 +278,9 @@ You'll see 5 input fields:
 #### 4. services_to_deploy (Required)
 **Services to deploy**
 
-- `all` - Deploy all 6 services (billing, customer, file-processing, fundstransfermgt, policy, ratingunderwriting)
-- `billing` - Deploy only billing service
-- `billing,customer` - Deploy specific comma-separated services
+- `all` - Deploy all active services
+- `fundstransfermgt` - Deploy only the funds transfer service
+- `fundstransfermgt,policylifecyclemgt` - Deploy specific comma-separated services
 
 *Note: This parameter is ignored in `infrastructure-only` mode*
 
@@ -343,11 +333,11 @@ terraform_action: apply
 
 **Prerequisites**: Infrastructure must already exist in the target environment
 
-**Example**: "I just fixed a bug in the billing service and want to deploy only that service"
+**Example**: "I just fixed a bug in the funds transfer service and want to deploy only that service"
 ```
 workflow_mode: deploy-services-only
 environment: dev
-services_to_deploy: billing
+services_to_deploy: fundstransfermgt
 terraform_action: apply
 ```
 
@@ -429,17 +419,16 @@ Deploys only shared services layer.
 ### Understanding services_to_deploy
 
 #### all (Default)
-Deploys all 6 microservices:
-- billing
-- customer
-- file-processing
+Deploys all active microservices:
+- customerrelationshipsmgt
 - fundstransfermgt
-- policy
-- ratingunderwriting
+- modernizationpatterns
+- policyequityandinvoicingmgt
+- policylifecyclemgt
 
 **Use When**: Full deployment or deploying all services after infrastructure changes
 
-**Builds**: 12 Docker images (6 services × 2 containers each)
+**Builds**: Docker images for the selected active services
 
 **Deployment Time**: ~25-30 minutes (builds run in parallel)
 
@@ -449,9 +438,8 @@ Deploys all 6 microservices:
 Comma-separated list of service names (no spaces).
 
 **Examples**:
-- `billing` - Deploy only billing service (2 containers)
-- `billing,customer` - Deploy billing and customer services (4 containers)
-- `policy,ratingunderwriting` - Deploy policy and rating services (4 containers)
+- `fundstransfermgt` - Deploy only funds transfer service
+- `fundstransfermgt,policylifecyclemgt` - Deploy multiple active services
 
 **Use When**:
 - Deploying bug fixes for specific services
@@ -581,13 +569,7 @@ The infrastructure is split into three layers with separate Terraform state file
   - KEDA-based autoscaling
   - Integrated with VNet
   - Connected to Log Analytics
-- 12 Container Apps (6 services × 2 containers):
-  - `billing-api` & `billing-endpoint`
-  - `customer-api` & `customer-endpoint`
-  - `file-processing-api` & `file-processing-endpoint`
-  - `fundstransfermgt-api` & `fundstransfermgt-endpoint`
-  - `policy-api` & `policy-endpoint`
-  - `ratingunderwriting-api` & `ratingunderwriting-endpoint`
+- Container Apps for the active services and their paired API/endpoint workloads
 
 **Change Frequency**: Very frequently (daily or multiple times per day)
 
@@ -640,7 +622,7 @@ terraform_action: apply
 
 ### Scenario 2: Deploy Code Changes to Specific Service
 
-**Goal**: Deploy billing service after bug fix
+**Goal**: Deploy funds transfer service after bug fix
 
 **Prerequisites**: Infrastructure already exists in dev
 
@@ -648,7 +630,7 @@ terraform_action: apply
 ```
 workflow_mode: deploy-services-only
 environment: dev
-services_to_deploy: billing
+services_to_deploy: fundstransfermgt
 terraform_action: apply
 ```
 
@@ -656,7 +638,7 @@ terraform_action: apply
 
 **What Happens**:
 1. Workflow fetches existing infrastructure details (ACR, UAMI, etc.)
-2. Builds 2 Docker images: billing-api, billing-endpoint
+2. Builds the Docker images for the selected active service
 3. Pushes images to ACR with git SHA and 'latest' tags
 4. Runs Terraform to update Container Apps with new image tags
 5. Runs health check to verify deployment
@@ -696,7 +678,7 @@ terraform_action: apply
 
 ### Scenario 4: Deploy Multiple Services to Staging
 
-**Goal**: Deploy billing, customer, and policy services to staging for QA testing
+**Goal**: Deploy selected active services to staging for QA testing
 
 **Prerequisites**: Infrastructure exists in staging
 
@@ -704,17 +686,17 @@ terraform_action: apply
 ```
 workflow_mode: deploy-services-only
 environment: staging
-services_to_deploy: billing,customer,policy
+services_to_deploy: fundstransfermgt,customerrelationshipsmgt,policylifecyclemgt
 terraform_action: apply
 ```
 
 **Duration**: ~15-18 minutes
 
 **What Happens**:
-1. Workflow builds 6 Docker images in parallel (3 services × 2 containers)
+1. Workflow builds Docker images in parallel for the selected services
 2. Pushes all images to ACR
 3. Runs Terraform to update 6 Container Apps
-4. Runs health checks for all 3 services
+4. Runs health checks for the selected services
 
 ---
 
@@ -761,24 +743,24 @@ terraform_action: apply
 
 **Steps**:
 ```
-# Deploy billing first
+# Deploy funds transfer first
 workflow_mode: deploy-services-only
 environment: prod
-services_to_deploy: billing
+services_to_deploy: fundstransfermgt
 terraform_action: apply
-# ← Test billing in production
+# ← Test funds transfer in production
 
-# Deploy customer next
+# Deploy customer relationships next
 workflow_mode: deploy-services-only
 environment: prod
-services_to_deploy: customer
+services_to_deploy: customerrelationshipsmgt
 terraform_action: apply
-# ← Test customer in production
+# ← Test customer relationships in production
 
 # Deploy remaining services
 workflow_mode: deploy-services-only
 environment: prod
-services_to_deploy: file-processing,fundstransfermgt,policy,ratingunderwriting
+services_to_deploy: policyequityandinvoicingmgt,policylifecyclemgt,modernizationpatterns
 terraform_action: apply
 ```
 
@@ -976,9 +958,9 @@ Don't deploy all services if only one changed.
 
 ```
 # ✅ Good: Deploy only changed service
-services_to_deploy: billing
+services_to_deploy: fundstransfermgt
 
-# ❌ Bad: Deploys all 6 services unnecessarily
+# ❌ Bad: Deploys all services unnecessarily
 services_to_deploy: all
 ```
 

@@ -53,7 +53,7 @@ jobs:
       
       - name: Terraform Format Check
         id: fmt
-        run: terraform fmt -check -recursive
+        run: find . -name "*.tf" ! -path "*/legacy-Do-Not-Use/*" -print0 | xargs -0 terraform fmt -check
         continue-on-error: true
       
       - name: Terraform Init

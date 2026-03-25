@@ -8,14 +8,15 @@ Start-Sleep -Seconds 2
 
 # Step 2: Build .NET projects
 Write-Host "`n[2/5] Building .NET projects..." -ForegroundColor Yellow
-dotnet build services/customer/src/Api/Api.csproj --no-incremental
-dotnet build services/ratingandunderwriting/src/Api/Api.csproj --no-incremental
+dotnet build services/fundstransfermgt/src/Api/Api.csproj --no-incremental
+dotnet build services/policyequityandinvoicingmgt/src/Api/Api.csproj --no-incremental
+dotnet build services/customerrelationshipsmgt/src/Api/Api.csproj --no-incremental
+dotnet build services/policylifecyclemgt/src/Api/Api.csproj --no-incremental
 dotnet build services/riskratingandunderwriting/src/Api/Api.csproj --no-incremental
-dotnet build services/policy/src/Api/Api.csproj --no-incremental
 
 # Step 3: Rebuild Docker images (no cache)
 Write-Host "`n[3/5] Rebuilding Docker images..." -ForegroundColor Yellow
-wsl docker-compose build --no-cache customer-api ratingandunderwriting-api rru-api policy-api
+wsl docker-compose build --no-cache fundstransfermgt-api peimgt-api crmgt-api policylifecyclemgt-api rru-api
 
 # Step 4: Start containers
 Write-Host "`n[4/5] Starting containers..." -ForegroundColor Yellow

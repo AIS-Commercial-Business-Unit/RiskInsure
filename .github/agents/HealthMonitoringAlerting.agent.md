@@ -20,10 +20,11 @@ For each URL:
 3. Determine if the app is "Healthy" (HTTP 200) or "Unhealthy" (any other status or timeout).
 
 ### Target URLs
-- https://customer-api.ambitioussea-f3f6277f.eastus2.azurecontainerapps.io/health
 - https://fundstransfermgt-api.ambitioussea-f3f6277f.eastus2.azurecontainerapps.io/health
-- https://policy-api.ambitioussea-f3f6277f.eastus2.azurecontainerapps.io/health
-- https://ratingandunderwriting-api.ambitioussea-f3f6277f.eastus2.azurecontainerapps.io/health
+- https://crmgt-api.ambitioussea-f3f6277f.eastus2.azurecontainerapps.io/health
+- https://policylifecyclemgt-api.ambitioussea-f3f6277f.eastus2.azurecontainerapps.io/health
+- https://peimgt-api.ambitioussea-f3f6277f.eastus2.azurecontainerapps.io/health
+- https://rru-api.ambitioussea-f3f6277f.eastus2.azurecontainerapps.io/health
 
 ### Output Instructions
 DO NOT create any GitHub Issues, Pull Requests, or Comments. 

@@ -28,16 +28,16 @@ wsl docker ps --filter "name=riskinsure" --format "table {{.Names}}\t{{.Status}}
 ```
 
 **Expected services:**
-1. `riskinsure-billing-api-1` → Port 7071
-2. `riskinsure-billing-endpoint-1`
-3. `riskinsure-customer-api-1` → Port 7073
-4. `riskinsure-customer-endpoint-1`
-5. `riskinsure-fundstransfermgt-api-1` → Port 7075
-6. `riskinsure-fundstransfermgt-endpoint-1`
-7. `riskinsure-policy-api-1` → Port 7077
-8. `riskinsure-policy-endpoint-1`
-9. `riskinsure-ratingandunderwriting-api-1` → Port 7079
-10. `riskinsure-ratingandunderwriting-endpoint-1`
+1. `riskinsure-fundstransfermgt-api-1` → Port 7075
+2. `riskinsure-fundstransfermgt-endpoint-1`
+3. `riskinsure-peimgt-api-1` → Port 7081
+4. `riskinsure-peimgt-endpoint-1`
+5. `riskinsure-crmgt-api-1` → Port 7083
+6. `riskinsure-crmgt-endpoint-1`
+7. `riskinsure-policylifecyclemgt-api-1` → Port 7085
+8. `riskinsure-policylifecyclemgt-endpoint-1`
+9. `riskinsure-rru-api-1` → Port 7087
+10. `riskinsure-rru-endpoint-1`
 
 **For any exited containers**, retrieve logs:
 ```powershell
@@ -49,20 +49,20 @@ wsl docker logs <container-name> --tail 30
 **Test each API for basic connectivity:**
 
 ```powershell
-# Billing API
+# FundsTransferMgt API
 try {
-    $response = Invoke-WebRequest -Uri "http://localhost:7071" -Method GET -TimeoutSec 5 -UseBasicParsing
-    Write-Host "✅ Billing API: $($response.StatusCode)" -ForegroundColor Green
+    $response = Invoke-WebRequest -Uri "http://localhost:7075" -Method GET -TimeoutSec 5 -UseBasicParsing
+    Write-Host "✅ FundsTransferMgt API: $($response.StatusCode)" -ForegroundColor Green
 } catch {
-    Write-Host "❌ Billing API: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "❌ FundsTransferMgt API: $($_.Exception.Message)" -ForegroundColor Red
 }
 ```
 
 Repeat for:
-- Customer: `http://localhost:7073`
-- FundsTransferMgt: `http://localhost:7075`
-- Policy: `http://localhost:7077`
-- RatingAndUnderwriting: `http://localhost:7079`
+- PolicyEquityAndInvoicingMgt: `http://localhost:7081`
+- CustomerRelationshipsMgt: `http://localhost:7083`
+- PolicyLifecycleMgt: `http://localhost:7085`
+- RiskRatingAndUnderwriting: `http://localhost:7087`
 
 **Acceptable responses:**
 - `200 OK` - Service running with root endpoint
