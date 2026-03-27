@@ -174,7 +174,7 @@ resource "azurerm_container_app" "fundstransfermgt_endpoint" {
         name  = "CosmosDb__DatabaseName"
         value = "RiskInsure"
       }
-      
+
       env {
         name        = "ConnectionStrings__CosmosDb"
         secret_name = "cosmos-connection-string"
