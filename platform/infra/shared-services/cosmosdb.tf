@@ -59,6 +59,7 @@ resource "azurerm_cosmosdb_sql_database" "riskinsure" {
   name                = "RiskInsure"
   resource_group_name = local.resource_group_name
   account_name        = azurerm_cosmosdb_account.riskinsure.name
+  throughput          = 400
 }
 
 # ==========================================================================
@@ -72,7 +73,6 @@ resource "azurerm_cosmosdb_sql_container" "fundstransfermgt" {
   database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
   partition_key_paths   = ["/transactionId"]
   partition_key_version = 1
-  throughput            = var.cosmosdb_throughput
 
   indexing_policy {
     indexing_mode = "consistent"
@@ -90,7 +90,6 @@ resource "azurerm_cosmosdb_sql_container" "customerrelationships" {
   database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
   partition_key_paths   = ["/customerId"]
   partition_key_version = 1
-  throughput            = var.cosmosdb_throughput
 
   indexing_policy {
     indexing_mode = "consistent"
@@ -112,7 +111,6 @@ resource "azurerm_cosmosdb_sql_container" "policylifecycle" {
   database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
   partition_key_paths   = ["/policyId"]
   partition_key_version = 1
-  throughput            = var.cosmosdb_throughput
 
   indexing_policy {
     indexing_mode = "consistent"
@@ -130,7 +128,6 @@ resource "azurerm_cosmosdb_sql_container" "policylifecycle_sagas" {
   database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
   partition_key_paths   = ["/policyId"]
   partition_key_version = 1
-  throughput            = var.cosmosdb_throughput
 
   indexing_policy {
     indexing_mode = "consistent"
@@ -148,7 +145,6 @@ resource "azurerm_cosmosdb_sql_container" "fundstransfermgt_sagas" {
   database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
   partition_key_paths   = ["/transactionId"]
   partition_key_version = 1
-  throughput            = var.cosmosdb_throughput
 
   indexing_policy {
     indexing_mode = "consistent"
@@ -166,7 +162,91 @@ resource "azurerm_cosmosdb_sql_container" "customerrelationshipsmgt_sagas" {
   database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
   partition_key_paths   = ["/customerId"]
   partition_key_version = 1
-  throughput            = var.cosmosdb_throughput
+
+  indexing_policy {
+    indexing_mode = "consistent"
+
+    included_path {
+      path = "/*"
+    }
+  }
+}
+
+resource "azurerm_cosmosdb_sql_container" "riskratingandunderwriting" {
+  name                  = "riskratingandunderwriting"
+  resource_group_name   = local.resource_group_name
+  account_name          = azurerm_cosmosdb_account.riskinsure.name
+  database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
+  partition_key_paths   = ["/quoteId"]
+  partition_key_version = 1
+
+  indexing_policy {
+    indexing_mode = "consistent"
+
+    included_path {
+      path = "/*"
+    }
+  }
+}
+
+resource "azurerm_cosmosdb_sql_container" "riskratingandunderwriting_sagas" {
+  name                  = "riskratingandunderwriting-sagas"
+  resource_group_name   = local.resource_group_name
+  account_name          = azurerm_cosmosdb_account.riskinsure.name
+  database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
+  partition_key_paths   = ["/quoteId"]
+  partition_key_version = 1
+
+  indexing_policy {
+    indexing_mode = "consistent"
+
+    included_path {
+      path = "/*"
+    }
+  }
+}
+
+resource "azurerm_cosmosdb_sql_container" "policyequityandinvoicingmgt" {
+  name                  = "policyequityandinvoicingmgt"
+  resource_group_name   = local.resource_group_name
+  account_name          = azurerm_cosmosdb_account.riskinsure.name
+  database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
+  partition_key_paths   = ["/accountId"]
+  partition_key_version = 1
+
+  indexing_policy {
+    indexing_mode = "consistent"
+
+    included_path {
+      path = "/*"
+    }
+  }
+}
+
+resource "azurerm_cosmosdb_sql_container" "policyequityandinvoicingmgt_sagas" {
+  name                  = "policyequityandinvoicingmgt-sagas"
+  resource_group_name   = local.resource_group_name
+  account_name          = azurerm_cosmosdb_account.riskinsure.name
+  database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
+  partition_key_paths   = ["/accountId"]
+  partition_key_version = 1
+
+  indexing_policy {
+    indexing_mode = "consistent"
+
+    included_path {
+      path = "/*"
+    }
+  }
+}
+
+resource "azurerm_cosmosdb_sql_container" "modernizationpatterns" {
+  name                  = "modernizationpatterns-conversations"
+  resource_group_name   = local.resource_group_name
+  account_name          = azurerm_cosmosdb_account.riskinsure.name
+  database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
+  partition_key_paths   = ["/userId"]
+  partition_key_version = 1
 
   indexing_policy {
     indexing_mode = "consistent"
