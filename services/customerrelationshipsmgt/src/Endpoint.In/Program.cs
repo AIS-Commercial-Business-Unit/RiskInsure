@@ -1,3 +1,4 @@
+using Microsoft.Azure.Cosmos;
 using RiskInsure.CustomerRelationshipsMgt.Infrastructure;
 using Serilog;
 using Serilog.Sinks.ApplicationInsights.TelemetryConverters;
@@ -43,6 +44,16 @@ builder.ConfigureServices((context, services) =>
                 .AddMeter("NServiceBus.Core")
                 .AddAzureMonitorMetricExporter());
     }
+
+    var cosmosConnectionString = context.Configuration.GetConnectionString("CosmosDb")
+                ?? throw new InvalidOperationException("CosmosDb connection string not configured");
+
+    var databaseName = context.Configuration["CosmosDb:DatabaseName"] ?? "RiskInsure";
+    var customerRelationshipsMgtContainerName = context.Configuration["CosmosDb:CustomerRelationshipsMgtContainerName"] ?? "customerrelationshipsmgt";
+
+    var cosmosClient = new CosmosClient(cosmosConnectionString);
+    var container = cosmosClient.GetContainer(databaseName, customerRelationshipsMgtContainerName);
+    services.AddSingleton(container);
 });
 
 // NServiceBus configuration

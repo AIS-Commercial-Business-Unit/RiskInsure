@@ -61,7 +61,7 @@ try
                 ?? throw new InvalidOperationException("CosmosDb connection string not configured");
 
             var databaseName = context.Configuration["CosmosDb:DatabaseName"] ?? "RiskInsure";
-            var policyEquityAndInvoicingMgtContainerName = context.Configuration["CosmosDb:PolicyEquityAndInvoicingMgtContainerName"] ?? "PolicyEquityAndInvoicingMgt";
+            var policyEquityAndInvoicingMgtContainerName = context.Configuration["CosmosDb:PolicyEquityAndInvoicingMgtContainerName"] ?? "policyequityandinvoicingmgt";
 
             var cosmosClient = new CosmosClient(cosmosConnectionString);
             var container = cosmosClient.GetContainer(databaseName, policyEquityAndInvoicingMgtContainerName);

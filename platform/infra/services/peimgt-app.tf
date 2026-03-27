@@ -83,7 +83,7 @@ resource "azurerm_container_app" "peimgt_api" {
 
       env {
         name  = "CosmosDb__PolicyEquityAndInvoicingMgtContainerName"
-        value = "PolicyEquityAndInvoicingMgt"
+        value = "policyequityandinvoicingmgt"
       }
 
       env {

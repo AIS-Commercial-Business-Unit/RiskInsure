@@ -68,14 +68,14 @@ try
             // Register repositories
             services.AddScoped<IPaymentMethodRepository>(sp =>
             {
-                var container = database.GetContainer("FundTransferMgt-PaymentMethods");
+                var container = database.GetContainer("fundtransfermgt-paymentmethods");
                 var logger = sp.GetRequiredService<ILogger<PaymentMethodRepository>>();
                 return new PaymentMethodRepository(container, logger);
             });
 
             services.AddScoped<ITransactionRepository>(sp =>
             {
-                var container = database.GetContainer("FundTransferMgt-Transactions");
+                var container = database.GetContainer("fundtransfermgt-transactions");
                 var logger = sp.GetRequiredService<ILogger<TransactionRepository>>();
                 return new TransactionRepository(container, logger);
             });

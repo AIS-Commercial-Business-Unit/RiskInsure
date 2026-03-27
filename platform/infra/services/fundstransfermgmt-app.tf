@@ -66,8 +66,13 @@ resource "azurerm_container_app" "fundstransfermgt_api" {
       }
 
       env {
-        name  = "CosmosDb__ContainerName"
-        value = "fundstransfermgt"
+        name  = "CosmosDb__PaymentMethodsContainerName"
+        value = "fundtransfermgt-paymentmethods"
+      }
+
+      env {
+        name  = "CosmosDb__TransactionsContainerName"
+        value = "fundtransfermgt-transactions"
       }
 
       env {
@@ -169,12 +174,7 @@ resource "azurerm_container_app" "fundstransfermgt_endpoint" {
         name  = "CosmosDb__DatabaseName"
         value = "RiskInsure"
       }
-
-      env {
-        name  = "CosmosDb__ContainerName"
-        value = "fundstransfermgt"
-      }
-
+      
       env {
         name        = "ConnectionStrings__CosmosDb"
         secret_name = "cosmos-connection-string"

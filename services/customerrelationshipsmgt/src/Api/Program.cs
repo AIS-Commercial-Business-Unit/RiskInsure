@@ -62,37 +62,40 @@ builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks();
 
 // Cosmos DB with System.Text.Json serializer
-builder.Services.AddSingleton(sp =>
-{
-    var configuration = sp.GetRequiredService<IConfiguration>();
-    var connectionString = configuration.GetConnectionString("CosmosDb") ??
-                          throw new InvalidOperationException("CosmosDb connection string is required");
+var cosmosConnectionString = builder.Configuration.GetConnectionString("CosmosDb")
+    ?? throw new InvalidOperationException("CosmosDb connection string is required");
 
-    // Configure CosmosClient to use System.Text.Json serialization
-    var cosmosClientOptions = new CosmosClientOptions
+var databaseName = builder.Configuration["CosmosDb:DatabaseName"] ?? "RiskInsure";
+var containerName = builder.Configuration["CosmosDb:ContainerName"] ?? "customerrelationships";
+
+var cosmosClientOptions = new CosmosClientOptions
+{
+    ConnectionMode = ConnectionMode.Direct,
+    Serializer = new CosmosSystemTextJsonSerializer(new System.Text.Json.JsonSerializerOptions
     {
-        ConnectionMode = ConnectionMode.Direct,
-        Serializer = new CosmosSystemTextJsonSerializer(new System.Text.Json.JsonSerializerOptions
-        {
-            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
-            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
-            Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
-        }),
-        RequestTimeout = TimeSpan.FromSeconds(10),
-        MaxRetryAttemptsOnRateLimitedRequests = 3,
-        MaxRetryWaitTimeOnRateLimitedRequests = TimeSpan.FromSeconds(5)
-    };
+        PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+        Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+    }),
+    RequestTimeout = TimeSpan.FromSeconds(10),
+    MaxRetryAttemptsOnRateLimitedRequests = 3,
+    MaxRetryWaitTimeOnRateLimitedRequests = TimeSpan.FromSeconds(5)
+};
 
-    return new CosmosClient(connectionString, cosmosClientOptions);
-});
+var cosmosClient = new CosmosClient(cosmosConnectionString, cosmosClientOptions);
 
-builder.Services.AddSingleton(sp =>
-{
-    var cosmosClient = sp.GetRequiredService<CosmosClient>();
-    var logger = sp.GetRequiredService<ILogger<CosmosDbInitializer>>();
-    var initializer = new CosmosDbInitializer(cosmosClient, logger);
-    return initializer.InitializeAsync().GetAwaiter().GetResult();
-});
+Log.Information("Initializing Cosmos DB database {DatabaseName} and container {ContainerName}",
+    databaseName,
+    containerName);
+
+await CosmosDbInitializer.EnsureDbAndContainerAsync(
+    cosmosClient,
+    databaseName,
+    containerName,
+    "/customerId");
+
+var container = cosmosClient.GetContainer(databaseName, containerName);
+builder.Services.AddSingleton(container);
 
 // Domain services
 builder.Services.AddScoped<IRelationshipRepository, RelationshipRepository>();
