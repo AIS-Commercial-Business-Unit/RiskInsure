@@ -112,7 +112,8 @@ jobs:
           # Check Cosmos DB containers
           COSMOS_DB="RiskInsure"
           REQUIRED_CONTAINERS=(
-            "fundstransfermgt"
+            "fundtransfermgt-paymentmethods"
+            "fundtransfermgt-transactions"
             "fundstransfermgt-sagas"
             "customerrelationships"
             "customerrelationshipsmgt-sagas"

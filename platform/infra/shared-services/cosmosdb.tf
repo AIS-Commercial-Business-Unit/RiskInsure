@@ -59,19 +59,36 @@ resource "azurerm_cosmosdb_sql_database" "riskinsure" {
   name                = "RiskInsure"
   resource_group_name = local.resource_group_name
   account_name        = azurerm_cosmosdb_account.riskinsure.name
-  throughput          = 400
+  throughput          = var.cosmosdb_throughput
 }
 
 # ==========================================================================
 # Cosmos DB Containers (Data Containers)
 # ==========================================================================
 
-resource "azurerm_cosmosdb_sql_container" "fundstransfermgt" {
-  name                  = "fundstransfermgt"
+resource "azurerm_cosmosdb_sql_container" "fundtransfermgt_paymentmethods" {
+  name                  = "fundtransfermgt-paymentmethods"
   resource_group_name   = local.resource_group_name
   account_name          = azurerm_cosmosdb_account.riskinsure.name
   database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
-  partition_key_paths   = ["/transactionId"]
+  partition_key_paths   = ["/customerId"]
+  partition_key_version = 1
+
+  indexing_policy {
+    indexing_mode = "consistent"
+
+    included_path {
+      path = "/*"
+    }
+  }
+}
+
+resource "azurerm_cosmosdb_sql_container" "fundtransfermgt_transactions" {
+  name                  = "fundtransfermgt-transactions"
+  resource_group_name   = local.resource_group_name
+  account_name          = azurerm_cosmosdb_account.riskinsure.name
+  database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
+  partition_key_paths   = ["/customerId"]
   partition_key_version = 1
 
   indexing_policy {

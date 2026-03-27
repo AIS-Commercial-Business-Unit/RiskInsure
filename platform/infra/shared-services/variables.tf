@@ -38,7 +38,7 @@ variable "cosmosdb_enable_free_tier" {
 }
 
 variable "cosmosdb_throughput" {
-  description = "Default throughput (RU/s) for Cosmos DB containers"
+  description = "Default shared throughput (RU/s) for the RiskInsure Cosmos DB database"
   type        = number
   default     = 400
 
