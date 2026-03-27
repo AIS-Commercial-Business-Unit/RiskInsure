@@ -70,8 +70,8 @@ public class ConversationService : IConversationService
         var connectionString = config.GetConnectionString("CosmosDb")
             ?? throw new InvalidOperationException("CosmosDb connection string not configured");
 
-        var databaseName = config["CosmosDb:DatabaseName"] ?? "modernization-patterns-db";
-        const string containerName = "conversations";
+        var databaseName = config["CosmosDb:DatabaseName"] ?? "RiskInsure";
+        var containerName = config["CosmosDb:ContainerName"] ?? "modernizationpatterns-conversations";
 
         CosmosClient client;
         try
