@@ -179,7 +179,6 @@ jobs:
           echo ""
 
           # Wake up container - may be scaled to zero, wait for it
-          # Container Apps can return 404/502/503 while waking up from scale-to-zero
           echo "🏥 Waking up container (may take up to 3 minutes if scaled to zero)..."
           MAX_HEALTH_ATTEMPTS=18
           HEALTH_WAIT=10
@@ -195,7 +194,6 @@ jobs:
               CONTAINER_READY=true
               break
             elif [ "$HEALTH_RESPONSE" == "404" ] || [ "$HEALTH_RESPONSE" == "502" ] || [ "$HEALTH_RESPONSE" == "503" ]; then
-              # Container is starting up - 404/502/503 are normal during cold start
               echo "⏳ Container waking up (HTTP $HEALTH_RESPONSE), waiting ${HEALTH_WAIT}s... (attempt $i/$MAX_HEALTH_ATTEMPTS)"
             elif [ "$HEALTH_RESPONSE" == "000" ]; then
               echo "⏳ Connection failed, container may be starting... (attempt $i/$MAX_HEALTH_ATTEMPTS)"
@@ -236,9 +234,9 @@ jobs:
           echo "txt_count=0" >> $GITHUB_OUTPUT
           echo "json_count=0" >> $GITHUB_OUTPUT
 
-          # Retry logic for transient failures (404/502/503/504 - container may still be waking)
-          MAX_ATTEMPTS=5
-          RETRY_WAIT=30
+          # Retry logic for transient failures (404/429/502/503/504/000)
+          MAX_ATTEMPTS=7
+          BASE_RETRY_WAIT=30
           for attempt in $(seq 1 $MAX_ATTEMPTS); do
             echo "Attempt $attempt/$MAX_ATTEMPTS..."
 
@@ -283,11 +281,22 @@ jobs:
               exit 0
             fi
 
+            # Exponential backoff for 429 (rate limit)
+            if [ "$HTTP_CODE" == "429" ]; then
+              WAIT_TIME=$((BASE_RETRY_WAIT * 2 ** (attempt - 1)))
+              if [ $WAIT_TIME -gt 300 ]; then WAIT_TIME=300; fi
+              echo "⚠️ Rate limit hit (HTTP 429), retrying in ${WAIT_TIME}s..."
+              if [ $attempt -lt $MAX_ATTEMPTS ]; then
+                sleep $WAIT_TIME
+                continue
+              fi
+            fi
+
             # Transient failures - retry (including 404 for cold start scenarios)
             if [ "$HTTP_CODE" == "404" ] || [ "$HTTP_CODE" == "502" ] || [ "$HTTP_CODE" == "503" ] || [ "$HTTP_CODE" == "504" ] || [ "$HTTP_CODE" == "000" ]; then
-              echo "⚠️ Transient failure (HTTP $HTTP_CODE), retrying in ${RETRY_WAIT}s..."
+              echo "⚠️ Transient failure (HTTP $HTTP_CODE), retrying in ${BASE_RETRY_WAIT}s..."
               if [ $attempt -lt $MAX_ATTEMPTS ]; then
-                sleep $RETRY_WAIT
+                sleep $BASE_RETRY_WAIT
                 continue
               fi
             fi
