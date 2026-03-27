@@ -207,13 +207,13 @@ public class IndexingService : IIndexingService
 
         var uploaded = 0;
         const int batchSize = 100; // AI Search accepts max 1000 per batch, we use 100 for safety
+        int maxRetries = 5;
+        int baseDelaySeconds = 30;
 
         for (int i = 0; i < documents.Count; i += batchSize)
         {
             var batch = documents.Skip(i).Take(batchSize).ToList();
-
-            var searchDocuments = batch.Select(doc =>
-            {
+            var searchDocuments = batch.Select(doc => {
                 var searchDoc = new SearchDocument
                 {
                     ["id"] = doc.Id,
@@ -228,34 +228,56 @@ public class IndexingService : IIndexingService
                 return searchDoc;
             }).ToList();
 
-            try
+            int attempt = 0;
+            while (true)
             {
-                var result = await _searchClient.MergeOrUploadDocumentsAsync(
-                    searchDocuments,
-                    cancellationToken: cancellationToken);
-
-                var successCount = result.Value.Results.Count(r => r.Succeeded);
-                uploaded += successCount;
-
-                _logger.LogInformation(
-                    "Batch {BatchNumber}: {Success}/{Total} documents uploaded",
-                    (i / batchSize) + 1, successCount, batch.Count);
-
-                if (result.Value.Results.Any(r => !r.Succeeded))
+                try
                 {
-                    foreach (var failed in result.Value.Results.Where(r => !r.Succeeded))
+                    var result = await _searchClient.MergeOrUploadDocumentsAsync(
+                        searchDocuments,
+                        cancellationToken: cancellationToken);
+
+                    var successCount = result.Value.Results.Count(r => r.Succeeded);
+                    uploaded += successCount;
+
+                    _logger.LogInformation(
+                        "Batch {BatchNumber}: {Success}/{Total} documents uploaded",
+                        (i / batchSize) + 1, successCount, batch.Count);
+
+                    if (result.Value.Results.Any(r => !r.Succeeded))
                     {
-                        _logger.LogWarning(
-                            "Failed to upload document {Key}: {Message}",
-                            failed.Key, failed.ErrorMessage);
+                        foreach (var failed in result.Value.Results.Where(r => !r.Succeeded))
+                        {
+                            _logger.LogWarning(
+                                "Failed to upload document {Key}: {Message}",
+                                failed.Key, failed.ErrorMessage);
+                        }
                     }
+                    break; // Success, exit retry loop
+                }
+                catch (RequestFailedException ex) when (ex.Status == 429)
+                {
+                    attempt++;
+                    int delay = baseDelaySeconds * (int)Math.Pow(2, attempt - 1);
+                    if (delay > 300) delay = 300; // Cap at 5 minutes
+                    _logger.LogWarning("Rate limit hit (429) on batch {BatchNumber}, attempt {Attempt}. Waiting {Delay}s before retrying...",
+                        (i / batchSize) + 1, attempt, delay);
+                    if (attempt >= maxRetries)
+                    {
+                        _logger.LogError("Max retries reached for batch {BatchNumber}. Skipping batch.", (i / batchSize) + 1);
+                        break;
+                    }
+                    await Task.Delay(delay * 1000, cancellationToken);
+                }
+                catch (RequestFailedException ex)
+                {
+                    _logger.LogError(ex, "Batch upload failed at offset {Offset}", i);
+                    throw;
                 }
             }
-            catch (RequestFailedException ex)
-            {
-                _logger.LogError(ex, "Batch upload failed at offset {Offset}", i);
-                throw;
-            }
+
+            // Always wait a short delay between batches to smooth out traffic
+            await Task.Delay(baseDelaySeconds * 1000, cancellationToken);
         }
 
         _logger.LogInformation("Upload complete: {Uploaded}/{Total} documents indexed", uploaded, documents.Count);
