@@ -116,7 +116,7 @@ try
         ?? throw new InvalidOperationException("CosmosDb connection string not configured");
 
     var databaseName = builder.Configuration["CosmosDb:DatabaseName"] ?? "RiskInsure";
-    var policyEquityAndInvoicingMgtContainerName = builder.Configuration["CosmosDb:PolicyEquityAndInvoicingMgtContainerName"] ?? "PolicyEquityAndInvoicingMgt";
+    var policyEquityAndInvoicingMgtContainerName = builder.Configuration["CosmosDb:PolicyEquityAndInvoicingMgtContainerName"] ?? "policyequityandinvoicingmgt";
 
     // Configure CosmosClient to use System.Text.Json serialization and Direct mode for best performance
     var cosmosClientOptions = new CosmosClientOptions

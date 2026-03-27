@@ -19,6 +19,26 @@ public class CosmosDbInitializer
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
+    public static async Task EnsureDbAndContainerAsync(
+        CosmosClient client,
+        string dbName,
+        string containerName,
+        string partitionKeyPath,
+        int? throughput = 400)
+    {
+        var dbResponse = await client.CreateDatabaseIfNotExistsAsync(
+            dbName,
+            throughput: throughput);
+
+        await dbResponse.Database.CreateContainerIfNotExistsAsync(
+            new ContainerProperties
+            {
+                Id = containerName,
+                PartitionKeyPath = partitionKeyPath,
+                DefaultTimeToLive = -1
+            });
+    }
+
     public async Task<Container> InitializeAsync()
     {
         var retryDelay = TimeSpan.FromMilliseconds(InitialRetryDelayMilliseconds);
