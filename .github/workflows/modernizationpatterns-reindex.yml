@@ -15,7 +15,6 @@ on:
     branches:
       - main
     paths:
-      # Only trigger on _inbox and patterns folder changes (documents to be indexed)
       - "platform/modernizationpatterns/content/_inbox/**"
       - "platform/modernizationpatterns/content/patterns/**"
 
@@ -40,7 +39,6 @@ jobs:
       - name: Detect file changes
         id: changes
         run: |
-          # Get changed files in this push
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             CONTENT_CHANGED="true"
           else
@@ -51,7 +49,6 @@ jobs:
               BASE_SHA=$(git rev-parse HEAD~1)
             fi
 
-            # Only check _inbox and patterns folders (documents to be indexed)
             if git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- \
                 platform/modernizationpatterns/content/_inbox \
                 platform/modernizationpatterns/content/patterns; then
@@ -110,7 +107,6 @@ jobs:
           REINDEX_MODE="${{ inputs.reindex_mode || 'Index New/Modified Documents' }}"
 
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            # Manual dispatch - use user's selection
             if [ "$REINDEX_MODE" == "Full Clean Reindex" ]; then
               CLEAN="true"
               TRIGGER_TYPE="🔄 Full Clean Reindex (manual request)"
@@ -122,7 +118,6 @@ jobs:
             MODIFIED_FILES=""
             DELETED_FILES=""
           else
-            # Automatic detection based on pushed changes
             BASE_SHA="${{ github.event.before }}"
             HEAD_SHA="${{ github.sha }}"
 
@@ -130,28 +125,19 @@ jobs:
               BASE_SHA=$(git rev-parse HEAD~1)
             fi
 
-            # Only detect changes in _inbox and patterns folders
             ADDED_FILES=$(git diff --name-status "$BASE_SHA" "$HEAD_SHA" | grep -E "^A.*platform/modernizationpatterns/content/(_inbox|patterns)/" | cut -f2 | tr '\n' ',' | sed 's/,$//')
             MODIFIED_FILES=$(git diff --name-status "$BASE_SHA" "$HEAD_SHA" | grep -E "^M.*platform/modernizationpatterns/content/(_inbox|patterns)/" | cut -f2 | tr '\n' ',' | sed 's/,$//')
             DELETED_FILES=$(git diff --name-status "$BASE_SHA" "$HEAD_SHA" | grep -E "^D.*platform/modernizationpatterns/content/(_inbox|patterns)/" | cut -f2 | tr '\n' ',' | sed 's/,$//')
 
-            ADDED_COUNT=$([ -n "$ADDED_FILES" ] && echo "$ADDED_FILES" | awk -F',' '{print NF}' || echo 0)
-            MODIFIED_COUNT=$([ -n "$MODIFIED_FILES" ] && echo "$MODIFIED_FILES" | awk -F',' '{print NF}' || echo 0)
-            DELETED_COUNT=$([ -n "$DELETED_FILES" ] && echo "$DELETED_FILES" | awk -F',' '{print NF}' || echo 0)
-
-            # Strategy:
-            # - If files ADDED/MODIFIED only → Index New/Modified Documents (clean=false)
-            # - If files DELETED → full reindex (clean=true) to remove orphaned docs
-            # - If mix → full reindex for safety
             if [ -n "$DELETED_FILES" ]; then
               CLEAN="true"
-              TRIGGER_TYPE="🔄 Full Clean Reindex (${DELETED_COUNT} file(s) deleted - removing from index)"
+              TRIGGER_TYPE="🔄 Full Clean Reindex (deletions detected)"
             elif [ -n "$ADDED_FILES" ] || [ -n "$MODIFIED_FILES" ]; then
               CLEAN="false"
-              TRIGGER_TYPE="📝 Index New/Modified Documents Update (Added: ${ADDED_COUNT}, Modified: ${MODIFIED_COUNT})"
+              TRIGGER_TYPE="📝 Index New/Modified Documents Update"
             else
               CLEAN="false"
-              TRIGGER_TYPE="⏭️  No content files changed"
+              TRIGGER_TYPE="⏭️ No content files changed"
             fi
           fi
 
@@ -160,88 +146,36 @@ jobs:
           echo "added_files=${ADDED_FILES}" >> $GITHUB_OUTPUT
           echo "modified_files=${MODIFIED_FILES}" >> $GITHUB_OUTPUT
           echo "deleted_files=${DELETED_FILES}" >> $GITHUB_OUTPUT
-          echo "TRIGGER_TYPE=${TRIGGER_TYPE}" >> $GITHUB_ENV
 
       - name: Trigger Index New/Modified Documents or full reindex
         id: reindex
         run: |
           CLEAN="${{ steps.change_detection.outputs.clean }}"
-          ADDED="${{ steps.change_detection.outputs.added_files }}"
-          MODIFIED="${{ steps.change_detection.outputs.modified_files }}"
-          DELETED="${{ steps.change_detection.outputs.deleted_files }}"
           ENDPOINT="${{ steps.fqdn.outputs.fqdn }}/api/reindex"
-          HEALTH_ENDPOINT="${{ steps.fqdn.outputs.fqdn }}/health"
 
           echo "🔄 Starting reindex..."
-          echo "Strategy: ${{ steps.change_detection.outputs.trigger_type }}"
           echo "Endpoint: ${ENDPOINT}"
           echo "Clean mode: ${CLEAN}"
-          echo ""
 
-          # Wake up container - may be scaled to zero, wait for it
-          echo "🏥 Waking up container (may take up to 3 minutes if scaled to zero)..."
-          MAX_HEALTH_ATTEMPTS=18
-          HEALTH_WAIT=10
-          CONTAINER_READY=false
-          for i in $(seq 1 $MAX_HEALTH_ATTEMPTS); do
-            HEALTH_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_ENDPOINT" --connect-timeout 15 --max-time 20 || true)
-            if [ -z "$HEALTH_RESPONSE" ]; then
-              HEALTH_RESPONSE="000"
-            fi
-
-            if [ "$HEALTH_RESPONSE" == "200" ]; then
-              echo "✅ Container is healthy (attempt $i)"
-              CONTAINER_READY=true
-              break
-            elif [ "$HEALTH_RESPONSE" == "404" ] || [ "$HEALTH_RESPONSE" == "502" ] || [ "$HEALTH_RESPONSE" == "503" ]; then
-              echo "⏳ Container waking up (HTTP $HEALTH_RESPONSE), waiting ${HEALTH_WAIT}s... (attempt $i/$MAX_HEALTH_ATTEMPTS)"
-            elif [ "$HEALTH_RESPONSE" == "000" ]; then
-              echo "⏳ Connection failed, container may be starting... (attempt $i/$MAX_HEALTH_ATTEMPTS)"
-            else
-              echo "⏳ Unexpected response (HTTP $HEALTH_RESPONSE), waiting... (attempt $i/$MAX_HEALTH_ATTEMPTS)"
-            fi
-
-            sleep $HEALTH_WAIT
-          done
-
-          if [ "$CONTAINER_READY" != "true" ]; then
-            echo "⚠️ Container health check timed out, but proceeding with API call anyway..."
-          fi
+          echo "⏳ Cooling down before triggering..."
+          sleep 10
 
           if [ "${CLEAN}" == "true" ]; then
-            echo "⚠️  Using FULL CLEAN REINDEX (deletions detected)"
             QUERY_PARAMS="?clean=true"
           else
-            echo "⚡ Using Index New/Modified Documents REINDEX (only adds/modifications)"
             QUERY_PARAMS="?clean=false"
-            if [ -n "$ADDED" ]; then
-              echo "📝 Added files: ${ADDED}"
-            fi
-            if [ -n "$MODIFIED" ]; then
-              echo "✏️  Modified files: ${MODIFIED}"
-            fi
           fi
 
-          echo ""
-          echo "📤 Sending reindex request with retry logic (timeout: 300s)..."
-
-          # Default outputs (overridden on success)
-          echo "patterns_indexed=0" >> $GITHUB_OUTPUT
-          echo "inbox_indexed=0" >> $GITHUB_OUTPUT
-          echo "pdf_count=0" >> $GITHUB_OUTPUT
-          echo "docx_count=0" >> $GITHUB_OUTPUT
-          echo "md_count=0" >> $GITHUB_OUTPUT
-          echo "txt_count=0" >> $GITHUB_OUTPUT
-          echo "json_count=0" >> $GITHUB_OUTPUT
-
-          # Retry logic for transient failures (404/429/502/503/504/000)
           MAX_ATTEMPTS=7
-          BASE_RETRY_WAIT=30
+
           for attempt in $(seq 1 $MAX_ATTEMPTS); do
             echo "Attempt $attempt/$MAX_ATTEMPTS..."
 
+            RESPONSE_HEADERS=$(mktemp)
+
             HTTP_CODE=$(curl -sS -X POST \
               -H "Content-Type: application/json" \
+              -D $RESPONSE_HEADERS \
               -o /tmp/reindex_response.json \
               -w "%{http_code}" \
               "${ENDPOINT}${QUERY_PARAMS}" \
@@ -252,63 +186,38 @@ jobs:
 
             echo "HTTP Status: $HTTP_CODE"
 
-            # Success
             if [ "$HTTP_CODE" == "200" ]; then
               echo "✅ Reindex completed successfully"
-              echo ""
-              echo "Response:"
-              echo "$BODY"
               echo "reindex_success=true" >> $GITHUB_OUTPUT
-              DOCS=$(echo "$BODY" | jq -r '.documentsUploaded // "N/A"' 2>/dev/null || echo "N/A")
-              CHUNKS=$(echo "$BODY" | jq -r '.chunksCreated // .totalChunks // "N/A"' 2>/dev/null || echo "N/A")
-              DURATION=$(echo "$BODY" | jq -r '.elapsedSeconds // .operationTimeSeconds // "N/A"' 2>/dev/null || echo "N/A")
-              PATTERNS_INDEXED=$(echo "$BODY" | jq -r '.patternsProcessed // (.patterns // [] | length) // 0' 2>/dev/null || echo "0")
-              INBOX_INDEXED=$(echo "$BODY" | jq -r '.inboxDocumentsProcessed // (.inboxDocuments // [] | length) // 0' 2>/dev/null || echo "0")
-              PDF_COUNT=$(echo "$BODY" | jq -r '(.inboxDocuments // []) | map(ascii_downcase | select(endswith(".pdf"))) | length' 2>/dev/null || echo "0")
-              DOCX_COUNT=$(echo "$BODY" | jq -r '(.inboxDocuments // []) | map(ascii_downcase | select(endswith(".docx"))) | length' 2>/dev/null || echo "0")
-              MD_COUNT=$(echo "$BODY" | jq -r '(.inboxDocuments // []) | map(ascii_downcase | select(endswith(".md") or endswith(".markdown"))) | length' 2>/dev/null || echo "0")
-              TXT_COUNT=$(echo "$BODY" | jq -r '(.inboxDocuments // []) | map(ascii_downcase | select(endswith(".txt"))) | length' 2>/dev/null || echo "0")
-              JSON_COUNT=$(echo "$BODY" | jq -r '(.inboxDocuments // []) | map(ascii_downcase | select(endswith(".json"))) | length' 2>/dev/null || echo "0")
-
-              echo "metrics=📝 Documents: $DOCS, 🔗 Chunks: $CHUNKS, ⏱️ Duration: ${DURATION}s" >> $GITHUB_OUTPUT
-              echo "patterns_indexed=$PATTERNS_INDEXED" >> $GITHUB_OUTPUT
-              echo "inbox_indexed=$INBOX_INDEXED" >> $GITHUB_OUTPUT
-              echo "pdf_count=$PDF_COUNT" >> $GITHUB_OUTPUT
-              echo "docx_count=$DOCX_COUNT" >> $GITHUB_OUTPUT
-              echo "md_count=$MD_COUNT" >> $GITHUB_OUTPUT
-              echo "txt_count=$TXT_COUNT" >> $GITHUB_OUTPUT
-              echo "json_count=$JSON_COUNT" >> $GITHUB_OUTPUT
               exit 0
             fi
 
-            # Exponential backoff for 429 (rate limit)
             if [ "$HTTP_CODE" == "429" ]; then
-              WAIT_TIME=$((BASE_RETRY_WAIT * 2 ** (attempt - 1)))
-              if [ $WAIT_TIME -gt 300 ]; then WAIT_TIME=300; fi
-              echo "⚠️ Rate limit hit (HTTP 429), retrying in ${WAIT_TIME}s..."
-              if [ $attempt -lt $MAX_ATTEMPTS ]; then
-                sleep $WAIT_TIME
-                continue
+              RETRY_AFTER=$(grep -i "retry-after" $RESPONSE_HEADERS | awk '{print $2}' | tr -d '\r')
+
+              if [ -z "$RETRY_AFTER" ]; then
+                WAIT_TIME=$((60 * attempt))
+              else
+                WAIT_TIME=$((RETRY_AFTER + 5))
               fi
+
+              echo "⚠️ Rate limit hit. Waiting ${WAIT_TIME}s..."
+              sleep $WAIT_TIME
+              continue
             fi
 
-            # Transient failures - retry (including 404 for cold start scenarios)
-            if [ "$HTTP_CODE" == "404" ] || [ "$HTTP_CODE" == "502" ] || [ "$HTTP_CODE" == "503" ] || [ "$HTTP_CODE" == "504" ] || [ "$HTTP_CODE" == "000" ]; then
-              echo "⚠️ Transient failure (HTTP $HTTP_CODE), retrying in ${BASE_RETRY_WAIT}s..."
-              if [ $attempt -lt $MAX_ATTEMPTS ]; then
-                sleep $BASE_RETRY_WAIT
-                continue
-              fi
+            if [ "$HTTP_CODE" == "500" ] || [ "$HTTP_CODE" == "502" ] || [ "$HTTP_CODE" == "503" ] || [ "$HTTP_CODE" == "504" ] || [ "$HTTP_CODE" == "000" ]; then
+              echo "⚠️ Server/transient error. Retrying in 60s..."
+              sleep 60
+              continue
             fi
 
-            # Non-retryable failure
             echo "❌ Reindex failed with HTTP $HTTP_CODE"
             echo "Response: $BODY"
             break
           done
 
           echo "reindex_success=false" >> $GITHUB_OUTPUT
-          echo "metrics=HTTP $HTTP_CODE - Check logs" >> $GITHUB_OUTPUT
           exit 1
 
   verify-index:
@@ -356,14 +265,14 @@ jobs:
           echo "| JSON (.json) | ${{ needs.trigger-reindex.outputs.json_count }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Why This Strategy?" >> $GITHUB_STEP_SUMMARY
-          echo "- ⚡ **Index New/Modified Documents** (added/modified only): Fast, only updates changed documents" >> $GITHUB_STEP_SUMMARY
-          echo "- 🔄 **Full Clean** (deletions detected): Removes orphaned docs for data consistency" >> $GITHUB_STEP_SUMMARY
+          echo "- ⚡ Index New/Modified Documents: Fast incremental updates" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔄 Full Clean: Ensures deleted docs are removed" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
           if [ "${{ needs.trigger-reindex.result }}" == "success" ]; then
             echo "✅ Chat API will automatically use updated patterns within 30 seconds" >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ Check Container App logs: \`az containerapp logs show -n modernizationpatterns-reindex -g CAIS-010-RiskInsure\`" >> $GITHUB_STEP_SUMMARY
+            echo "❌ Check Container App logs: az containerapp logs show -n modernizationpatterns-reindex -g CAIS-010-RiskInsure" >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Notify on failure
