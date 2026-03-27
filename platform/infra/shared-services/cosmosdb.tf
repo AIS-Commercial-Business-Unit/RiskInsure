@@ -71,7 +71,7 @@ resource "azurerm_cosmosdb_sql_container" "fundtransfermgt_paymentmethods" {
   resource_group_name   = local.resource_group_name
   account_name          = azurerm_cosmosdb_account.riskinsure.name
   database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
-  partition_key_paths   = ["/transactionId"]
+  partition_key_paths   = ["/customerId"]
   partition_key_version = 1
 
   indexing_policy {
@@ -88,7 +88,7 @@ resource "azurerm_cosmosdb_sql_container" "fundtransfermgt_transactions" {
   resource_group_name   = local.resource_group_name
   account_name          = azurerm_cosmosdb_account.riskinsure.name
   database_name         = azurerm_cosmosdb_sql_database.riskinsure.name
-  partition_key_paths   = ["/transactionId"]
+  partition_key_paths   = ["/customerId"]
   partition_key_version = 1
 
   indexing_policy {
