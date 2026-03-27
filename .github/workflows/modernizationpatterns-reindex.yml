@@ -9,7 +9,7 @@ on:
         default: "Index New/Modified Documents"
         type: choice
         options:
-          - "Index New/Modified Documents "
+          - "Index New/Modified Documents"
           - "Full Clean Reindex"
   push:
     branches:
