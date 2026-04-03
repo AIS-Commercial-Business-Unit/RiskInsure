@@ -21,6 +21,7 @@ try
     builder.Services.AddSingleton<IChunkingService, ChunkingService>();
     builder.Services.AddSingleton<IEmbeddingService, EmbeddingService>();
     builder.Services.AddSingleton<IIndexingService, IndexingService>();
+    builder.Services.AddSingleton<IReindexJobService, ReindexJobService>();
 
     var app = builder.Build();
 
