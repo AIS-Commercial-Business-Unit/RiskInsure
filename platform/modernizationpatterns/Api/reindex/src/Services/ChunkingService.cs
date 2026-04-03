@@ -50,6 +50,34 @@ public class ChunkingService : IChunkingService
             using var doc = JsonDocument.Parse(patternJson);
             var root = doc.RootElement;
 
+            // Handle JSON arrays (e.g., agentic files) differently from objects
+            if (root.ValueKind == JsonValueKind.Array)
+            {
+                _logger.LogInformation(
+                    "JSON array detected for {PatternSlug}, treating as single content chunk",
+                    patternSlug);
+
+                // Create a single chunk from the array
+                var arrayContent = JsonSerializer.Serialize(root, new JsonSerializerOptions { WriteIndented = true });
+                chunks.Add(new PatternChunk
+                {
+                    Id = $"{patternSlug}_array",
+                    PatternSlug = patternSlug,
+                    Title = patternSlug,
+                    Category = "agentic",
+                    ChunkType = "array",
+                    Content = $"# {patternSlug}\n\nContent:\n\n{arrayContent}",
+                    ChunkIndex = 0
+                });
+
+                _logger.LogInformation(
+                    "Chunked array {PatternSlug}: 1 chunk produced",
+                    patternSlug);
+
+                return chunks;
+            }
+
+            // Normal object handling for pattern files
             var title = GetString(root, "title") ?? patternSlug;
             var category = GetString(root, "category") ?? "unknown";
             var subcategory = GetString(root, "subcategory") ?? "";
