@@ -116,3 +116,96 @@ variable "enable_private_endpoints" {
   type        = bool
   default     = false
 }
+
+# ==========================================================================
+# Azure AI Search Variables
+# ==========================================================================
+
+variable "ai_search_sku" {
+  description = "Azure AI Search SKU (free, basic, standard, standard2, standard3)"
+  type        = string
+  default     = "free"
+
+  validation {
+    condition     = contains(["free", "basic", "standard", "standard2", "standard3"], var.ai_search_sku)
+    error_message = "AI Search SKU must be free, basic, standard, standard2, or standard3."
+  }
+}
+
+variable "ai_search_replica_count" {
+  description = "Number of replicas for AI Search (ignored for free tier)"
+  type        = number
+  default     = 1
+}
+
+variable "ai_search_partition_count" {
+  description = "Number of partitions for AI Search (ignored for free tier)"
+  type        = number
+  default     = 1
+}
+
+# ==========================================================================
+# Azure OpenAI (AI Foundry) Variables
+# ==========================================================================
+
+variable "ai_foundry_sku" {
+  description = "Azure OpenAI SKU (S0 is the only option)"
+  type        = string
+  default     = "S0"
+}
+
+variable "ai_foundry_location" {
+  description = "Azure region for OpenAI (limited availability - eastus2 recommended)"
+  type        = string
+  default     = "eastus2"
+}
+
+# Chat model configuration
+variable "ai_foundry_chat_deployment_name" {
+  description = "Deployment name for chat model"
+  type        = string
+  default     = "gpt-4.1"
+}
+
+variable "ai_foundry_chat_model" {
+  description = "Azure OpenAI chat model name"
+  type        = string
+  default     = "gpt-4.1"
+}
+
+variable "ai_foundry_chat_model_version" {
+  description = "Version of the chat model"
+  type        = string
+  default     = "2025-04-14"
+}
+
+variable "ai_foundry_chat_capacity" {
+  description = "Chat model capacity (tokens per minute in thousands)"
+  type        = number
+  default     = 10
+}
+
+# Embedding model configuration
+variable "ai_foundry_embedding_deployment_name" {
+  description = "Deployment name for embedding model"
+  type        = string
+  default     = "text-embedding-3-small"
+}
+
+variable "ai_foundry_embedding_model" {
+  description = "Azure OpenAI embedding model name"
+  type        = string
+  default     = "text-embedding-3-small"
+}
+
+variable "ai_foundry_embedding_model_version" {
+  description = "Version of the embedding model"
+  type        = string
+  default     = "1"
+}
+
+variable "ai_foundry_embedding_capacity" {
+  description = "Embedding model capacity (tokens per minute in thousands)"
+  type        = number
+  default     = 30
+}

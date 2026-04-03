@@ -293,15 +293,15 @@ variable "modernizationpatterns_search_index_name" {
 }
 
 variable "modernizationpatterns_chat_deployment" {
-  description = "Azure OpenAI deployment name for chat completions (e.g., gpt-4o)"
+  description = "Azure OpenAI deployment name for chat completions"
   type        = string
-  default     = "gpt-4o"
+  default     = "gpt-4.1" # Matches deployment in shared-services/ai-services.tf
 }
 
 variable "modernizationpatterns_embedding_deployment" {
-  description = "Azure OpenAI deployment name for embeddings (e.g., text-embedding-3-small)"
+  description = "Azure OpenAI deployment name for embeddings"
   type        = string
-  default     = "text-embedding-3-small"
+  default     = "text-embedding-3-small" # Matches deployment in shared-services/ai-services.tf
 }
 
 # ==========================================================================

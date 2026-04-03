@@ -7,28 +7,9 @@
 # ==========================================================================
 
 # ==========================================================================
-# Key Vault Secrets for Azure AI Services
+# Azure AI Services configuration from shared-services remote state
+# The secrets are created by Terraform in shared-services/ai-services.tf
 # ==========================================================================
-
-data "azurerm_key_vault_secret" "azure_search_endpoint" {
-  name         = "AzureSearchEndpoint"
-  key_vault_id = data.azurerm_key_vault.riskinsure.id
-}
-
-data "azurerm_key_vault_secret" "azure_search_api_key" {
-  name         = "AzureSearchApiKey"
-  key_vault_id = data.azurerm_key_vault.riskinsure.id
-}
-
-data "azurerm_key_vault_secret" "azure_openai_endpoint" {
-  name         = "AzureOpenAIEndpoint"
-  key_vault_id = data.azurerm_key_vault.riskinsure.id
-}
-
-data "azurerm_key_vault_secret" "azure_openai_api_key" {
-  name         = "AzureOpenAIApiKey"
-  key_vault_id = data.azurerm_key_vault.riskinsure.id
-}
 
 # ==========================================================================
 # Modernization Patterns Chat API (HTTP REST)
@@ -52,25 +33,25 @@ resource "azurerm_container_app" "modernizationpatterns_chat_api" {
 
   secret {
     name                = "azure-search-endpoint"
-    key_vault_secret_id = data.azurerm_key_vault_secret.azure_search_endpoint.id
+    key_vault_secret_id = data.terraform_remote_state.shared_services.outputs.kv_secret_azure_search_endpoint_id
     identity            = data.terraform_remote_state.shared_services.outputs.apps_shared_identity_id
   }
 
   secret {
     name                = "azure-search-api-key"
-    key_vault_secret_id = data.azurerm_key_vault_secret.azure_search_api_key.id
+    key_vault_secret_id = data.terraform_remote_state.shared_services.outputs.kv_secret_azure_search_api_key_id
     identity            = data.terraform_remote_state.shared_services.outputs.apps_shared_identity_id
   }
 
   secret {
     name                = "azure-openai-endpoint"
-    key_vault_secret_id = data.azurerm_key_vault_secret.azure_openai_endpoint.id
+    key_vault_secret_id = data.terraform_remote_state.shared_services.outputs.kv_secret_azure_openai_endpoint_id
     identity            = data.terraform_remote_state.shared_services.outputs.apps_shared_identity_id
   }
 
   secret {
     name                = "azure-openai-api-key"
-    key_vault_secret_id = data.azurerm_key_vault_secret.azure_openai_api_key.id
+    key_vault_secret_id = data.terraform_remote_state.shared_services.outputs.kv_secret_azure_openai_api_key_id
     identity            = data.terraform_remote_state.shared_services.outputs.apps_shared_identity_id
   }
 
@@ -221,25 +202,25 @@ resource "azurerm_container_app" "modernizationpatterns_reindex_worker" {
 
   secret {
     name                = "azure-search-endpoint"
-    key_vault_secret_id = data.azurerm_key_vault_secret.azure_search_endpoint.id
+    key_vault_secret_id = data.terraform_remote_state.shared_services.outputs.kv_secret_azure_search_endpoint_id
     identity            = data.terraform_remote_state.shared_services.outputs.apps_shared_identity_id
   }
 
   secret {
     name                = "azure-search-api-key"
-    key_vault_secret_id = data.azurerm_key_vault_secret.azure_search_api_key.id
+    key_vault_secret_id = data.terraform_remote_state.shared_services.outputs.kv_secret_azure_search_api_key_id
     identity            = data.terraform_remote_state.shared_services.outputs.apps_shared_identity_id
   }
 
   secret {
     name                = "azure-openai-endpoint"
-    key_vault_secret_id = data.azurerm_key_vault_secret.azure_openai_endpoint.id
+    key_vault_secret_id = data.terraform_remote_state.shared_services.outputs.kv_secret_azure_openai_endpoint_id
     identity            = data.terraform_remote_state.shared_services.outputs.apps_shared_identity_id
   }
 
   secret {
     name                = "azure-openai-api-key"
-    key_vault_secret_id = data.azurerm_key_vault_secret.azure_openai_api_key.id
+    key_vault_secret_id = data.terraform_remote_state.shared_services.outputs.kv_secret_azure_openai_api_key_id
     identity            = data.terraform_remote_state.shared_services.outputs.apps_shared_identity_id
   }
 

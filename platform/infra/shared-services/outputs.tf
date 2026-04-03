@@ -88,3 +88,87 @@ output "servicebus_primary_key" {
   value       = azurerm_servicebus_namespace.riskinsure.default_primary_key
   sensitive   = true
 }
+
+# ==========================================================================
+# Azure AI Search Outputs
+# ==========================================================================
+
+output "ai_search_endpoint" {
+  description = "Azure AI Search endpoint URL"
+  value       = "https://${azurerm_search_service.riskinsure.name}.search.windows.net"
+}
+
+output "ai_search_name" {
+  description = "Azure AI Search service name"
+  value       = azurerm_search_service.riskinsure.name
+}
+
+output "ai_search_id" {
+  description = "Azure AI Search resource ID"
+  value       = azurerm_search_service.riskinsure.id
+}
+
+output "ai_search_primary_key" {
+  description = "Azure AI Search primary admin key (sensitive)"
+  value       = azurerm_search_service.riskinsure.primary_key
+  sensitive   = true
+}
+
+# ==========================================================================
+# Azure OpenAI (AI Foundry) Outputs
+# ==========================================================================
+
+output "ai_foundry_endpoint" {
+  description = "Azure OpenAI endpoint URL"
+  value       = azurerm_cognitive_account.openai.endpoint
+}
+
+output "ai_foundry_name" {
+  description = "Azure OpenAI account name"
+  value       = azurerm_cognitive_account.openai.name
+}
+
+output "ai_foundry_id" {
+  description = "Azure OpenAI resource ID"
+  value       = azurerm_cognitive_account.openai.id
+}
+
+output "ai_foundry_primary_key" {
+  description = "Azure OpenAI primary access key (sensitive)"
+  value       = azurerm_cognitive_account.openai.primary_access_key
+  sensitive   = true
+}
+
+output "ai_foundry_chat_deployment_name" {
+  description = "Name of the chat model deployment"
+  value       = azurerm_cognitive_deployment.chat.name
+}
+
+output "ai_foundry_embedding_deployment_name" {
+  description = "Name of the embedding model deployment"
+  value       = azurerm_cognitive_deployment.embedding.name
+}
+
+# ==========================================================================
+# Key Vault Secret IDs (for Container Apps secret references)
+# ==========================================================================
+
+output "kv_secret_azure_search_endpoint_id" {
+  description = "Key Vault secret ID for Azure Search endpoint"
+  value       = azurerm_key_vault_secret.azure_search_endpoint.id
+}
+
+output "kv_secret_azure_search_api_key_id" {
+  description = "Key Vault secret ID for Azure Search API key"
+  value       = azurerm_key_vault_secret.azure_search_api_key.id
+}
+
+output "kv_secret_azure_openai_endpoint_id" {
+  description = "Key Vault secret ID for Azure OpenAI endpoint"
+  value       = azurerm_key_vault_secret.azure_openai_endpoint.id
+}
+
+output "kv_secret_azure_openai_api_key_id" {
+  description = "Key Vault secret ID for Azure OpenAI API key"
+  value       = azurerm_key_vault_secret.azure_openai_api_key.id
+}
