@@ -247,7 +247,7 @@ jobs:
           MAX_ATTEMPTS=5
           RETRY_WAIT=30
           JOB_ID=""
-          
+
           for attempt in $(seq 1 $MAX_ATTEMPTS); do
             echo "Attempt $attempt/$MAX_ATTEMPTS..."
 
@@ -328,31 +328,31 @@ jobs:
             echo "🔄 Polling job status: $STATUS_URL"
             echo "   (Checking every 30 seconds, timeout after 30 minutes)"
             echo ""
-            
+
             MAX_POLL_ATTEMPTS=60  # 60 * 30s = 30 minutes max
             POLL_WAIT=30
-            
+
             for poll in $(seq 1 $MAX_POLL_ATTEMPTS); do
               STATUS_CODE=$(curl -sS -o /tmp/status_response.json -w "%{http_code}" "$STATUS_URL" --max-time 30 || echo "000")
               STATUS_BODY=$(cat /tmp/status_response.json 2>/dev/null || echo "")
-              
+
               if [ "$STATUS_CODE" != "200" ]; then
                 echo "⚠️ Status check returned HTTP $STATUS_CODE, retrying..."
                 sleep $POLL_WAIT
                 continue
               fi
-              
+
               JOB_STATE=$(echo "$STATUS_BODY" | jq -r '.state // "unknown"' 2>/dev/null || echo "unknown")
               PROGRESS=$(echo "$STATUS_BODY" | jq -r '.progress // 0' 2>/dev/null || echo "0")
               CURRENT_STEP=$(echo "$STATUS_BODY" | jq -r '.currentStep // "Processing..."' 2>/dev/null || echo "Processing...")
-              
+
               echo "[$poll/$MAX_POLL_ATTEMPTS] State: $JOB_STATE | Progress: $PROGRESS% | Step: $CURRENT_STEP"
-              
+
               if [ "$JOB_STATE" == "completed" ]; then
                 echo ""
                 echo "✅ Reindex job completed successfully!"
                 echo ""
-                
+
                 # Extract results from the completed job
                 RESULT=$(echo "$STATUS_BODY" | jq -r '.result // {}' 2>/dev/null || echo "{}")
                 DOCS=$(echo "$RESULT" | jq -r '.documentsUploaded // "N/A"' 2>/dev/null || echo "N/A")
@@ -365,14 +365,14 @@ jobs:
                 MD_COUNT=$(echo "$RESULT" | jq -r '(.inboxDocuments // []) | map(ascii_downcase | select(endswith(".md") or endswith(".markdown"))) | length' 2>/dev/null || echo "0")
                 TXT_COUNT=$(echo "$RESULT" | jq -r '(.inboxDocuments // []) | map(ascii_downcase | select(endswith(".txt"))) | length' 2>/dev/null || echo "0")
                 JSON_COUNT=$(echo "$RESULT" | jq -r '(.inboxDocuments // []) | map(ascii_downcase | select(endswith(".json"))) | length' 2>/dev/null || echo "0")
-                
+
                 echo "📊 Results:"
                 echo "   Documents uploaded: $DOCS"
                 echo "   Chunks created: $CHUNKS"
                 echo "   Duration: ${DURATION}s"
                 echo "   Patterns: $PATTERNS_INDEXED"
                 echo "   Inbox docs: $INBOX_INDEXED"
-                
+
                 echo "reindex_success=true" >> $GITHUB_OUTPUT
                 echo "metrics=📝 Documents: $DOCS, 🔗 Chunks: $CHUNKS, ⏱️ Duration: ${DURATION}s" >> $GITHUB_OUTPUT
                 echo "patterns_indexed=$PATTERNS_INDEXED" >> $GITHUB_OUTPUT
@@ -384,7 +384,7 @@ jobs:
                 echo "json_count=$JSON_COUNT" >> $GITHUB_OUTPUT
                 exit 0
               fi
-              
+
               if [ "$JOB_STATE" == "failed" ]; then
                 echo ""
                 echo "❌ Reindex job failed!"
@@ -396,11 +396,11 @@ jobs:
                 echo "metrics=❌ Failed: $ERROR" >> $GITHUB_OUTPUT
                 exit 1
               fi
-              
+
               # Still running, wait and poll again
               sleep $POLL_WAIT
             done
-            
+
             # Timeout waiting for job
             echo "❌ Timeout waiting for reindex job to complete (30 minutes)"
             echo "reindex_success=false" >> $GITHUB_OUTPUT
