@@ -77,72 +77,116 @@ public class EmbeddingService : IEmbeddingService
         CancellationToken cancellationToken = default)
     {
         var allEmbeddings = new List<float[]>();
-        const int batchSize = 16; // Azure OpenAI batch limit
+        const int batchSize = 8; // Reduced from 16 to 8 to lower per-request load (Free tier friendly)
+        const int maxRetries = 5;
 
-        _logger.LogInformation("Embedding {Count} texts in batches of {BatchSize}", texts.Count, batchSize);
+        _logger.LogInformation(
+            "Embedding {Count} texts in batches of {BatchSize} (may take several minutes due to Free tier rate limits)",
+            texts.Count, batchSize);
 
         for (int i = 0; i < texts.Count; i += batchSize)
         {
             var batch = texts.Skip(i).Take(batchSize).ToList();
+            var batchNum = (i / batchSize) + 1;
+            var totalBatches = (int)Math.Ceiling((double)texts.Count / batchSize);
+            var retryCount = 0;
+            bool success = false;
 
-            try
+            while (retryCount < maxRetries && !success)
             {
-                var url = $"{_endpoint}/openai/deployments/{_deploymentName}/embeddings?api-version=2024-06-01";
-                using var request = new HttpRequestMessage(HttpMethod.Post, url);
-                request.Headers.Add("api-key", _apiKey);
-                request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
-
-                var payload = JsonSerializer.Serialize(new
+                try
                 {
-                    input = batch
-                });
+                    var url = $"{_endpoint}/openai/deployments/{_deploymentName}/embeddings?api-version=2024-06-01";
+                    using var request = new HttpRequestMessage(HttpMethod.Post, url);
+                    request.Headers.Add("api-key", _apiKey);
+                    request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-                request.Content = new StringContent(payload, Encoding.UTF8, "application/json");
-
-                using var response = await HttpClient.SendAsync(request, cancellationToken);
-                var content = await response.Content.ReadAsStringAsync(cancellationToken);
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    throw new InvalidOperationException(
-                        $"Embedding request failed: {(int)response.StatusCode} {response.ReasonPhrase}. Response: {content}");
-                }
-
-                using var document = JsonDocument.Parse(content);
-                var data = document.RootElement.GetProperty("data");
-
-                foreach (var item in data.EnumerateArray())
-                {
-                    var embeddingArray = item.GetProperty("embedding");
-                    var vector = new float[embeddingArray.GetArrayLength()];
-                    var index = 0;
-
-                    foreach (var value in embeddingArray.EnumerateArray())
+                    var payload = JsonSerializer.Serialize(new
                     {
-                        vector[index++] = value.GetSingle();
+                        input = batch
+                    });
+
+                    request.Content = new StringContent(payload, Encoding.UTF8, "application/json");
+
+                    using var response = await HttpClient.SendAsync(request, cancellationToken);
+                    var content = await response.Content.ReadAsStringAsync(cancellationToken);
+
+                    // Handle rate limiting (429) with exponential backoff
+                    if ((int)response.StatusCode == 429)
+                    {
+                        var delaySeconds = (int)Math.Pow(2, retryCount) * 10; // 10s, 20s, 40s, 80s, 160s
+                        _logger.LogWarning(
+                            "Rate limit hit (429) on batch {BatchNum}/{TotalBatches}, waiting {Delay}s before retry {Retry}/{MaxRetries}",
+                            batchNum, totalBatches, delaySeconds, retryCount + 1, maxRetries);
+                        await Task.Delay(TimeSpan.FromSeconds(delaySeconds), cancellationToken);
+                        retryCount++;
+                        continue; // Retry this batch
                     }
 
-                    allEmbeddings.Add(vector);
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        throw new InvalidOperationException(
+                            $"Embedding request failed: {(int)response.StatusCode} {response.ReasonPhrase}. Response: {content}");
+                    }
+
+                    using var document = JsonDocument.Parse(content);
+                    var data = document.RootElement.GetProperty("data");
+
+                    foreach (var item in data.EnumerateArray())
+                    {
+                        var embeddingArray = item.GetProperty("embedding");
+                        var vector = new float[embeddingArray.GetArrayLength()];
+                        var index = 0;
+
+                        foreach (var value in embeddingArray.EnumerateArray())
+                        {
+                            vector[index++] = value.GetSingle();
+                        }
+
+                        allEmbeddings.Add(vector);
+                    }
+
+                    _logger.LogInformation(
+                        "Batch {BatchNum}/{TotalBatches}: Embedded {Count} texts successfully",
+                        batchNum, totalBatches, batch.Count);
+
+                    success = true;
+
+                    // Aggressive delay between batches to stay under Free tier rate limits (~3-6 RPM)
+                    // Batch size 8 + 5s delay = ~12 requests per minute (safe margin below 6 RPM)
+                    if (i + batchSize < texts.Count)
+                    {
+                        _logger.LogDebug("Waiting 5s before next batch to respect rate limits...");
+                        await Task.Delay(5000, cancellationToken);
+                    }
                 }
-
-                _logger.LogInformation(
-                    "Batch {BatchNum}/{TotalBatches}: Embedded {Count} texts",
-                    (i / batchSize) + 1,
-                    (int)Math.Ceiling((double)texts.Count / batchSize),
-                    batch.Count);
-
-                // Small delay between batches to avoid rate limiting
-                if (i + batchSize < texts.Count)
+                catch (OperationCanceledException)
                 {
-                    await Task.Delay(200, cancellationToken);
+                    throw; // Don't retry cancellations
+                }
+                catch (Exception ex)
+                {
+                    retryCount++;
+                    if (retryCount >= maxRetries)
+                    {
+                        _logger.LogError(ex,
+                            "Failed to embed batch {BatchNum}/{TotalBatches} after {MaxRetries} retries at offset {Offset}",
+                            batchNum, totalBatches, maxRetries, i);
+                        throw;
+                    }
+
+                    var delaySeconds = (int)Math.Pow(2, retryCount) * 5;
+                    _logger.LogWarning(ex,
+                        "Failed to embed batch {BatchNum}/{TotalBatches}, waiting {Delay}s before retry {Retry}/{MaxRetries}",
+                        batchNum, totalBatches, delaySeconds, retryCount, maxRetries);
+                    await Task.Delay(TimeSpan.FromSeconds(delaySeconds), cancellationToken);
                 }
             }
-            catch (Exception ex)
+
+            if (!success)
             {
-                _logger.LogError(ex,
-                    "Failed to embed batch at offset {Offset}",
-                    i);
-                throw;
+                throw new InvalidOperationException(
+                    $"Failed to embed batch {batchNum}/{totalBatches} after {maxRetries} retries");
             }
         }
 

@@ -15,9 +15,10 @@ on:
     branches:
       - main
     paths:
-      # Only trigger on _inbox and patterns folder changes (documents to be indexed)
+      # Trigger on _inbox, patterns, and agentic folder changes (documents to be indexed)
       - "platform/modernizationpatterns/content/_inbox/**"
       - "platform/modernizationpatterns/content/patterns/**"
+      - "platform/modernizationpatterns/content/agentic/**"
 
 env:
   AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
@@ -51,10 +52,11 @@ jobs:
               BASE_SHA=$(git rev-parse HEAD~1)
             fi
 
-            # Only check _inbox and patterns folders (documents to be indexed)
+            # Only check _inbox, patterns, and agentic folders (documents to be indexed)
             if git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- \
                 platform/modernizationpatterns/content/_inbox \
-                platform/modernizationpatterns/content/patterns; then
+                platform/modernizationpatterns/content/patterns \
+                platform/modernizationpatterns/content/agentic; then
               CONTENT_CHANGED="false"
             else
               CONTENT_CHANGED="true"
@@ -130,10 +132,10 @@ jobs:
               BASE_SHA=$(git rev-parse HEAD~1)
             fi
 
-            # Only detect changes in _inbox and patterns folders
-            ADDED_FILES=$(git diff --name-status "$BASE_SHA" "$HEAD_SHA" | grep -E "^A.*platform/modernizationpatterns/content/(_inbox|patterns)/" | cut -f2 | tr '\n' ',' | sed 's/,$//')
-            MODIFIED_FILES=$(git diff --name-status "$BASE_SHA" "$HEAD_SHA" | grep -E "^M.*platform/modernizationpatterns/content/(_inbox|patterns)/" | cut -f2 | tr '\n' ',' | sed 's/,$//')
-            DELETED_FILES=$(git diff --name-status "$BASE_SHA" "$HEAD_SHA" | grep -E "^D.*platform/modernizationpatterns/content/(_inbox|patterns)/" | cut -f2 | tr '\n' ',' | sed 's/,$//')
+            # Detect changes in _inbox, patterns, and agentic folders
+            ADDED_FILES=$(git diff --name-status "$BASE_SHA" "$HEAD_SHA" | grep -E "^A.*platform/modernizationpatterns/content/(_inbox|patterns|agentic)/" | cut -f2 | tr '\n' ',' | sed 's/,$//')
+            MODIFIED_FILES=$(git diff --name-status "$BASE_SHA" "$HEAD_SHA" | grep -E "^M.*platform/modernizationpatterns/content/(_inbox|patterns|agentic)/" | cut -f2 | tr '\n' ',' | sed 's/,$//')
+            DELETED_FILES=$(git diff --name-status "$BASE_SHA" "$HEAD_SHA" | grep -E "^D.*platform/modernizationpatterns/content/(_inbox|patterns|agentic)/" | cut -f2 | tr '\n' ',' | sed 's/,$//')
 
             ADDED_COUNT=$([ -n "$ADDED_FILES" ] && echo "$ADDED_FILES" | awk -F',' '{print NF}' || echo 0)
             MODIFIED_COUNT=$([ -n "$MODIFIED_FILES" ] && echo "$MODIFIED_FILES" | awk -F',' '{print NF}' || echo 0)
@@ -225,7 +227,12 @@ jobs:
           fi
 
           echo ""
-          echo "📤 Sending reindex request with retry logic (timeout: 300s)..."
+          echo "📤 Sending reindex request with retry logic..."
+          echo "⚠️  WARNING: Using Free tier Azure OpenAI with rate limiting (3-6 RPM)"
+          echo "    Reindex may take 10-20 minutes for large content sets"
+          echo "    For production: Upgrade to Standard/Pro tier for 10x faster reindex"
+          echo ""
+          echo "Timeout: 900s (15 minutes per attempt)"
 
           # Default outputs (overridden on success)
           echo "patterns_indexed=0" >> $GITHUB_OUTPUT
@@ -239,6 +246,8 @@ jobs:
           # Retry logic for transient failures (404/502/503/504 - container may still be waking)
           MAX_ATTEMPTS=5
           RETRY_WAIT=30
+          JOB_ID=""
+
           for attempt in $(seq 1 $MAX_ATTEMPTS); do
             echo "Attempt $attempt/$MAX_ATTEMPTS..."
 
@@ -247,16 +256,30 @@ jobs:
               -o /tmp/reindex_response.json \
               -w "%{http_code}" \
               "${ENDPOINT}${QUERY_PARAMS}" \
-              --max-time 300 \
+              --max-time 900 \
               --connect-timeout 30 || echo "000")
 
             BODY=$(cat /tmp/reindex_response.json 2>/dev/null || echo "")
 
             echo "HTTP Status: $HTTP_CODE"
 
-            # Success
+            # Async job accepted (202) - new async API pattern
+            if [ "$HTTP_CODE" == "202" ]; then
+              JOB_ID=$(echo "$BODY" | jq -r '.jobId // ""' 2>/dev/null || echo "")
+              if [ -n "$JOB_ID" ]; then
+                echo "✅ Reindex job started successfully (Job ID: $JOB_ID)"
+                echo "📊 Polling for completion..."
+                break
+              else
+                echo "❌ 202 received but no jobId in response"
+                echo "Response: $BODY"
+                exit 1
+              fi
+            fi
+
+            # Legacy sync success (200) - keep for backward compatibility
             if [ "$HTTP_CODE" == "200" ]; then
-              echo "✅ Reindex completed successfully"
+              echo "✅ Reindex completed successfully (sync mode)"
               echo ""
               echo "Response:"
               echo "$BODY"
@@ -297,6 +320,93 @@ jobs:
             echo "Response: $BODY"
             break
           done
+
+          # If we got a job ID, poll for completion
+          if [ -n "$JOB_ID" ]; then
+            STATUS_URL="${{ steps.fqdn.outputs.fqdn }}/api/reindex/${JOB_ID}"
+            echo ""
+            echo "🔄 Polling job status: $STATUS_URL"
+            echo "   (Checking every 30 seconds, timeout after 30 minutes)"
+            echo ""
+
+            MAX_POLL_ATTEMPTS=60  # 60 * 30s = 30 minutes max
+            POLL_WAIT=30
+
+            for poll in $(seq 1 $MAX_POLL_ATTEMPTS); do
+              STATUS_CODE=$(curl -sS -o /tmp/status_response.json -w "%{http_code}" "$STATUS_URL" --max-time 30 || echo "000")
+              STATUS_BODY=$(cat /tmp/status_response.json 2>/dev/null || echo "")
+
+              if [ "$STATUS_CODE" != "200" ]; then
+                echo "⚠️ Status check returned HTTP $STATUS_CODE, retrying..."
+                sleep $POLL_WAIT
+                continue
+              fi
+
+              JOB_STATE=$(echo "$STATUS_BODY" | jq -r '.state // "unknown"' 2>/dev/null || echo "unknown")
+              PROGRESS=$(echo "$STATUS_BODY" | jq -r '.progress // 0' 2>/dev/null || echo "0")
+              CURRENT_STEP=$(echo "$STATUS_BODY" | jq -r '.currentStep // "Processing..."' 2>/dev/null || echo "Processing...")
+
+              echo "[$poll/$MAX_POLL_ATTEMPTS] State: $JOB_STATE | Progress: $PROGRESS% | Step: $CURRENT_STEP"
+
+              if [ "$JOB_STATE" == "completed" ]; then
+                echo ""
+                echo "✅ Reindex job completed successfully!"
+                echo ""
+
+                # Extract results from the completed job
+                RESULT=$(echo "$STATUS_BODY" | jq -r '.result // {}' 2>/dev/null || echo "{}")
+                DOCS=$(echo "$RESULT" | jq -r '.documentsUploaded // "N/A"' 2>/dev/null || echo "N/A")
+                CHUNKS=$(echo "$RESULT" | jq -r '.chunksCreated // "N/A"' 2>/dev/null || echo "N/A")
+                DURATION=$(echo "$RESULT" | jq -r '.elapsedSeconds // "N/A"' 2>/dev/null || echo "N/A")
+                PATTERNS_INDEXED=$(echo "$RESULT" | jq -r '.patternsProcessed // 0' 2>/dev/null || echo "0")
+                INBOX_INDEXED=$(echo "$RESULT" | jq -r '.inboxDocumentsProcessed // 0' 2>/dev/null || echo "0")
+                PDF_COUNT=$(echo "$RESULT" | jq -r '(.inboxDocuments // []) | map(ascii_downcase | select(endswith(".pdf"))) | length' 2>/dev/null || echo "0")
+                DOCX_COUNT=$(echo "$RESULT" | jq -r '(.inboxDocuments // []) | map(ascii_downcase | select(endswith(".docx"))) | length' 2>/dev/null || echo "0")
+                MD_COUNT=$(echo "$RESULT" | jq -r '(.inboxDocuments // []) | map(ascii_downcase | select(endswith(".md") or endswith(".markdown"))) | length' 2>/dev/null || echo "0")
+                TXT_COUNT=$(echo "$RESULT" | jq -r '(.inboxDocuments // []) | map(ascii_downcase | select(endswith(".txt"))) | length' 2>/dev/null || echo "0")
+                JSON_COUNT=$(echo "$RESULT" | jq -r '(.inboxDocuments // []) | map(ascii_downcase | select(endswith(".json"))) | length' 2>/dev/null || echo "0")
+
+                echo "📊 Results:"
+                echo "   Documents uploaded: $DOCS"
+                echo "   Chunks created: $CHUNKS"
+                echo "   Duration: ${DURATION}s"
+                echo "   Patterns: $PATTERNS_INDEXED"
+                echo "   Inbox docs: $INBOX_INDEXED"
+
+                echo "reindex_success=true" >> $GITHUB_OUTPUT
+                echo "metrics=📝 Documents: $DOCS, 🔗 Chunks: $CHUNKS, ⏱️ Duration: ${DURATION}s" >> $GITHUB_OUTPUT
+                echo "patterns_indexed=$PATTERNS_INDEXED" >> $GITHUB_OUTPUT
+                echo "inbox_indexed=$INBOX_INDEXED" >> $GITHUB_OUTPUT
+                echo "pdf_count=$PDF_COUNT" >> $GITHUB_OUTPUT
+                echo "docx_count=$DOCX_COUNT" >> $GITHUB_OUTPUT
+                echo "md_count=$MD_COUNT" >> $GITHUB_OUTPUT
+                echo "txt_count=$TXT_COUNT" >> $GITHUB_OUTPUT
+                echo "json_count=$JSON_COUNT" >> $GITHUB_OUTPUT
+                exit 0
+              fi
+
+              if [ "$JOB_STATE" == "failed" ]; then
+                echo ""
+                echo "❌ Reindex job failed!"
+                ERROR=$(echo "$STATUS_BODY" | jq -r '.error // "Unknown error"' 2>/dev/null || echo "Unknown error")
+                ERROR_MSG=$(echo "$STATUS_BODY" | jq -r '.errorMessage // ""' 2>/dev/null || echo "")
+                echo "Error: $ERROR"
+                echo "Message: $ERROR_MSG"
+                echo "reindex_success=false" >> $GITHUB_OUTPUT
+                echo "metrics=❌ Failed: $ERROR" >> $GITHUB_OUTPUT
+                exit 1
+              fi
+
+              # Still running, wait and poll again
+              sleep $POLL_WAIT
+            done
+
+            # Timeout waiting for job
+            echo "❌ Timeout waiting for reindex job to complete (30 minutes)"
+            echo "reindex_success=false" >> $GITHUB_OUTPUT
+            echo "metrics=⏱️ Timeout after 30 minutes" >> $GITHUB_OUTPUT
+            exit 1
+          fi
 
           echo "reindex_success=false" >> $GITHUB_OUTPUT
           echo "metrics=HTTP $HTTP_CODE - Check logs" >> $GITHUB_OUTPUT
