@@ -88,28 +88,32 @@ public class ReindexController : ControllerBase
                 await Task.Delay(2000, cancellationToken);
             }
 
-            // Step 3: Find and read pattern/inbox files
-            _logger.LogInformation("Step 3: Reading pattern and inbox files...");
+            // Step 3: Find and read pattern/inbox/agentic files
+            _logger.LogInformation("Step 3: Reading pattern, inbox, and agentic files...");
             var patternsPath = ResolvePatternsPath();
             var inboxPath = ResolveInboxPath();
+            var agenticPath = ResolveAgenticPath();
             var patternFiles = GetPatternFiles(patternsPath, pattern);
             var inboxFiles = string.IsNullOrEmpty(pattern) ? GetInboxFiles(inboxPath) : new List<string>();
+            var agenticFiles = string.IsNullOrEmpty(pattern) ? GetAgenticFiles(agenticPath) : new List<string>();
 
-            if (patternFiles.Count == 0 && inboxFiles.Count == 0)
+            if (patternFiles.Count == 0 && inboxFiles.Count == 0 && agenticFiles.Count == 0)
             {
                 return NotFound(new
                 {
-                    error = "No pattern or inbox files found",
+                    error = "No pattern, inbox, or agentic files found",
                     patternsPath,
                     inboxPath,
+                    agenticPath,
                     filter = pattern
                 });
             }
 
             _logger.LogInformation(
-                "Found {PatternCount} pattern files and {InboxCount} inbox files to process",
+                "Found {PatternCount} pattern files, {InboxCount} inbox files, and {AgenticCount} agentic files to process",
                 patternFiles.Count,
-                inboxFiles.Count);
+                inboxFiles.Count,
+                agenticFiles.Count);
 
             // Step 4: Chunk all patterns
             _logger.LogInformation("Step 4: Chunking patterns...");
@@ -138,10 +142,20 @@ public class ReindexController : ControllerBase
                 allChunks.AddRange(chunks);
             }
 
+            // Process agentic JSON files (same chunking as patterns)
+            foreach (var file in agenticFiles)
+            {
+                var json = await System.IO.File.ReadAllTextAsync(file, cancellationToken);
+                var slug = $"agentic-{Path.GetFileNameWithoutExtension(file)}";
+                var chunks = _chunkingService.ChunkPattern(json, slug);
+                allChunks.AddRange(chunks);
+            }
+
             _logger.LogInformation(
-                "Chunking complete: {PatternCount} patterns + {InboxCount} inbox files → {ChunkCount} chunks",
+                "Chunking complete: {PatternCount} patterns + {InboxCount} inbox + {AgenticCount} agentic → {ChunkCount} chunks",
                 patternFiles.Count,
                 inboxFiles.Count,
+                agenticFiles.Count,
                 allChunks.Count);
 
             // Step 5: Embed all chunks
@@ -186,18 +200,21 @@ public class ReindexController : ControllerBase
                 status = "success",
                 patternsProcessed = patternFiles.Count,
                 inboxDocumentsProcessed = inboxFiles.Count,
+                agenticDocumentsProcessed = agenticFiles.Count,
                 chunksCreated = allChunks.Count,
                 documentsUploaded = uploadedCount,
                 documentsDeleted = deletedCount,
                 totalDocumentsInIndex = totalDocuments,
                 elapsedSeconds = stopwatch.Elapsed.TotalSeconds,
                 patterns = patternFiles.Select(Path.GetFileNameWithoutExtension).ToList(),
-                inboxDocuments = inboxFiles.Select(Path.GetFileName).ToList()
+                inboxDocuments = inboxFiles.Select(Path.GetFileName).ToList(),
+                agenticDocuments = agenticFiles.Select(Path.GetFileName).ToList()
             };
 
             _logger.LogInformation(
-                "Reindex complete: {Patterns} patterns, {Chunks} chunks, {Uploaded} uploaded in {Seconds:F1}s",
-                result.patternsProcessed, result.chunksCreated, result.documentsUploaded, result.elapsedSeconds);
+                "Reindex complete: {Patterns} patterns + {Inbox} inbox + {Agentic} agentic, {Chunks} chunks, {Uploaded} uploaded in {Seconds:F1}s",
+                result.patternsProcessed, result.inboxDocumentsProcessed, result.agenticDocumentsProcessed,
+                result.chunksCreated, result.documentsUploaded, result.elapsedSeconds);
 
             return Ok(result);
         }
@@ -326,6 +343,39 @@ public class ReindexController : ControllerBase
         return defaultPath;
     }
 
+    /// <summary>
+    /// Find the content/agentic directory for agentic JSON files.
+    /// </summary>
+    private string ResolveAgenticPath()
+    {
+        var configuredPath = _config["Reindex:AgenticPath"];
+        if (!string.IsNullOrEmpty(configuredPath) && Directory.Exists(configuredPath))
+        {
+            return configuredPath;
+        }
+
+        var candidates = new[]
+        {
+            Path.Combine(Directory.GetCurrentDirectory(), "..", "..", "content", "agentic"),
+            Path.Combine(Directory.GetCurrentDirectory(), "platform", "modernizationpatterns", "content", "agentic"),
+            @"c:\RiskInsure\RiskInsure\platform\modernizationpatterns\content\agentic"
+        };
+
+        foreach (var candidate in candidates)
+        {
+            var resolved = Path.GetFullPath(candidate);
+            if (Directory.Exists(resolved))
+            {
+                _logger.LogInformation("Agentic path resolved to: {Path}", resolved);
+                return resolved;
+            }
+        }
+
+        var defaultPath = Path.Combine(Directory.GetCurrentDirectory(), "content", "agentic");
+        _logger.LogWarning("Agentic path not found, defaulting to: {Path}", defaultPath);
+        return defaultPath;
+    }
+
     /// <summary>Get pattern JSON files, optionally filtered to a single pattern by slug</summary>
     private static List<string> GetPatternFiles(string contentPath, string? patternFilter)
     {
@@ -345,6 +395,19 @@ public class ReindexController : ControllerBase
         }
 
         return files.OrderBy(f => f).ToList();
+    }
+
+    /// <summary>Get agentic JSON files from the agentic content folder</summary>
+    private static List<string> GetAgenticFiles(string agenticPath)
+    {
+        if (!Directory.Exists(agenticPath))
+        {
+            return new List<string>();
+        }
+
+        return Directory.GetFiles(agenticPath, "*.json")
+            .OrderBy(f => f)
+            .ToList();
     }
 
     private static List<string> GetInboxFiles(string inboxPath)
