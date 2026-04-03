@@ -99,14 +99,17 @@ public class ReindexJobService : IReindexJobService
     {
         if (_jobs.TryGetValue(jobId, out var current))
         {
-            var completed = current with
-            {
-                State = "completed",
-                Progress = 100,
-                Result = result,
-                CompletedUtc = DateTime.UtcNow,
-                CurrentStep = "Complete"
-            };
+            var completed = new ReindexJobStatus(
+                JobId: current.JobId,
+                State: "completed",
+                Progress: 100,
+                CurrentStep: "Complete",
+                StartedUtc: current.StartedUtc,
+                CompletedUtc: DateTime.UtcNow,
+                Result: result,
+                Error: null,
+                ErrorMessage: null
+            );
 
             _jobs[jobId] = completed;
         }
@@ -116,14 +119,17 @@ public class ReindexJobService : IReindexJobService
     {
         if (_jobs.TryGetValue(jobId, out var current))
         {
-            var failed = current with
-            {
-                State = "failed",
-                Error = error,
-                ErrorMessage = message,
-                CompletedUtc = DateTime.UtcNow,
-                CurrentStep = "Failed"
-            };
+            var failed = new ReindexJobStatus(
+                JobId: current.JobId,
+                State: "failed",
+                Progress: current.Progress,
+                CurrentStep: "Failed",
+                StartedUtc: current.StartedUtc,
+                CompletedUtc: DateTime.UtcNow,
+                Result: null,
+                Error: error,
+                ErrorMessage: message
+            );
 
             _jobs[jobId] = failed;
         }

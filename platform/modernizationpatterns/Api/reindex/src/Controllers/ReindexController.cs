@@ -338,11 +338,11 @@ public class ReindexController : ControllerBase
                 ChunksCreated: allChunks.Count,
                 DocumentsUploaded: uploadedCount,
                 DocumentsDeleted: deletedCount,
-                TotalDocumentsInIndex: totalDocuments,
+                TotalDocumentsInIndex: (int)totalDocuments,
                 ElapsedSeconds: stopwatch.Elapsed.TotalSeconds,
-                Patterns: patternFiles.Select(Path.GetFileNameWithoutExtension).ToList(),
-                InboxDocuments: inboxFiles.Select(Path.GetFileName).ToList(),
-                AgenticDocuments: agenticFiles.Select(Path.GetFileName).ToList()
+                Patterns: patternFiles.Select(f => Path.GetFileNameWithoutExtension(f) ?? "").ToList(),
+                InboxDocuments: inboxFiles.Select(f => Path.GetFileName(f) ?? "").ToList(),
+                AgenticDocuments: agenticFiles.Select(f => Path.GetFileName(f) ?? "").ToList()
             );
 
             _logger.LogInformation(
