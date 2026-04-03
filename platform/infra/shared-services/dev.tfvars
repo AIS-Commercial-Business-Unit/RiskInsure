@@ -36,4 +36,4 @@ ai_foundry_chat_capacity        = 10 # 10K tokens per minute
 ai_foundry_embedding_deployment_name = "text-embedding-3-small"
 ai_foundry_embedding_model           = "text-embedding-3-small"
 ai_foundry_embedding_model_version   = "1"
-ai_foundry_embedding_capacity        = 30 # 30K tokens per minute
+ai_foundry_embedding_capacity        = 100 # 100K tokens per minute
