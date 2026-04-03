@@ -112,16 +112,18 @@ jobs:
           # Check Cosmos DB containers
           COSMOS_DB="RiskInsure"
           REQUIRED_CONTAINERS=(
-            "fundstransfermgt"
+            "fundtransfermgt-paymentmethods"
+            "fundtransfermgt-transactions"
             "fundstransfermgt-sagas"
             "customerrelationships"
-            "CustomerRelationshipsMgt-Sagas"
+            "customerrelationshipsmgt-sagas"
             "policylifecycle"
             "policylifecycle-sagas"
-            "PolicyEquityAndInvoicingMgt"
-            "PolicyEquityAndInvoicingMgt-Sagas"
             "riskratingandunderwriting"
-            "RatingUnderwriting-Sagas"
+            "riskratingandunderwriting-sagas"
+            "policyequityandinvoicingmgt"
+            "policyequityandinvoicingmgt-sagas"
+            "modernizationpatterns-conversations"
           )
           
           for container in "${REQUIRED_CONTAINERS[@]}"; do

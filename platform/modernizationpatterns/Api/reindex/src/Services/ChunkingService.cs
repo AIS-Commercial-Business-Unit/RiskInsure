@@ -30,8 +30,10 @@ public interface IChunkingService
 public class ChunkingService : IChunkingService
 {
     private readonly ILogger<ChunkingService> _logger;
-    private const int TargetChunkTokens = 500;
-    private const int OverlapTokens = 100;
+    // Increased chunk size to reduce API calls (was 500, now 2000)
+    // Fewer, larger chunks = fewer embedding API calls = less rate limiting
+    private const int TargetChunkTokens = 2000;
+    private const int OverlapTokens = 150;
 
     public ChunkingService(ILogger<ChunkingService> logger)
     {
@@ -169,102 +171,72 @@ public class ChunkingService : IChunkingService
                 });
             }
 
-            // --- Chunk 4: Complexity Assessment ---
-            var complexityBuilder = new StringBuilder();
-            complexityBuilder.AppendLine($"# {title} — Complexity Assessment");
-            complexityBuilder.AppendLine($"Category: {category}");
-            complexityBuilder.AppendLine();
+            // --- Chunk 4: Details (Complexity + Example + Related combined into one chunk) ---
+            // Consolidating these small sections reduces chunk count significantly
+            var detailsBuilder = new StringBuilder();
+            detailsBuilder.AppendLine($"# {title} — Details & Context");
+            detailsBuilder.AppendLine($"Category: {category}");
+            detailsBuilder.AppendLine();
 
+            // Add complexity assessment
             if (root.TryGetProperty("complexity", out var complexity))
             {
-                AppendField(complexityBuilder, complexity, "level", "Level");
-                AppendField(complexityBuilder, complexity, "rationale", "Rationale");
-                AppendField(complexityBuilder, complexity, "teamImpact", "Team Impact");
-                AppendField(complexityBuilder, complexity, "skillDemand", "Skill Demand");
-                AppendField(complexityBuilder, complexity, "operationalDemand", "Operational Demand");
-                AppendField(complexityBuilder, complexity, "toolingDemand", "Tooling Demand");
-
-                var complexityContent = complexityBuilder.ToString().Trim();
-                if (complexityContent.Split('\n').Length > 2)
-                {
-                    chunks.Add(new PatternChunk
-                    {
-                        Id = $"{patternSlug}_complexity",
-                        PatternSlug = patternSlug,
-                        Title = title,
-                        Category = category,
-                        ChunkType = "complexity",
-                        Content = complexityContent,
-                        ChunkIndex = chunkIndex++
-                    });
-                }
+                detailsBuilder.AppendLine("## Complexity Assessment");
+                AppendField(detailsBuilder, complexity, "level", "Level");
+                AppendField(detailsBuilder, complexity, "rationale", "Rationale");
+                AppendField(detailsBuilder, complexity, "teamImpact", "Team Impact");
+                AppendField(detailsBuilder, complexity, "skillDemand", "Skill Demand");
+                AppendField(detailsBuilder, complexity, "operationalDemand", "Operational Demand");
+                AppendField(detailsBuilder, complexity, "toolingDemand", "Tooling Demand");
+                detailsBuilder.AppendLine();
             }
 
-            // --- Chunk 5: Real-World Example ---
+            // Add real-world example
             if (root.TryGetProperty("realWorldExample", out var example))
             {
-                var exampleBuilder = new StringBuilder();
-                exampleBuilder.AppendLine($"# {title} — Real-World Example");
-                exampleBuilder.AppendLine($"Category: {category}");
-                exampleBuilder.AppendLine();
-
-                AppendField(exampleBuilder, example, "context", "Context");
-                AppendField(exampleBuilder, example, "approach", "Approach");
-                AppendField(exampleBuilder, example, "outcome", "Outcome");
-
-                chunks.Add(new PatternChunk
-                {
-                    Id = $"{patternSlug}_example",
-                    PatternSlug = patternSlug,
-                    Title = title,
-                    Category = category,
-                    ChunkType = "example",
-                    Content = exampleBuilder.ToString().Trim(),
-                    ChunkIndex = chunkIndex++
-                });
+                detailsBuilder.AppendLine("## Real-World Example");
+                AppendField(detailsBuilder, example, "context", "Context");
+                AppendField(detailsBuilder, example, "approach", "Approach");
+                AppendField(detailsBuilder, example, "outcome", "Outcome");
+                detailsBuilder.AppendLine();
             }
 
-            // --- Chunk 6: Related Information (related patterns + further reading) ---
-            var relatedBuilder = new StringBuilder();
-            relatedBuilder.AppendLine($"# {title} — Related Information");
-            relatedBuilder.AppendLine($"Category: {category}");
-            relatedBuilder.AppendLine();
-
-            AppendStringArray(relatedBuilder, root, "relatedPatterns", "Related Patterns");
-            AppendStringArray(relatedBuilder, root, "tags", "Tags");
+            // Add related patterns and further reading
+            AppendStringArray(detailsBuilder, root, "relatedPatterns", "Related Patterns");
+            AppendStringArray(detailsBuilder, root, "tags", "Tags");
 
             if (root.TryGetProperty("furtherReading", out var furtherReading) && furtherReading.ValueKind == JsonValueKind.Array)
             {
-                relatedBuilder.AppendLine();
-                relatedBuilder.AppendLine("## Further Reading");
+                detailsBuilder.AppendLine();
+                detailsBuilder.AppendLine("## Further Reading");
                 foreach (var readingItem in furtherReading.EnumerateArray())
                 {
                     if (readingItem.TryGetProperty("title", out var readingTitle))
                     {
-                        relatedBuilder.Append($"- **{readingTitle.GetString()}**");
+                        detailsBuilder.Append($"- **{readingTitle.GetString()}**");
                         if (readingItem.TryGetProperty("link", out var readingLink))
                         {
-                            relatedBuilder.AppendLine($": {readingLink.GetString()}");
+                            detailsBuilder.AppendLine($": {readingLink.GetString()}");
                         }
                         else
                         {
-                            relatedBuilder.AppendLine();
+                            detailsBuilder.AppendLine();
                         }
                     }
                 }
             }
 
-            var relatedContent = relatedBuilder.ToString().Trim();
-            if (relatedContent.Split('\n').Length > 2)
+            var detailsContent = detailsBuilder.ToString().Trim();
+            if (detailsContent.Split('\n').Length > 4) // Only create if has meaningful content
             {
                 chunks.Add(new PatternChunk
                 {
-                    Id = $"{patternSlug}_related",
+                    Id = $"{patternSlug}_details",
                     PatternSlug = patternSlug,
                     Title = title,
                     Category = category,
-                    ChunkType = "related",
-                    Content = relatedContent,
+                    ChunkType = "details",
+                    Content = detailsContent,
                     ChunkIndex = chunkIndex++
                 });
             }

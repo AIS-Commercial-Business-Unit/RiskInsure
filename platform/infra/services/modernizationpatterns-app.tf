@@ -145,7 +145,12 @@ resource "azurerm_container_app" "modernizationpatterns_chat_api" {
 
       env {
         name  = "CosmosDb__DatabaseName"
-        value = "modernization-patterns-db"
+        value = "RiskInsure"
+      }
+
+      env {
+        name  = "CosmosDb__ContainerName"
+        value = "modernizationpatterns-conversations"
       }
 
       # Application Insights

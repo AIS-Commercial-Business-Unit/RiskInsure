@@ -92,6 +92,238 @@
       "build",
       "release-adopt",
       "operate-evolve"
+    ],
+    "customSections": [
+      {
+        "title": "Risk & use-case governance",
+        "description": "Agentic AI systems introduce new operational and data risks due to their autonomy and ability to take actions. Organizations must evaluate use-case suitability, define risk tiers, and bound agents' capabilities through explicit limits, permissions, and identity controls.",
+        "items": [
+          {
+            "title": "Suitability",
+            "description": "Determines whether a given task or business function is appropriate for agentic automation based on impact, autonomy level, and operational risk.",
+            "bullets": [
+              "Evaluate whether the task requires human judgment, ethics, or high-stakes decision making.",
+              "Prefer bounded workflows with clear inputs, outputs, and success criteria.",
+              "Avoid autonomous execution in domains with legal or safety consequences.",
+              "Assess data sensitivity and external system impact before enabling agents."
+            ]
+          },
+          {
+            "title": "Risk tiering",
+            "description": "Classifies agentic systems by potential impact so that governance controls scale with the risk level of the use case.",
+            "bullets": [
+              "Categorize agents by business impact, system access, and decision authority.",
+              "Apply stricter approval and monitoring for high-risk agents.",
+              "Define different control requirements for informational vs operational agents.",
+              "Continuously reassess risk as agents gain capabilities or integrations."
+            ]
+          },
+          {
+            "title": "Allowed actions",
+            "description": "Defines the specific operations and system interactions an agent is permitted to perform within bounded limits.",
+            "bullets": [
+              "Define explicit action permissions and disallowed operations.",
+              "Restrict access to sensitive data sources and external systems.",
+              "Ensure agents follow predefined SOPs and escalation paths.",
+              "Limit write or modification capabilities unless explicitly approved."
+            ]
+          },
+          {
+            "title": "Identity and blast radius",
+            "description": "Ensures agents operate with identifiable identities and constrained permissions so their potential impact remains limited.",
+            "bullets": [
+              "Assign unique identities to agents for traceability.",
+              "Limit agent privileges using scoped credentials.",
+              "Segment environments to prevent cross-system propagation.",
+              "Design agents so failures remain contained within bounded domains."
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Human accountability",
+        "description": "Despite automation, humans remain responsible for the actions of agentic systems. Governance must clearly define ownership, decision checkpoints, and escalation processes to maintain accountability.",
+        "items": [
+          {
+            "title": "Owners",
+            "description": "Defines accountable individuals responsible for the deployment, monitoring, and outcomes of an agentic system.",
+            "bullets": [
+              "Assign a responsible owner for every deployed agent.",
+              "Ensure owners understand the agent's capabilities and limitations.",
+              "Maintain clear responsibility for monitoring and operational oversight.",
+              "Require owners to approve changes to agent scope or permissions."
+            ]
+          },
+          {
+            "title": "Approval points",
+            "description": "Introduces human checkpoints where agent actions must be reviewed or approved before execution.",
+            "bullets": [
+              "Require approval before executing high-impact actions.",
+              "Define escalation triggers for uncertain or ambiguous tasks.",
+              "Route sensitive operations to human decision makers.",
+              "Implement staged approvals for complex workflows."
+            ]
+          },
+          {
+            "title": "Escalation",
+            "description": "Provides structured processes for agents to defer uncertain decisions or failures to human operators.",
+            "bullets": [
+              "Escalate actions when confidence thresholds are not met.",
+              "Trigger escalation for policy conflicts or unexpected results.",
+              "Notify operators when agents exceed predefined limits.",
+              "Provide clear channels for human intervention."
+            ]
+          },
+          {
+            "title": "Override authority",
+            "description": "Ensures humans retain the ability to intervene, halt, or override agent behavior when necessary.",
+            "bullets": [
+              "Allow administrators to immediately stop agent execution.",
+              "Provide manual override for critical decision points.",
+              "Enable operators to revoke permissions or disable agents.",
+              "Maintain procedures for emergency shutdown."
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Technical controls",
+        "description": "Technical safeguards enforce governance policies through architecture, system design, and automated enforcement mechanisms to ensure agents operate safely.",
+        "items": [
+          {
+            "title": "Policy as code",
+            "description": "Encodes governance policies into enforceable technical rules that automatically constrain agent behavior.",
+            "bullets": [
+              "Define operational policies in machine-enforceable formats.",
+              "Validate agent actions against policy constraints.",
+              "Integrate policy checks into execution workflows.",
+              "Continuously test policies against new scenarios."
+            ]
+          },
+          {
+            "title": "Least privilege",
+            "description": "Restricts agent access to only the resources and permissions necessary to perform assigned tasks.",
+            "bullets": [
+              "Grant minimal permissions required for task completion.",
+              "Use scoped credentials for external systems.",
+              "Separate read and write capabilities where possible.",
+              "Regularly review and revoke unnecessary privileges."
+            ]
+          },
+          {
+            "title": "Evaluations",
+            "description": "Implements testing and performance checks to validate agent behavior against accuracy, safety, and policy requirements.",
+            "bullets": [
+              "Evaluate task execution accuracy and policy adherence.",
+              "Test agents against representative operational scenarios.",
+              "Measure tool-use accuracy and system interaction reliability.",
+              "Continuously benchmark performance across deployments."
+            ]
+          },
+          {
+            "title": "Rollback and containment",
+            "description": "Provides mechanisms to quickly stop, revert, or isolate agent actions when failures or risks are detected.",
+            "bullets": [
+              "Implement mechanisms to halt agent workflows.",
+              "Enable rollback of automated changes or actions.",
+              "Contain failures within controlled system boundaries.",
+              "Establish incident response procedures for agent failures."
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Transparency & compliance",
+        "description": "Effective governance requires visibility into agent behavior and decision making. Logging, traceability, and reporting mechanisms ensure organizations can audit and validate outcomes.",
+        "items": [
+          {
+            "title": "Audit trails",
+            "description": "Records the actions taken by agents, including inputs, outputs, and decisions, to support oversight and regulatory compliance.",
+            "bullets": [
+              "Log all agent actions and system interactions.",
+              "Record decision inputs, outputs, and reasoning context.",
+              "Maintain immutable records for compliance review.",
+              "Track policy adherence and execution results."
+            ]
+          },
+          {
+            "title": "Decision reconstruction",
+            "description": "Enables organizations to understand how and why an agent made a particular decision or action.",
+            "bullets": [
+              "Capture prompts, tools used, and decision pathways.",
+              "Retain execution context for analysis.",
+              "Support post-incident analysis and investigation.",
+              "Ensure traceability from decision to outcome."
+            ]
+          },
+          {
+            "title": "Dashboards",
+            "description": "Provides real-time visibility into agent operations, performance, and policy compliance.",
+            "bullets": [
+              "Monitor agent activity and task execution metrics.",
+              "Track policy violations and escalation events.",
+              "Visualize performance and operational health.",
+              "Provide alerts for abnormal agent behavior."
+            ]
+          },
+          {
+            "title": "Verification",
+            "description": "Ensures that agent outputs and actions meet defined accuracy, safety, and compliance requirements.",
+            "bullets": [
+              "Validate outputs against expected task criteria.",
+              "Check compliance with defined policies and procedures.",
+              "Implement verification steps for sensitive outputs.",
+              "Use automated tests to confirm behavior reliability."
+            ]
+          }
+        ]
+      },
+      {
+        "title": "Enablement & adaptation",
+        "description": "Governance must evolve as organizations adopt agentic systems. Training, operational learning, and continuous re-evaluation help teams adapt responsibly.",
+        "items": [
+          {
+            "title": "Training",
+            "description": "Equips employees and operators with the knowledge needed to design, supervise, and manage agentic systems responsibly.",
+            "bullets": [
+              "Educate teams on agent capabilities and limitations.",
+              "Train operators on governance procedures and oversight.",
+              "Provide guidance on safe system integration.",
+              "Ensure staff understand escalation and incident protocols."
+            ]
+          },
+          {
+            "title": "Responsible use",
+            "description": "Promotes organizational practices that encourage safe and ethical deployment of agentic technologies.",
+            "bullets": [
+              "Establish guidelines for acceptable agent usage.",
+              "Promote awareness of risks and ethical considerations.",
+              "Encourage responsible experimentation within guardrails.",
+              "Document best practices for agent development."
+            ]
+          },
+          {
+            "title": "Incident learning",
+            "description": "Uses operational failures and unexpected behavior to improve governance, policies, and technical safeguards.",
+            "bullets": [
+              "Investigate incidents involving agent decisions or actions.",
+              "Update policies based on operational lessons learned.",
+              "Share findings across teams to prevent recurrence.",
+              "Continuously refine risk management practices."
+            ]
+          },
+          {
+            "title": "Re-qualification",
+            "description": "Ensures agents remain compliant and effective over time through periodic reassessment and validation.",
+            "bullets": [
+              "Reassess agent risk classification periodically.",
+              "Retest agents when models or integrations change.",
+              "Verify continued policy compliance and safety.",
+              "Require re-approval for expanded capabilities."
+            ]
+          }
+        ]
+      }
     ]
   },
   {

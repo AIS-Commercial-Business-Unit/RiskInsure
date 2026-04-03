@@ -122,8 +122,8 @@ try
         ?? throw new InvalidOperationException("CosmosDb connection string not configured");
 
     var databaseName = builder.Configuration["CosmosDb:DatabaseName"] ?? "RiskInsure";
-    var paymentMethodsContainerName = builder.Configuration["CosmosDb:PaymentMethodsContainerName"] ?? "FundTransferMgt-PaymentMethods";
-    var transactionsContainerName = builder.Configuration["CosmosDb:TransactionsContainerName"] ?? "FundTransferMgt-Transactions";
+    var paymentMethodsContainerName = builder.Configuration["CosmosDb:PaymentMethodsContainerName"] ?? "fundtransfermgt-paymentmethods";
+    var transactionsContainerName = builder.Configuration["CosmosDb:TransactionsContainerName"] ?? "fundtransfermgt-transactions";
 
     // Configure CosmosClient to use System.Text.Json serialization and Direct mode for best performance
     var cosmosClientOptions = new CosmosClientOptions

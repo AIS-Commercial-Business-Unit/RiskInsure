@@ -15,9 +15,10 @@ on:
     branches:
       - main
     paths:
-      # Only trigger on _inbox and patterns folder changes (documents to be indexed)
+      # Trigger on _inbox, patterns, and agentic folder changes (documents to be indexed)
       - "platform/modernizationpatterns/content/_inbox/**"
       - "platform/modernizationpatterns/content/patterns/**"
+      - "platform/modernizationpatterns/content/agentic/**"
 
 env:
   AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
@@ -51,10 +52,11 @@ jobs:
               BASE_SHA=$(git rev-parse HEAD~1)
             fi
 
-            # Only check _inbox and patterns folders (documents to be indexed)
+            # Only check _inbox, patterns, and agentic folders (documents to be indexed)
             if git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- \
                 platform/modernizationpatterns/content/_inbox \
-                platform/modernizationpatterns/content/patterns; then
+                platform/modernizationpatterns/content/patterns \
+                platform/modernizationpatterns/content/agentic; then
               CONTENT_CHANGED="false"
             else
               CONTENT_CHANGED="true"
@@ -130,10 +132,10 @@ jobs:
               BASE_SHA=$(git rev-parse HEAD~1)
             fi
 
-            # Only detect changes in _inbox and patterns folders
-            ADDED_FILES=$(git diff --name-status "$BASE_SHA" "$HEAD_SHA" | grep -E "^A.*platform/modernizationpatterns/content/(_inbox|patterns)/" | cut -f2 | tr '\n' ',' | sed 's/,$//')
-            MODIFIED_FILES=$(git diff --name-status "$BASE_SHA" "$HEAD_SHA" | grep -E "^M.*platform/modernizationpatterns/content/(_inbox|patterns)/" | cut -f2 | tr '\n' ',' | sed 's/,$//')
-            DELETED_FILES=$(git diff --name-status "$BASE_SHA" "$HEAD_SHA" | grep -E "^D.*platform/modernizationpatterns/content/(_inbox|patterns)/" | cut -f2 | tr '\n' ',' | sed 's/,$//')
+            # Detect changes in _inbox, patterns, and agentic folders
+            ADDED_FILES=$(git diff --name-status "$BASE_SHA" "$HEAD_SHA" | grep -E "^A.*platform/modernizationpatterns/content/(_inbox|patterns|agentic)/" | cut -f2 | tr '\n' ',' | sed 's/,$//')
+            MODIFIED_FILES=$(git diff --name-status "$BASE_SHA" "$HEAD_SHA" | grep -E "^M.*platform/modernizationpatterns/content/(_inbox|patterns|agentic)/" | cut -f2 | tr '\n' ',' | sed 's/,$//')
+            DELETED_FILES=$(git diff --name-status "$BASE_SHA" "$HEAD_SHA" | grep -E "^D.*platform/modernizationpatterns/content/(_inbox|patterns|agentic)/" | cut -f2 | tr '\n' ',' | sed 's/,$//')
 
             ADDED_COUNT=$([ -n "$ADDED_FILES" ] && echo "$ADDED_FILES" | awk -F',' '{print NF}' || echo 0)
             MODIFIED_COUNT=$([ -n "$MODIFIED_FILES" ] && echo "$MODIFIED_FILES" | awk -F',' '{print NF}' || echo 0)
@@ -225,7 +227,12 @@ jobs:
           fi
 
           echo ""
-          echo "📤 Sending reindex request with retry logic (timeout: 300s)..."
+          echo "📤 Sending reindex request with retry logic..."
+          echo "⚠️  WARNING: Using Free tier Azure OpenAI with rate limiting (3-6 RPM)"
+          echo "    Reindex may take 10-20 minutes for large content sets"
+          echo "    For production: Upgrade to Standard/Pro tier for 10x faster reindex"
+          echo ""
+          echo "Timeout: 900s (15 minutes per attempt)"
 
           # Default outputs (overridden on success)
           echo "patterns_indexed=0" >> $GITHUB_OUTPUT
@@ -247,7 +254,7 @@ jobs:
               -o /tmp/reindex_response.json \
               -w "%{http_code}" \
               "${ENDPOINT}${QUERY_PARAMS}" \
-              --max-time 300 \
+              --max-time 900 \
               --connect-timeout 30 || echo "000")
 
             BODY=$(cat /tmp/reindex_response.json 2>/dev/null || echo "")

@@ -187,7 +187,7 @@ public static class NServiceBusConfigurationExtensions
         // Todo: Configuration item
         persistence.DatabaseName("RiskInsure");
         // Todo: Configuration item
-        persistence.DefaultContainer("PolicyEquityAndInvoicingMgt-Sagas", "/id");
+        persistence.DefaultContainer("policyequityandinvoicingmgt-sagas", "/accountId");
 
         return endpointConfiguration;
     }
