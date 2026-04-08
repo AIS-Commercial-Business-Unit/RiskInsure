@@ -10,7 +10,7 @@ services:
       context: .
       dockerfile: platform/templates/Dockerfile.api.compose
       args:
-        PROJECT_PATH: services/fundstransfermgt/src/Api/Api.csproj
+        PROJECT_PATH: services/FundsTransferMgt/src/Api/Api.csproj
         IMPORT_SSL_CERTS_FOR: cosmosdb
     ports:
       - "7075:8080"
@@ -40,7 +40,7 @@ services:
       context: .
       dockerfile: platform/templates/Dockerfile.endpoint.compose
       args:
-        PROJECT_PATH: services/fundstransfermgt/src/Endpoint.In/Endpoint.In.csproj
+        PROJECT_PATH: services/FundsTransferMgt/src/Endpoint.In/Endpoint.In.csproj
         IMPORT_SSL_CERTS_FOR: cosmosdb
     volumes:
       - ./License.xml:/app/license.xml:ro
@@ -70,7 +70,7 @@ services:
       context: .
       dockerfile: platform/templates/Dockerfile.api.compose
       args:
-        PROJECT_PATH: services/policylifecyclemgt/src/Api/Api.csproj
+        PROJECT_PATH: services/PolicyLifeCycleMgt/src/Api/Api.csproj
         IMPORT_SSL_CERTS_FOR: cosmosdb
     ports:
       - "7085:8080"
@@ -99,7 +99,7 @@ services:
       context: .
       dockerfile: platform/templates/Dockerfile.endpoint.compose
       args:
-        PROJECT_PATH: services/policylifecyclemgt/src/Endpoint.In/Endpoint.In.csproj
+        PROJECT_PATH: services/PolicyLifeCycleMgt/src/Endpoint.In/Endpoint.In.csproj
         IMPORT_SSL_CERTS_FOR: cosmosdb
     volumes:
       - ./License.xml:/app/license.xml:ro
@@ -128,7 +128,7 @@ services:
       context: .
       dockerfile: platform/templates/Dockerfile.api.compose
       args:
-        PROJECT_PATH: services/policyequityandinvoicingmgt/src/Api/Api.csproj
+        PROJECT_PATH: services/PolicyEquityAndInvoicingMgt/src/Api/Api.csproj
         IMPORT_SSL_CERTS_FOR: cosmosdb
     ports:
       - "7081:8080"
@@ -157,7 +157,7 @@ services:
       context: .
       dockerfile: platform/templates/Dockerfile.endpoint.compose
       args:
-        PROJECT_PATH: services/policyequityandinvoicingmgt/src/Endpoint.In/Endpoint.In.csproj
+        PROJECT_PATH: services/PolicyEquityAndInvoicingMgt/src/Endpoint.In/Endpoint.In.csproj
         IMPORT_SSL_CERTS_FOR: cosmosdb
     volumes:
       - ./License.xml:/app/license.xml:ro
@@ -186,7 +186,7 @@ services:
       context: .
       dockerfile: platform/templates/Dockerfile.api.compose
       args:
-        PROJECT_PATH: services/customerrelationshipsmgt/src/Api/Api.csproj
+        PROJECT_PATH: services/CustomerRelationshipsMgt/src/Api/Api.csproj
         IMPORT_SSL_CERTS_FOR: cosmosdb
     ports:
       - "7083:8080"
@@ -215,7 +215,7 @@ services:
       context: .
       dockerfile: platform/templates/Dockerfile.endpoint.compose
       args:
-        PROJECT_PATH: services/customerrelationshipsmgt/src/Endpoint.In/Endpoint.In.csproj
+        PROJECT_PATH: services/CustomerRelationshipsMgt/src/Endpoint.In/Endpoint.In.csproj
         IMPORT_SSL_CERTS_FOR: cosmosdb
     volumes:
       - ./License.xml:/app/license.xml:ro
@@ -244,7 +244,7 @@ services:
       context: .
       dockerfile: platform/templates/Dockerfile.api.compose
       args:
-        PROJECT_PATH: services/riskratingandunderwriting/src/Api/Api.csproj
+        PROJECT_PATH: services/RiskRatingAndUnderwriting/src/Api/Api.csproj
         IMPORT_SSL_CERTS_FOR: cosmosdb
     ports:
       - "7087:8080"
@@ -273,7 +273,7 @@ services:
       context: .
       dockerfile: platform/templates/Dockerfile.endpoint.compose
       args:
-        PROJECT_PATH: services/riskratingandunderwriting/src/Endpoint.In/Endpoint.In.csproj
+        PROJECT_PATH: services/RiskRatingandUnderwriting/src/Endpoint.In/Endpoint.In.csproj
         IMPORT_SSL_CERTS_FOR: cosmosdb
     volumes:
       - ./License.xml:/app/license.xml:ro
