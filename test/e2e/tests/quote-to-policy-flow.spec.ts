@@ -102,7 +102,7 @@ test.describe('Quote to Policy Flow', () => {
     expect(policy.contentsCoverageLimit).toBe(quote.contentsCoverageLimit);
     expect(policy.contentsDeductible).toBe(quote.contentsDeductible);
     expect(policy.termMonths).toBe(quote.termMonths);
-    expect(policy.policyNumber).toMatch(/^KWG-\d{4}-\d{6}$/); // Format: KWG-YYYY-NNNNNN
+    expect(policy.policyNumber).toMatch(/^LCM-\d{4}-\d{6}$/); // Format: LCM-YYYY-NNNNNN
     logSuccess('CLASS A', 'Complete Quote-to-Policy flow successful');
     logDetail(`Customer: ${customer.firstName} ${customer.lastName} (${customer.customerId})`);
     logDetail(`Quote: ${quote.quoteId} (Class A, $${underwritingResult.premium})`);

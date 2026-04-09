@@ -10,8 +10,9 @@ public class CosmosDbInitializer
     private readonly ILogger<CosmosDbInitializer> _logger;
     private const string DatabaseName = "RiskInsure";
     private const string ContainerName = "customerrelationships";
-    private const int MaxInitializationAttempts = 12;
+    private const int MaxInitializationAttempts = 30;
     private const int InitialRetryDelayMilliseconds = 1000;
+    private const int MaxSharedInitializationAttempts = 40;
 
     public CosmosDbInitializer(CosmosClient cosmosClient, ILogger<CosmosDbInitializer> logger)
     {
@@ -26,17 +27,28 @@ public class CosmosDbInitializer
         string partitionKeyPath,
         int? throughput = 400)
     {
-        var dbResponse = await client.CreateDatabaseIfNotExistsAsync(
-            dbName,
-            throughput: throughput);
-
-        await dbResponse.Database.CreateContainerIfNotExistsAsync(
-            new ContainerProperties
+        var delay = TimeSpan.FromMilliseconds(1000);
+        for (var attempt = 1; attempt <= MaxSharedInitializationAttempts; attempt++)
+        {
+            try
             {
-                Id = containerName,
-                PartitionKeyPath = partitionKeyPath,
-                DefaultTimeToLive = -1
-            });
+                var dbResponse = await client.CreateDatabaseIfNotExistsAsync(dbName, throughput: throughput);
+                await dbResponse.Database.CreateContainerIfNotExistsAsync(
+                    new ContainerProperties
+                    {
+                        Id = containerName,
+                        PartitionKeyPath = partitionKeyPath,
+                        DefaultTimeToLive = -1
+                    });
+                return;
+            }
+            catch (CosmosException ex) when (IsTransient(ex) && attempt < MaxSharedInitializationAttempts)
+            {
+                var jitter = TimeSpan.FromMilliseconds(Random.Shared.Next(150, 900));
+                await Task.Delay(delay + jitter);
+                delay = TimeSpan.FromMilliseconds(Math.Min(delay.TotalMilliseconds * 2, 15000));
+            }
+        }
     }
 
     public async Task<Container> InitializeAsync()
@@ -82,7 +94,8 @@ public class CosmosDbInitializer
                     attempt,
                     MaxInitializationAttempts);
 
-                await Task.Delay(retryDelay);
+                var jitter = TimeSpan.FromMilliseconds(Random.Shared.Next(150, 900));
+                await Task.Delay(retryDelay + jitter);
                 retryDelay = TimeSpan.FromMilliseconds(Math.Min(retryDelay.TotalMilliseconds * 2, 15000));
             }
         }

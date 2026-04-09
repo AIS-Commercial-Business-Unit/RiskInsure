@@ -91,10 +91,10 @@ var cosmosClientOptions = new CosmosClientOptions
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         Converters = { new JsonStringEnumConverter() }
     }),
-    ConnectionMode = ConnectionMode.Direct,
-    RequestTimeout = TimeSpan.FromSeconds(10),
-    MaxRetryAttemptsOnRateLimitedRequests = 3,
-    MaxRetryWaitTimeOnRateLimitedRequests = TimeSpan.FromSeconds(5)
+    ConnectionMode = ConnectionMode.Gateway,
+    RequestTimeout = TimeSpan.FromSeconds(30),
+    MaxRetryAttemptsOnRateLimitedRequests = 9,
+    MaxRetryWaitTimeOnRateLimitedRequests = TimeSpan.FromSeconds(30)
 };
 
 var cosmosClient = new CosmosClient(cosmosConnectionString, cosmosClientOptions);
@@ -102,11 +102,35 @@ var cosmosClient = new CosmosClient(cosmosConnectionString, cosmosClientOptions)
 // Initialize database and container
 Log.Information("Initializing Cosmos DB database {DatabaseName} and container {ContainerName}",
     databaseName, containerName);
-await CosmosDbInitializer.EnsureDbAndContainerAsync(
-    cosmosClient,
-    databaseName,
-    containerName,
-    "/quoteId");
+_ = Task.Run(async () =>
+{
+    try
+    {
+        await CosmosDbInitializer.EnsureDbAndContainerAsync(
+            cosmosClient,
+            databaseName,
+            containerName,
+            "/quoteId");
+
+        Log.Information(
+            "Cosmos bootstrap for container {ContainerName} completed in background.",
+            containerName);
+    }
+    catch (CosmosException ex)
+    {
+        Log.Warning(
+            ex,
+            "Cosmos bootstrap for container {ContainerName} did not complete in background. API remains online and will retry through normal request paths.",
+            containerName);
+    }
+    catch (Exception ex)
+    {
+        Log.Error(
+            ex,
+            "Unexpected failure while bootstrapping Cosmos container {ContainerName} in background.",
+            containerName);
+    }
+});
 
 var container = cosmosClient.GetContainer(databaseName, containerName);
 builder.Services.AddSingleton(container);

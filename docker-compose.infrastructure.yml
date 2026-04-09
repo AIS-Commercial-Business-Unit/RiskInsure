@@ -44,11 +44,11 @@ services:
     networks:
       - riskinsure
     healthcheck:
-      test: ["CMD-SHELL", "timeout 1 bash -c '</dev/tcp/localhost/8081' || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 120s
+      test: ["CMD-SHELL", "curl -k -s -o /dev/null --max-time 5 https://localhost:8081/ || exit 1"]
+      interval: 20s
+      timeout: 15s
+      retries: 10
+      start_period: 60s
 
   keyvault-emulator:
     container_name: keyvault-emulator

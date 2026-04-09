@@ -70,16 +70,16 @@ var containerName = builder.Configuration["CosmosDb:ContainerName"] ?? "customer
 
 var cosmosClientOptions = new CosmosClientOptions
 {
-    ConnectionMode = ConnectionMode.Direct,
+    ConnectionMode = ConnectionMode.Gateway,
     Serializer = new CosmosSystemTextJsonSerializer(new System.Text.Json.JsonSerializerOptions
     {
         PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
         DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
         Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
     }),
-    RequestTimeout = TimeSpan.FromSeconds(10),
-    MaxRetryAttemptsOnRateLimitedRequests = 3,
-    MaxRetryWaitTimeOnRateLimitedRequests = TimeSpan.FromSeconds(5)
+    RequestTimeout = TimeSpan.FromSeconds(30),
+    MaxRetryAttemptsOnRateLimitedRequests = 9,
+    MaxRetryWaitTimeOnRateLimitedRequests = TimeSpan.FromSeconds(30)
 };
 
 var cosmosClient = new CosmosClient(cosmosConnectionString, cosmosClientOptions);
@@ -88,11 +88,35 @@ Log.Information("Initializing Cosmos DB database {DatabaseName} and container {C
     databaseName,
     containerName);
 
-await CosmosDbInitializer.EnsureDbAndContainerAsync(
-    cosmosClient,
-    databaseName,
-    containerName,
-    "/customerId");
+_ = Task.Run(async () =>
+{
+    try
+    {
+        await CosmosDbInitializer.EnsureDbAndContainerAsync(
+            cosmosClient,
+            databaseName,
+            containerName,
+            "/customerId");
+
+        Log.Information(
+            "Cosmos bootstrap for container {ContainerName} completed in background.",
+            containerName);
+    }
+    catch (CosmosException ex)
+    {
+        Log.Warning(
+            ex,
+            "Cosmos bootstrap for container {ContainerName} did not complete in background. API remains online and will retry through normal request paths.",
+            containerName);
+    }
+    catch (Exception ex)
+    {
+        Log.Error(
+            ex,
+            "Unexpected failure while bootstrapping Cosmos container {ContainerName} in background.",
+            containerName);
+    }
+});
 
 var container = cosmosClient.GetContainer(databaseName, containerName);
 builder.Services.AddSingleton(container);

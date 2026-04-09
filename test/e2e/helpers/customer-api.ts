@@ -31,6 +31,39 @@ export interface Customer {
   createdUtc: string;
 }
 
+interface RelationshipResponse {
+  relationshipId: string;
+  firstName?: string;
+  lastName?: string;
+  email: string;
+  phone?: string;
+  address?: {
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string;
+  };
+  zipCode?: string;
+  createdUtc: string;
+}
+
+function mapRelationshipToCustomer(relationship: RelationshipResponse): Customer {
+  return {
+    customerId: relationship.relationshipId,
+    firstName: relationship.firstName ?? '',
+    lastName: relationship.lastName ?? '',
+    email: relationship.email,
+    phone: relationship.phone ?? '',
+    address: relationship.address ?? {
+      street: '',
+      city: '',
+      state: '',
+      zipCode: relationship.zipCode ?? '',
+    },
+    createdUtc: relationship.createdUtc,
+  };
+}
+
 /**
  * Create a new customer in the Customer domain
  */
@@ -54,13 +87,14 @@ export async function createCustomer(
 
   const data = { ...defaultData, ...customerData };
 
-  const response = await request.post(`${config.apis.customer}/api/customers`, {
+  const response = await request.post(`${config.apis.customer}/api/relationships`, {
     data,
     timeout: config.timeouts.apiRequest,
   });
 
   expect(response.status()).toBe(201);
-  return await response.json();
+  const relationship: RelationshipResponse = await response.json();
+  return mapRelationshipToCustomer(relationship);
 }
 
 /**
@@ -71,10 +105,11 @@ export async function getCustomer(
   customerId: string
 ): Promise<Customer> {
   const response = await request.get(
-    `${config.apis.customer}/api/customers/${customerId}`,
+    `${config.apis.customer}/api/relationships/${customerId}`,
     { timeout: config.timeouts.apiRequest }
   );
 
   expect(response.status()).toBe(200);
-  return await response.json();
+  const relationship: RelationshipResponse = await response.json();
+  return mapRelationshipToCustomer(relationship);
 }

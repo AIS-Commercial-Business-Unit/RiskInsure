@@ -11,6 +11,9 @@
   <Folder Name="/platform/publiccontracts/">
     <Project Path="platform/RiskInsure.PublicContracts/RiskInsure.PublicContracts.csproj" />
   </Folder>
+    <Folder Name="/platform/cosmosinit/">
+      <Project Path="platform/RiskInsure.CosmosInit/RiskInsure.CosmosInit.csproj" />
+    </Folder>
   <Folder Name="/services/" />
   <Folder Name="/services/customerrelationshipsmgt/" />
   <Folder Name="/services/customerrelationshipsmgt/src/">

@@ -21,7 +21,8 @@ export interface Policy {
 
 export interface CustomerPoliciesResponse {
   customerId: string;
-  policies: Policy[];
+  policies?: Policy[];
+  lifeCycles?: Policy[];
 }
 
 /**
@@ -32,7 +33,7 @@ export async function getPolicy(
   policyId: string
 ): Promise<Policy> {
   const response = await request.get(
-    `${config.apis.policy}/api/policies/${policyId}`,
+    `${config.apis.policy}/api/lifecycles/${policyId}`,
     { timeout: config.timeouts.apiRequest }
   );
 
@@ -48,7 +49,7 @@ export async function getCustomerPolicies(
   customerId: string
 ): Promise<Policy[]> {
   const response = await request.get(
-    `${config.apis.policy}/api/customers/${customerId}/policies`,
+    `${config.apis.policy}/api/customers/${customerId}/lifecycles`,
     { timeout: config.timeouts.apiRequest }
   );
 
@@ -58,7 +59,7 @@ export async function getCustomerPolicies(
 
   expect(response.status()).toBe(200);
   const data: CustomerPoliciesResponse = await response.json();
-  return data.policies;
+  return data.policies ?? data.lifeCycles ?? [];
 }
 
 /**

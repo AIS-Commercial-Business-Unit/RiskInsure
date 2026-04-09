@@ -125,38 +125,65 @@ try
     var paymentMethodsContainerName = builder.Configuration["CosmosDb:PaymentMethodsContainerName"] ?? "fundtransfermgt-paymentmethods";
     var transactionsContainerName = builder.Configuration["CosmosDb:TransactionsContainerName"] ?? "fundtransfermgt-transactions";
 
-    // Configure CosmosClient to use System.Text.Json serialization and Direct mode for best performance
+    // Configure CosmosClient to use System.Text.Json serialization and Gateway mode for startup resilience
     var cosmosClientOptions = new CosmosClientOptions
     {
-        ConnectionMode = ConnectionMode.Direct, // Direct mode is ~3x faster than Gateway mode
+        ConnectionMode = ConnectionMode.Gateway,
         Serializer = new CosmosSystemTextJsonSerializer(new System.Text.Json.JsonSerializerOptions
         {
             PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
             DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
             Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
         }),
-        RequestTimeout = TimeSpan.FromSeconds(10), // Set reasonable timeout
-        MaxRetryAttemptsOnRateLimitedRequests = 3,
-        MaxRetryWaitTimeOnRateLimitedRequests = TimeSpan.FromSeconds(5)
+        RequestTimeout = TimeSpan.FromSeconds(30),
+        MaxRetryAttemptsOnRateLimitedRequests = 9,
+        MaxRetryWaitTimeOnRateLimitedRequests = TimeSpan.FromSeconds(30)
     };
 
     var cosmosClient = new CosmosClient(cosmosConnectionString, cosmosClientOptions);
 
     // Initialize database and containers on startup
     Log.Information("Initializing Cosmos DB database {DatabaseName}", databaseName);
-    await CosmosDbInitializer.EnsureDbAndContainerAsync(
-        cosmosClient,
-        databaseName,
-        paymentMethodsContainerName,
-        "/customerId",
-        databaseThroughput: 1000); // Database-level: 1000 RU/s shared across ALL containers (FREE TIER)
+    _ = Task.Run(async () =>
+    {
+        try
+        {
+            await CosmosDbInitializer.EnsureDbAndContainerAsync(
+                cosmosClient,
+                databaseName,
+                paymentMethodsContainerName,
+                "/customerId",
+                databaseThroughput: 1000); // Database-level: 1000 RU/s shared across ALL containers (FREE TIER)
 
-    await CosmosDbInitializer.EnsureDbAndContainerAsync(
-        cosmosClient,
-        databaseName,
-        transactionsContainerName,
-        "/customerId",
-        databaseThroughput: 1000); // Reuses same database throughput
+            await CosmosDbInitializer.EnsureDbAndContainerAsync(
+                cosmosClient,
+                databaseName,
+                transactionsContainerName,
+                "/customerId",
+                databaseThroughput: 1000); // Reuses same database throughput
+
+            Log.Information(
+                "Cosmos bootstrap for containers {PaymentMethodsContainer} and {TransactionsContainer} completed in background.",
+                paymentMethodsContainerName,
+                transactionsContainerName);
+        }
+        catch (CosmosException ex)
+        {
+            Log.Warning(
+                ex,
+                "Cosmos bootstrap for containers {PaymentMethodsContainer} and/or {TransactionsContainer} did not complete in background. API remains online and will retry through normal request paths.",
+                paymentMethodsContainerName,
+                transactionsContainerName);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(
+                ex,
+                "Unexpected failure while bootstrapping Cosmos containers {PaymentMethodsContainer} and/or {TransactionsContainer} in background.",
+                paymentMethodsContainerName,
+                transactionsContainerName);
+        }
+    });
 
     var paymentMethodsContainer = cosmosClient.GetContainer(databaseName, paymentMethodsContainerName);
     var transactionsContainer = cosmosClient.GetContainer(databaseName, transactionsContainerName);
