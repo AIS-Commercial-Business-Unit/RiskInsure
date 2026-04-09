@@ -34,9 +34,9 @@ export interface TestConfig {
 export function getTestConfig(): TestConfig {
   return {
     apis: {
-      customer: process.env.CUSTOMER_API_URL || 'http://127.0.0.1:7073',      
-      ratingandunderwriting: process.env.RATING_API_URL || 'http://127.0.0.1:7079',
-      policy: process.env.POLICY_API_URL || 'http://127.0.0.1:7077',
+      customer: process.env.CUSTOMER_API_URL || 'http://127.0.0.1:7083',
+      ratingandunderwriting: process.env.RATING_API_URL || 'http://127.0.0.1:7087',
+      policy: process.env.POLICY_API_URL || 'http://127.0.0.1:7085',
       fundsTransfer: process.env.FUNDS_TRANSFER_API_URL || 'http://127.0.0.1:7075',
       customerrelationshipsmgt: process.env.CUSTOMER_RELATIONSHIPS_MGT_API_URL || 'http://127.0.0.1:7083',
       policyequityandinvoicingmgt: process.env.POLICY_EQUITY_AND_INVOICING_MGT_API_URL || 'http://127.0.0.1:7081',

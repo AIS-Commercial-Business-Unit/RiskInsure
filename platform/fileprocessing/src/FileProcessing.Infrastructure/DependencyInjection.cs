@@ -54,7 +54,7 @@ public static class DependencyInjection
 
             var cosmosClientOptions = new CosmosClientOptions
             {
-                ConnectionMode = ConnectionMode.Direct,
+                ConnectionMode = ConnectionMode.Gateway,
                 Serializer = new CosmosSystemTextJsonSerializer(serializerOptions),
                 RequestTimeout = TimeSpan.FromSeconds(10),
                 MaxRetryAttemptsOnRateLimitedRequests = 3,

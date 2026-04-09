@@ -3,6 +3,7 @@ using Microsoft.Azure.Cosmos.Encryption;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Azure.Security.KeyVault.Keys.Cryptography;
+using System.Net;
 
 namespace RiskInsure.FileProcessing.Infrastructure.Cosmos;
 
@@ -115,9 +116,10 @@ public class CosmosDbContext
         {
             if (!_databaseInitialized)
             {
-                await _cosmosClient.CreateDatabaseIfNotExistsAsync(
-                    _databaseName,
-                    cancellationToken: cancellationToken);
+                await ExecuteWithRetryAsync(
+                    async ct => await _cosmosClient.CreateDatabaseIfNotExistsAsync(_databaseName, cancellationToken: ct),
+                    $"create database {_databaseName}",
+                    cancellationToken);
 
                 _databaseInitialized = true;
             }
@@ -130,15 +132,17 @@ public class CosmosDbContext
             {
                 try
                 {
-                    ClientEncryptionKeyProperties dekProperties = await database.CreateClientEncryptionKeyAsync(
-                        clientEncryptionKeyId: encryptionMetadata.DataEncryptionKeyName,
-                        encryptionAlgorithm: DataEncryptionAlgorithm.AeadAes256CbcHmacSha256,
-                        encryptionKeyWrapMetadata: new EncryptionKeyWrapMetadata(
-                            type: KeyEncryptionKeyResolverName.AzureKeyVault,
-                            name: "name of cmk?",
-                            value: encryptionMetadata.CmkKeyId, // Example: https://<my-key-vault>.vault.azure.net/keys/<key>/<version>
-                            algorithm: EncryptionAlgorithm.RsaOaep.ToString())
-                    );
+                    ClientEncryptionKeyProperties dekProperties = await ExecuteWithRetryAsync(
+                        async ct => await database.CreateClientEncryptionKeyAsync(
+                            clientEncryptionKeyId: encryptionMetadata.DataEncryptionKeyName,
+                            encryptionAlgorithm: DataEncryptionAlgorithm.AeadAes256CbcHmacSha256,
+                            encryptionKeyWrapMetadata: new EncryptionKeyWrapMetadata(
+                                type: KeyEncryptionKeyResolverName.AzureKeyVault,
+                                name: "name of cmk?",
+                                value: encryptionMetadata.CmkKeyId,
+                                algorithm: EncryptionAlgorithm.RsaOaep.ToString())),
+                        $"create DEK {encryptionMetadata.DataEncryptionKeyName}",
+                        ct: cancellationToken);
                     _logger.LogInformation("DEK Key created: " + dekProperties.Id);
                 }
                 catch (CosmosException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Conflict)
@@ -160,15 +164,44 @@ public class CosmosDbContext
                 TryApplyEncryptionPolicy(containerProperties, encryptionMetadata, containerName);
             }
 
-            await database.CreateContainerIfNotExistsAsync(
-                containerProperties,
-                cancellationToken: cancellationToken);
+            await ExecuteWithRetryAsync(
+                async ct => await database.CreateContainerIfNotExistsAsync(containerProperties, cancellationToken: ct),
+                $"create container {containerName}",
+                cancellationToken);
         }
         finally
         {
             InitializationLock.Release();
         }
     }
+
+    private async Task<T> ExecuteWithRetryAsync<T>(Func<CancellationToken, Task<T>> action, string operationName, CancellationToken ct)
+    {
+        var delay = TimeSpan.FromSeconds(1);
+        for (var attempt = 1; attempt <= 20; attempt++)
+        {
+            try
+            {
+                return await action(ct);
+            }
+            catch (CosmosException ex) when (IsTransient(ex) && attempt < 20)
+            {
+                _logger.LogWarning(ex, "Transient Cosmos failure during {Operation} (attempt {Attempt}/20). Retrying in {DelayMs}ms.", operationName, attempt, (int)delay.TotalMilliseconds);
+                await Task.Delay(delay, ct);
+                delay = TimeSpan.FromMilliseconds(Math.Min(delay.TotalMilliseconds * 2, 15000));
+            }
+        }
+
+        return await action(ct);
+    }
+
+    private static bool IsTransient(CosmosException ex) =>
+        ex.StatusCode == HttpStatusCode.ServiceUnavailable
+        || ex.StatusCode == HttpStatusCode.RequestTimeout
+        || ex.StatusCode == HttpStatusCode.TooManyRequests
+        || ex.StatusCode == HttpStatusCode.InternalServerError
+        || ex.StatusCode == HttpStatusCode.BadGateway
+        || ex.StatusCode == HttpStatusCode.GatewayTimeout;
 
     private void TryApplyEncryptionPolicy(
         ContainerProperties containerProperties,

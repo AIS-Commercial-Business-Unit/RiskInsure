@@ -26,7 +26,7 @@ public static class NServiceBusConfigurationExtensions
 
             endpointConfiguration
                 .ApplyNServiceBusLicense(context.Configuration)
-                .PersistWithCosmosDb(context.Configuration)
+                .PersistWithCosmosDb(context.Configuration, isSendOnly)
                 .ApplySharedEndpointConfiguration();
 
             // Heartbeats, metrics, and custom checks only apply to full endpoints
@@ -173,7 +173,7 @@ public static class NServiceBusConfigurationExtensions
     }
 
     private static EndpointConfiguration PersistWithCosmosDb(this 
-    EndpointConfiguration endpointConfiguration, IConfiguration configuration)
+    EndpointConfiguration endpointConfiguration, IConfiguration configuration, bool isSendOnly)
     {
         var cosmosConnectionString = configuration["ConnectionStrings:CosmosDb"];
         if (string.IsNullOrWhiteSpace(cosmosConnectionString))
@@ -182,12 +182,23 @@ public static class NServiceBusConfigurationExtensions
                 "CosmosDb endpoint missing. Add ConnectionStrings:CosmosDb to configuration");
         }
 
+        var cosmosClient = new CosmosClient(cosmosConnectionString, new CosmosClientOptions
+        {
+            ConnectionMode = ConnectionMode.Gateway
+        });
+
         var persistence = endpointConfiguration.UsePersistence<CosmosPersistence>();
-        persistence.CosmosClient(new CosmosClient(cosmosConnectionString));
+        persistence.CosmosClient(cosmosClient);
         // Todo: Configuration item
         persistence.DatabaseName("RiskInsure");
-        // Todo: Configuration item
-        persistence.DefaultContainer("policyequityandinvoicingmgt-sagas", "/accountId");
+
+        if (!isSendOnly)
+        {
+            // Todo: Configuration item
+            persistence.DefaultContainer("policyequityandinvoicingmgt-sagas", "/accountId");
+            CosmosDbInitializer.EnsureDbAndContainerAsync(cosmosClient, "RiskInsure", "policyequityandinvoicingmgt-sagas", "/accountId")
+                .GetAwaiter().GetResult();
+        }
 
         return endpointConfiguration;
     }

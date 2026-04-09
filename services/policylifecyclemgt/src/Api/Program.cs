@@ -78,10 +78,10 @@ try
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
             Converters = { new JsonStringEnumConverter() }
         }),
-        ConnectionMode = ConnectionMode.Direct,
-        RequestTimeout = TimeSpan.FromSeconds(10),
-        MaxRetryAttemptsOnRateLimitedRequests = 3,
-        MaxRetryWaitTimeOnRateLimitedRequests = TimeSpan.FromSeconds(5)
+        ConnectionMode = ConnectionMode.Gateway,
+        RequestTimeout = TimeSpan.FromSeconds(30),
+        MaxRetryAttemptsOnRateLimitedRequests = 9,
+        MaxRetryWaitTimeOnRateLimitedRequests = TimeSpan.FromSeconds(30)
     };
 
     var cosmosClient = new CosmosClient(cosmosConnectionString, cosmosClientOptions);
@@ -89,11 +89,21 @@ try
     // Initialize database and container
     Log.Information("Initializing Cosmos DB database {DatabaseName} and container {ContainerName}",
         databaseName, containerName);
-    await CosmosDbInitializer.EnsureDbAndContainerAsync(
-        cosmosClient,
-        databaseName,
-        containerName,
-        "/policyId");
+    try
+    {
+        await CosmosDbInitializer.EnsureDbAndContainerAsync(
+            cosmosClient,
+            databaseName,
+            containerName,
+            "/policyId");
+    }
+    catch (CosmosException ex)
+    {
+        Log.Warning(
+            ex,
+            "Cosmos bootstrap for container {ContainerName} did not complete during startup. API will continue and retry through normal request paths.",
+            containerName);
+    }
 
     var container = cosmosClient.GetContainer(databaseName, containerName);
     builder.Services.AddSingleton(container);

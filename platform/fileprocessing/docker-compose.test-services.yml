@@ -10,11 +10,6 @@ services:
     volumes:
       - azurite-data:/data
     command: azurite --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0 --loose --skipApiVersionCheck
-    healthcheck:
-      test: ["CMD", "nc", "-z", "localhost", "10000"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
     networks:
       - riskinsure
 
@@ -36,11 +31,6 @@ services:
       - LOG_STDOUT=true
     volumes:
       - ftp-data:/home/vsftpd
-    healthcheck:
-      test: ["CMD", "nc", "-z", "localhost", "21"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
     networks:
       - riskinsure
 

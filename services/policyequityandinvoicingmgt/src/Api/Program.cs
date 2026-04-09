@@ -118,19 +118,19 @@ try
     var databaseName = builder.Configuration["CosmosDb:DatabaseName"] ?? "RiskInsure";
     var policyEquityAndInvoicingMgtContainerName = builder.Configuration["CosmosDb:PolicyEquityAndInvoicingMgtContainerName"] ?? "policyequityandinvoicingmgt";
 
-    // Configure CosmosClient to use System.Text.Json serialization and Direct mode for best performance
+    // Configure CosmosClient to use System.Text.Json serialization and Gateway mode for startup resilience
     var cosmosClientOptions = new CosmosClientOptions
     {
-        ConnectionMode = ConnectionMode.Direct, // Direct mode is ~3x faster than Gateway mode
+        ConnectionMode = ConnectionMode.Gateway,
         Serializer = new CosmosSystemTextJsonSerializer(new System.Text.Json.JsonSerializerOptions
         {
             PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
             DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
             Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
         }),
-        RequestTimeout = TimeSpan.FromSeconds(10), // Set reasonable timeout
-        MaxRetryAttemptsOnRateLimitedRequests = 3,
-        MaxRetryWaitTimeOnRateLimitedRequests = TimeSpan.FromSeconds(5)
+        RequestTimeout = TimeSpan.FromSeconds(30),
+        MaxRetryAttemptsOnRateLimitedRequests = 9,
+        MaxRetryWaitTimeOnRateLimitedRequests = TimeSpan.FromSeconds(30)
     };
 
     var cosmosClient = new CosmosClient(cosmosConnectionString, cosmosClientOptions);
@@ -139,12 +139,36 @@ try
     // For serverless accounts, pass throughput: null
     // For provisioned accounts, specify RU/s (e.g., throughput: 400)
     Log.Information("Initializing Cosmos DB database {DatabaseName} and container {ContainerName}", databaseName, policyEquityAndInvoicingMgtContainerName);
-    await CosmosDbInitializer.EnsureDbAndContainerAsync(
-        cosmosClient,
-        databaseName,
-        policyEquityAndInvoicingMgtContainerName,
-        "/accountId",
-        databaseThroughput: 1000); // Database-level: 1000 RU/s shared across ALL containers (FREE TIER)
+    _ = Task.Run(async () =>
+    {
+        try
+        {
+            await CosmosDbInitializer.EnsureDbAndContainerAsync(
+                cosmosClient,
+                databaseName,
+                policyEquityAndInvoicingMgtContainerName,
+                "/accountId",
+                databaseThroughput: 1000); // Database-level: 1000 RU/s shared across ALL containers (FREE TIER)
+
+            Log.Information(
+                "Cosmos bootstrap for container {ContainerName} completed in background.",
+                policyEquityAndInvoicingMgtContainerName);
+        }
+        catch (CosmosException ex)
+        {
+            Log.Warning(
+                ex,
+                "Cosmos bootstrap for container {ContainerName} did not complete in background. API remains online and will retry through normal request paths.",
+                policyEquityAndInvoicingMgtContainerName);
+        }
+        catch (Exception ex)
+        {
+            Log.Error(
+                ex,
+                "Unexpected failure while bootstrapping Cosmos container {ContainerName} in background.",
+                policyEquityAndInvoicingMgtContainerName);
+        }
+    });
     Log.Information("Cosmos DB database initialization complete");
 
     var container = cosmosClient.GetContainer(databaseName, policyEquityAndInvoicingMgtContainerName);
